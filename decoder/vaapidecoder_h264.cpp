@@ -176,6 +176,199 @@ scan_for_start_code(const uint8_t* data ,
     return -1;
 }
 
+VaapiSliceH264::VaapiSliceH264(VADisplay display,
+    VAContextID ctx,
+    uint8_t *sliceData,
+    uint32_t sliceSize)
+{
+    VASliceParameterBufferH264* paramBuf;
+
+    if (!display || !ctx) {
+         ERROR("VA display or context not initialized yet");
+         return;
+    }
+
+    /* new h264 slice data buffer */
+    mData = new VaapiBufObject(display,
+                 ctx,
+                 VASliceDataBufferType,
+                 sliceData,
+                 sliceSize);
+
+    /* new h264 slice parameter buffer */
+    mParam = new VaapiBufObject(display,
+                 ctx,
+                 VASliceParameterBufferType,
+                 NULL,
+                 sizeof(VASliceParameterBufferH264));
+
+    paramBuf = (VASliceParameterBufferH264*)mParam->map();
+
+    paramBuf->slice_data_size   = sliceSize;
+    paramBuf->slice_data_offset = 0;
+    paramBuf->slice_data_flag   = VA_SLICE_DATA_FLAG_ALL;
+    mParam->unmap();
+
+    memset((void*)&slice_hdr, 0 , sizeof(slice_hdr));
+
+}
+
+VaapiSliceH264::~VaapiSliceH264()
+{
+    if (mData) {
+        delete mData;
+        mData = NULL;
+    }
+
+    if (mParam) {
+        delete mParam;
+        mParam = NULL;
+    }
+}
+
+VaapiPictureH264::VaapiPictureH264(VADisplay display,
+                     VAContextID context,
+                     VaapiSurfaceBufferPool *surfBufPool,
+                     VaapiPictureStructure structure)
+:VaapiPicture(display, context, surfBufPool, structure)
+{
+   pps             = NULL;
+   structure       = VAAPI_PICTURE_STRUCTURE_FRAME;
+   field_poc[0]    = 0;
+   field_poc[1]    = 0;
+   frame_num       = 0;
+   frame_num_wrap  = 0;
+   long_term_frame_idx = 0;
+   pic_num             = 0;
+   long_term_pic_num   = 0;
+   output_flag         = 0;
+   output_needed       = 0;
+   other_field         = NULL;
+
+   /* new h264 slice parameter buffer */
+   mPicParam = new VaapiBufObject(display,
+                 context,
+                 VAPictureParameterBufferType,
+                 NULL,
+                 sizeof(VAPictureParameterBufferH264));
+   if (!mPicParam)
+      ERROR("create h264 picture parameter buffer object failed");
+
+   mIqMatrix = new VaapiBufObject(display,
+                   context,
+                   VAIQMatrixBufferType,
+                   NULL,
+                   sizeof(VAIQMatrixBufferH264));
+   if (!mIqMatrix)
+      ERROR("create h264 iq matrix buffer object failed");
+
+}
+
+VaapiPictureH264*
+VaapiPictureH264::new_field()
+{
+/*
+   return new VaapiPictureH264(mDisplay,
+                               mContext,
+                               mSurface,
+                               mStructure);
+*/
+   ERROR("Not implemented yet");
+   return NULL;
+}
+
+VaapiFrameStore::VaapiFrameStore(VaapiPictureH264 *pic)
+{
+   structure  =  pic->structure;
+   buffers[0] =  pic;
+   buffers[1] =  NULL;
+   num_buffers = 1;
+   output_needed = pic->output_needed;
+}
+
+VaapiFrameStore::~VaapiFrameStore()
+{
+   if (buffers[0]) {
+      delete buffers[0];
+      buffers[0] = NULL;
+   }
+   if (buffers[1]) {
+      delete buffers[1];
+      buffers[1] = NULL;
+   }
+}
+
+void
+VaapiFrameStore::add_picture(VaapiPictureH264 *pic)
+{
+    uint8_t field;
+    assert(num_buffers == 1);
+    assert(pic->structure != VAAPI_PICTURE_STRUCTURE_FRAME);
+    buffers[1] = pic;
+
+    if(pic->output_flag) {
+       pic->output_needed = true;
+       output_needed++;
+    }
+
+    structure = VAAPI_PICTURE_STRUCTURE_FRAME;
+
+    field = pic->structure == VAAPI_PICTURE_STRUCTURE_TOP_FIELD ? 0 : 1;
+
+    assert(buffers[0]->field_poc[field] != MAXINT32);
+    buffers[0] ->field_poc[field] = pic->field_poc[field];
+
+    assert(pic->field_poc[!field] != MAXINT32);
+    pic->field_poc[!field] = buffers[0]->field_poc[!field];
+    num_buffers = num_buffers + 1;
+}
+
+bool
+VaapiFrameStore::split_fields()
+{
+    VaapiPictureH264 * const first_field = buffers[0];
+    VaapiPictureH264 * second_field;
+
+    assert(num_buffers == 1);
+
+    first_field->mStructure = VAAPI_PICTURE_STRUCTURE_TOP_FIELD;
+    first_field->mFlags |= VAAPI_PICTURE_FLAG_INTERLACED;
+
+    second_field = first_field->new_field();
+    second_field->frame_num    = first_field->frame_num;
+    second_field->field_poc[0] = first_field->field_poc[0];
+    second_field->field_poc[1] = first_field->field_poc[1];
+    second_field->output_flag  = first_field->output_flag;
+    if (second_field->output_flag) {
+        second_field->output_needed = true;
+        output_needed++;
+    }
+
+    num_buffers ++;
+    buffers[num_buffers] = second_field;
+
+    return true;
+}
+
+bool
+VaapiFrameStore::has_frame()
+{
+    return structure == VAAPI_PICTURE_STRUCTURE_FRAME;
+}
+
+bool
+VaapiFrameStore::has_reference()
+{
+    uint32_t i;
+
+    for (i = 0; i < num_buffers; i++) {
+        if (!buffers[i]) continue;
+        if (VAAPI_PICTURE_IS_REFERENCE(buffers[i]))
+            return true;
+    }
+    return false;
+}
+
 /////////////////////////////////////////////////////
 
 Decode_Status
