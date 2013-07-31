@@ -534,7 +534,9 @@ VaapiDecoderH264::init_picture(
     }
 
     init_picture_poc(picture, slice_hdr);
-    m_dpb_manager->init_picture_refs(picture, slice_hdr);
+
+    m_dpb_manager->init_picture_refs(picture, slice_hdr,
+                   m_frame_num);
     return true;
 }
 
@@ -855,7 +857,7 @@ VaapiDecoderH264::ensure_context(H264SPS *sps)
 
     if (!m_dpb_manager) {
         dpb_size = get_max_dec_frame_buffering(sps, 1); 
-        m_dpb_manager = new VaapiDPBManager(this, dpb_size);
+        m_dpb_manager = new VaapiDPBManager(dpb_size);
     }
  
    VideoConfigBuffer *config = &mConfigBuffer; 

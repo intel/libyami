@@ -127,8 +127,7 @@ class VaapiDecoderH264;
 
 class VaapiDPBManager{
 public:
-    VaapiDPBManager(VaapiDecoderH264 *dec,
-                    uint32_t dpb_size);
+    VaapiDPBManager(uint32_t dpb_size);
 
     /* Decode Picture Buffer operations */
     bool dpb_output(VaapiFrameStore *fs, VaapiPictureH264 *pic); 
@@ -139,7 +138,8 @@ public:
     bool dpb_add(VaapiFrameStore *new_fs, VaapiPictureH264 *pic);
     void dpb_reset(H264SPS *sps);
     /* initialize and reorder reference list */
-    void init_picture_refs(VaapiPictureH264 *pic, H264SliceHdr *slice_hdr);
+    void init_picture_refs(VaapiPictureH264 *pic, H264SliceHdr *slice_hdr,
+                           int32_t frame_num);
     /* marking pic after slice decoded */
     bool exec_ref_pic_marking(VaapiPictureH264 *pic, bool *has_mmco5);
 private:
@@ -165,7 +165,8 @@ private:
                                     uint32_t          ref_list_count);
 
     void init_picture_refs_pic_num(VaapiPictureH264 *pic, 
-                                   H264SliceHdr *slice_hdr);
+                                   H264SliceHdr *slice_hdr,
+                                   int32_t frame_num);
 
     void exec_picture_refs_modification(VaapiPictureH264 *picture,
                                         H264SliceHdr *slice_hdr);
@@ -188,8 +189,8 @@ private:
     int32_t find_long_term_reference(uint32_t long_term_picNum);
     void remove_short_reference(VaapiPictureH264 *picture);
     void dpb_remove_index(uint32_t idx);
+
 public:
-    VaapiDecoderH264     *decoder;
     VaapiDecPicBufLayer  *dpb_layer;
 };
 

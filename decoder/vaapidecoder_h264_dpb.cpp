@@ -394,11 +394,9 @@ VaapiFrameStore::has_reference()
 }
 
 VaapiDPBManager::VaapiDPBManager(
-    VaapiDecoderH264 *dec,
     uint32_t dpb_size)
 {
     uint32_t i;
-    decoder   = dec; 
     dpb_layer = (VaapiDecPicBufLayer*)malloc(sizeof(VaapiDecPicBufLayer)) ;
     memset((void*)dpb_layer, 0, sizeof(VaapiDecPicBufLayer));
     dpb_layer->dpb_size = dpb_size;
@@ -558,14 +556,15 @@ VaapiDPBManager::dpb_reset(H264SPS *sps)
 void
 VaapiDPBManager::init_picture_refs(
     VaapiPictureH264 *pic,
-    H264SliceHdr     *slice_hdr
+    H264SliceHdr     *slice_hdr,
+    int32_t          frame_num
 )
 {
     uint32_t i, num_refs;
 
     init_picture_ref_lists(pic);
 
-    init_picture_refs_pic_num(pic, slice_hdr);
+    init_picture_refs_pic_num(pic, slice_hdr, frame_num);
 
     dpb_layer->RefPicList0_count = 0;
     dpb_layer->RefPicList1_count = 0;
@@ -944,7 +943,8 @@ VaapiDPBManager::init_picture_refs_fields_1(
 void
 VaapiDPBManager::init_picture_refs_pic_num(
     VaapiPictureH264 *picture,
-    H264SliceHdr     *slice_hdr
+    H264SliceHdr     *slice_hdr,
+    int32_t          frame_num
 )
 {
     H264PPS * const pps = slice_hdr->pps;
@@ -958,7 +958,7 @@ VaapiDPBManager::init_picture_refs_pic_num(
         VaapiPictureH264 * const pic = dpb_layer->short_ref[i];
         
         // (8-27)
-        if (pic->frame_num > decoder->m_frame_num)
+        if (pic->frame_num > frame_num)
             pic->frame_num_wrap = pic->frame_num - MaxFrameNum;
         else
             pic->frame_num_wrap = pic->frame_num;
