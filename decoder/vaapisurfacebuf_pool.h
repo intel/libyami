@@ -33,12 +33,6 @@
 #define MAXIMUM_POC  0x7FFFFFFF
 #define MINIMUM_POC  0x80000000
 
-enum {
-   QUERY_BY_INDEX = 0,
-   QUERY_BY_SURFACE_ID,
-   QUERY_BY_HANDLE
-};
-
 class VaapiSurfaceBufferPool {
 public: 
    VaapiSurfaceBufferPool(VADisplay display,

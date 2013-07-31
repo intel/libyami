@@ -136,7 +136,7 @@ public:
     bool dpb_bump();
     void dpb_clear();
     void dpb_flush();
-    bool dpb_add(VaapiPictureH264 *pic);
+    bool dpb_add(VaapiFrameStore *new_fs, VaapiPictureH264 *pic);
     void dpb_reset(H264SPS *sps);
     /* initialize and reorder reference list */
     void init_picture_refs(VaapiPictureH264 *pic, H264SliceHdr *slice_hdr);
@@ -248,6 +248,8 @@ private:
    /* decoding functions */
    bool is_new_picture(H264NalUnit *nalu,
                        H264SliceHdr *slice_hdr);
+   
+   Decode_Status store_decoded_picture(VaapiPictureH264 *pic);
    Decode_Status decode_current_picture();
    Decode_Status decode_picture(H264NalUnit *nalu, 
                        H264SliceHdr *slice_hdr);

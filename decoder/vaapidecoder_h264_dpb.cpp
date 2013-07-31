@@ -469,7 +469,6 @@ VaapiDPBManager::dpb_clear()
          dpb_layer->dpb[i] = NULL;
       }
       dpb_layer->dpb_count = 0;
-      decoder->m_prev_frame = 0; 
     }
 }
 
@@ -482,7 +481,7 @@ VaapiDPBManager::dpb_flush()
 }
 
 bool
-VaapiDPBManager::dpb_add(VaapiPictureH264 *pic)
+VaapiDPBManager::dpb_add(VaapiFrameStore *new_fs, VaapiPictureH264 *pic)
 {
     uint32_t i, j;
     VaapiFrameStore *fs;
@@ -500,38 +499,17 @@ VaapiDPBManager::dpb_add(VaapiPictureH264 *pic)
         }
     }
 
-    // Check if picture is the second field and the first field is still in DPB
-    fs = decoder->m_prev_frame;
-    if (fs && !fs->has_frame()) {
-        RETURN_IF_FAIL(fs->num_buffers == 1, false);
-        RETURN_IF_FAIL(VAAPI_PICTURE_IS_FRAME(pic), false);
-        RETURN_IF_FAIL(VAAPI_PICTURE_IS_FIRST_FIELD(pic), false);
-        fs->add_picture(pic);
-        // Remove all unused pictures
-        return true;
-    }
-
-    // Create new frame store, and split fields if necessary
-    fs = new VaapiFrameStore(pic);
-    if (!fs)
-        return false;
-    decoder->m_prev_frame = fs;
-
-    if (!decoder->m_progressive_sequence && fs->has_frame()) {
-        if (!fs->split_fields())
-            return false;
-    }
-
     // C.4.5.1 - Storage and marking of a reference decoded picture into the DPB
     if (VAAPI_PICTURE_IS_REFERENCE(pic)) {
         while (dpb_layer->dpb_count == dpb_layer->dpb_size) {
             if (!dpb_bump())
                 return false;
         }
-        dpb_layer->dpb[dpb_layer->dpb_count++] = fs;
+
+        dpb_layer->dpb[dpb_layer->dpb_count++] = new_fs;
         if (pic->output_flag) {
             pic->output_needed = true;
-            fs->output_needed++;
+            new_fs->output_needed++;
         }
     }
     // C.4.5.2 - Storage and marking of a non-reference decoded picture into the DPB
@@ -541,12 +519,12 @@ VaapiDPBManager::dpb_add(VaapiPictureH264 *pic)
         while (dpb_layer->dpb_count == dpb_layer->dpb_size) {
             bool found_picture = false;
             for (i = 0; !found_picture && i < dpb_layer->dpb_count; i++) {
-                VaapiFrameStore * const tmp_fs = dpb_layer->dpb[i];
-                if (!tmp_fs->output_needed)
+                fs = dpb_layer->dpb[i];
+                if (!fs->output_needed)
                     continue;
                 for (j = 0; !found_picture && j < fs->num_buffers; j++)
-                    found_picture = tmp_fs->buffers[j]->output_needed &&
-                        tmp_fs->buffers[j]->mPoc < pic->mPoc;
+                    found_picture = fs->buffers[j]->output_needed &&
+                        fs->buffers[j]->mPoc < pic->mPoc;
             }
             if (!found_picture)
                 return dpb_output(NULL, pic);
@@ -554,9 +532,9 @@ VaapiDPBManager::dpb_add(VaapiPictureH264 *pic)
                 return false;
         }
 
-        dpb_layer->dpb[dpb_layer->dpb_count++] = fs;
+        dpb_layer->dpb[dpb_layer->dpb_count++] = new_fs;
         pic->output_needed = true;
-        fs->output_needed++;
+        new_fs->output_needed++;
     }
 
     return true;
@@ -1401,4 +1379,5 @@ VaapiDPBManager::dpb_remove_index(uint32_t index)
         dpb_layer->dpb[index] = dpb_layer->dpb[num_frames];
     
     dpb_layer->dpb[num_frames] = NULL;
+
 }

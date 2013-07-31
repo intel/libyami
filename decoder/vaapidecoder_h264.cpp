@@ -459,7 +459,6 @@ VaapiDecoderH264::init_picture_poc(
 
     picture->mPoc = MIN(picture->field_poc[0], picture->field_poc[1]); 
 
-    INFO("1.H264: pic %p, mPoc %d", picture, picture->mPoc);
 }
 
 bool
@@ -483,6 +482,7 @@ VaapiDecoderH264::init_picture(
         INFO("<IDR>");
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_IDR);
         m_dpb_manager->dpb_flush();
+        m_prev_frame = NULL;
     } 
 
     /* Initialize slice type */
@@ -610,7 +610,7 @@ VaapiDecoderH264::fill_picture(
 
     for (i = 0, n = 0; i < dpb_layer->dpb_count; i++) {
         VaapiFrameStore * const fs = dpb_layer->dpb[i];
-        if (fs->has_reference())
+        if (fs && fs->has_reference())
             vaapi_fill_picture(&pic_param->ReferenceFrames[n++],
                 fs->buffers[0], fs->structure);
     }
@@ -981,6 +981,42 @@ VaapiDecoderH264::is_new_picture(
 }
 
 Decode_Status
+VaapiDecoderH264::store_decoded_picture(VaapiPictureH264 *pic)
+{
+     VaapiFrameStore *fs;
+    // Check if picture is the second field and the first field is still in DPB
+    if (m_prev_frame && !m_prev_frame->has_frame()) {
+        RETURN_IF_FAIL(m_prev_frame->num_buffers == 1, false);
+        RETURN_IF_FAIL(VAAPI_PICTURE_IS_FRAME(m_current_picture), false);
+        RETURN_IF_FAIL(VAAPI_PICTURE_IS_FIRST_FIELD(m_current_picture), false);
+        m_prev_frame->add_picture(m_current_picture);
+        // Remove all unused pictures
+        INFO("field pictre appear here ");
+        return true;
+    }
+
+    // Create new frame store, and split fields if necessary
+    fs = new VaapiFrameStore(pic);
+
+    if (!fs)
+        return false;
+    m_prev_frame = fs;
+
+    if (!m_progressive_sequence && fs->has_frame()) {
+        if (!fs->split_fields())
+            return false;
+    }
+
+    if (!m_dpb_manager->dpb_add(fs, pic))
+        return false;
+ 
+    if (m_prev_frame && m_prev_frame->has_frame())
+        m_current_picture = NULL;
+ 
+    return true;
+}
+
+Decode_Status
 VaapiDecoderH264::decode_current_picture()
 {
     Decode_Status status;
@@ -994,15 +1030,12 @@ VaapiDecoderH264::decode_current_picture()
 
     if (!m_dpb_manager->exec_ref_pic_marking(m_current_picture))
         goto error;
-    if (!m_dpb_manager->dpb_add(m_current_picture))
-        goto error;
 
     if (!m_current_picture->decodePicture())
         goto error;
-    if (m_prev_frame && m_prev_frame->has_frame()){
-        //the picture will be released by DPB 
-        m_current_picture = NULL;
-    }
+
+    if (!store_decoded_picture(m_current_picture))
+        goto error;
 
     return DECODE_SUCCESS;
 error:
@@ -1336,6 +1369,8 @@ VaapiDecoderH264::reset(VideoConfigBuffer *buffer)
    DEBUG("H264: reset");
    if(m_dpb_manager)
       m_dpb_manager->dpb_flush();
+
+   m_prev_frame = NULL;
    return VaapiDecoderBase::reset(buffer);
 }
 
