@@ -980,7 +980,23 @@ VaapiDecoderH264::is_new_picture(
     return false;
 }
 
-Decode_Status
+bool
+VaapiDecoderH264::marking_picture(VaapiPictureH264 *pic)
+{
+    if (!m_dpb_manager->exec_ref_pic_marking(pic, &m_prev_pic_has_mmco5))
+       return false;
+
+    if (m_prev_pic_has_mmco5) {
+        m_frame_num = 0;
+        m_frame_num_offset = 0;
+    }
+
+    m_prev_pic_structure = pic->structure;
+
+    return true;
+}
+
+bool
 VaapiDecoderH264::store_decoded_picture(VaapiPictureH264 *pic)
 {
      VaapiFrameStore *fs;
@@ -1028,7 +1044,7 @@ VaapiDecoderH264::decode_current_picture()
     if (status != DECODE_SUCCESS)
         return status;
 
-    if (!m_dpb_manager->exec_ref_pic_marking(m_current_picture))
+    if (!marking_picture(m_current_picture))
         goto error;
 
     if (!m_current_picture->decodePicture())

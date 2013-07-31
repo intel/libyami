@@ -605,11 +605,10 @@ VaapiDPBManager::init_picture_refs(
 }
 
 bool
-VaapiDPBManager::exec_ref_pic_marking(VaapiPictureH264 *pic)
+VaapiDPBManager::exec_ref_pic_marking(VaapiPictureH264 *pic, bool *has_mmco5)
 {
-    decoder->m_prev_pic_has_mmco5 = false;
-    decoder->m_prev_pic_structure = pic->structure;
-    
+    *has_mmco5 = false;
+
     if (!VAAPI_PICTURE_IS_REFERENCE(pic)){
         return true;
     }
@@ -619,7 +618,7 @@ VaapiDPBManager::exec_ref_pic_marking(VaapiPictureH264 *pic)
         H264DecRefPicMarking * const dec_ref_pic_marking =
             &slice->slice_hdr.dec_ref_pic_marking;
         if (dec_ref_pic_marking->adaptive_ref_pic_marking_mode_flag) {
-            if (!exec_ref_pic_marking_adaptive(pic, dec_ref_pic_marking))
+            if (!exec_ref_pic_marking_adaptive(pic, dec_ref_pic_marking, has_mmco5))
                 return false;
         }
         else {
@@ -627,10 +626,6 @@ VaapiDPBManager::exec_ref_pic_marking(VaapiPictureH264 *pic)
                 return false;
         }
 
-        if (!decoder->m_prev_pic_has_mmco5 &&
-            VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(pic)){
-               remove_short_reference(pic);
-            }
     }
 
     return true;
@@ -1143,7 +1138,8 @@ VaapiDPBManager::exec_picture_refs_modification_1(
 bool
 VaapiDPBManager::exec_ref_pic_marking_adaptive(
     VaapiPictureH264     *picture,
-    H264DecRefPicMarking *dec_ref_pic_marking)
+    H264DecRefPicMarking *dec_ref_pic_marking,
+    bool *has_mmco5)
 {
     uint32_t i;
     for (i = 0; i < dec_ref_pic_marking->n_ref_pic_marking; i++) {
@@ -1151,6 +1147,9 @@ VaapiDPBManager::exec_ref_pic_marking_adaptive(
             &dec_ref_pic_marking->ref_pic_marking[i];
 
         uint32_t mmco = ref_pic_marking->memory_management_control_operation;
+        if (mmco == 5)
+            *has_mmco5 = true;
+
         exec_ref_pic_marking_adaptive_1(picture, ref_pic_marking, mmco);
     }
     return true;
@@ -1238,20 +1237,19 @@ VaapiDPBManager::exec_ref_pic_marking_adaptive_1(
       case 5:
         {
             dpb_flush();
+            /* The picture shall be inferred to have had frame_num equal to 0 (7.4.3) */
+            picture->frame_num = 0;
 
-            decoder->m_prev_pic_has_mmco5 = true;
-             /* The picture shall be inferred to have had frame_num equal to 0 (7.4.3) */
-            decoder->m_frame_num = 0;
-            decoder->m_frame_num_offset = 0;
-            decoder->m_frame_num = 0;
-
-             /* Update TopFieldOrderCnt and BottomFieldOrderCnt (8.2.1) */
+            /* Update TopFieldOrderCnt and BottomFieldOrderCnt (8.2.1) */
             if (picture->structure != VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD)
                 picture->field_poc[TOP_FIELD] -= picture->mPoc;
             if (picture->structure != VAAPI_PICTURE_STRUCTURE_TOP_FIELD)
                 picture->field_poc[BOTTOM_FIELD] -= picture->mPoc;
 
                 picture->mPoc = 0;
+
+            if (VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(picture))
+                 remove_short_reference(picture);
         } 
         break;
       case 6:

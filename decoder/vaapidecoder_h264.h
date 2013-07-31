@@ -141,7 +141,7 @@ public:
     /* initialize and reorder reference list */
     void init_picture_refs(VaapiPictureH264 *pic, H264SliceHdr *slice_hdr);
     /* marking pic after slice decoded */
-    bool exec_ref_pic_marking(VaapiPictureH264 *pic);
+    bool exec_ref_pic_marking(VaapiPictureH264 *pic, bool *has_mmco5);
 private:
     /* prepare reference list before decoding slice */
     void init_picture_ref_lists(VaapiPictureH264 *pic);
@@ -176,7 +176,8 @@ private:
 
     /* marking reference list after decoding slice*/
     bool exec_ref_pic_marking_adaptive(VaapiPictureH264 *picture,
-                              H264DecRefPicMarking *dec_ref_pic_marking);
+                              H264DecRefPicMarking *dec_ref_pic_marking,
+                              bool *has_mmco5);
     bool exec_ref_pic_marking_adaptive_1(VaapiPictureH264 *picture,
                               H264RefPicMarking *ref_pic_marking,
                               uint32_t mmco);
@@ -249,7 +250,8 @@ private:
    bool is_new_picture(H264NalUnit *nalu,
                        H264SliceHdr *slice_hdr);
    
-   Decode_Status store_decoded_picture(VaapiPictureH264 *pic);
+   bool marking_picture(VaapiPictureH264 *pic);
+   bool store_decoded_picture(VaapiPictureH264 *pic);
    Decode_Status decode_current_picture();
    Decode_Status decode_picture(H264NalUnit *nalu, 
                        H264SliceHdr *slice_hdr);
