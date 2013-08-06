@@ -15,7 +15,8 @@ LOCAL_SRC_FILES := \
     h264parser.c      \
     vc1parser.c       \
     mpeg4parser.c     \
-    mpegvideoparser.c 
+    mpegvideoparser.c \
+    vp8parser.c
 
 LOCAL_C_INCLUDES:= \
         $(TOP)/frameworks/base/include \
