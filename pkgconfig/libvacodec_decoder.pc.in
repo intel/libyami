@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libvacodec decoder part
+Description: Intel Open source decoder based on libva
+Version: 1.0.0
+Libs: -L${libdir}
+Cflags: -I${includedir}

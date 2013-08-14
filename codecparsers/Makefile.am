@@ -1,0 +1,45 @@
+libcodecparser_source_c = \
+        bitreader.c \
+        bytereader.c \
+        h264parser.c \
+        mpegvideoparser.c \
+        mpeg4parser.c \
+        vc1parser.c \
+        vp8parser.c \
+        parserutils.c \
+	$(NULL)
+
+libcodecparser_source_h = \
+        bitreader.h \
+        bytereader.h \
+        h264parser.h \
+        mpegvideoparser.h \
+        mpeg4parser.h \
+        vc1parser.h \
+        vp8parser.h \
+        parserutils.h \
+        basictype.h \
+        log.h \
+	$(NULL)
+
+libcodecparser_source_h_priv = \
+	$(NULL)
+
+libcodecparser_ldflags = \
+	$(NULL)
+
+libcodecparser_cppflags = \
+	$(NULL)
+
+lib_LTLIBRARIES			= libcodecparser.la
+libcodecparserincludedir         = ${includedir}/libvacodec/codecparser
+libcodecparserinclude_HEADERS   = $(libcodecparser_source_h)
+noinst_HEADERS                  = $(libcodecparser_source_h_priv)
+libcodecparser_la_SOURCES	= $(libcodecparser_source_c)
+libcodecparser_la_LDFLAGS	= $(libcodecparser_ldflags)
+libcodecparser_la_CPPFLAGS      = $(libcodecparser_cppflags)
+
+DISTCLEANFILES = \
+	Makefile.in
+
+
