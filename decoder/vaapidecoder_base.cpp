@@ -22,10 +22,13 @@
 *
 */
 #include <string.h>
-#include <va/va_android.h>
 #include <va/va_backend.h>
 #include "vaapidecoder_base.h"
 #include "common/log.h"
+
+#ifdef ANDROID
+#include <va/va_android.h>
+#endif
 
 #define INVALID_PTS ((uint64_t)-1)
 #define INVALID_POC ((uint32_t)-1)
@@ -265,8 +268,12 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
         return DECODE_FAIL;
     }
 
+#ifdef ANDROID
     mDisplay = new Display;
     *mDisplay = ANDROID_DISPLAY_HANDLE;
+#else
+    mDisplay = XOpenDisplay(NULL);
+#endif
 
     mVADisplay = vaGetDisplay(mDisplay);
     if (mVADisplay == NULL) {
