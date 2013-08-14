@@ -315,10 +315,10 @@ VaapiFrameStore::add_picture(VaapiPictureH264 *pic)
 
     field = pic->structure == VAAPI_PICTURE_STRUCTURE_TOP_FIELD ? 0 : 1;
 
-    assert(buffers[0]->field_poc[field] != MAXINT32);
+    assert(buffers[0]->field_poc[field] != INT32_MAX);
     buffers[0] ->field_poc[field] = pic->field_poc[field];
 
-    assert(pic->field_poc[!field] != MAXINT32);
+    assert(pic->field_poc[!field] != INT32_MAX);
     pic->field_poc[!field] = buffers[0]->field_poc[!field];
     num_buffers = num_buffers + 1;
 }

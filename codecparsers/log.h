@@ -8,11 +8,12 @@
 #define LOG_WARNING(...) ALOGV(__VA_ARGS__);
 #define LOG_DEBUG(...)   ALOGV(__VA_ARGS__);
 #else
+#include <stdio.h>
 #define LOG_ERROR(...)   fprintf(stderr, __VA_ARGS__)
 #define LOG_INFO(...)    fprintf(stderr, __VA_ARGS__)
 #define LOG_WARNING(...) fprintf(stderr, __VA_ARGS__)
 #define LOG_DEBUG(...)   fprintf(stderr, __VA_ARGS__)
-#endif //ANDROID
+#endif
 
 #define RETURN_IF_FAIL(condition) \
     if (!(condition)) \

@@ -28,7 +28,6 @@ typedef unsigned int       uint32;
 typedef unsigned long long uint64;
 typedef signed char        boolean;
 
-#if 0
 #define UINT8_MAX    (( uint8) 0xFF)
 #define UINT16_MAX   ((uint16) 0xFFFF)
 #define UINT32_MAX   ((uint32) 0xFFFFFFFF)
@@ -51,7 +50,6 @@ typedef signed char        boolean;
 #define INT_MAX   INT32_MAX
 #define INT_MIN   INT32_MIN
 #define UINT_MAX  UINT32_MAX
-#endif
 #endif
 
 #endif  // __BASICTYPES_H_
