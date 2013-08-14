@@ -6,8 +6,7 @@ LOCAL_SRC_FILES := \
         vaapiutils.cpp        \
         vaapisurface.cpp      \
         vaapiimage.cpp        \
-        vaapibuffer.cpp \
-        vaapisurface_pool.cpp \
+        vaapibuffer.cpp 
 
 LOCAL_C_INCLUDES:= \
         $(TARGET_OUT_HEADERS)/libva \
