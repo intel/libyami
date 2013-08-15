@@ -1,5 +1,5 @@
 /* gstreamer
- * Copyright (C) <2013> Intel
+ * Copyright (C) <2013> Intel Coperation
  * Copyright (C) <2013> Halley Zhao<halley.zhao@intel.com>
  *
  * This library is free software; you can redistribute it and/or

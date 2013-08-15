@@ -1,8 +1,7 @@
 /*
- *  vaapiimage.c - VA image abstraction
+ *  vaapiimage.cpp - VA image abstraction
  *
- *  Copyright (C) 2010-2011 Splitted-Desktop Systems
- *  Copyright (C) 2011-2012 Intel Corporation
+ *  Copyright (C) 2013 Intel Corporation
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -20,10 +19,6 @@
  *  Boston, MA 02110-1301 USA
  */
 
-/**
- * SECTION:vaapiimage
- * @short_description: VA image wrapper
- */
 #include <stdlib.h>
 #include "log.h"
 #include "vaapiutils.h"

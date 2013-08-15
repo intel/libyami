@@ -1,8 +1,7 @@
 /*
  *  vaapipicture.c - objects for va decode
  *
- *  Copyright (C) 2010-2011 Splitted-Desktop Systems
- *  Copyright (C) 2011-2012 Intel Corporation
+ *  Copyright (C) 2013 Intel Corporation
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -19,6 +18,7 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+
 #include <assert.h>
 #include "vaapipicture.h"
 #include "common/vaapiutils.h"

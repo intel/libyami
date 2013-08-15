@@ -1,5 +1,5 @@
-/* reamer
- * Copyright (C) <2011> Intel
+/* 
+ * Copyright (C) <2011> Intel Coperation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
  *
