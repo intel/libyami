@@ -28,10 +28,6 @@
 #include <va/va_android.h>
 #endif
 
-#define INVALID_PTS ((uint64_t)-1)
-#define INVALID_POC ((uint32_t)-1)
-#define MAXIMUM_POC  0x7FFFFFFF
-#define MINIMUM_POC  0x80000000
 #define ANDROID_DISPLAY_HANDLE 0x18C34078
 
 VaapiDecoderBase::VaapiDecoderBase(const char *mimeType)

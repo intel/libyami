@@ -36,8 +36,8 @@ VaapiPicture::VaapiPicture(VADisplay display,
     mBitPlane  = NULL;
     mHufTable  = NULL;
 
-    mTimeStamp = 0;
-    mPoc       = 0;
+    mTimeStamp = INVALID_PTS;
+    mPoc       = INVALID_POC;
     mFlags     = 0;
     mSurfBuf   = NULL;
     mSurfaceID = 0;
