@@ -48,7 +48,7 @@ public:
                  VaapiChromaType chromaType,
                  uint32_t  width,
                  uint32_t  height,
-                 VASurfaceAttributeTPI *surfAttrib);
+                 void *surfaceAttrib);
 
     ~VaapiSurface();
 

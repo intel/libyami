@@ -1,7 +1,5 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
-
-m4_define([libva_version], [0.34])
 AC_PREREQ([2.68])
 AC_INIT([libvacodec], [1.0.0], [xiaowei.a.li@intel.com])
 AC_CONFIG_SRCDIR([common/vaapitypes.h])
@@ -54,7 +52,7 @@ AC_TYPE_UINT8_T
 pkgconfigdir=${libdir}/pkgconfig
 AC_SUBST(pkgconfigdir)
 
-PKG_CHECK_MODULES(LIBVA, [libva >= libva_version])
+PKG_CHECK_MODULES(LIBVA, [libva])
 PKG_CHECK_MODULES(LIBVA_X11, [libva-x11],
 	         [AC_DEFINE([HAVE_VA_X11], [1], [Defined to 1 if VA/X11 API is enabled])])
 

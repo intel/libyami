@@ -53,7 +53,7 @@ get_status(H264ParserResult result)
 static VAProfile
 h264_get_va_profile(H264SPS *sps)
 {
-    VAProfile profile = VAProfileNone;
+    VAProfile profile;
 
     switch (sps->profile_idc) {
     case 66:

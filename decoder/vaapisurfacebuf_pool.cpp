@@ -47,50 +47,58 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(
         INFO("Surface is protectd ");
     }
 
+#if VA_CHECK_VERSION(0,34,0)
     /* allocate surface for the pool */
+    VASurfaceAttributeTPI surfAttrib;
+    memset(&surfAttrib, 0, sizeof(VASurfaceAttributeTPI));
+
     if (config->flag & USE_NATIVE_GRAPHIC_BUFFER) {
          INFO("Use external buffer for decoding");
-         VASurfaceAttributeTPI surfAttrib;
+         mUseExtBuf = true;
          surfAttrib.count        = 1;
          surfAttrib.luma_stride  = config->graphicBufferStride;
          surfAttrib.pixel_format = config->graphicBufferColorFormat;
          surfAttrib.width        = config->graphicBufferWidth; 
-         surfAttrib.height       = config->graphicBufferHeight; 
+         surfAttrib.height       = config->graphicBufferHeight;
          surfAttrib.type         = VAExternalMemoryAndroidGrallocBuffer;
          surfAttrib.reserved[0]  = (uint32_t) config->nativeWindow;
          surfAttrib.buffers      = (uint32_t*) malloc (sizeof(uint32_t) * 1);
- 
-         for (i = 0; i < mBufCount; i++) {
-             surfAttrib.buffers[0] = (uint32_t)config->graphicBufferHandler[i];
-             mSurfArray[i] = new VaapiSurface(display, 
-                                              VAAPI_CHROMA_TYPE_YUV420,
-                                              surfAttrib.width,
-                                              surfAttrib.height,
-                                              &surfAttrib);
-             if (!mSurfArray[i]) {
-                 ERROR("VaapiSurface allocation failed ");
-                 return;
-              }
-          }
+     }
 
-         free(surfAttrib.buffers); 
-         mUseExtBuf = true;
-    } else  {
-         INFO("Use local buffer for decoding");
-         for (i = 0; i < mBufCount; i++) {
-             mSurfArray[i] = new VaapiSurface(display, 
-                                              VAAPI_CHROMA_TYPE_YUV420,
-                                              config->width,
-                                              config->height,
-                                              NULL);
-             if (!mSurfArray[i]) {
-                 ERROR("VaapiSurface allocation failed ");
-                 return;
-             }
+     for (i = 0; i < mBufCount; i++) {
+         if (config->flag & USE_NATIVE_GRAPHIC_BUFFER) {
+            surfAttrib.buffers[0] = (uint32_t)config->graphicBufferHandler[i];
          }
 
-         mUseExtBuf = false;
+         mSurfArray[i] = new VaapiSurface(display,
+                                          VAAPI_CHROMA_TYPE_YUV420,
+                                          surfAttrib.width,
+                                          surfAttrib.height,
+                                          (void*)&surfAttrib);
+         if (!mSurfArray[i]) {
+               ERROR("VaapiSurface allocation failed ");
+               return;
+          }
      }
+
+    if (surfAttrib.buffers)
+       free(surfAttrib.buffers);
+#else
+    INFO("Use local buffer for decoding");
+    for (i = 0; i < mBufCount; i++) {
+        mSurfArray[i] = new VaapiSurface(display,
+                                        VAAPI_CHROMA_TYPE_YUV420,
+                                        config->width,
+                                        config->height,
+                                        NULL);
+       if (!mSurfArray[i]) {
+           ERROR("VaapiSurface allocation failed ");
+           return;
+       }
+   }
+
+   mUseExtBuf = false;
+#endif
 
     /* initialize all surface buffers in the pool */
     for (i = 0; i < mBufCount; i++) {

@@ -27,7 +27,7 @@ VaapiSurface::VaapiSurface(VADisplay display,
                  VaapiChromaType chromaType,
                  uint32_t  width,
                  uint32_t  height,
-                 VASurfaceAttributeTPI *surfAttrib)
+                 void *surfaceAttrib)
                  : mDisplay(display), mChromaType(chromaType), 
                    mWidth(width), mHeight(height)
 {
@@ -48,6 +48,10 @@ VaapiSurface::VaapiSurface(VADisplay display,
           format = VA_RT_FORMAT_YUV420;
           break;
     }
+
+#if VA_CHECK_VERSION(0,34,0)
+   VASurfaceAttributeTPI *surfAttrib =
+          (VASurfaceAttributeTPI*) surfaceAttrib;
 
    if (surfAttrib) {
        status = vaCreateSurfacesWithAttribute(
@@ -76,9 +80,23 @@ VaapiSurface::VaapiSurface(VADisplay display,
 
         if (!vaapi_check_status(status, "vaCreateSurfaces()"))
             return;
-        
+
         mExternalBufHandle = 0;
     }
+#else
+    status = vaCreateSurfaces(
+        mDisplay,
+        mWidth,
+        mHeight,
+        format,
+        1,
+        &mID);
+
+    if (!vaapi_check_status(status, "vaCreateSurfaces()"))
+         return;
+
+     mExternalBufHandle = 0;
+#endif
 
     mDerivedImage = NULL;
 }
