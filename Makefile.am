@@ -9,4 +9,4 @@ DISTCLEANFILES = \
 	configure config.h.in config.h.in~ depcomp install-sh ltmain.sh     \
 	Makefile.in missing
 
-SUBDIRS = codecparsers common decoder
+SUBDIRS = codecparsers common decoder pkgconfig

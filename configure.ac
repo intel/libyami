@@ -45,10 +45,6 @@ PKG_CHECK_MODULES(LIBVA, [libva >= libva_version])
 PKG_CHECK_MODULES(LIBVA_X11, [libva-x11],
 	         [AC_DEFINE([HAVE_VA_X11], [1], [Defined to 1 if VA/X11 API is enabled])])
 
-#AC_SUBST([HAVE_VA_X11])
-#AC_SUBST([LIBVA_LIBS])
-#AC_SUBST([LIBVA_CFLAGS])
-
 # Checks for library functions.
 AC_FUNC_MALLOC
 AC_FUNC_REALLOC
@@ -57,7 +53,8 @@ AC_CHECK_FUNCS([memset strcasecmp strdup])
 AC_CONFIG_FILES([Makefile
                  codecparsers/Makefile
                  common/Makefile
-                 decoder/Makefile])
+                 decoder/Makefile
+                 pkgconfig/Makefile])
 
 AC_OUTPUT([
          pkgconfig/libcodecparser.pc
