@@ -7,6 +7,7 @@ libcodecparser_source_c = \
         vc1parser.c \
         vp8parser.c \
         parserutils.c \
+        nalreader.c \
 	$(NULL)
 
 libcodecparser_source_h = \
@@ -19,6 +20,7 @@ libcodecparser_source_h = \
         vp8parser.h \
         parserutils.h \
         basictype.h \
+        nalreader.h \
         log.h \
 	$(NULL)
 
