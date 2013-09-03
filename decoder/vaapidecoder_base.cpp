@@ -266,6 +266,7 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     mDisplay = new Display;
     *mDisplay = ANDROID_DISPLAY_HANDLE;
 #else
+    if (!mDisplay)
     mDisplay = XOpenDisplay(NULL);
 #endif
 
@@ -373,6 +374,12 @@ VaapiDecoderBase::terminateVA(void)
 }
 
 /* not used funtion here */
+void
+VaapiDecoderBase::setXDisplay(Display * x_display)
+{
+    mDisplay = x_display;
+}
+
 void 
 VaapiDecoderBase::enableNativeBuffers(void)
 {

@@ -64,6 +64,7 @@ public:
     virtual void renderDone(VideoRenderBuffer *renderBuf);
 
     /* native window related functions */
+    void  setXDisplay(Display * x_display);
     void enableNativeBuffers(void);
     Decode_Status getClientNativeWindowBuffer(void *bufferHeader,
                   void *nativeBufferHandle);

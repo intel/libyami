@@ -139,6 +139,8 @@ struct VideoConfigBuffer {
     VideoExtensionBuffer *ext;
     void* nativeWindow;
     uint32_t rotationDegrees;
+
+    void* parser_handle;
 };
 
 struct VideoRenderBuffer {

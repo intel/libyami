@@ -27,6 +27,7 @@
 #define VIDEO_DECODER_INTERFACE_H_
 
 #include "VideoDecoderDefs.h"
+#include <X11/Xlib.h>
 
 class IVideoDecoder {
 public:
@@ -42,6 +43,7 @@ public:
     virtual Decode_Status signalRenderDone(void * graphichandler) = 0;
     virtual bool checkBufferAvail() = 0;
 
+    virtual void  setXDisplay(Display * x_display) = 0;
     virtual void  enableNativeBuffers(void) = 0;
     virtual Decode_Status  getClientNativeWindowBuffer(void *bufferHeader, void *nativeBufferHandle) = 0;
     virtual void renderDone(VideoRenderBuffer* buffer) = 0;
