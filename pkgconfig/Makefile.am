@@ -1,5 +1,6 @@
 pkg_config_files = \
 	libcodecparser.pc \
+	libvacodec_common.pc \
 	libvacodec_decoder.pc \
 	$(NULL)
 

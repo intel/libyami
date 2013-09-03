@@ -32,7 +32,7 @@ libcodecparser_cppflags = \
 	$(NULL)
 
 lib_LTLIBRARIES			= libcodecparser.la
-libcodecparserincludedir         = ${includedir}/libvacodec/codecparser
+libcodecparserincludedir         = ${includedir}/libcodecparser
 libcodecparserinclude_HEADERS   = $(libcodecparser_source_h)
 noinst_HEADERS                  = $(libcodecparser_source_h_priv)
 libcodecparser_la_SOURCES	= $(libcodecparser_source_c)

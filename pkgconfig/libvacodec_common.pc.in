@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: libvacodec decoder part
 Description: Intel Open source decoder based on libva
 Version: 1.0.0
-Libs: -L${libdir} -lvacodec_decoder
-Cflags: -I${includedir}/libvacodec_decoder
+Libs: -L${libdir} -lvacodec_common
+Cflags: -I${includedir}/libvacodec_common

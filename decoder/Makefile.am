@@ -13,16 +13,23 @@ libvacodec_decoder_source_c = \
 	$(NULL)
 
 libvacodec_decoder_source_h = \
+        ../interface/VideoDecoderDefs.h      \
+        ../interface/VideoDecoderInterface.h \
+	$(NULL)
+
+libvacodec_decoder_source_h_priv = \
         vaapipicture.h    \
         vaapidecoder_base.h \
         vaapidecoder_h264.h \
-        vaapidecoder_host.h \
         vaapisurfacebuf_pool.h \
 	$(NULL)
 
 libvacodec_decoder_ldflags = \
-        $(LIBVA_LIBS) \
-        $(LIBVA_X11_LIBS) \
+        $(LIBVA_LIBS)        \
+        $(LIBVA_X11_LIBS)    \
+        -lvacodec_common     \
+        -lcodecparser        \
+        -ldl                 \
         $(NULL)
 
 libvacodec_decoder_cppflags = \
@@ -35,6 +42,7 @@ libvacodec_decoder_cppflags = \
 lib_LTLIBRARIES			  = libvacodec_decoder.la
 libvacodec_decoderincludedir      = $(includedir)/libvacodec_decoder
 libvacodec_decoderinclude_HEADERS = $(libvacodec_decoder_source_h)
+noinst_HEADERS                   = $(libvacodec_decoder_source_h_priv)
 libvacodec_decoder_la_SOURCES	  = $(libvacodec_decoder_source_c)
 libvacodec_decoder_la_LDFLAGS	  = $(libvacodec_decoder_ldflags)
 libvacodec_decoder_la_CPPFLAGS    = $(libvacodec_decoder_cppflags)

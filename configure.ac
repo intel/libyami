@@ -58,6 +58,7 @@ AC_CONFIG_FILES([Makefile
 
 AC_OUTPUT([
          pkgconfig/libcodecparser.pc
+         pkgconfig/libvacodec_common.pc
          pkgconfig/libvacodec_decoder.pc
 ])
 

@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: libcodecparser 
 Description: Intel open source video streamer parsers
 Version: 1.0.0
-Libs: -L${libdir}
-Cflags: -I${includedir}
+Libs: -L${libdir} -lcodecparser 
+Cflags: -I${includedir}/libcodecparser
