@@ -1,5 +1,5 @@
 /*
- *  vaapidecoder_host.h 
+ *  vaapidecoder_host.h
  *
  *  Copyright (C) 2013 Intel Corporation
  *
@@ -23,7 +23,7 @@
 #ifndef VIDEO_DECODER_HOST_H_
 #define VIDEO_DECODER_HOST_H_
 
-#include "interface/VideoDecoderInterface.h"
+#include "VideoDecoderInterface.h"
 
 IVideoDecoder* createVideoDecoder(const char* mimeType);
 void releaseVideoDecoder(IVideoDecoder *p);

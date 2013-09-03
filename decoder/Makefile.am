@@ -15,6 +15,7 @@ libvacodec_decoder_source_c = \
 libvacodec_decoder_source_h = \
         ../interface/VideoDecoderDefs.h      \
         ../interface/VideoDecoderInterface.h \
+        ../interface/VideoDecoderHost.h \
 	$(NULL)
 
 libvacodec_decoder_source_h_priv = \

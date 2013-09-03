@@ -20,7 +20,7 @@
  */
 
 #include "vaapidecoder_h264.h"
-#include "vaapidecoder_host.h"
+#include "interface/VideoDecoderHost.h"
 #include "common/log.h"
 #include <string.h>
 
