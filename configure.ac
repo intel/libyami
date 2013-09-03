@@ -10,6 +10,19 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([aux])
 AM_INIT_AUTOMAKE([foreign])
 
+AC_ARG_ENABLE(debug,
+    [AC_HELP_STRING([--enable-debug],[build with extra debug])],
+    [case "${enableval}" in
+     yes) debug="yes" ;;
+     no)  debug="no";;
+     *)   AC_MSG_ERROR(bad value for --enable-debug);;
+     esac ],
+    [debug="no"])
+
+if test "$debug" = "yes"; then
+AC_DEFINE([__ENABLE_DEBUG__], [1], [Defined to 1 if --enable-debug="yes" ])
+fi
+
 # Checks for programs.
 AC_DISABLE_STATIC
 AC_PROG_CXX

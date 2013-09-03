@@ -1196,9 +1196,9 @@ VaapiDecoderH264::store_decoded_picture(VaapiPictureH264 *pic)
      VaapiFrameStore *fs;
     // Check if picture is the second field and the first field is still in DPB
     if (m_prev_frame && !m_prev_frame->has_frame()) {
-        RETURN_IF_FAIL(m_prev_frame->num_buffers == 1, false);
-        RETURN_IF_FAIL(VAAPI_PICTURE_IS_FRAME(m_current_picture), false);
-        RETURN_IF_FAIL(VAAPI_PICTURE_IS_FIRST_FIELD(m_current_picture), false);
+        RETURN_VAL_IF_FAIL(m_prev_frame->num_buffers == 1, false);
+        RETURN_VAL_IF_FAIL(VAAPI_PICTURE_IS_FRAME(m_current_picture), false);
+        RETURN_VAL_IF_FAIL(VAAPI_PICTURE_IS_FIRST_FIELD(m_current_picture), false);
         m_prev_frame->add_picture(m_current_picture);
         // Remove all unused pictures
         INFO("field pictre appear here ");

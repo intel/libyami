@@ -28,18 +28,57 @@
 #define LOG_DEBUG(...)   ALOGV(__VA_ARGS__);
 #else
 #include <stdio.h>
-#define LOG_ERROR(...)   fprintf(stderr, __VA_ARGS__)
-#define LOG_INFO(...)    fprintf(stderr, __VA_ARGS__)
-#define LOG_WARNING(...) fprintf(stderr, __VA_ARGS__)
-#define LOG_DEBUG(...)   fprintf(stderr, __VA_ARGS__)
+#ifndef LOG_ERROR
+#define LOG_ERROR(format, ...)   do { \
+   fprintf(stderr, "codecparsers error: "format"\n", ##__VA_ARGS__);\
+}while (0)
 #endif
 
+#ifdef __ENABLE_DEBUG__
+#ifndef LOG_INFO
+#define LOG_INFO(format, ...)   do { \
+   fprintf(stderr, "codecparsers info: "format"\n", ##__VA_ARGS__);\
+}while (0)
+#endif
+
+#ifndef LOG_WARNING
+#define LOG_WARNING(format, ...)   do { \
+   fprintf(stderr, "codecparsers warning: "format"\n", ##__VA_ARGS__);\
+}while (0)
+#endif
+
+#ifndef LOG_DEBUG
+#define LOG_DEBUG(format, ...)   do { \
+   fprintf(stderr, "codecparsers debug: "format"\n", ##__VA_ARGS__);\
+}while (0)
+#endif
+
+#else //__ENABLE_DEBUG__
+#ifndef LOG_INFO
+#define LOG_INFO(format, ...)
+#endif
+
+#ifndef LOG_WARNING
+#define LOG_WARNING(format, ...)
+#endif
+
+#ifndef LOG_DEBUG
+#define LOG_DEBUG(format, ...)
+#endif
+#endif //__ENABLE_DEBUG__
+
+#endif //__ANDROID
+
+#ifndef RETURN_IF_FAIL
 #define RETURN_IF_FAIL(condition) \
-    if (!(condition)) \
-      return;
+do{ \
+  if (!(condition)) \
+     return;  \
+}while(0)
+#endif
 
 #define RETURN_VAL_IF_FAIL(condition, value) \
     if (!(condition)) \
       return (value);
 
-#endif
+#endif //__LOG_H__
