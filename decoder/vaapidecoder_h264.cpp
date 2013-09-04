@@ -163,12 +163,12 @@ scan_for_start_code(const uint8_t* data ,
     uint32_t i;
     const uint8_t *buf;
 
-    if(offset + 4 > size)
+    if(offset + 3 > size)
         return -1;
  
-    for ( i = 0; i < size - offset - 4 + 1; i ++){
+    for ( i = 0; i < size - offset - 3 + 1; i ++){
        buf = data + offset + i;
-       if (buf[0] == 0 && buf[1] == 0 && buf[2] == 0 && buf[3] ==1)
+       if (buf[0] == 0 && buf[1] == 0 && buf[2] == 1)
            return i;
     }
 
@@ -1657,13 +1657,13 @@ VaapiDecoderH264::decode(VideoDecodeBuffer *buffer)
             size -= ofs;
           
             /* find the length of the nal */
-            ofs = (size < 8) ? -1 : scan_for_start_code(buf, 4, size - 4, NULL);
+            ofs = (size < 7) ? -1 : scan_for_start_code(buf, 3, size - 3, NULL);
             if (ofs < 0) {
-                ofs = size - 4;
+                ofs = size - 3;
             }
 
-            buf_size = ofs + 4;
-            size -=  (ofs + 4);
+            buf_size = ofs + 3;
+            size -=  (ofs + 3);
 
             result = h264_parser_identify_nalu_unchecked(
                 &m_parser,
