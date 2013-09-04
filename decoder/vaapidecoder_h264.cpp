@@ -1548,10 +1548,10 @@ VaapiDecoderH264::start(VideoConfigBuffer *buffer)
     bool  got_config = false;
    
     if(buffer->data == NULL || buffer->size == 0) {
+        got_config = false;
         if ((buffer->flag & HAS_SURFACE_NUMBER) && (buffer->flag & HAS_VA_PROFILE)){
             got_config  = true;
         }
-        got_config = false;
     }else{
        if(decode_codec_data((uint8_t*)buffer->data, buffer->size)) {
             H264SPS *sps = &(m_parser.sps[0]);
