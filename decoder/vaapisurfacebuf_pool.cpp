@@ -216,8 +216,8 @@ VaapiSurfaceBufferPool::outputBuffer(
             mBufArray[i]->pictureOrder = poc; 
             mBufArray[i]->renderBuffer.timeStamp = timeStamp;  
             mBufArray[i]->status |= SURFACE_TO_RENDER;
+            break;
           }
-          break;
      }
      pthread_mutex_unlock(&mLock);
  
@@ -342,7 +342,7 @@ VaapiSurfaceBufferPool::getOutputByMinTimeStamp()
             mBufArray[i]->pictureOrder  == INVALID_POC)
             continue;
 
-        if ((uint64_t)(mBufArray[i]->renderBuffer.timeStamp) != pts) {
+        if ((uint64_t)(mBufArray[i]->renderBuffer.timeStamp) < pts) {
             pts = mBufArray[i]->renderBuffer.timeStamp;
             buf = mBufArray[i]; 
         }
