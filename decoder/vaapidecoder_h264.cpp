@@ -1044,7 +1044,7 @@ VaapiDecoderH264::ensure_context(H264SPS *sps)
    uint32_t mb_width, mb_height;
    bool  reset_context = false;
    uint32_t dpb_size = 0;
-   
+ 
    m_progressive_sequence = sps->frame_mbs_only_flag;
 
     if (!m_dpb_manager) {
@@ -1074,12 +1074,14 @@ VaapiDecoderH264::ensure_context(H264SPS *sps)
         !sps->frame_mbs_only_flag;
 
    if (mb_width != m_mb_width || mb_height != m_mb_height) {
-        INFO("ensure context: size changed");
-        reset_context   = true;
+        INFO("ensure context: Original: w=%d, h=%d, New: w=%d, h=%d ",
+              m_mb_width*16, m_mb_height*16, mb_width*16, mb_height*16);
+
         m_mb_width  = mb_width;
         m_mb_height = mb_height;
         mConfigBuffer.width  = mb_width  * 16;
         mConfigBuffer.height = mb_height * 16;
+        reset_context  = true;
     }
 
     if (!reset_context && m_has_context)
@@ -1089,10 +1091,15 @@ VaapiDecoderH264::ensure_context(H264SPS *sps)
          dpb_size  = get_max_dec_frame_buffering(sps, 1); 
          mConfigBuffer.surfaceNumber = dpb_size + H264_EXTRA_SURFACE_NUMBER;
          VaapiDecoderBase::start(&mConfigBuffer);    
+         DEBUG("First time to Start VA context");
+         m_reset_context = true;
     } else if (reset_context) {
        VaapiDecoderBase::reset(&mConfigBuffer);    
        if  (m_dpb_manager)
             m_dpb_manager->dpb_reset(sps);
+
+       DEBUG("Re-Start VA context");
+       m_reset_context = true;
     }
 
     m_has_context = true;
@@ -1524,7 +1531,7 @@ VaapiDecoderH264::VaapiDecoderH264(const char *mimeType)
     m_has_context      = false;
     m_nal_length_size  = 0;
     m_is_avc           = false; 
-
+    m_reset_context    = false;
 }
 
 VaapiDecoderH264::~VaapiDecoderH264()
@@ -1687,6 +1694,11 @@ VaapiDecoderH264::decode(VideoDecodeBuffer *buffer)
     if (is_eos && status == DECODE_SUCCESS)
        status = decode_sequence_end();
   
+    if (status == DECODE_SUCCESS && m_reset_context) {
+        m_reset_context = false;
+        status = DECODE_FORMAT_CHANGE;
+    }
+
     return status;
 }
 

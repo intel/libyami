@@ -278,7 +278,7 @@ private:
     uint32_t              m_has_context        : 1;
     uint64_t              m_nal_length_size;
     bool                  m_is_avc;
-    
+    bool                  m_reset_context;
 }; 
 
 uint32_t
