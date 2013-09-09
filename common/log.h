@@ -37,7 +37,7 @@
 
 #ifndef DEBUG
 #define DEBUG(format, ...)   do { \
-   fprintf(stderr, "libvacodec debug: "format"\n ", ##__VA_ARGS__);\
+   fprintf(stderr, "libvacodec debug: "format"\n", ##__VA_ARGS__);\
 }while (0)
 #endif
 

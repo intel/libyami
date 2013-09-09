@@ -376,7 +376,7 @@ VaapiDecoderH264::decode_sps(H264NalUnit *nalu)
     H264SPS * const sps = &m_last_sps;
     H264ParserResult result;
 
-    DEBUG("decode SPS");
+    DEBUG("H264: decode SPS");
 
     memset(sps, 0, sizeof(*sps));
     result = h264_parser_parse_sps(&m_parser, nalu, sps, true);
@@ -397,7 +397,7 @@ VaapiDecoderH264::decode_pps(H264NalUnit *nalu)
     H264PPS * const pps = &m_last_pps;
     H264ParserResult result;
 
-    DEBUG("decode PPS");
+    DEBUG("H264: decode PPS");
 
     memset(pps, 0, sizeof(*pps));
     result = h264_parser_parse_pps(&m_parser, nalu, pps);
@@ -416,7 +416,7 @@ VaapiDecoderH264::decode_sei(H264NalUnit *nalu)
     H264SEIMessage sei;
     H264ParserResult result;
 
-    DEBUG("decode SEI");
+    DEBUG("H264: decode SEI");
 
     memset(&sei, 0, sizeof(sei));
     result = h264_parser_parse_sei(&m_parser, nalu, &sei);
@@ -433,7 +433,7 @@ VaapiDecoderH264::decode_sequence_end()
 {
     Decode_Status status;
 
-    DEBUG("decode sequence-end");
+    DEBUG("H264: decode sequence-end");
 
     status = decode_current_picture();
     if (status != DECODE_SUCCESS)
@@ -453,8 +453,6 @@ VaapiDecoderH264::init_picture_poc_0(
     H264SPS * const sps = pps->sequence;
     const int32_t MaxPicOrderCntLsb = 1 << (sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
     int32_t temp_poc;
-
-    DEBUG("decode picture order count type 0");
 
     if (VAAPI_H264_PICTURE_IS_IDR(picture)) {
         m_prev_poc_msb = 0;
@@ -512,8 +510,6 @@ VaapiDecoderH264::init_picture_poc_1(
     const int32_t MaxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
     int32_t prev_frame_num_offset, abs_frame_num, expected_poc;
     uint32_t i;
-
-    DEBUG("decode picture order count type 1");
 
     if (m_prev_pic_has_mmco5)
         prev_frame_num_offset = 0;
@@ -592,8 +588,6 @@ VaapiDecoderH264::init_picture_poc_2(
     const int32_t MaxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
     int32_t prev_frame_num_offset, temp_poc;
 
-    DEBUG("decode picture order count type 2");
-
     if (m_prev_pic_has_mmco5)
         prev_frame_num_offset = 0;
     else
@@ -671,7 +665,7 @@ VaapiDecoderH264::init_picture(
 
     /* Reset decoder state for IDR pictures */
     if (nalu->idr_pic_flag) {
-        INFO("<IDR>");
+        DEBUG("H264: IDR frame detected");
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_IDR);
         m_dpb_manager->dpb_flush();
         m_prev_frame = NULL;
@@ -1055,7 +1049,8 @@ VaapiDecoderH264::ensure_context(H264SPS *sps)
    VideoConfigBuffer *config = &mConfigBuffer; 
    parsed_profile = h264_get_va_profile(sps);
    if (parsed_profile != mConfigBuffer.profile) {
-      INFO("ensure context: profile old: %d, new:%d, changed !\n", mConfigBuffer.profile, parsed_profile);
+      DEBUG("H264: profile changed: old = %d, new = %d, \n", 
+             mConfigBuffer.profile, parsed_profile);
       mConfigBuffer.profile = parsed_profile;
       reset_context = true;
    }
@@ -1074,7 +1069,7 @@ VaapiDecoderH264::ensure_context(H264SPS *sps)
         !sps->frame_mbs_only_flag;
 
    if (mb_width != m_mb_width || mb_height != m_mb_height) {
-        INFO("ensure context: Original: w=%d, h=%d, New: w=%d, h=%d ",
+        DEBUG("H264: resolution changed: Orig w=%d, h=%d; New w=%d, h=%d",
               m_mb_width*16, m_mb_height*16, mb_width*16, mb_height*16);
 
         m_mb_width  = mb_width;
@@ -1098,7 +1093,7 @@ VaapiDecoderH264::ensure_context(H264SPS *sps)
        if  (m_dpb_manager)
             m_dpb_manager->dpb_reset(sps);
 
-       DEBUG("Re-Start VA context");
+       DEBUG("Re-start VA context");
        m_reset_context = true;
     }
 
@@ -1208,7 +1203,7 @@ VaapiDecoderH264::store_decoded_picture(VaapiPictureH264 *pic)
         RETURN_VAL_IF_FAIL(VAAPI_PICTURE_IS_FIRST_FIELD(m_current_picture), false);
         m_prev_frame->add_picture(m_current_picture);
         // Remove all unused pictures
-        INFO("field pictre appear here ");
+        DEBUG("Interlaced field pictre appear here ");
         return true;
     }
 
@@ -1280,7 +1275,7 @@ VaapiDecoderH264::decode_picture(H264NalUnit *nalu, H264SliceHdr *slice_hdr)
 
     if (m_current_picture) {
         /* Re-use current picture where the first field was decoded */
-        INFO("new filed() is called");
+        DEBUG("New filed() is called for interlace frame");
         picture = m_current_picture->new_field();
         if (!picture) {
             ERROR("failed to allocate field picture");
@@ -1289,16 +1284,13 @@ VaapiDecoderH264::decode_picture(H264NalUnit *nalu, H264SliceHdr *slice_hdr)
     }
     else {
         /*accquire one surface from mBufPool in base decoder  */
-       // INFO("h264: acquire one free surface from pool");
         picture = new VaapiPictureH264(mVADisplay,
                                        mVAContext, 
                                        mBufPool,
                                        VAAPI_PICTURE_STRUCTURE_FRAME);          
 
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);
-        INFO("H264: new picture %p", picture);
  
-       // picture->mTimeStamp = mCurrentPTS;
         /* hack code here */
     }
     m_current_picture = picture;
@@ -1327,9 +1319,6 @@ VaapiDecoderH264::decode_slice(H264NalUnit *nalu)
     H264SliceHdr *slice_hdr;
     H264SliceHdr tmp_slice_hdr;
     H264ParserResult result;
-
-    static uint32_t count = 0;
-    //INFO("H264: decode slice %d, size=%d, timestamp=%d",count++, nalu->size, mCurrentPTS);
 
     /* parser the slice header info */
     memset((void*)&tmp_slice_hdr, 0, sizeof(tmp_slice_hdr));
@@ -1424,6 +1413,8 @@ VaapiDecoderH264::decode_codec_data(uint8_t *buf, uint32_t buf_size)
     H264NalUnit nalu;
     H264ParserResult result;
     uint32_t i, ofs, num_sps, num_pps;
+
+    DEBUG("H264: codec data detected");
 
     if (!buf || buf_size == 0)
         return false;
@@ -1536,8 +1527,6 @@ VaapiDecoderH264::VaapiDecoderH264(const char *mimeType)
 
 VaapiDecoderH264::~VaapiDecoderH264()
 {
-
-   INFO("H264: de-constuct");
    stop();
 
    if(m_dpb_manager) {
@@ -1550,7 +1539,7 @@ VaapiDecoderH264::~VaapiDecoderH264()
 Decode_Status 
 VaapiDecoderH264::start(VideoConfigBuffer *buffer)
 {
-    DEBUG("H264: start");
+    DEBUG("H264: start()");
     Decode_Status status;
     bool  got_config = false;
    
@@ -1583,7 +1572,7 @@ VaapiDecoderH264::start(VideoConfigBuffer *buffer)
 Decode_Status
 VaapiDecoderH264::reset(VideoConfigBuffer *buffer)
 {
-   DEBUG("H264: reset");
+   DEBUG("H264: reset()");
    if(m_dpb_manager)
       m_dpb_manager->dpb_flush();
 
@@ -1594,7 +1583,7 @@ VaapiDecoderH264::reset(VideoConfigBuffer *buffer)
 void 
 VaapiDecoderH264::stop(void)
 {
-   DEBUG("H264: stop");
+   DEBUG("H264: stop()");
    flush();
    VaapiDecoderBase::stop();
 }
@@ -1602,7 +1591,7 @@ VaapiDecoderH264::stop(void)
 void 
 VaapiDecoderH264::flush(void)
 {
-    DEBUG("H264: flush");
+    DEBUG("H264: flush()");
     decode_current_picture();
 
    if(m_dpb_manager)
@@ -1628,6 +1617,8 @@ VaapiDecoderH264::decode(VideoDecodeBuffer *buffer)
     mCurrentPTS = buffer->timeStamp;
     buf         = buffer->data;
     size        = buffer->size;
+
+    DEBUG("H264: Decode(bufsize =%d, timestamp=%ld)", size, mCurrentPTS);
 
     do {   
         if (m_is_avc) {

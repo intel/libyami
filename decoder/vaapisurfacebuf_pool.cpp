@@ -27,6 +27,8 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(
     VideoConfigBuffer* config)
     :mDisplay(display)
 {
+    INFO("Construct the render buffer pool ");
+
     uint32_t i;
     uint32_t format = VA_RT_FORMAT_YUV420;
  
@@ -53,7 +55,7 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(
     memset(&surfAttrib, 0, sizeof(VASurfaceAttributeTPI));
 
     if (config->flag & USE_NATIVE_GRAPHIC_BUFFER) {
-         INFO("Use external buffer for decoding");
+         INFO("Use native graphci buffer for decoding");
          mUseExtBuf = true;
          surfAttrib.count        = 1;
          surfAttrib.luma_stride  = config->graphicBufferStride;
@@ -84,7 +86,6 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(
     if (surfAttrib.buffers)
        free(surfAttrib.buffers);
 #else
-    INFO("Use local buffer for decoding");
     for (i = 0; i < mBufCount; i++) {
         mSurfArray[i] = new VaapiSurface(display,
                                         VAAPI_CHROMA_TYPE_YUV420,
@@ -127,15 +128,15 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(
    
     mBufMapped = false;
     if (config->flag & WANT_RAW_OUTPUT) {
-       //mapSurfaceBuffers();
-      // mBufMapped = true;
+       mapSurfaceBuffers();
+       mBufMapped = true;
        INFO("Surface is mapped out for raw output ");
     }
 }
 
 VaapiSurfaceBufferPool::~VaapiSurfaceBufferPool()
 {
-    INFO(" destruct the render buffer pool ");
+    INFO("Destruct the render buffer pool ");
     uint32_t i;
 
     if (mBufMapped) {
@@ -202,7 +203,6 @@ bool VaapiSurfaceBufferPool::setReferenceInfo(
     bool referenceFrame, 
     bool asReference)
 {
-     DEBUG("set frame reference information");
      pthread_mutex_lock(&mLock);
      buf->referenceFrame = referenceFrame; 
      buf->asReferernce   = asReference; //to fix typo error
@@ -216,7 +216,7 @@ VaapiSurfaceBufferPool::outputBuffer(
     uint64_t timeStamp, 
     uint32_t poc)
 {
-     DEBUG("prepare to render one surface buffer");
+     DEBUG("Pool: set surface(ID:%8x) to be rendered", buf->renderBuffer.surface);
      uint32_t i = 0;
      pthread_mutex_lock(&mLock);
      for (i = 0; i < mBufCount; i++) {
@@ -230,7 +230,7 @@ VaapiSurfaceBufferPool::outputBuffer(
      pthread_mutex_unlock(&mLock);
  
      if (i == mBufCount) {
-        INFO("Pool: outputbuffer, Error buffer pointer ");
+        ERROR("Pool: outputbuffer, Error buffer pointer ");
         return false;
      }
         
@@ -245,13 +245,15 @@ VaapiSurfaceBufferPool::recycleBuffer(VideoSurfaceBuffer *buf, bool is_from_rend
      pthread_mutex_lock(&mLock);
      for (i = 0; i < mBufCount; i++) {
          if (mBufArray[i] == buf) {
-             if (is_from_render) {
+             if (is_from_render) {//release from decoder
                   mBufArray[i]->renderBuffer.renderDone = true;
                   mBufArray[i]->status &= ~SURFACE_RENDERING;
-                  INFO("Pool: recy from render, status = %d", mBufArray[i]->status);
+                  DEBUG("Pool: recy surf(%8x) from render, status = %d", 
+                        buf->renderBuffer.surface, mBufArray[i]->status);
              } else { //release from decoder
                   mBufArray[i]->status &= ~SURFACE_DECODING;
-                  INFO("Pool: recy from decoder, status = %d", mBufArray[i]->status);
+                  DEBUG("Pool: recy surf(%8x) from decoder, status = %d",
+                        buf->renderBuffer.surface,  mBufArray[i]->status);
              }
 
              pthread_cond_signal(&mCond);
@@ -261,7 +263,8 @@ VaapiSurfaceBufferPool::recycleBuffer(VideoSurfaceBuffer *buf, bool is_from_rend
      }
    
      pthread_mutex_unlock(&mLock);
-     INFO("Can not find such buf in the pool ");
+
+     ERROR("recycleBuffer: Can not find buf=%p in the pool", buf);
      return false;
 }
 
@@ -360,9 +363,8 @@ VaapiSurfaceBufferPool::getOutputByMinTimeStamp()
        buf->status &= (~SURFACE_TO_RENDER);
        buf->status |= SURFACE_RENDERING;
 
-       INFO("Pool: %x to display", buf->renderBuffer.surface);
-    }// else
-      // INFO("Can not found surface for display");
+       INFO("Pool: found %x to display", buf->renderBuffer.surface);
+    }
 
     pthread_mutex_unlock(&mLock);
 
@@ -450,7 +452,7 @@ VaapiSurfaceBufferPool::searchAvailableBuffer()
      if (i != mBufCount)
         return mBufArray[i];
      else
-        INFO("Can not found free buffer!!!!!!1");
+        WARNING("Can not found availabe buffer");
  
      return NULL;
  }

@@ -46,7 +46,6 @@ VaapiPicture::VaapiPicture(VADisplay display,
         mSurfBuf = mSurfBufPool->acquireFreeBuffer();
         if (mSurfBuf) {
             mSurfaceID = mSurfBuf->renderBuffer.surface;
-            DEBUG("VP::allocate() mID:%x  pic:%p ", mSurfaceID, this);
         }
         else
         ERROR("VaapiPicture: acquire surface fail");
@@ -83,7 +82,6 @@ VaapiPicture::~VaapiPicture()
     //mSliceArray.clear();
 
    if (mSurfBufPool && mSurfBuf){
-      DEBUG("VP::free() mID = %x, pic:%p ", mSurfaceID, this);
       mSurfBufPool->recycleBuffer(mSurfBuf, false);
       mSurfBuf = NULL;
    }
@@ -107,7 +105,7 @@ bool VaapiPicture::decodePicture()
     vector<VaapiSlice*>::iterator iter;
     VABufferID bufferID;
 
-    DEBUG("decode picture 0x%08x", mSurfaceID);
+    DEBUG("VP: decode picture 0x%08x", mSurfaceID);
 
     status = vaBeginPicture(mDisplay, mContext, mSurfaceID);
     if (!vaapi_check_status(status, "vaBeginPicture()"))
@@ -178,8 +176,6 @@ bool VaapiPicture::output()
          usedAsReference = true;
   
     mSurfBufPool->setReferenceInfo(mSurfBuf, isReferenceFrame, usedAsReference);
-
-    DEBUG("VP::output() pic: %p, mID: %x, Poc: %d, TS: %ld", this, mSurfaceID, mPoc, mTimeStamp);
 
     return mSurfBufPool->outputBuffer(mSurfBuf, mTimeStamp, mPoc);
 }

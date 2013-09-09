@@ -218,10 +218,9 @@ VaapiDPBManager::dpb_output(
         if (--fs->output_needed > 0)
             return true;
         picture = fs->buffers[0];
-        INFO("picture from store");
     }
 
-    INFO("dpb output: poc %d", picture->mPoc);
+    DEBUG("dpb: output picture(Addr:%p, Poc:%d)", picture, picture->mPoc);
     return picture->output();
 }
 
@@ -550,7 +549,6 @@ VaapiDPBManager::init_picture_refs_b_slice(
     VaapiPictureH264 **ref_list;
     uint32_t i, n;
 
-    DEBUG("decode reference picture list for B slices");
     if (picture->structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
         /* 8.2.4.2.3 - B slices in frames */
 
@@ -757,8 +755,6 @@ VaapiDPBManager::init_picture_refs_pic_num(
     const int32_t MaxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
     uint32_t i;
 
-    DEBUG("decode picture numbers");
-
     for (i = 0; i < dpb_layer->short_ref_count; i++) {
         VaapiPictureH264 * const pic = dpb_layer->short_ref[i];
         
@@ -799,7 +795,6 @@ VaapiDPBManager::exec_picture_refs_modification(
     VaapiPictureH264 *picture,
     H264SliceHdr *slice_hdr)
 {
-    DEBUG("execute ref_pic_list_modification()");
     /* RefPicList0 */
     if (!H264_IS_I_SLICE(slice_hdr) && ! H264_IS_SI_SLICE(slice_hdr) &&
         slice_hdr->ref_pic_list_modification_flag_l0)
@@ -825,8 +820,6 @@ VaapiDPBManager::exec_picture_refs_modification_1(
     uint32_t i, j, n, num_refs;
     int32_t found_ref_idx;
     int32_t MaxPicNum, CurrPicNum, picNumPred;
-
-    DEBUG("modification process of reference picture list %u", list);
 
     if (list == 0) {
         ref_pic_list_modification      = slice_hdr->ref_pic_list_modification_l0;
@@ -928,12 +921,6 @@ VaapiDPBManager::exec_picture_refs_modification_1(
         }
 
     }
-
-#if DEBUG
-    for (i = 0; i < num_refs; i++)
-        if (!ref_list[i])
-            ERROR("list %u entry %u is empty", list, i);
-#endif
 
     for(i = num_refs; i > 0 && !ref_list[i - 1]; i--);
     *ref_list_count_ptr = i ;
@@ -1101,7 +1088,6 @@ VaapiDPBManager::exec_ref_pic_marking_sliding_window(VaapiPictureH264 *picture)
     }
 
     ref_picture = dpb_layer->short_ref[m];
-    DEBUG("sliding window ,remove short ref %p", ref_picture);
     h264_picture_set_reference(ref_picture, 0, true);   
     ARRAY_REMOVE_INDEX(dpb_layer->short_ref, m);
 
