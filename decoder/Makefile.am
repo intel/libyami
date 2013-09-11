@@ -26,6 +26,7 @@ libvacodec_decoder_source_h_priv = \
 	$(NULL)
 
 libvacodec_decoder_ldflags = \
+	-version-info 0:2:0  \
         $(LIBVA_LIBS)        \
         $(LIBVA_X11_LIBS)    \
         -lvacodec_common     \

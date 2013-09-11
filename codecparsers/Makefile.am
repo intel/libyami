@@ -28,6 +28,7 @@ libcodecparser_source_h_priv = \
 	$(NULL)
 
 libcodecparser_ldflags = \
+	-version-info 0:2:0  \
 	$(NULL)
 
 libcodecparser_cppflags = \

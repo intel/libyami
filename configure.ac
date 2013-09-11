@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.68])
-AC_INIT([libvacodec], [1.0.0], [xiaowei.a.li@intel.com])
+AC_INIT([libvacodec], [0.0.2], [xiaowei.a.li@intel.com])
 AC_CONFIG_SRCDIR([common/vaapitypes.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
