@@ -167,7 +167,7 @@ VideoSurfaceBuffer *
 VaapiSurfaceBufferPool::acquireFreeBuffer()
 {
      VideoSurfaceBuffer *surfBuf = searchAvailableBuffer();
-   
+
      if (surfBuf) {
          pthread_mutex_lock(&mLock);
          surfBuf->renderBuffer.driverRenderDone = true; 
@@ -185,14 +185,24 @@ VaapiSurfaceBufferPool::acquireFreeBufferWithWait()
      VideoSurfaceBuffer *surfBuf = searchAvailableBuffer();
  
      if (!surfBuf) {
-         INFO("Waiting for avaiable surface buffer");
+         INFO("Waiting for free surface buffer");
          pthread_mutex_lock(&mLock);
          pthread_cond_wait(&mCond, &mLock);
          pthread_mutex_unlock(&mLock);
+         INFO("Receive signal about a free buffer availble");
+         surfBuf = searchAvailableBuffer();
+         if (!surfBuf) {
+            ERROR("Can not get the released surface, this should not happen");
+         }
      }
-    
-     while(!surfBuf) { 
-         surfBuf = acquireFreeBuffer();
+
+     if (surfBuf) {
+         pthread_mutex_lock(&mLock);
+         surfBuf->renderBuffer.driverRenderDone = true;
+         surfBuf->renderBuffer.timeStamp  = INVALID_PTS;
+         surfBuf->pictureOrder = INVALID_POC;
+         surfBuf->status = SURFACE_DECODING;
+         pthread_mutex_unlock(&mLock);
      }
 
      return surfBuf;
@@ -256,7 +266,10 @@ VaapiSurfaceBufferPool::recycleBuffer(VideoSurfaceBuffer *buf, bool is_from_rend
                         buf->renderBuffer.surface,  mBufArray[i]->status);
              }
 
-             pthread_cond_signal(&mCond);
+             if (mBufArray[i]->status == SURFACE_FREE) {
+                 pthread_cond_signal(&mCond);
+             }
+
              pthread_mutex_unlock(&mLock);
              return true;
          }

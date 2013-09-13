@@ -43,7 +43,7 @@ VaapiPicture::VaapiPicture(VADisplay display,
     mSurfaceID = 0;
 
     if (mSurfBufPool) {
-        mSurfBuf = mSurfBufPool->acquireFreeBuffer();
+        mSurfBuf = mSurfBufPool->acquireFreeBufferWithWait();
         if (mSurfBuf) {
             mSurfaceID = mSurfBuf->renderBuffer.surface;
         }
