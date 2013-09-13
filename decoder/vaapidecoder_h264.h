@@ -79,12 +79,12 @@ public:
 public: 
     H264PPS     *pps;
     uint32_t     structure;
-    uint32_t     field_poc[2];
-    uint32_t     frame_num;
-    uint32_t     frame_num_wrap;
-    uint32_t     long_term_frame_idx;
-    uint32_t     pic_num;
-    uint32_t     long_term_pic_num;
+    int32_t      field_poc[2];
+    int32_t      frame_num;
+    int32_t      frame_num_wrap;
+    int32_t      long_term_frame_idx;
+    int32_t      pic_num;
+    int32_t      long_term_pic_num;
     uint32_t     output_flag;
     uint32_t     output_needed;
     VaapiPictureH264 *other_field;
@@ -202,8 +202,8 @@ public:
    virtual Decode_Status decode(VideoDecodeBuffer *buf);
 public:
    VaapiFrameStore      *m_prev_frame;
-   uint32_t              m_frame_num;              // frame_num (from slice_header())
-   uint32_t              m_prev_frame_num;         // prevFrameNum
+   int32_t               m_frame_num;              // frame_num (from slice_header())
+   int32_t               m_prev_frame_num;         // prevFrameNum
    bool                  m_prev_pic_has_mmco5;     // prevMmco5Pic
    uint32_t              m_progressive_sequence;
    bool                  m_prev_pic_structure;     // previous picture structure
