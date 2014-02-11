@@ -25,12 +25,14 @@ libvacodec_decoder_source_h_priv = \
         vaapisurfacebuf_pool.h \
 	$(NULL)
 
+libvacodec_decoder_la_LIBADD = \
+		$(top_builddir)/common/libvacodec_common.la \
+		$(top_builddir)/codecparsers/libcodecparser.la
+
 libvacodec_decoder_ldflags = \
 	-version-info 0:2:0  \
         $(LIBVA_LIBS)        \
         $(LIBVA_X11_LIBS)    \
-        -lvacodec_common     \
-        -lcodecparser        \
         -ldl                 \
         $(NULL)
 
