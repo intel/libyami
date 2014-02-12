@@ -1,7 +1,8 @@
 /*
- * GStreamer
- * Copyright (C) <2013> Intel Corporation
- * Copyright (C) <2013> Halley Zhao<halley.zhao@intel.com>
+ * vp8parser.h
+ *
+ *  Copyright (C) 2013-2014 Intel Corporation
+ *    Author: Zhao, Halley<halley.zhao@intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -19,140 +20,151 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __VP8UTIL_H__
-#define __VP8UTIL_H__
+#ifndef __VP8_PARSER_H__
+#define __VP8_PARSER_H__
+
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
 
 #include "basictype.h"
-#include "bitreader.h"
-#include "bytereader.h"
 
-typedef struct _Vp8VideoPacketHdr        Vp8VideoPacketHdr;
-typedef struct _Vp8Packet                Vp8Packet;
+#define VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME    3   /* frame-tag */
+#define VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME        10  /* frame tag + magic number + frame width/height */
+#define VP8_KEY_FRAME                               0   /* section 9.1 of spec: 0 for intra frames, 1 for interframes */
 
-typedef struct _Vp8FrameHdr              Vp8FrameHdr;
-typedef struct _Vp8Segmentation          Vp8Segmentation;
-typedef struct _Vp8MbLfAdjustments       Vp8MbLfAdjustments;
-typedef struct _Vp8QuantIndices          Vp8QuantIndices;
-typedef struct _Vp8TokenProbUpdate       Vp8TokenProbUpdate;
-typedef struct _Vp8MvProbUpdate          Vp8MvProbUpdate;
+typedef struct Vp8FrameHdr Vp8FrameHdr;
+typedef struct Vp8Segmentation Vp8Segmentation;
+typedef struct Vp8MbLfAdjustments Vp8MbLfAdjustments;
+typedef struct Vp8QuantIndices Vp8QuantIndices;
+typedef struct Vp8TokenProbUpdate Vp8TokenProbUpdate;
+typedef struct Vp8MvProbUpdate Vp8MvProbUpdate;
 
 /**
  * Vp8ParseResult:
  * @VP8_PARSER_OK: The parsing went well
- * @VP8_PARSER_BROKEN_DATA: The bitstream was broken
- * @VP8_PARSER_NO_PACKET: There was no packet in the buffer
- * @VP8_PARSER_NO_PACKET_END: There was no packet end in the buffer
  * @VP8_PARSER_NO_PACKET_ERROR: An error accured durint the parsing
  *
  * Result type of any parsing function.
  */
-typedef enum {
+typedef enum
+{
   VP8_PARSER_OK,
-  VP8_PARSER_BROKEN_DATA,
-  VP8_PARSER_NO_PACKET,
-  VP8_PARSER_NO_PACKET_END,
   VP8_PARSER_ERROR,
 } Vp8ParseResult;
 
-struct _Vp8Segmentation {
-    uint8  update_mb_segmentation_map;
-    uint8  update_segment_feature_data;
-    uint8  segment_feature_mode;
-    // uint8  quantizer_update[4]; // todo, not necessary to roll up
-    int8   quantizer_update_value[4];
-    // uint8  loop_filter_update[4];
-    int8   lf_update_value[4];
-    // uint8  segment_prob_update[3];
-    int8   segment_prob[3];
-};
-
-struct _Vp8MbLfAdjustments {
-    uint8  loop_filter_adj_enable;
-    uint8  mode_ref_lf_delta_update;   // seems to be redundant in semantic
-    // uint8  ref_frame_delta_update_flag[4];
-    int8   ref_frame_delta[4];
-    // uint8  mb_mode_delta_update_flag[4];
-    int8   mb_mode_delta[4];
-
-};
-
-struct _Vp8MvProbUpdate {
-    uint8  has_update;
-    // uint8  mv_prob_update_flag[2][19];
-    uint8    prob[2][19];
-};
-
-struct _Vp8QuantIndices {
-    int8   y_ac_qi;
-    // uint8  y_dc_delta_present;
-    int8   y_dc_delta;
-    // uint8  y2_dc_delta_present;
-    int8   y2_dc_delta;
-    // uint8  y_ac_delta_present;
-    int8   y2_ac_delta;
-    // uint8  uv_dc_delta_present;
-    int8   uv_dc_delta;
-    // uint8  uv_ac_delta_present;
-    int8   uv_ac_delta;
-};
-
-struct _Vp8TokenProbUpdate {
-    // uint8  has_update;
-    uint8  coeff_prob[4][8][3][11];
-};
-
-struct _Vp8FrameHdr
+struct Vp8Segmentation
 {
-    uint32   key_frame;
-    uint8    version;
-    uint8    show_frame;
-    uint32   first_part_size;
-    uint32   width;
-    uint32   height;
+  uint8 segmentation_enabled;
+  uint8 update_mb_segmentation_map;
+  uint8 update_segment_feature_data;
+  uint8 segment_feature_mode;
+  int8 quantizer_update_value[4];
+  int8 lf_update_value[4];
+  int8 segment_prob[3];
+};
 
-    uint8  color_space;
-    uint8  clamping_type;
+struct Vp8MbLfAdjustments
+{
+  uint8 loop_filter_adj_enable;
+  uint8 mode_ref_lf_delta_update;
+  int8 ref_frame_delta[4];
+  int8 mb_mode_delta[4];
+};
 
-    uint8  segmentation_enabled;
-    Vp8Segmentation segmentation;
+struct Vp8MvProbUpdate
+{
+  uint8 prob[2][19];
+};
 
-    uint8  filter_type;
-    uint8  loop_filter_level;
-    uint8  sharpness_level;
-    Vp8MbLfAdjustments mb_lf_adjust;
-    uint8  log2_nbr_of_dct_partitions;
-    uint32 partition_size[9];
+struct Vp8QuantIndices
+{
+  int8 y_ac_qi;
+  int8 y_dc_delta;
+  int8 y2_dc_delta;
+  int8 y2_ac_delta;
+  int8 uv_dc_delta;
+  int8 uv_ac_delta;
+};
 
-    Vp8QuantIndices quant_indices; 
-    uint8  refresh_golden_frame;
-    uint8  refresh_alternate_frame;
-    uint8  copy_buffer_to_golden;
-    uint8  copy_buffer_to_alternate;
-    uint8  sign_bias_golden;
-    uint8  sign_bias_alternate;
-    uint8  refresh_entropy_probs;
-    uint8  refresh_last;
+struct Vp8TokenProbUpdate
+{
+  uint8 coeff_prob[4][8][3][11];
+};
 
-    Vp8TokenProbUpdate token_prob_update;
-    uint8  mb_no_skip_coeff;
-    uint8  prob_skip_false;
+/* these fileds impacts all ensuing frame, should be kept by upper level. */
+typedef struct
+{
+  Vp8TokenProbUpdate token_prob_update;
+  Vp8MvProbUpdate mv_prob_update;
+  Vp8MbLfAdjustments mb_lf_adjust;
+  Vp8Segmentation segmentation;
+} Vp8MultiFrameData;
 
-    uint8  prob_intra;
-    uint8  prob_last;
-    uint8  prob_gf;
+typedef struct
+{
+  uint8 range;
+  int remaining_bits;
+  uint8 code_word;
+  const uint8 *buffer;         /* point to next byte to be read for decoding */
+} Vp8RangeDecoderStatus;
 
-    uint8  intra_16x16_prob_update_flag;
-    uint8  intra_16x16_prob[4];
+struct Vp8FrameHdr
+{
+  uint32 key_frame;
+  uint8 version;
+  uint8 show_frame;
+  uint32 first_part_size;
+  uint32 width;
+  uint32 height;
+  uint32 horizontal_scale;
+  uint32 vertical_scale;
 
-    uint8  intra_chroma_prob_update_flag;
-    uint8  intra_chroma_prob[3];
-    Vp8MvProbUpdate      mv_prob_update;
-    uint8 *mb_buffer;
-    uint32 mb_offset_bits;
+  uint8 color_space;
+  uint8 clamping_type;
+
+  uint8 filter_type;
+  uint8 loop_filter_level;
+  uint8 sharpness_level;
+  uint8 log2_nbr_of_dct_partitions;
+  uint32 partition_size[8];
+
+  Vp8QuantIndices quant_indices;
+  uint8 refresh_golden_frame;
+  uint8 refresh_alternate_frame;
+  uint8 copy_buffer_to_golden;
+  uint8 copy_buffer_to_alternate;
+  uint8 sign_bias_golden;
+  uint8 sign_bias_alternate;
+  uint8 refresh_entropy_probs;
+  uint8 refresh_last;
+
+  uint8 mb_no_skip_coeff;
+  uint8 prob_skip_false;
+
+  uint8 prob_intra;
+  uint8 prob_last;
+  uint8 prob_gf;
+
+  /* the following means to intra block in inter frame (non-key frame) */
+  uint8 intra_16x16_prob_update_flag;
+  uint8 intra_16x16_prob[4];
+  uint8 intra_chroma_prob_update_flag;
+  uint8 intra_chroma_prob[3];
+  Vp8MultiFrameData *multi_frame_data;
+  Vp8RangeDecoderStatus rangedecoder_state;
 };
 
 Vp8ParseResult
-vp8_parse_frame_header(Vp8FrameHdr *frame_hdr, const uint8 * data, 
-                        uint32 offset, size_t size);
+vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8 * data,
+    uint32 offset, uint32 size);
 
-#endif /* __VP8UTIL_H__ */
+boolean
+vp8_parse_init_default_multi_frame_data (Vp8MultiFrameData *
+    multi_frame_data);
+
+#ifdef __cplusplus
+}
+#endif /* __cplusplus */
+
+#endif /* __VP8_PARSER_H__ */

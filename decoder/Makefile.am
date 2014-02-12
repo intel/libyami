@@ -8,6 +8,7 @@ libvacodec_decoder_source_c = \
         vaapidecoder_base.cpp \
         vaapidecoder_h264.cpp \
         vaapidecoder_h264_dpb.cpp \
+        vaapidecoder_vp8.cpp \
         vaapidecoder_host.cpp \
         vaapisurfacebuf_pool.cpp \
 	$(NULL)
@@ -22,6 +23,7 @@ libvacodec_decoder_source_h_priv = \
         vaapipicture.h    \
         vaapidecoder_base.h \
         vaapidecoder_h264.h \
+        vaapidecoder_vp8.h \
         vaapisurfacebuf_pool.h \
 	$(NULL)
 

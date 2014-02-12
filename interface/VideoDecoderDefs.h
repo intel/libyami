@@ -25,7 +25,7 @@
 #include <va/va.h>
 #include <stdint.h>
 
-typedef enum {
+enum {
     SURFACE_FREE        = 0x00000000,
     SURFACE_DECODING    = 0x00000001,
     SURFACE_TO_RENDER   = 0x00000002,

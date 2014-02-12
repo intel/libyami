@@ -135,6 +135,8 @@ public:
     void addSlice(VaapiSlice *slice);
     VaapiSlice* getLastSlice();
     bool decodePicture();
+
+    // XXX, combine both decoding and rendering in one class, the compressed data can't be deleted before rendering
     bool output(); 
 
 public:
@@ -147,6 +149,7 @@ public:
     VaapiBufObject       *mIqMatrix;
     VaapiBufObject       *mBitPlane;
     VaapiBufObject       *mHufTable;
+    VaapiBufObject       *mProbTable;
     VASurfaceID           mSurfaceID;
     VADisplay             mDisplay;
     VAContextID           mContext;

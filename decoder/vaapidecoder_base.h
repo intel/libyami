@@ -91,9 +91,11 @@ protected:
      */
     VaapiSurfaceBufferPool* mBufPool;
     /* the current render target for decoder */
+    // XXX, not useful. decoding bases on VaapiPicture, rendering bases on IVideoDecoder->getOutput()
     VideoSurfaceBuffer *mRenderTarget;
 
     /* reference picture, h264 will not use */
+    // XXX, not used. reference frame management base on VaapiPicture
     VideoSurfaceBuffer *mLastReference;
     VideoSurfaceBuffer *mForwardReference;
     

@@ -379,8 +379,7 @@ VaapiSurfaceBufferPool::getOutputByMinTimeStamp()
         if (!(mBufArray[i]->status & SURFACE_TO_RENDER))
             continue;
 
-        if (mBufArray[i]->renderBuffer.timeStamp == INVALID_PTS ||
-            mBufArray[i]->pictureOrder  == INVALID_POC)
+        if (mBufArray[i]->renderBuffer.timeStamp == INVALID_PTS)
             continue;
 
         if ((uint64_t)(mBufArray[i]->renderBuffer.timeStamp) < pts) {

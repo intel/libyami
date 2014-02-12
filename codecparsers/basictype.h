@@ -32,6 +32,10 @@
 #define FALSE 0
 #endif
 
+#ifndef CHAR_BIT
+#define CHAR_BIT    8
+#endif
+
 #define RETURN_VAL_IF_FAIL(condition, value) \
     if (!(condition)) \
       return (value);
@@ -70,5 +74,5 @@ typedef signed char        boolean;
 #define INT_MIN   INT32_MIN
 #define UINT_MAX  UINT32_MAX
 #endif
-
+#define G_GNUC_UNUSED
 #endif  // __BASICTYPES_H_

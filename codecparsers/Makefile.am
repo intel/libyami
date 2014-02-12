@@ -5,6 +5,7 @@ libcodecparser_source_c = \
         mpegvideoparser.c \
         mpeg4parser.c \
         vc1parser.c \
+        dboolhuff.c \
         vp8parser.c \
         parserutils.c \
         nalreader.c \
@@ -25,13 +26,19 @@ libcodecparser_source_h = \
 	$(NULL)
 
 libcodecparser_source_h_priv = \
+		dboolhuff.h \
 	$(NULL)
+
+EXTRA_DIST = dboolhuff.LICENSE
 
 libcodecparser_ldflags = \
 	-version-info 0:2:0  \
 	$(NULL)
 
 libcodecparser_cppflags = \
+   -Dvp8_norm=libvacodec_vp8_norm \
+   -Dvp8dx_start_decode=libvacodec_vp8dx_start_decode \
+   -Dvp8dx_bool_decoder_fill=libvacodec_vp8dx_bool_decoder_fill
 	$(NULL)
 
 lib_LTLIBRARIES			= libcodecparser.la

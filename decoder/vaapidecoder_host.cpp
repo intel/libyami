@@ -20,6 +20,7 @@
  */
 
 #include "vaapidecoder_h264.h"
+#include "vaapidecoder_vp8.h"
 #include "interface/VideoDecoderHost.h"
 #include "common/log.h"
 #include <string.h>
@@ -54,6 +55,10 @@ IVideoDecoder* createVideoDecoder(const char* mimeType) {
         VideoDecoderAVC *p = new VideoDecoderAVCSecure(mimeType);
         return (IVideoDecoder *)p;
 #endif
+    } else if (strcasecmp(mimeType, "video/x-vnd.on2.vp8") == 0) {
+        DEBUG("Create VP8 decoder ");
+        IVideoDecoder *p = new VaapiDecoderVP8(mimeType);
+        return (IVideoDecoder *)p;
     } else {
         ERROR("Unsupported mime type: %s", mimeType);
     }

@@ -35,6 +35,7 @@ VaapiPicture::VaapiPicture(VADisplay display,
     mIqMatrix  = NULL;
     mBitPlane  = NULL;
     mHufTable  = NULL;
+    mProbTable = NULL;
 
     mTimeStamp = INVALID_PTS;
     mPoc       = INVALID_POC;
@@ -76,11 +77,17 @@ VaapiPicture::~VaapiPicture()
        mHufTable  = NULL;
     }
 
+    if(mProbTable){
+       delete mProbTable;
+       mProbTable  = NULL;
+    }
+
     for (iter = mSliceArray.begin(); 
           iter != mSliceArray.end(); iter++)
         delete *iter;
     //mSliceArray.clear();
 
+    // XXX, has the surface been rendered?
    if (mSurfBufPool && mSurfBuf){
       mSurfBufPool->recycleBuffer(mSurfBuf, false);
       mSurfBuf = NULL;
@@ -122,6 +129,13 @@ bool VaapiPicture::decodePicture()
         bufferID = mIqMatrix->getID();
         status = vaRenderPicture(mDisplay, mContext, &bufferID, 1);
         if (!vaapi_check_status(status, "vaRenderPicture(), render IQ matrix"))
+            return false;
+    }
+
+    if (mProbTable) {
+        bufferID = mProbTable->getID();
+        status = vaRenderPicture(mDisplay, mContext, &bufferID, 1);
+        if (!vaapi_check_status(status, "vaRenderPicture(), render probability table"))
             return false;
     }
 
