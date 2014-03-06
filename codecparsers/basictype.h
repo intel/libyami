@@ -40,6 +40,9 @@
     if (!(condition)) \
       return (value);
 
+#define N_ELEMENTS(array) \
+  (sizeof(array)/sizeof((array)[0]))
+
 typedef signed char        schar;
 typedef signed char        int8;
 typedef short              int16;
