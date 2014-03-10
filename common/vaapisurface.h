@@ -23,7 +23,7 @@
 #define VAAPI_SURFACE_H
 
 #include <va/va.h>
-#include <va/va_tpi.h>
+#include <va/va_drmcommon.h>
 #include "vaapitypes.h"
 #include "vaapiimage.h"
 
@@ -48,7 +48,8 @@ public:
                  VaapiChromaType chromaType,
                  uint32_t  width,
                  uint32_t  height,
-                 void *surfaceAttrib);
+                 void *    surfaceAttribArray,
+                 uint32_t  surfAttribNum);
 
     ~VaapiSurface();
 

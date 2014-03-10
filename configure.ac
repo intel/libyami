@@ -53,6 +53,7 @@ pkgconfigdir=${libdir}/pkgconfig
 AC_SUBST(pkgconfigdir)
 
 PKG_CHECK_MODULES(LIBVA, [libva])
+PKG_CHECK_MODULES(LIBVA_DRM, [libva-drm])
 PKG_CHECK_MODULES(LIBVA_X11, [libva-x11],
 	         [AC_DEFINE([HAVE_VA_X11], [1], [Defined to 1 if VA/X11 API is enabled])])
 

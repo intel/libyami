@@ -37,6 +37,7 @@ libvacodec_decoder_ldflags = \
 libvacodec_decoder_cppflags = \
         $(LIBVA_CFLAGS) \
         $(LIBVA_X11_CFLAGS) \
+        $(LIBVA_DRM_CFLAGS) \
         -fpermissive \
 	$(NULL)
 

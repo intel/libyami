@@ -17,6 +17,7 @@ libvacodec_common_source_h = \
 libvacodec_common_ldflags = \
 	-version-info 0:2:0  \
         $(LIBVA_LIBS) \
+        $(LIBVA_DRM_LIBS) \
 	$(NULL)
 
 libvacodec_common_cppflags = \

@@ -31,7 +31,7 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(
 
     uint32_t i;
     uint32_t format = VA_RT_FORMAT_YUV420;
- 
+
     pthread_cond_init(&mCond, NULL);
     pthread_mutex_init(&mLock, NULL);
 
@@ -42,66 +42,82 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(
 
     mBufCount   = config->surfaceNumber;
     mBufArray   = (VideoSurfaceBuffer**) malloc (sizeof(VideoSurfaceBuffer*) * mBufCount);
-    mSurfArray  = (VaapiSurface**) malloc (sizeof(VideoSurfaceBuffer*) * mBufCount);
+    mSurfArray  = (VaapiSurface**) malloc (sizeof(VaapiSurface*) * mBufCount);
 
     if (config->flag & WANT_SURFACE_PROTECTION) {
         format != VA_RT_FORMAT_PROTECTED;
         INFO("Surface is protectd ");
     }
 
-#if VA_CHECK_VERSION(0,34,0)
     /* allocate surface for the pool */
-    VASurfaceAttributeTPI surfAttrib;
-    memset(&surfAttrib, 0, sizeof(VASurfaceAttributeTPI));
-
+    mUseExtBuf = false;
     if (config->flag & USE_NATIVE_GRAPHIC_BUFFER) {
          INFO("Use native graphci buffer for decoding");
-         mUseExtBuf = true;
-         surfAttrib.count        = 1;
-         surfAttrib.luma_stride  = config->graphicBufferStride;
-         surfAttrib.pixel_format = config->graphicBufferColorFormat;
-         surfAttrib.width        = config->graphicBufferWidth; 
-         surfAttrib.height       = config->graphicBufferHeight;
-         surfAttrib.type         = VAExternalMemoryAndroidGrallocBuffer;
-         surfAttrib.reserved[0]  = (uint32_t) config->nativeWindow;
-         surfAttrib.buffers      = (uint32_t*) malloc (sizeof(uint32_t) * 1);
-     }
+         VASurfaceAttrib surfaceAttribs[2];
+         VASurfaceAttribExternalBuffers surfAttribExtBuf;
 
-     for (i = 0; i < mBufCount; i++) {
-         if (config->flag & USE_NATIVE_GRAPHIC_BUFFER) {
-            surfAttrib.buffers[0] = (uint32_t)config->graphicBufferHandler[i];
-         }
+         surfaceAttribs[0].type = VASurfaceAttribMemoryType;
+         surfaceAttribs[0].flags = VA_SURFACE_ATTRIB_SETTABLE;
+         surfaceAttribs[0].value.type = VAGenericValueTypeInteger;
+         surfaceAttribs[0].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_KERNEL_DRM;
 
-         mSurfArray[i] = new VaapiSurface(display,
-                                          VAAPI_CHROMA_TYPE_YUV420,
-                                          surfAttrib.width,
-                                          surfAttrib.height,
-                                          (void*)&surfAttrib);
+         surfAttribExtBuf.pixel_format = VA_FOURCC_NV12;
+         surfAttribExtBuf.width = config->graphicBufferWidth;
+         surfAttribExtBuf.height = config->graphicBufferHeight;
+         surfAttribExtBuf.data_size = config->graphicBufferWidth * config->graphicBufferHeight * 3 / 2;
+         surfAttribExtBuf.num_planes= 2;
+         surfAttribExtBuf.pitches[0] = config->graphicBufferWidth;
+         surfAttribExtBuf.offsets[0] = 0;
+         surfAttribExtBuf.pitches[1] = config->graphicBufferWidth / 2;
+         surfAttribExtBuf.offsets[1] = config->graphicBufferWidth * config->graphicBufferHeight;
+
+         surfAttribExtBuf.num_buffers = 1;
+         surfAttribExtBuf.buffers = (unsigned long*) malloc(sizeof(unsigned long) * surfAttribExtBuf.num_buffers) ;
+         surfAttribExtBuf.buffers[0] = 0;
+         surfAttribExtBuf.flags = 0 ;
+         surfAttribExtBuf.private_data = NULL;
+         surfaceAttribs[1].type = VASurfaceAttribExternalBufferDescriptor;
+         surfaceAttribs[1].flags = VA_SURFACE_ATTRIB_SETTABLE;
+         surfaceAttribs[1].value.type = VAGenericValueTypePointer;
+         surfaceAttribs[1].value.value.p = &surfAttribExtBuf;
+
+         for (i = 0; i < mBufCount; i++) {
+            surfAttribExtBuf.buffers[0] = (unsigned long)config->graphicBufferHandler[i];
+            mSurfArray[i] = new VaapiSurface(display,
+                                             VAAPI_CHROMA_TYPE_YUV420,
+                                             config->graphicBufferWidth,
+                                             config->graphicBufferHeight,
+                                             (void*)&surfaceAttribs,
+                                             2);
+
          if (!mSurfArray[i]) {
-               ERROR("VaapiSurface allocation failed ");
-               return;
+              ERROR("VaapiSurface allocation failed ");
+              return;
           }
-     }
-
-    if (surfAttrib.buffers)
-       free(surfAttrib.buffers);
-#else
-    for (i = 0; i < mBufCount; i++) {
-        mSurfArray[i] = new VaapiSurface(display,
-                                        VAAPI_CHROMA_TYPE_YUV420,
-                                        config->width,
-                                        config->height,
-                                        NULL);
-       if (!mSurfArray[i]) {
-           ERROR("VaapiSurface allocation failed ");
-           return;
        }
-   }
 
-   mUseExtBuf = false;
-#endif
+      mUseExtBuf = true;
 
-    /* initialize all surface buffers in the pool */
+      if (surfAttribExtBuf.buffers)
+          free(surfAttribExtBuf.buffers);
+
+      } else {
+         for (i = 0; i < mBufCount; i++) {
+            mSurfArray[i] = new VaapiSurface(display,
+                                             VAAPI_CHROMA_TYPE_YUV420,
+                                             config->width,
+                                             config->height,
+                                             NULL,
+                                             0);
+             if (!mSurfArray[i]) {
+                 ERROR("VaapiSurface allocation failed ");
+                 return;
+             }
+        }
+    }
+
+
+    /* Wrap vaapi surfaces into VideoSurfaceBuffer pool */
     for (i = 0; i < mBufCount; i++) {
          mBufArray[i] = (struct VideoSurfaceBuffer*)malloc(sizeof(struct VideoSurfaceBuffer));
          mBufArray[i]->pictureOrder             = INVALID_POC;

@@ -27,12 +27,14 @@ VaapiSurface::VaapiSurface(VADisplay display,
                  VaapiChromaType chromaType,
                  uint32_t  width,
                  uint32_t  height,
-                 void *surfaceAttrib)
+                 void *    surfAttribArray,
+                 uint32_t  surfAttribNum)
                  : mDisplay(display), mChromaType(chromaType), 
                    mWidth(width), mHeight(height)
 {
     VAStatus status;
-    uint32_t format;
+    uint32_t format, i;
+    VASurfaceAttrib * surfAttribs = (VASurfaceAttrib*) surfAttribArray;
 
     switch (mChromaType) {
       case VAAPI_CHROMA_TYPE_YUV420:
@@ -49,54 +51,24 @@ VaapiSurface::VaapiSurface(VADisplay display,
           break;
     }
 
-#if VA_CHECK_VERSION(0,34,0)
-   VASurfaceAttributeTPI *surfAttrib =
-          (VASurfaceAttributeTPI*) surfaceAttrib;
+   if (surfAttribs && surfAttribNum) {
+       status = vaCreateSurfaces(mDisplay, format, width, height,
+                   &mID, 1, surfAttribs, surfAttribNum);
 
-   if (surfAttrib) {
-       status = vaCreateSurfacesWithAttribute(
-                   mDisplay,
-                   width,
-                   height,
-                   format,
-                   1,
-                   &mID,
-                   surfAttrib);
+       for (i = 0; i < surfAttribNum; i ++)
+           if (surfAttribs[i].type == VASurfaceAttribExternalBufferDescriptor) {
+               VASurfaceAttribExternalBuffers* surfAttribExtBuf
+                    = (VASurfaceAttribExternalBuffers*)surfAttribs[i].value.value.p;
+               mExternalBufHandle = surfAttribExtBuf->buffers[0];
+      }
+   } else {
+       status = vaCreateSurfaces(mDisplay, format, width, height,
+                   &mID, 1, NULL, 0);
+       mExternalBufHandle = 0;
+   }
 
-        if (!vaapi_check_status(status, "vaCreateSurfacesWithAttribute()"))
-            return;
-
-        mExternalBufHandle = surfAttrib->buffers[0];
-    } else {
-        status = vaCreateSurfaces(
-            mDisplay,
-            format,
-            mWidth,
-            mHeight,
-            &mID,
-            1,
-            NULL,
-            0);
-
-        if (!vaapi_check_status(status, "vaCreateSurfaces()"))
-            return;
-
-        mExternalBufHandle = 0;
-    }
-#else
-    status = vaCreateSurfaces(
-        mDisplay,
-        mWidth,
-        mHeight,
-        format,
-        1,
-        &mID);
-
-    if (!vaapi_check_status(status, "vaCreateSurfaces()"))
-         return;
-
-     mExternalBufHandle = 0;
-#endif
+   if (!vaapi_check_status(status, "vaCreateSurfacesWithAttribute()"))
+       return;
 
     mDerivedImage = NULL;
 }
