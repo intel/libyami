@@ -56,7 +56,7 @@ typedef enum {
     ((picture)->mFlags)
 
 #define VAAPI_PICTURE_FLAG_IS_SET(picture, flag) \
-    (VAAPI_PICTURE_FLAGS(picture) & (flag))
+    ((VAAPI_PICTURE_FLAGS(picture) & (flag)) != 0)
 
 #define VAAPI_PICTURE_FLAG_SET(picture, flag) \
      (VAAPI_PICTURE_FLAGS(picture) |= (flag))
