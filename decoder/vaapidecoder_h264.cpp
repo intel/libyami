@@ -1099,6 +1099,9 @@ VaapiDecoderH264::ensure_context(H264SPS *sps)
 
     m_has_context = true;
 
+    if (reset_context)
+       return DECODE_FORMAT_CHANGE;
+
     return DECODE_SUCCESS;
 }
 
@@ -1266,10 +1269,6 @@ VaapiDecoderH264::decode_picture(H264NalUnit *nalu, H264SliceHdr *slice_hdr)
     H264SPS * const sps = pps->sequence;
 
     status = decode_current_picture();
-    if (status != DECODE_SUCCESS)
-        return status;
-
-    status = ensure_context(sps);
     if (status != DECODE_SUCCESS)
         return status;
 
@@ -1685,9 +1684,9 @@ VaapiDecoderH264::decode(VideoDecodeBuffer *buffer)
     if (is_eos && status == DECODE_SUCCESS)
        status = decode_sequence_end();
   
-    if (status == DECODE_SUCCESS && m_reset_context) {
+    if (status == DECODE_FORMAT_CHANGE && m_reset_context) {
+        WARNING("H264 decoder format change happens");
         m_reset_context = false;
-        status = DECODE_FORMAT_CHANGE;
     }
 
     return status;
