@@ -242,7 +242,8 @@ VaapiSurfaceBufferPool::outputBuffer(
     uint64_t timeStamp, 
     uint32_t poc)
 {
-     DEBUG("Pool: set surface(ID:%8x) to be rendered", buf->renderBuffer.surface);
+     DEBUG("Pool: set surface(ID:%8x, poc:%x) to be rendered", buf->renderBuffer.surface, poc);
+
      uint32_t i = 0;
      pthread_mutex_lock(&mLock);
      for (i = 0; i < mBufCount; i++) {
@@ -392,7 +393,41 @@ VaapiSurfaceBufferPool::getOutputByMinTimeStamp()
        buf->status &= (~SURFACE_TO_RENDER);
        buf->status |= SURFACE_RENDERING;
 
-       INFO("Pool: found %x to display", buf->renderBuffer.surface);
+       DEBUG("Pool: found %x to display with MIN pts = %d", buf->renderBuffer.surface, pts);
+    }
+
+    pthread_mutex_unlock(&mLock);
+
+    return buf;
+}
+
+VideoSurfaceBuffer*
+VaapiSurfaceBufferPool::getOutputByMinPOC()
+{
+    uint32_t i;
+    uint32_t poc = INVALID_POC;
+    VideoSurfaceBuffer * buf = NULL;
+
+    pthread_mutex_lock(&mLock);
+    for (i = 0; i < mBufCount; i++) {
+        if (!(mBufArray[i]->status & SURFACE_TO_RENDER))
+            continue;
+
+        if (mBufArray[i]->renderBuffer.timeStamp == INVALID_PTS ||
+            mBufArray[i]->pictureOrder  == INVALID_POC)
+            continue;
+
+        if ((uint64_t)(mBufArray[i]->pictureOrder) < poc) {
+            poc = mBufArray[i]->pictureOrder;
+            buf = mBufArray[i];
+        }
+    }
+
+    if (buf) {
+       buf->status &= (~SURFACE_TO_RENDER);
+       buf->status |= SURFACE_RENDERING;
+
+       DEBUG("Pool: found %x to display with MIN poc = %x", buf->renderBuffer.surface, poc);
     }
 
     pthread_mutex_unlock(&mLock);

@@ -139,7 +139,7 @@ VaapiDecoderBase::getOutput(bool draining)
     VideoSurfaceBuffer* surfBuf = NULL;
  
      if (mBufPool)
-        surfBuf = mBufPool->getOutputByMinTimeStamp();
+        surfBuf = mBufPool->getOutputByMinPOC();
 
      if(!surfBuf)
         return NULL;

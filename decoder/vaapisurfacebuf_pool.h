@@ -45,6 +45,7 @@ public:
    void                flushPool();
 
    VideoSurfaceBuffer* getOutputByMinTimeStamp();
+   VideoSurfaceBuffer* getOutputByMinPOC();
    VideoSurfaceBuffer* getBufferByHandler(void *graphicHandle);
    VideoSurfaceBuffer* getBufferBySurfaceID(VASurfaceID id);
    VideoSurfaceBuffer* getBufferByIndex(uint32_t index);
