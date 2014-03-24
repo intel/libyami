@@ -1692,4 +1692,19 @@ VaapiDecoderH264::decode(VideoDecodeBuffer *buffer)
     return status;
 }
 
+const VideoRenderBuffer*
+VaapiDecoderH264::getOutput(bool draining)
+{
+    INFO("VaapiDecoderH264: getOutput()");
+    VideoSurfaceBuffer* surfBuf = NULL;
+
+     if (mBufPool)
+        surfBuf = mBufPool->getOutputByMinPOC();
+
+     if(!surfBuf)
+        return NULL;
+
+     return  &(surfBuf->renderBuffer);
+}
+
 

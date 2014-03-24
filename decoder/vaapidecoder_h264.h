@@ -200,6 +200,7 @@ public:
    virtual void stop(void);
    virtual void flush(void);
    virtual Decode_Status decode(VideoDecodeBuffer *buf);
+   virtual const VideoRenderBuffer* getOutput(bool draining = false);
 public:
    VaapiFrameStore      *m_prev_frame;
    int32_t               m_frame_num;              // frame_num (from slice_header())

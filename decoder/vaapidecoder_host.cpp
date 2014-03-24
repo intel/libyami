@@ -29,6 +29,7 @@ IVideoDecoder* createVideoDecoder(const char* mimeType) {
         ERROR("NULL mime type.");
         return NULL;
     }
+    INFO("mimeType: %s\n", mimeType);
 /*
     if (strcasecmp(mimeType, "video/wmv") == 0 ||
         strcasecmp(mimeType, "video/vc1") == 0) {
