@@ -1,5 +1,5 @@
 /*
- *  vaapidecoder_host.h
+ *  VideoDecoderHost.h- basic va decoder for video
  *
  *  Copyright (C) 2013 Intel Corporation
  *
