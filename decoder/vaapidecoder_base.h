@@ -46,42 +46,42 @@ typedef unsigned int Display;
 #define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 #define ALIGN_MB(a) (((a) + 15 ) & (~15))
 
-class VaapiDecoderBase : public IVideoDecoder {
-public:
+class VaapiDecoderBase:public IVideoDecoder {
+  public:
     VaapiDecoderBase(const char *mimeType);
-    virtual ~VaapiDecoderBase();
+    virtual ~ VaapiDecoderBase();
 
-    virtual Decode_Status start(VideoConfigBuffer *buffer);
-    virtual Decode_Status reset(VideoConfigBuffer *buffer) ;
+    virtual Decode_Status start(VideoConfigBuffer * buffer);
+    virtual Decode_Status reset(VideoConfigBuffer * buffer);
     virtual void stop(void);
     //virtual Decode_Status decode(VideoDecodeBuffer *buffer);
     virtual void flush(void);
     virtual void flushOutport(void);
-    virtual const VideoRenderBuffer* getOutput(bool draining = false);
-    virtual Decode_Status signalRenderDone(void * graphichandler);
-    virtual const VideoFormatInfo* getFormatInfo(void);
+    virtual const VideoRenderBuffer *getOutput(bool draining = false);
+    virtual Decode_Status signalRenderDone(void *graphichandler);
+    virtual const VideoFormatInfo *getFormatInfo(void);
     virtual bool checkBufferAvail(void);
-    virtual void renderDone(VideoRenderBuffer *renderBuf);
+    virtual void renderDone(VideoRenderBuffer * renderBuf);
 
     /* native window related functions */
-    void  setXDisplay(Display * x_display);
+    void setXDisplay(Display * x_display);
     void enableNativeBuffers(void);
     Decode_Status getClientNativeWindowBuffer(void *bufferHeader,
-                  void *nativeBufferHandle);
+					      void *nativeBufferHandle);
     Decode_Status flagNativeBuffer(void *pBuffer);
     void releaseLock();
 
-protected:
+  protected:
     Decode_Status setupVA(uint32_t numSurface, VAProfile profile);
     Decode_Status terminateVA(void);
     Decode_Status updateReference(void);
 
-    Display     *mDisplay;
-    VADisplay    mVADisplay;
-    VAContextID  mVAContext;
-    VAConfigID   mVAConfig;
-    bool         mVAStarted;
- 
+    Display *mDisplay;
+    VADisplay mVADisplay;
+    VAContextID mVAContext;
+    VAConfigID mVAConfig;
+    bool mVAStarted;
+
     VideoConfigBuffer mConfigBuffer;
     VideoFormatInfo mVideoFormatInfo;
 
@@ -89,7 +89,7 @@ protected:
      * in one pool, the pool will responsable for allocating
      * empty surface, recycle used surface.
      */
-    VaapiSurfaceBufferPool* mBufPool;
+    VaapiSurfaceBufferPool *mBufPool;
     /* the current render target for decoder */
     // XXX, not useful. decoding bases on VaapiPicture, rendering bases on IVideoDecoder->getOutput()
     VideoSurfaceBuffer *mRenderTarget;
@@ -98,18 +98,18 @@ protected:
     // XXX, not used. reference frame management base on VaapiPicture
     VideoSurfaceBuffer *mLastReference;
     VideoSurfaceBuffer *mForwardReference;
-    
+
     /* hold serveral decoded picture coming from the dpb,
      * and rearrange the picture output order according to
      * customer required, for example, when output
      */
     //VideoSurfaceBuffer *outputList;
-    uint64_t mCurrentPTS; 
- 
-private:
+    uint64_t mCurrentPTS;
+
+  private:
     bool mLowDelay;
     bool mRawOutput;
     bool mEnableNativeBuffersFlag;
 };
 
-#endif  // VIDEO_DECODER_BASE_H_
+#endif				// VIDEO_DECODER_BASE_H_

@@ -25,10 +25,11 @@
 #include "common/log.h"
 #include <string.h>
 
-IVideoDecoder* createVideoDecoder(const char* mimeType) {
+IVideoDecoder *createVideoDecoder(const char *mimeType)
+{
     if (mimeType == NULL) {
-        ERROR("NULL mime type.");
-        return NULL;
+	ERROR("NULL mime type.");
+	return NULL;
     }
     INFO("mimeType: %s\n", mimeType);
 /*
@@ -37,42 +38,41 @@ IVideoDecoder* createVideoDecoder(const char* mimeType) {
         VideoDecoderWMV *p = new VideoDecoderWMV(mimeType);
         return (IVideoDecoder *)p;
     } else */ if (strcasecmp(mimeType, "video/avc") == 0 ||
-               strcasecmp(mimeType, "video/h264") == 0) {
-        DEBUG("Create H264 decoder ");
-        IVideoDecoder *p = new VaapiDecoderH264(mimeType);
-        return (IVideoDecoder *)p;
+		  strcasecmp(mimeType, "video/h264") == 0) {
+	DEBUG("Create H264 decoder ");
+	IVideoDecoder *p = new VaapiDecoderH264(mimeType);
+	return (IVideoDecoder *) p;
 #if 0
     } else if (strcasecmp(mimeType, "video/mp4v-es") == 0 ||
-            strcasecmp(mimeType, "video/mpeg4") == 0 ||
-            strcasecmp(mimeType, "video/h263") == 0 ||
-            strcasecmp(mimeType, "video/3gpp") == 0) {
-        VideoDecoderMPEG4 *p = new VideoDecoderMPEG4(mimeType);
-        return (IVideoDecoder *)p;
+	       strcasecmp(mimeType, "video/mpeg4") == 0 ||
+	       strcasecmp(mimeType, "video/h263") == 0 ||
+	       strcasecmp(mimeType, "video/3gpp") == 0) {
+	VideoDecoderMPEG4 *p = new VideoDecoderMPEG4(mimeType);
+	return (IVideoDecoder *) p;
     } else if (strcasecmp(mimeType, "video/pavc") == 0) {
-        VideoDecoderAVC *p = new VideoDecoderPAVC(mimeType);
-        return (IVideoDecoder *)p;
+	VideoDecoderAVC *p = new VideoDecoderPAVC(mimeType);
+	return (IVideoDecoder *) p;
     } else if (strcasecmp(mimeType, "video/avc-secure") == 0) {
-        VideoDecoderAVC *p = new VideoDecoderAVCSecure(mimeType);
-        return (IVideoDecoder *)p;
+	VideoDecoderAVC *p = new VideoDecoderAVCSecure(mimeType);
+	return (IVideoDecoder *) p;
 #endif
     } else if (strcasecmp(mimeType, "video/x-vnd.on2.vp8") == 0) {
-        DEBUG("Create VP8 decoder ");
-        IVideoDecoder *p = new VaapiDecoderVP8(mimeType);
-        return (IVideoDecoder *)p;
+	DEBUG("Create VP8 decoder ");
+	IVideoDecoder *p = new VaapiDecoderVP8(mimeType);
+	return (IVideoDecoder *) p;
     } else {
-        ERROR("Unsupported mime type: %s", mimeType);
+	ERROR("Unsupported mime type: %s", mimeType);
     }
     return NULL;
 }
 
-void releaseVideoDecoder(IVideoDecoder* p) {
+void releaseVideoDecoder(IVideoDecoder * p)
+{
     if (p) {
-        const VideoFormatInfo *info  = p->getFormatInfo();
-        if (info && info->mimeType) {
-            DEBUG("Deleting decoder for %s", info->mimeType);
-        }
+	const VideoFormatInfo *info = p->getFormatInfo();
+	if (info && info->mimeType) {
+	    DEBUG("Deleting decoder for %s", info->mimeType);
+	}
     }
     delete p;
 }
-
-

@@ -27,32 +27,36 @@
 /**
   * H.263 Encoder class, derived from VideoEncoderBase
   */
-class VideoEncoderH263: public VideoEncoderBase {
-public:
+class VideoEncoderH263:public VideoEncoderBase {
+  public:
     VideoEncoderH263();
-    virtual ~VideoEncoderH263() {};
+    virtual ~ VideoEncoderH263() {
+    };
 
-protected:
+  protected:
     virtual Encode_Status sendEncodeCommand(void);
-    virtual Encode_Status derivedSetParams(VideoParamConfigSet *videoEncParams) {
-        return ENCODE_SUCCESS;
+    virtual Encode_Status derivedSetParams(VideoParamConfigSet *
+					   videoEncParams) {
+	return ENCODE_SUCCESS;
     }
-    virtual Encode_Status derivedGetParams(VideoParamConfigSet *videoEncParams) {
-        return ENCODE_SUCCESS;
+    virtual Encode_Status derivedGetParams(VideoParamConfigSet *
+					   videoEncParams) {
+	return ENCODE_SUCCESS;
     }
-    virtual Encode_Status derivedGetConfig(VideoParamConfigSet *videoEncConfig) {
-        return ENCODE_SUCCESS;
+    virtual Encode_Status derivedGetConfig(VideoParamConfigSet *
+					   videoEncConfig) {
+	return ENCODE_SUCCESS;
     }
-    virtual Encode_Status derivedSetConfig(VideoParamConfigSet *videoEncConfig) {
-        return ENCODE_SUCCESS;
+    virtual Encode_Status derivedSetConfig(VideoParamConfigSet *
+					   videoEncConfig) {
+	return ENCODE_SUCCESS;
     }
 
     // Local Methods
-private:
+  private:
     Encode_Status renderSequenceParams();
     Encode_Status renderPictureParams();
     Encode_Status renderSliceParams();
 };
 
-#endif /* __VIDEO_ENCODER_H263_H__ */
-
+#endif				/* __VIDEO_ENCODER_H263_H__ */

@@ -31,18 +31,16 @@
 #define ANDROID_DISPLAY_HANDLE 0x18C34078
 
 VaapiDecoderBase::VaapiDecoderBase(const char *mimeType)
-      :mDisplay(NULL),
-      mVADisplay(NULL),
-      mVAContext(VA_INVALID_ID),
-      mVAConfig(VA_INVALID_ID),
-      mRenderTarget(NULL),
-      mLastReference(NULL),
-      mForwardReference(NULL),
-      mVAStarted(false),
-      mCurrentPTS(INVALID_PTS),
-      mEnableNativeBuffersFlag(false)
+:mDisplay(NULL),
+mVADisplay(NULL),
+mVAContext(VA_INVALID_ID),
+mVAConfig(VA_INVALID_ID),
+mRenderTarget(NULL),
+mLastReference(NULL),
+mForwardReference(NULL),
+mVAStarted(false),
+mCurrentPTS(INVALID_PTS), mEnableNativeBuffersFlag(false)
 {
-
     INFO("base: construct()");
     memset(&mVideoFormatInfo, 0, sizeof(VideoFormatInfo));
     memset(&mConfigBuffer, 0, sizeof(mConfigBuffer));
@@ -50,7 +48,7 @@ VaapiDecoderBase::VaapiDecoderBase(const char *mimeType)
     mBufPool = NULL;
 }
 
-VaapiDecoderBase::~VaapiDecoderBase() 
+VaapiDecoderBase::~VaapiDecoderBase()
 {
     INFO("base: deconstruct()");
     stop();
@@ -58,13 +56,12 @@ VaapiDecoderBase::~VaapiDecoderBase()
     free(mVideoFormatInfo.ctxSurfaces);
 }
 
-Decode_Status 
-VaapiDecoderBase::start(VideoConfigBuffer *buffer)
+Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
 {
     INFO("base: start()");
- 
+
     if (buffer == NULL) {
-        return DECODE_INVALID_DATA;
+	return DECODE_INVALID_DATA;
     }
 
     mConfigBuffer = *buffer;
@@ -74,25 +71,24 @@ VaapiDecoderBase::start(VideoConfigBuffer *buffer)
     mVideoFormatInfo.width = buffer->width;
     mVideoFormatInfo.height = buffer->height;
     if (buffer->flag & USE_NATIVE_GRAPHIC_BUFFER) {
-        mVideoFormatInfo.surfaceWidth = buffer->graphicBufferWidth;
-        mVideoFormatInfo.surfaceHeight = buffer->graphicBufferHeight;
+	mVideoFormatInfo.surfaceWidth = buffer->graphicBufferWidth;
+	mVideoFormatInfo.surfaceHeight = buffer->graphicBufferHeight;
     }
     mLowDelay = buffer->flag & WANT_LOW_DELAY;
     mRawOutput = buffer->flag & WANT_RAW_OUTPUT;
 
-    setupVA(buffer->surfaceNumber, buffer->profile);   
+    setupVA(buffer->surfaceNumber, buffer->profile);
 
     return DECODE_SUCCESS;
 }
 
-Decode_Status VaapiDecoderBase::reset(VideoConfigBuffer *buffer)
+Decode_Status VaapiDecoderBase::reset(VideoConfigBuffer * buffer)
 {
-
     INFO("base: reset()");
     if (buffer == NULL) {
-        return DECODE_INVALID_DATA;
+	return DECODE_INVALID_DATA;
     }
-   
+
     flush();
     terminateVA();
     start(buffer);
@@ -100,7 +96,7 @@ Decode_Status VaapiDecoderBase::reset(VideoConfigBuffer *buffer)
     return DECODE_SUCCESS;
 }
 
-void VaapiDecoderBase::stop(void) 
+void VaapiDecoderBase::stop(void)
 {
     INFO("base: stop()");
     terminateVA();
@@ -121,7 +117,7 @@ void VaapiDecoderBase::flush(void)
 
     INFO("base: flush()");
     if (mBufPool)
-       mBufPool->flushPool();
+	mBufPool->flushPool();
 
     mCurrentPTS = INVALID_PTS;
     mRenderTarget = NULL;
@@ -129,118 +125,107 @@ void VaapiDecoderBase::flush(void)
     mForwardReference = NULL;
 }
 
-void VaapiDecoderBase::flushOutport(void) {
-}
-
-
-const VideoRenderBuffer* 
-VaapiDecoderBase::getOutput(bool draining) 
+void VaapiDecoderBase::flushOutport(void)
 {
-    VideoSurfaceBuffer* surfBuf = NULL;
- 
-     if (mBufPool)
-        surfBuf = mBufPool->getOutputByMinTimeStamp();
-
-     if(!surfBuf)
-        return NULL;
-
-     return  &(surfBuf->renderBuffer);
 }
 
-Decode_Status
-VaapiDecoderBase::signalRenderDone(void *graphicHandler)
+const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
+{
+    VideoSurfaceBuffer *surfBuf = NULL;
+
+    if (mBufPool)
+	surfBuf = mBufPool->getOutputByMinTimeStamp();
+
+    if (!surfBuf)
+	return NULL;
+
+    return &(surfBuf->renderBuffer);
+}
+
+Decode_Status VaapiDecoderBase::signalRenderDone(void *graphicHandler)
 {
     INFO("base: signalRenderDone()");
     VideoSurfaceBuffer *buf = NULL;
     if (graphicHandler == NULL) {
-        return DECODE_SUCCESS;
+	return DECODE_SUCCESS;
     }
 
     if (!mBufPool) {
-        ERROR("buffer pool is not initialized yet");
-        return DECODE_FAIL;
+	ERROR("buffer pool is not initialized yet");
+	return DECODE_FAIL;
     }
 
     if (!(buf = mBufPool->getBufferByHandler(graphicHandler))) {
-        return DECODE_SUCCESS;
+	return DECODE_SUCCESS;
     }
- 
-    if(!mBufPool->recycleBuffer(buf, true))
-       return DECODE_FAIL;
+
+    if (!mBufPool->recycleBuffer(buf, true))
+	return DECODE_FAIL;
 
     return DECODE_FAIL;
-}   
+}
 
-const VideoFormatInfo*
-VaapiDecoderBase::getFormatInfo(void)
+const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
 {
-
     INFO("base: getFormatInfo()");
     return &mVideoFormatInfo;
 }
- 
-bool 
-VaapiDecoderBase::checkBufferAvail(void) 
-{
 
+bool VaapiDecoderBase::checkBufferAvail(void)
+{
     INFO("base: checkBufferAvail()");
     if (!mBufPool) {
-        ERROR("buffer pool is not initialized yet");
-        return DECODE_FAIL;
+	ERROR("buffer pool is not initialized yet");
+	return DECODE_FAIL;
     }
 
-    if(mBufPool->searchAvailableBuffer())
-        return true;
+    if (mBufPool->searchAvailableBuffer())
+	return true;
 
     return false;
 }
 
-void
-VaapiDecoderBase::renderDone(VideoRenderBuffer *renderBuf)
+void VaapiDecoderBase::renderDone(VideoRenderBuffer * renderBuf)
 {
     INFO("base: renderDone()");
     VideoSurfaceBuffer *buf = NULL;
 
     if (!mBufPool) {
-        ERROR("buffer pool is not initialized yet");
-        return ;
+	ERROR("buffer pool is not initialized yet");
+	return;
     }
 
     if (!(buf = mBufPool->getBufferBySurfaceID(renderBuf->surface))) {
-        return;
+	return;
     }
- 
+
     mBufPool->recycleBuffer(buf, true);
 }
 
-////////////////////////////////////////////
-Decode_Status 
-VaapiDecoderBase::updateReference(void)
+Decode_Status VaapiDecoderBase::updateReference(void)
 {
     Decode_Status status;
     // update reference frames
     if (mRenderTarget->referenceFrame) {
-        // managing reference for MPEG4/H.263/WMV.
-        // AVC should manage reference frame in a different way
-        if (mForwardReference != NULL) {
-            // this foward reference is no longer needed
-            mForwardReference->asReferernce = false;
-        }
-        // Forware reference for either P or B frame prediction
-        mForwardReference = mLastReference;
-        mRenderTarget->asReferernce = true;
+	// managing reference for MPEG4/H.263/WMV.
+	// AVC should manage reference frame in a different way
+	if (mForwardReference != NULL) {
+	    // this foward reference is no longer needed
+	    mForwardReference->asReferernce = false;
+	}
+	// Forware reference for either P or B frame prediction
+	mForwardReference = mLastReference;
+	mRenderTarget->asReferernce = true;
 
-        // the last reference frame.
-        mLastReference = mRenderTarget;
+	// the last reference frame.
+	mLastReference = mRenderTarget;
     }
     return DECODE_SUCCESS;
 }
 
-
-Decode_Status 
-VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile) 
+Decode_Status
+    VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
 {
- 
     INFO("base: setup VA");
     uint32_t i;
     VASurfaceID *surfaces;
@@ -250,123 +235,112 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     VAStatus vaStatus = VA_STATUS_SUCCESS;
 
     if (mEnableNativeBuffersFlag == true) {
-       numSurface = 20; //NATIVE_WINDOW_COUNT;
+	numSurface = 20;	//NATIVE_WINDOW_COUNT;
     }
 
     if (mVAStarted) {
-        return DECODE_SUCCESS;
+	return DECODE_SUCCESS;
     }
 
     if (mVADisplay != NULL) {
-        WARNING("VA is partially started.");
-        return DECODE_FAIL;
+	WARNING("VA is partially started.");
+	return DECODE_FAIL;
     }
-
 #ifdef ANDROID
     mDisplay = new Display;
     *mDisplay = ANDROID_DISPLAY_HANDLE;
 #else
     if (!mDisplay)
-    mDisplay = XOpenDisplay(NULL);
+	mDisplay = XOpenDisplay(NULL);
 #endif
 
     mVADisplay = vaGetDisplay(mDisplay);
     if (mVADisplay == NULL) {
-        ERROR("vaGetDisplay failed.");
-        return DECODE_DRIVER_FAIL;
+	ERROR("vaGetDisplay failed.");
+	return DECODE_DRIVER_FAIL;
     }
 
     int majorVersion, minorVersion;
     vaStatus = vaInitialize(mVADisplay, &majorVersion, &minorVersion);
-    vaapi_check_status(vaStatus,"vaInitialize");
+    vaapi_check_status(vaStatus, "vaInitialize");
 
     VAConfigAttrib attrib;
     attrib.type = VAConfigAttribRTFormat;
     attrib.value = VA_RT_FORMAT_YUV420;
 
     INFO("base:the profile = %d", profile);
-    vaStatus = vaCreateConfig(
-                mVADisplay,
-                profile,
-                VAEntrypointVLD,
-                &attrib,
-                1,
-                &mVAConfig);
-    vaapi_check_status(vaStatus,"vaCreateConfig");
+    vaStatus = vaCreateConfig(mVADisplay,
+			      profile,
+			      VAEntrypointVLD, &attrib, 1, &mVAConfig);
+    vaapi_check_status(vaStatus, "vaCreateConfig");
 
     mConfigBuffer.surfaceNumber = numSurface;
     mBufPool = new VaapiSurfaceBufferPool(mVADisplay, &mConfigBuffer);
-    surfaces = new VASurfaceID [numSurface];
-    for (i = 0; i < numSurface; i ++) {
-        buf = mBufPool->getBufferByIndex(i);
-        suf = mBufPool->getVaapiSurface(buf);
-        surfaces[i] = suf->getID();
+    surfaces = new VASurfaceID[numSurface];
+    for (i = 0; i < numSurface; i++) {
+	buf = mBufPool->getBufferByIndex(i);
+	suf = mBufPool->getVaapiSurface(buf);
+	surfaces[i] = suf->getID();
     }
-        
-    vaStatus = vaCreateContext(
-                mVADisplay,
-                mVAConfig,
-                mVideoFormatInfo.width,
-                mVideoFormatInfo.height,
-                0,
-                surfaces,
-                numSurface,
-                &mVAContext);
-    vaapi_check_status(vaStatus,"vaCreateContext");
+
+    vaStatus = vaCreateContext(mVADisplay,
+			       mVAConfig,
+			       mVideoFormatInfo.width,
+			       mVideoFormatInfo.height,
+			       0, surfaces, numSurface, &mVAContext);
+    vaapi_check_status(vaStatus, "vaCreateContext");
 
     VADisplayAttribute rotate;
     rotate.type = VADisplayAttribRotation;
     rotate.value = VA_ROTATION_NONE;
     if (mConfigBuffer.rotationDegrees == 0)
-        rotate.value = VA_ROTATION_NONE;
+	rotate.value = VA_ROTATION_NONE;
     else if (mConfigBuffer.rotationDegrees == 90)
-        rotate.value = VA_ROTATION_90;
+	rotate.value = VA_ROTATION_90;
     else if (mConfigBuffer.rotationDegrees == 180)
-        rotate.value = VA_ROTATION_180;
+	rotate.value = VA_ROTATION_180;
     else if (mConfigBuffer.rotationDegrees == 270)
-        rotate.value = VA_ROTATION_270;
+	rotate.value = VA_ROTATION_270;
 
     vaStatus = vaSetDisplayAttributes(mVADisplay, &rotate, 1);
 
     mVideoFormatInfo.surfaceNumber = numSurface;
     mVideoFormatInfo.ctxSurfaces = surfaces;
     if (!(mConfigBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER)) {
-        mVideoFormatInfo.surfaceWidth = mVideoFormatInfo.width;
-        mVideoFormatInfo.surfaceHeight = mVideoFormatInfo.height;
+	mVideoFormatInfo.surfaceWidth = mVideoFormatInfo.width;
+	mVideoFormatInfo.surfaceHeight = mVideoFormatInfo.height;
     }
 
     mVAStarted = true;
     return DECODE_SUCCESS;
 }
 
-Decode_Status 
-VaapiDecoderBase::terminateVA(void) 
+Decode_Status VaapiDecoderBase::terminateVA(void)
 {
-
     INFO("base: terminate VA");
     if (mBufPool) {
-        delete mBufPool;
-        mBufPool = NULL;
+	delete mBufPool;
+	mBufPool = NULL;
     }
 
     if (mVAContext != VA_INVALID_ID) {
-         vaDestroyContext(mVADisplay, mVAContext);
-         mVAContext = VA_INVALID_ID;
+	vaDestroyContext(mVADisplay, mVAContext);
+	mVAContext = VA_INVALID_ID;
     }
 
     if (mVAConfig != VA_INVALID_ID) {
-        vaDestroyConfig(mVADisplay, mVAConfig);
-        mVAConfig = VA_INVALID_ID;
+	vaDestroyConfig(mVADisplay, mVAConfig);
+	mVAConfig = VA_INVALID_ID;
     }
 
     if (mVADisplay) {
-        vaTerminate(mVADisplay);
-        mVADisplay = NULL;
+	vaTerminate(mVADisplay);
+	mVADisplay = NULL;
     }
 
     if (mDisplay) {
-        delete mDisplay;
-        mDisplay = NULL;
+	delete mDisplay;
+	mDisplay = NULL;
     }
 
     mVAStarted = false;
@@ -374,33 +348,27 @@ VaapiDecoderBase::terminateVA(void)
 }
 
 /* not used funtion here */
-void
-VaapiDecoderBase::setXDisplay(Display * x_display)
+void VaapiDecoderBase::setXDisplay(Display * x_display)
 {
     mDisplay = x_display;
 }
 
-void 
-VaapiDecoderBase::enableNativeBuffers(void)
+void VaapiDecoderBase::enableNativeBuffers(void)
 {
-}
-
-Decode_Status 
-VaapiDecoderBase::getClientNativeWindowBuffer(
-                          void *bufferHeader,
-                          void *nativeBufferHandle)
-{ 
-    return DECODE_SUCCESS;
 }
 
 Decode_Status
-VaapiDecoderBase::flagNativeBuffer(void *pBuffer)
+    VaapiDecoderBase::getClientNativeWindowBuffer(void *bufferHeader,
+						  void *nativeBufferHandle)
 {
     return DECODE_SUCCESS;
 }
 
-void 
-VaapiDecoderBase::releaseLock()
+Decode_Status VaapiDecoderBase::flagNativeBuffer(void *pBuffer)
 {
+    return DECODE_SUCCESS;
 }
 
+void VaapiDecoderBase::releaseLock()
+{
+}

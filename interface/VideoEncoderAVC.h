@@ -24,32 +24,39 @@
 
 #include "VideoEncoderBase.h"
 
-class VideoEncoderAVC : public VideoEncoderBase {
+class VideoEncoderAVC:public VideoEncoderBase {
 
-public:
+  public:
     VideoEncoderAVC();
-    ~VideoEncoderAVC() {};
+    ~VideoEncoderAVC() {
+    };
 
     virtual Encode_Status start();
-    virtual Encode_Status getOutput(VideoEncOutputBuffer *outBuffer);
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer);
 
-    virtual Encode_Status derivedSetParams(VideoParamConfigSet *videoEncParams);
-    virtual Encode_Status derivedGetParams(VideoParamConfigSet *videoEncParams);
-    virtual Encode_Status derivedGetConfig(VideoParamConfigSet *videoEncConfig);
-    virtual Encode_Status derivedSetConfig(VideoParamConfigSet *videoEncConfig);
+    virtual Encode_Status derivedSetParams(VideoParamConfigSet *
+					   videoEncParams);
+    virtual Encode_Status derivedGetParams(VideoParamConfigSet *
+					   videoEncParams);
+    virtual Encode_Status derivedGetConfig(VideoParamConfigSet *
+					   videoEncConfig);
+    virtual Encode_Status derivedSetConfig(VideoParamConfigSet *
+					   videoEncConfig);
 
-protected:
-
+  protected:
     virtual Encode_Status sendEncodeCommand(void);
 
-private:
+  private:
     // Local Methods
-
-    Encode_Status getOneNALUnit(uint8_t *inBuffer, uint32_t bufSize, uint32_t *nalSize, uint32_t *nalType, uint32_t *nalOffset);
-    Encode_Status getHeader(uint8_t *inBuffer, uint32_t bufSize, uint32_t *headerSize);
-    Encode_Status outputCodecData(VideoEncOutputBuffer *outBuffer);
-    Encode_Status outputOneNALU(VideoEncOutputBuffer *outBuffer, bool startCode);
-    Encode_Status outputLengthPrefixed(VideoEncOutputBuffer *outBuffer);
+    Encode_Status getOneNALUnit(uint8_t * inBuffer, uint32_t bufSize,
+				uint32_t * nalSize, uint32_t * nalType,
+				uint32_t * nalOffset);
+    Encode_Status getHeader(uint8_t * inBuffer, uint32_t bufSize,
+			    uint32_t * headerSize);
+    Encode_Status outputCodecData(VideoEncOutputBuffer * outBuffer);
+    Encode_Status outputOneNALU(VideoEncOutputBuffer * outBuffer,
+				bool startCode);
+    Encode_Status outputLengthPrefixed(VideoEncOutputBuffer * outBuffer);
 
     Encode_Status renderMaxSliceSize();
     Encode_Status renderAIR();
@@ -58,11 +65,9 @@ private:
     Encode_Status renderSliceParams();
     int calcLevel(int numMbs);
 
-public:
-
+  public:
     VideoParamsAVC mVideoParamsAVC;
     uint32_t mSliceNum;
-
 };
 
-#endif /* __VIDEO_ENCODER_AVC_H__ */
+#endif				/* __VIDEO_ENCODER_AVC_H__ */

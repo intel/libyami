@@ -25,23 +25,21 @@
 #include "vaapitypes.h"
 
 class VaapiBufObject {
-public:
-      VaapiBufObject(VADisplay display,
-                     VAContextID context, 
-                     uint32_t  bufType,
-                     void     *param,
-                     uint32_t size);
-      ~VaapiBufObject();
-      VABufferID getID();
-      uint32_t getSize();
-      void *map();
-      void unmap();
- 
-private:
-      VADisplay  mDisplay;
-      VABufferID mBufID;
-      void      *mBuf;
-      uint32_t   mSize;
+  public:
+    VaapiBufObject(VADisplay display,
+		   VAContextID context,
+		   uint32_t bufType, void *param, uint32_t size);
+    ~VaapiBufObject();
+    VABufferID getID();
+    uint32_t getSize();
+    void *map();
+    void unmap();
+
+  private:
+    VADisplay mDisplay;
+    VABufferID mBufID;
+    void *mBuf;
+    uint32_t mSize;
 };
 
-#endif /* VAAPI_CODEC_OBJECT_H */
+#endif				/* VAAPI_CODEC_OBJECT_H */

@@ -28,55 +28,53 @@
 #include "codecparsers/vp8parser.h"
 #include "va/va_dec_vp8.h"
 
-enum
-{
+enum {
     VP8_EXTRA_SURFACE_NUMBER = 11,
-    VP8_MAX_PICTURE_COUNT = 5,  // XXX, 4 should be ok
+    VP8_MAX_PICTURE_COUNT = 5,	// XXX, 4 should be ok
 };
 
-class VaapiSliceVP8:public VaapiSlice
-{
+class VaapiSliceVP8:public VaapiSlice {
   public:
-    VaapiSliceVP8 (VADisplay display,
-        VAContextID ctx, uint8_t * sliceData, uint32_t sliceSize);
+    VaapiSliceVP8(VADisplay display,
+		  VAContextID ctx, uint8_t * sliceData,
+		  uint32_t sliceSize);
 
-    ~VaapiSliceVP8 ();
+    ~VaapiSliceVP8();
 };
 
-class VaapiPictureVP8:public VaapiPicture
-{
+class VaapiPictureVP8:public VaapiPicture {
   public:
-    VaapiPictureVP8 (VADisplay display,
-        VAContextID context,
-        VaapiSurfaceBufferPool * surfBufPool, VaapiPictureStructure structure);
+    VaapiPictureVP8(VADisplay display,
+		    VAContextID context,
+		    VaapiSurfaceBufferPool * surfBufPool,
+		    VaapiPictureStructure structure);
 };
 
-class VaapiDecoderVP8:public VaapiDecoderBase
-{
+class VaapiDecoderVP8:public VaapiDecoderBase {
   public:
-    VaapiDecoderVP8 (const char *mimeType);
-      virtual ~ VaapiDecoderVP8 ();
-    virtual Decode_Status start (VideoConfigBuffer * buffer);
-    virtual Decode_Status reset (VideoConfigBuffer * buffer);
-    virtual void stop (void);
-    virtual void flush (void);
-    virtual Decode_Status decode (VideoDecodeBuffer * buffer);
+    VaapiDecoderVP8(const char *mimeType);
+     virtual ~ VaapiDecoderVP8();
+    virtual Decode_Status start(VideoConfigBuffer * buffer);
+    virtual Decode_Status reset(VideoConfigBuffer * buffer);
+    virtual void stop(void);
+    virtual void flush(void);
+    virtual Decode_Status decode(VideoDecodeBuffer * buffer);
 
   private:
-      bool alloc_new_picture ();
-    bool fillPictureParam (VaapiPictureVP8 * picture);
+    bool alloc_new_picture();
+    bool fillPictureParam(VaapiPictureVP8 * picture);
     /* fill Quant matrix parameters */
-    bool ensureQuantMatrix (VaapiPictureVP8 * pic);
-    bool ensure_probability_table (VaapiPictureVP8 * pic);
-    bool fillSliceParam (VaapiSliceVP8 * slice);
+    bool ensureQuantMatrix(VaapiPictureVP8 * pic);
+    bool ensure_probability_table(VaapiPictureVP8 * pic);
+    bool fillSliceParam(VaapiSliceVP8 * slice);
     /* check the context reset senerios */
-    Decode_Status ensureContext ();
+    Decode_Status ensureContext();
     /* decoding functions */
-    Decode_Status decodePicture ();
-    bool replacePicture (VaapiPictureVP8 ** pic1, VaapiPicture * pic2);
-    void update_reference_pictures ();
+    Decode_Status decodePicture();
+    bool replacePicture(VaapiPictureVP8 ** pic1, VaapiPicture * pic2);
+    void update_reference_pictures();
   private:
-      VaapiPictureVP8 * m_currentPicture;
+    VaapiPictureVP8 * m_currentPicture;
     VaapiPictureVP8 *m_lastPicture;
     VaapiPictureVP8 *m_goldenRefPicture;
     VaapiPictureVP8 *m_altRefPicture;

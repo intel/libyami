@@ -26,14 +26,14 @@
 typedef struct _VaapiPoint {
     uint32_t x;
     uint32_t y;
-}VaapiPoint;
+} VaapiPoint;
 
 typedef struct _VaapiRectangle {
     uint32_t x;
     uint32_t y;
     uint32_t width;
     uint32_t height;
-}VaapiRectangle;
+} VaapiRectangle;
 
 typedef enum {
     VAAPI_RENDER_MODE_OVERLAY = 1,
@@ -41,8 +41,8 @@ typedef enum {
 } VaapiRenderMode;
 
 typedef enum {
-    VAAPI_ROTATION_0   = 0,
-    VAAPI_ROTATION_90  = 90,
+    VAAPI_ROTATION_0 = 0,
+    VAAPI_ROTATION_90 = 90,
     VAAPI_ROTATION_180 = 180,
     VAAPI_ROTATION_270 = 270,
 } VaapiRotation;
@@ -69,16 +69,14 @@ typedef enum {
 } VaapiProfile;
 
 typedef enum {
-   VAAPI_ENTRYPOINT_VLD = 1,
-   VAAPI_ENTRYPOINT_IDCT,
-   VAAPI_ENTRYPOINT_MOCO,
-   VAAPI_ENTRYPOINT_SLICE_ENCODE
+    VAAPI_ENTRYPOINT_VLD = 1,
+    VAAPI_ENTRYPOINT_IDCT,
+    VAAPI_ENTRYPOINT_MOCO,
+    VAAPI_ENTRYPOINT_SLICE_ENCODE
 } VaapiEntrypoint;
 
 #define MAKE_FOURCC(ch0, ch1, ch2, ch3) \
  (((unsigned long)(unsigned char) (ch0))      | ((unsigned long)(unsigned char) (ch1) << 8) | \
   ((unsigned long)(unsigned char) (ch2) << 16) | ((unsigned long)(unsigned char) (ch3) << 24 ))
 
-#endif /* VAAPI_TYPES_H */
-
-
+#endif				/* VAAPI_TYPES_H */

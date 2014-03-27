@@ -24,44 +24,36 @@
 #include "vaapiutils.h"
 #include "vaapibuffer.h"
 
-VaapiBufObject::VaapiBufObject(
-    VADisplay   display,
-    VAContextID context, 
-    uint32_t  bufType,
-    void      *data,
-    uint32_t  size)
+VaapiBufObject::VaapiBufObject(VADisplay display,
+			       VAContextID context,
+			       uint32_t bufType, void *data, uint32_t size)
 :mDisplay(display), mSize(size), mBuf(NULL)
 {
     VAStatus status;
 
     if (size == 0) {
-       ERROR("buffer size is zero");
-       return ;    
+	ERROR("buffer size is zero");
+	return;
     }
 
-    if(!vaapi_create_buffer(display, 
-           context,
-           bufType,
-           size,
-           data,
-           &mBufID,
-           (void**)0)){
-       ERROR("create buffer failed"); 
-       return ;    
+    if (!vaapi_create_buffer(display,
+			     context,
+			     bufType, size, data, &mBufID, (void **) 0)) {
+	ERROR("create buffer failed");
+	return;
     }
-
 }
 
 VaapiBufObject::~VaapiBufObject()
 {
     if (mBuf) {
-        vaapi_unmap_buffer(mDisplay, mBufID, &mBuf);
-        mBuf = NULL;
+	vaapi_unmap_buffer(mDisplay, mBufID, &mBuf);
+	mBuf = NULL;
     }
-      
+
     vaapi_destroy_buffer(mDisplay, &mBufID);
 }
- 
+
 VABufferID VaapiBufObject::getID()
 {
     return mBufID;
@@ -69,23 +61,22 @@ VABufferID VaapiBufObject::getID()
 
 uint32_t VaapiBufObject::getSize()
 {
-   return mSize;
+    return mSize;
 }
 
-void* VaapiBufObject::map()
+void *VaapiBufObject::map()
 {
-   if (mBuf)
-      return mBuf;
+    if (mBuf)
+	return mBuf;
 
-   mBuf = vaapi_map_buffer(mDisplay, mBufID);
-   return mBuf;
+    mBuf = vaapi_map_buffer(mDisplay, mBufID);
+    return mBuf;
 }
 
 void VaapiBufObject::unmap()
 {
     if (mBuf) {
-        vaapi_unmap_buffer(mDisplay, mBufID, &mBuf);
-        mBuf = NULL;
+	vaapi_unmap_buffer(mDisplay, mBufID, &mBuf);
+	mBuf = NULL;
     }
 }
-

@@ -35,21 +35,19 @@ typedef enum {
 } VaapiChromaType;
 
 typedef enum {
-    VAAPI_SURFACE_STATUS_IDLE       = 1 << 0,
-    VAAPI_SURFACE_STATUS_RENDERING  = 1 << 1,
+    VAAPI_SURFACE_STATUS_IDLE = 1 << 0,
+    VAAPI_SURFACE_STATUS_RENDERING = 1 << 1,
     VAAPI_SURFACE_STATUS_DISPLAYING = 1 << 2,
-    VAAPI_SURFACE_STATUS_SKIPPED    = 1 << 3
+    VAAPI_SURFACE_STATUS_SKIPPED = 1 << 3
 } VaapiSurfaceStatus;
 
-class VaapiSurface 
-{
-public:
+class VaapiSurface {
+  public:
     VaapiSurface(VADisplay display,
-                 VaapiChromaType chromaType,
-                 uint32_t  width,
-                 uint32_t  height,
-                 void *    surfaceAttribArray,
-                 uint32_t  surfAttribNum);
+		 VaapiChromaType chromaType,
+		 uint32_t width,
+		 uint32_t height,
+		 void *surfaceAttribArray, uint32_t surfAttribNum);
 
     ~VaapiSurface();
 
@@ -60,24 +58,24 @@ public:
     uint32_t getExtBufHandle();
 
     bool sync();
-    bool queryStatus(VaapiSurfaceStatus *pStatus);
+    bool queryStatus(VaapiSurfaceStatus * pStatus);
 
-    bool getImage(VaapiImage *image);
-    bool putImage(VaapiImage *image);
-    VaapiImage * getDerivedImage();
+    bool getImage(VaapiImage * image);
+    bool putImage(VaapiImage * image);
+    VaapiImage *getDerivedImage();
 
-private:
-    uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
+  private:
+     uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
 
-private:
+  private:
     VADisplay mDisplay;
     VaapiChromaType mChromaType;
-    VASurfaceID     mID;
-    uint32_t     mWidth;   
-    uint32_t     mHeight;   
-    uint32_t     mFourcc;
-    uint32_t     mExternalBufHandle; //allocate surface from extenal buf
-    VaapiImage * mDerivedImage;
+    VASurfaceID mID;
+    uint32_t mWidth;
+    uint32_t mHeight;
+    uint32_t mFourcc;
+    uint32_t mExternalBufHandle;	//allocate surface from extenal buf
+    VaapiImage *mDerivedImage;
 };
 
-#endif /* VAAPI_SURFACE_H */
+#endif				/* VAAPI_SURFACE_H */

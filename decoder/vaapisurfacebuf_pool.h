@@ -33,47 +33,44 @@
 #define MINIMUM_POC  0x80000000
 
 class VaapiSurfaceBufferPool {
-public: 
-   VaapiSurfaceBufferPool(VADisplay display,
-                          VideoConfigBuffer* config);
-   ~VaapiSurfaceBufferPool();
+  public:
+    VaapiSurfaceBufferPool(VADisplay display, VideoConfigBuffer * config);
+    ~VaapiSurfaceBufferPool();
 
-   VideoSurfaceBuffer* searchAvailableBuffer();
-   VideoSurfaceBuffer* acquireFreeBuffer();
-   VideoSurfaceBuffer* acquireFreeBufferWithWait();
-   bool                recycleBuffer(VideoSurfaceBuffer *buf, bool is_from_render);
-   void                flushPool();
+    VideoSurfaceBuffer *searchAvailableBuffer();
+    VideoSurfaceBuffer *acquireFreeBuffer();
+    VideoSurfaceBuffer *acquireFreeBufferWithWait();
+    bool recycleBuffer(VideoSurfaceBuffer * buf, bool is_from_render);
+    void flushPool();
 
-   VideoSurfaceBuffer* getOutputByMinTimeStamp();
-   VideoSurfaceBuffer* getOutputByMinPOC();
-   VideoSurfaceBuffer* getBufferByHandler(void *graphicHandle);
-   VideoSurfaceBuffer* getBufferBySurfaceID(VASurfaceID id);
-   VideoSurfaceBuffer* getBufferByIndex(uint32_t index);
-   VaapiSurface *      getVaapiSurface(VideoSurfaceBuffer *buf);
-   bool                outputBuffer(VideoSurfaceBuffer *buf, 
-                                    uint64_t timeStamp, 
-                                    uint32_t poc);
-   bool                setReferenceInfo(VideoSurfaceBuffer *buf,
-                                    bool referenceFrame,
-                                    bool asReference);
+    VideoSurfaceBuffer *getOutputByMinTimeStamp();
+    VideoSurfaceBuffer *getOutputByMinPOC();
+    VideoSurfaceBuffer *getBufferByHandler(void *graphicHandle);
+    VideoSurfaceBuffer *getBufferBySurfaceID(VASurfaceID id);
+    VideoSurfaceBuffer *getBufferByIndex(uint32_t index);
+    VaapiSurface *getVaapiSurface(VideoSurfaceBuffer * buf);
+    bool outputBuffer(VideoSurfaceBuffer * buf,
+		      uint64_t timeStamp, uint32_t poc);
+    bool setReferenceInfo(VideoSurfaceBuffer * buf,
+			  bool referenceFrame, bool asReference);
 
-private:
-   void  mapSurfaceBuffers();
-   void  unmapSurfaceBuffers();
+  private:
+    void mapSurfaceBuffers();
+    void unmapSurfaceBuffers();
 
-private:
-   VADisplay mDisplay;
-   VideoSurfaceBuffer **mBufArray;
-   VaapiSurface **mSurfArray;
+  private:
+    VADisplay mDisplay;
+    VideoSurfaceBuffer **mBufArray;
+    VaapiSurface **mSurfArray;
 
-   uint32_t mBufCount;   
-   uint32_t mFreeCount;   
+    uint32_t mBufCount;
+    uint32_t mFreeCount;
 
-   bool mUseExtBuf;
-   bool mBufMapped;
+    bool mUseExtBuf;
+    bool mBufMapped;
 
-   pthread_mutex_t mLock;
-   pthread_cond_t  mCond;
+    pthread_mutex_t mLock;
+    pthread_cond_t mCond;
 };
 
-#endif 
+#endif

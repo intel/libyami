@@ -24,125 +24,115 @@
 #include "vaapiutils.h"
 #include "vaapiimage.h"
 
-const VAImageFormat*
-VaapiImage::getVaFormat(VaapiImageFormat format)
+const VAImageFormat *VaapiImage::getVaFormat(VaapiImageFormat format)
 {
     const VaapiImageFormatMap *map = NULL;
-    for (map = vaapi_image_formats; map->format; map ++) {
-        if (map->format == format)
-            return &map->vaFormat;
-    } 
+    for (map = vaapi_image_formats; map->format; map++) {
+	if (map->format == format)
+	    return &map->vaFormat;
+    }
     return NULL;
 }
 
 VaapiImage::VaapiImage(VADisplay display,
-                       VaapiImageFormat format,
-                       uint32_t width,
-                       uint32_t height)
+		       VaapiImageFormat format,
+		       uint32_t width, uint32_t height)
 {
     VAStatus status;
     VAImageFormat *vaFormat;
 
     mDisplay = display;
-    mFormat  = format;
-    mWidth   = width;
-    mHeight  = height;
+    mFormat = format;
+    mWidth = width;
+    mHeight = height;
     mIsMapped = false;
 
-    vaFormat = (VAImageFormat*)getVaFormat(format);      
+    vaFormat = (VAImageFormat *) getVaFormat(format);
     if (!vaFormat) {
-        ERROR("Create image failed, not supported fourcc");
-        return;
+	ERROR("Create image failed, not supported fourcc");
+	return;
     }
 
-    status = vaCreateImage(mDisplay,
-                           vaFormat,
-                           mWidth,
-                           mHeight,
-                           &mImage);
-    
+    status = vaCreateImage(mDisplay, vaFormat, mWidth, mHeight, &mImage);
+
     if (status != VA_STATUS_SUCCESS ||
-        mImage.format.fourcc != vaFormat->fourcc) {
-        ERROR("Create image failed");
-        return;
+	mImage.format.fourcc != vaFormat->fourcc) {
+	ERROR("Create image failed");
+	return;
     }
 }
 
-VaapiImage::VaapiImage(VADisplay display,
-                       VAImage* image)
+VaapiImage::VaapiImage(VADisplay display, VAImage * image)
 {
     VAStatus status;
 
-    mDisplay  = display;
-    mWidth    = image->width;
-    mHeight   = image->height;
-    mID       = image->image_id;
+    mDisplay = display;
+    mWidth = image->width;
+    mHeight = image->height;
+    mID = image->image_id;
     mIsMapped = false;
 
-    memcpy((void*)&mImage, (void*)image, sizeof(VAImage));
+    memcpy((void *) &mImage, (void *) image, sizeof(VAImage));
 }
 
-
-VaapiImage::~VaapiImage() 
+VaapiImage::~VaapiImage()
 {
     VAStatus status;
-   
-    if (mIsMapped){
-       unmap();
-       mIsMapped = false;
+
+    if (mIsMapped) {
+	unmap();
+	mIsMapped = false;
     }
 
-    status = vaDestroyImage(mDisplay, mImage.image_id);     
+    status = vaDestroyImage(mDisplay, mImage.image_id);
 
     if (!vaapi_check_status(status, "vaDestoryImage()"))
-        return;
+	return;
 }
 
-VaapiImageRaw* VaapiImage::map() 
+VaapiImageRaw *VaapiImage::map()
 {
     uint32_t i;
-    void  *data;
+    void *data;
     VAStatus status;
-   
+
     if (mIsMapped) {
-        return &mRawImage;
+	return &mRawImage;
     }
 
-    status = vaMapBuffer(mDisplay,
-                         mImage.buf,
-                         &data);
-   
-    if (!vaapi_check_status(status, "vaMapBuffer()"))
-        return NULL;
-   
-     mRawImage.format     = mFormat;
-     mRawImage.width      = mWidth;
-     mRawImage.height     = mHeight;
-     mRawImage.num_planes = mImage.num_planes;
-     mRawImage.size       = mImage.data_size;
+    status = vaMapBuffer(mDisplay, mImage.buf, &data);
 
-     for (i = 0; i < mImage.num_planes; i ++) {
-         mRawImage.pixels[i] = (uint8_t *)((uint32_t)data + mImage.offsets[i]);
-         mRawImage.strides[i] = mImage.pitches[i];
-     }
-     mIsMapped = true;
-   
-     return &mRawImage;
+    if (!vaapi_check_status(status, "vaMapBuffer()"))
+	return NULL;
+
+    mRawImage.format = mFormat;
+    mRawImage.width = mWidth;
+    mRawImage.height = mHeight;
+    mRawImage.num_planes = mImage.num_planes;
+    mRawImage.size = mImage.data_size;
+
+    for (i = 0; i < mImage.num_planes; i++) {
+	mRawImage.pixels[i] =
+	    (uint8_t *) ((uint32_t) data + mImage.offsets[i]);
+	mRawImage.strides[i] = mImage.pitches[i];
+    }
+    mIsMapped = true;
+
+    return &mRawImage;
 }
 
 bool VaapiImage::unmap()
 {
     VAStatus status;
- 
-    if (!mIsMapped)
-       return true;
-    
-    status = vaUnmapBuffer(mDisplay,
-                           mImage.buf);
-    if (!vaapi_check_status(status, "vaUnmapBuffer()"))
-        return false;
 
-    mIsMapped  = false;
+    if (!mIsMapped)
+	return true;
+
+    status = vaUnmapBuffer(mDisplay, mImage.buf);
+    if (!vaapi_check_status(status, "vaUnmapBuffer()"))
+	return false;
+
+    mIsMapped = false;
 
     return true;
 }
@@ -154,12 +144,12 @@ bool VaapiImage::isMapped()
 
 VaapiImageFormat VaapiImage::getFormat()
 {
-   return mFormat;
+    return mFormat;
 }
 
 VAImageID VaapiImage::getID()
 {
-   return mID;
+    return mID;
 }
 
 uint32_t VaapiImage::getWidth()
@@ -169,7 +159,5 @@ uint32_t VaapiImage::getWidth()
 
 uint32_t VaapiImage::getHeight()
 {
-   return mHeight;
+    return mHeight;
 }
-
-
