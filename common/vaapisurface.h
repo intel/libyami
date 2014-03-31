@@ -19,8 +19,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef VAAPI_SURFACE_H
-#define VAAPI_SURFACE_H
+#ifndef vaapisurface_h
+#define vaapisurface_h
 
 #include <va/va.h>
 #include <va/va_drmcommon.h>
@@ -68,14 +68,14 @@ class VaapiSurface {
      uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
 
   private:
-    VADisplay mDisplay;
-    VaapiChromaType mChromaType;
-    VASurfaceID mID;
-    uint32_t mWidth;
-    uint32_t mHeight;
-    uint32_t mFourcc;
-    uint32_t mExternalBufHandle;	//allocate surface from extenal buf
-    VaapiImage *mDerivedImage;
+    VADisplay m_display;
+    VaapiChromaType m_chromaType;
+    VASurfaceID m_ID;
+    uint32_t m_width;
+    uint32_t m_height;
+    uint32_t m_fourcc;
+    uint32_t m_externalBufHandle;	//allocate surface from extenal buf
+    VaapiImage *m_derivedImage;
 };
 
 #endif				/* VAAPI_SURFACE_H */

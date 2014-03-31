@@ -19,8 +19,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef VAAPI_DECODER_H264_H
-#define VAAPI_DECODER_H264_H
+#ifndef vaapidecoder_h264_h
+#define vaapidecoder_h264_h
 
 #include "vaapipicture.h"
 #include "vaapidecoder_base.h"
@@ -63,7 +63,7 @@ class VaapiSliceH264:public VaapiSlice {
 		   uint8_t * sliceData, uint32_t sliceSize);
 
     ~VaapiSliceH264();
-    H264SliceHdr slice_hdr;
+    H264SliceHdr m_sliceHdr;
 };
 
 class VaapiPictureH264:public VaapiPicture {
@@ -73,128 +73,126 @@ class VaapiPictureH264:public VaapiPicture {
 		     VaapiSurfaceBufferPool * surfBufPool,
 		     VaapiPictureStructure structure);
 
-    VaapiPictureH264 *new_field();
+    VaapiPictureH264 *newField();
 
   public:
-    H264PPS * pps;
-    uint32_t structure;
-    int32_t field_poc[2];
-    int32_t frame_num;
-    int32_t frame_num_wrap;
-    int32_t long_term_frame_idx;
-    int32_t pic_num;
-    int32_t long_term_pic_num;
-    uint32_t output_flag;
-    uint32_t output_needed;
-    VaapiPictureH264 *other_field;
+    H264PPS * m_pps;
+    uint32_t m_structure;
+    int32_t m_fieldPoc[2];
+    int32_t m_frameNum;
+    int32_t m_frameNumWrap;
+    int32_t m_longTermFrameIdx;
+    int32_t m_picNum;
+    int32_t m_longTermPicNum;
+    uint32_t m_outputFlag;
+    uint32_t m_outputNeeded;
+    VaapiPictureH264 *m_otherField;
 };
 
 class VaapiFrameStore {
   public:
     VaapiFrameStore(VaapiPictureH264 * pic);
     ~VaapiFrameStore();
-    void add_picture(VaapiPictureH264 * pic);
-    bool split_fields();
-    bool has_frame();
-    bool has_reference();
+    void addPicture(VaapiPictureH264 * pic);
+    bool splitFields();
+    bool hasFrame();
+    bool hasReference();
 
-    uint32_t structure;
-    VaapiPictureH264 *buffers[2];
-    uint32_t num_buffers;
-    uint32_t output_needed;
+    uint32_t m_structure;
+    VaapiPictureH264 *m_buffers[2];
+    uint32_t m_numBuffers;
+    uint32_t m_outputNeeded;
 };
 
 typedef struct _VaapiDecPicBufLayer {
-    VaapiFrameStore *dpb[16];
-    uint32_t dpb_count;
-    uint32_t dpb_size;
-    VaapiPictureH264 *short_ref[32];
-    uint32_t short_ref_count;
-    VaapiPictureH264 *long_ref[32];
-    uint32_t long_ref_count;
-    VaapiPictureH264 *RefPicList0[32];
-    uint32_t RefPicList0_count;
-    VaapiPictureH264 *RefPicList1[32];
-    uint32_t RefPicList1_count;
-    bool is_valid;
+    VaapiFrameStore *DPB[16];
+    uint32_t DPBCount;
+    uint32_t DPBSize;
+    VaapiPictureH264 *shortRef[32];
+    uint32_t shortRefCount;
+    VaapiPictureH264 *longRef[32];
+    uint32_t longRefCount;
+    VaapiPictureH264 *refPicList0[32];
+    uint32_t refPicList0Count;
+    VaapiPictureH264 *refPicList1[32];
+    uint32_t refPicList1Count;
+    bool isValid;
 } VaapiDecPicBufLayer;
 
 class VaapiDecoderH264;
 
 class VaapiDPBManager {
   public:
-    VaapiDPBManager(uint32_t dpb_size);
+    VaapiDPBManager(uint32_t DPBSize);
 
     /* Decode Picture Buffer operations */
-    bool dpb_output(VaapiFrameStore * fs, VaapiPictureH264 * pic);
-    void dpb_evict(VaapiPictureH264 * pic, uint32_t i);
-    bool dpb_bump();
-    void dpb_clear();
-    void dpb_flush();
-    bool dpb_add(VaapiFrameStore * new_fs, VaapiPictureH264 * pic);
-    void dpb_reset(H264SPS * sps);
+    bool outputDPB(VaapiFrameStore * frameStore, VaapiPictureH264 * pic);
+    void evictDPB(VaapiPictureH264 * pic, uint32_t i);
+    bool bumpDPB();
+    void clearDPB();
+    void flushDPB();
+    bool addDPB(VaapiFrameStore * newFrameStore, VaapiPictureH264 * pic);
+    void resetDPB(H264SPS * sps);
     /* initialize and reorder reference list */
-    void init_picture_refs(VaapiPictureH264 * pic,
-			   H264SliceHdr * slice_hdr, int32_t frame_num);
+    void initPictureRefs(VaapiPictureH264 * pic,
+			 H264SliceHdr * sliceHdr, int32_t frameNum);
     /* marking pic after slice decoded */
-    bool exec_ref_pic_marking(VaapiPictureH264 * pic, bool * has_mmco5);
+    bool execRefPicMarking(VaapiPictureH264 * pic, bool * hasMMCO5);
   private:
     /* prepare reference list before decoding slice */
-    void init_picture_ref_lists(VaapiPictureH264 * pic);
+    void initPictureRefLists(VaapiPictureH264 * pic);
 
-    void init_picture_refs_p_slice(VaapiPictureH264 * pic,
-				   H264SliceHdr * slice_hdr);
-    void init_picture_refs_b_slice(VaapiPictureH264 * pic,
-				   H264SliceHdr * slice_hdr);
-    void init_picture_refs_fields(VaapiPictureH264 * picture,
-				  VaapiPictureH264 * RefPicList[32],
-				  uint32_t * RefPicList_count,
-				  VaapiPictureH264 * short_ref[32],
-				  uint32_t short_ref_count,
-				  VaapiPictureH264 * long_ref[32],
-				  uint32_t long_ref_count);
+    void initPictureRefsPSlice(VaapiPictureH264 * pic,
+			       H264SliceHdr * sliceHdr);
+    void initPictureRefsBSlice(VaapiPictureH264 * pic,
+			       H264SliceHdr * sliceHdr);
+    void initPictureRefsFields(VaapiPictureH264 * picture,
+			       VaapiPictureH264 * refPicList[32],
+			       uint32_t * refPicListCount,
+			       VaapiPictureH264 * shortRef[32],
+			       uint32_t shortRefCount,
+			       VaapiPictureH264 * longRef[32],
+			       uint32_t longRefCount);
 
-    void init_picture_refs_fields_1(uint32_t picture_structure,
-				    VaapiPictureH264 * RefPicList[32],
-				    uint32_t * RefPicList_count,
-				    VaapiPictureH264 * ref_list[32],
-				    uint32_t ref_list_count);
+    void initPictureRefsFields1(uint32_t pictureStructure,
+				VaapiPictureH264 * refPicList[32],
+				uint32_t * refPicListCount,
+				VaapiPictureH264 * refList[32],
+				uint32_t refListCount);
 
-    void init_picture_refs_pic_num(VaapiPictureH264 * pic,
-				   H264SliceHdr * slice_hdr,
-				   int32_t frame_num);
+    void initPictureRefsPicNum(VaapiPictureH264 * pic,
+			       H264SliceHdr * sliceHdr, int32_t frameNum);
 
-    void exec_picture_refs_modification(VaapiPictureH264 * picture,
-					H264SliceHdr * slice_hdr);
+    void execPictureRefsModification(VaapiPictureH264 * picture,
+				     H264SliceHdr * sliceHdr);
 
-    void exec_picture_refs_modification_1(VaapiPictureH264 * picture,
-					  H264SliceHdr * slice_hdr,
-					  uint32_t list);
+    void execPictureRefsModification1(VaapiPictureH264 * picture,
+				      H264SliceHdr * sliceHdr,
+				      uint32_t list);
 
     /* marking reference list after decoding slice */
-    bool exec_ref_pic_marking_adaptive(VaapiPictureH264 * picture,
-				       H264DecRefPicMarking *
-				       dec_ref_pic_marking,
-				       bool * has_mmco5);
-    bool exec_ref_pic_marking_adaptive_1(VaapiPictureH264 * picture,
-					 H264RefPicMarking *
-					 ref_pic_marking, uint32_t mmco);
+    bool execRefPicMarkingAdaptive(VaapiPictureH264 * picture,
+				   H264DecRefPicMarking *
+				   decRefPicMarking, bool * hasMMCO5);
+    bool execRefPicMarkingAdaptive1(VaapiPictureH264 * picture,
+				    H264RefPicMarking *
+				    refPicMarking, uint32_t MMCO);
 
-    bool exec_ref_pic_marking_sliding_window(VaapiPictureH264 * picture);
+    bool execRefPicMarkingSlidingWindow(VaapiPictureH264 * picture);
 
-    int32_t find_short_term_reference(uint32_t picNum);
-    int32_t find_long_term_reference(uint32_t long_term_picNum);
-    void remove_short_reference(VaapiPictureH264 * picture);
-    void dpb_remove_index(uint32_t idx);
+    int32_t findShortRermReference(uint32_t picNum);
+    int32_t findLongTermReference(uint32_t longTermPicNum);
+    void removeShortReference(VaapiPictureH264 * picture);
+    void removeDPBIndex(uint32_t idx);
 
   public:
-     VaapiDecPicBufLayer * dpb_layer;
+     VaapiDecPicBufLayer * DPBLayer;
 };
 
 class VaapiDecoderH264:public VaapiDecoderBase {
   public:
     VaapiDecoderH264(const char *mimeType);
-     virtual ~ VaapiDecoderH264();
+    virtual ~ VaapiDecoderH264();
     virtual Decode_Status start(VideoConfigBuffer * buffer);
     virtual Decode_Status reset(VideoConfigBuffer * buffer);
     virtual void stop(void);
@@ -203,83 +201,83 @@ class VaapiDecoderH264:public VaapiDecoderBase {
     virtual const VideoRenderBuffer *getOutput(bool draining = false);
 
   public:
-    VaapiFrameStore * m_prev_frame;
-    int32_t m_frame_num;	// frame_num (from slice_header())
-    int32_t m_prev_frame_num;	// prevFrameNum
-    bool m_prev_pic_has_mmco5;	// prevMmco5Pic
-    uint32_t m_progressive_sequence;
-    bool m_prev_pic_structure;	// previous picture structure
-    int32_t m_frame_num_offset;	// FrameNumOffset
+    VaapiFrameStore * m_prevFrame;
+    int32_t m_frameNum;		// frame_num (from slice_header())
+    int32_t m_prevFrameNum;	// prevFrameNum
+    bool m_prevPicHasMMCO5;	// prevMMCO5Pic
+    uint32_t m_progressiveSequence;
+    bool m_prevPicStructure;	// previous picture structure
+    int32_t m_frameNumOffset;	// FrameNumOffset
 
   private:
-    Decode_Status decode_sps(H264NalUnit * nalu);
-    Decode_Status decode_pps(H264NalUnit * nalu);
-    Decode_Status decode_sei(H264NalUnit * nalu);
-    Decode_Status decode_sequence_end();
+    Decode_Status decodeSPS(H264NalUnit * nalu);
+    Decode_Status decodePPS(H264NalUnit * nalu);
+    Decode_Status decodeSEI(H264NalUnit * nalu);
+    Decode_Status decodeSequenceEnd();
 
     /* initialize picture */
-    void init_picture_poc_0(VaapiPictureH264 * picture,
-			    H264SliceHdr * slice_hdr);
-    void init_picture_poc_1(VaapiPictureH264 * picture,
-			    H264SliceHdr * slice_hdr);
-    void init_picture_poc_2(VaapiPictureH264 * picture,
-			    H264SliceHdr * slice_hdr);
-    void init_picture_poc(VaapiPictureH264 * picture,
-			  H264SliceHdr * slice_hdr);
-    bool init_picture(VaapiPictureH264 * picture,
-		      H264SliceHdr * slice_hdr, H264NalUnit * nalu);
+    void initPicturePOC0(VaapiPictureH264 * picture,
+			 H264SliceHdr * sliceHdr);
+    void initPicturePOC1(VaapiPictureH264 * picture,
+			 H264SliceHdr * sliceHdr);
+    void initPicturePOC2(VaapiPictureH264 * picture,
+			 H264SliceHdr * sliceHdr);
+    void initPicturePOC(VaapiPictureH264 * picture,
+			H264SliceHdr * sliceHdr);
+    bool initPicture(VaapiPictureH264 * picture,
+		     H264SliceHdr * sliceHdr, H264NalUnit * nalu);
     /* fill vaapi parameters */
-    void vaapi_init_picture(VAPictureH264 * pic);
-    void vaapi_fill_picture(VAPictureH264 * pic,
-			    VaapiPictureH264 * picture,
-			    uint32_t picture_structure);
-    bool fill_picture(VaapiPictureH264 * picture,
-		      H264SliceHdr * slice_hdr, H264NalUnit * nalu);
+    void vaapiInitPicture(VAPictureH264 * pic);
+    void vaapiFillPicture(VAPictureH264 * pic,
+			  VaapiPictureH264 * picture,
+			  uint32_t pictureStructure);
+    bool fillPicture(VaapiPictureH264 * picture,
+		     H264SliceHdr * sliceHdr, H264NalUnit * nalu);
     /* fill Quant matrix parameters */
-    bool ensure_quant_matrix(VaapiPictureH264 * pic);
+    bool ensureQuantMatrix(VaapiPictureH264 * pic);
     /* fill slice parameter buffer */
-    bool fill_pred_weight_table(VaapiSliceH264 * slice);
-    bool fill_RefPicList(VaapiSliceH264 * slice);
-    bool fill_slice(VaapiSliceH264 * slice, H264NalUnit * nalu);
+    bool fillPredWeightTable(VaapiSliceH264 * slice);
+    bool fillRefPicList(VaapiSliceH264 * slice);
+    bool fillSlice(VaapiSliceH264 * slice, H264NalUnit * nalu);
     /* check the context reset senerios */
-    Decode_Status ensure_context(H264SPS * sps);
+    Decode_Status ensureContext(H264SPS * sps);
     /* decoding functions */
-    bool is_new_picture(H264NalUnit * nalu, H264SliceHdr * slice_hdr);
+    bool isNewPicture(H264NalUnit * nalu, H264SliceHdr * sliceHdr);
 
-    bool marking_picture(VaapiPictureH264 * pic);
-    bool store_decoded_picture(VaapiPictureH264 * pic);
-    Decode_Status decode_current_picture();
-    Decode_Status decode_picture(H264NalUnit * nalu,
-				 H264SliceHdr * slice_hdr);
-    Decode_Status decode_slice(H264NalUnit * nalu);
-    Decode_Status decode_nalu(H264NalUnit * nalu);
-    bool decode_codec_data(uint8_t * buf, uint32_t buf_size);
-    void update_frame_info();
+    bool markingPicture(VaapiPictureH264 * pic);
+    bool storeDecodedPicture(VaapiPictureH264 * pic);
+    Decode_Status decodeCurrentPicture();
+    Decode_Status decodePicture(H264NalUnit * nalu,
+				H264SliceHdr * sliceHdr);
+    Decode_Status decodeSlice(H264NalUnit * nalu);
+    Decode_Status decodeNalu(H264NalUnit * nalu);
+    bool decodeCodecData(uint8_t * buf, uint32_t bufSize);
+    void updateFrameInfo();
 
   private:
-    VaapiPictureH264 * m_current_picture;
-    VaapiDPBManager *m_dpb_manager;
+    VaapiPictureH264 * m_currentPicture;
+    VaapiDPBManager *m_DPBManager;
     H264NalParser m_parser;
-    H264SPS m_last_sps;
-    H264PPS m_last_pps;
-    uint32_t m_mb_width;
-    uint32_t m_mb_height;
-    int32_t m_field_poc[2];	// 0:TopFieldOrderCnt / 1:BottomFieldOrderCnt
-    int32_t m_poc_msb;		// PicOrderCntMsb
-    int32_t m_poc_lsb;		// pic_order_cnt_lsb (from slice_header())
-    int32_t m_prev_poc_msb;	// prevPicOrderCntMsb
-    int32_t m_prev_poc_lsb;	// prevPicOrderCntLsb
-    uint64_t m_prev_time_stamp;
+    H264SPS m_lastSPS;
+    H264PPS m_lastPPS;
+    uint32_t m_mbWidth;
+    uint32_t m_mbHeight;
+    int32_t m_fieldPoc[2];	// 0:TopFieldOrderCnt / 1:BottomFieldOrderCnt
+    int32_t m_POCMsb;		// PicOrderCntMsb
+    int32_t m_POCLsb;		// pic_order_cnt_lsb (from slice_header())
+    int32_t m_prevPOCMsb;	// prevPicOrderCntMsb
+    int32_t m_prevPOCLsb;	// prevPicOrderCntLsb
+    uint64_t m_prevTimeStamp;
 
-    uint32_t m_got_sps:1;
-    uint32_t m_got_pps:1;
-    uint32_t m_has_context:1;
-    uint64_t m_nal_length_size;
-    bool m_is_avc;
-    bool m_reset_context;
+    uint32_t m_gotSPS:1;
+    uint32_t m_gotPPS:1;
+    uint32_t m_hasContext:1;
+    uint64_t m_nalLengthSize;
+    bool m_isAVC;
+    bool m_resetContext;
 };
 
-uint32_t get_max_dec_frame_buffering(H264SPS * sps, uint32_t views);
+uint32_t getMaxDecFrameBuffering(H264SPS * sps, uint32_t views);
 
 enum {
     H264_EXTRA_SURFACE_NUMBER = 11,

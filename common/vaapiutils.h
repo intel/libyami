@@ -19,39 +19,38 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef _VAAPI_UTILS_H
-#define _VAAPI_UTILS_H
+#ifndef vaapiutils_h
+#define vaapiutils_h
 
 #include <stdint.h>
 #include <va/va.h>
 #include "log.h"
 
-bool vaapi_check_status(VAStatus status, const char *msg);
+bool checkVaapiStatus(VAStatus status, const char *msg);
 
-void *vaapi_map_buffer(VADisplay dpy, VABufferID buf_id);
+void *vaapiMapBuffer(VADisplay dpy, VABufferID bufId);
 
-void vaapi_unmap_buffer(VADisplay dpy, VABufferID buf_id, void **pbuf);
+void vaapiUnmapBuffer(VADisplay dpy, VABufferID bufId, void **pbuf);
 
 bool
-vaapi_create_buffer(VADisplay dpy,
-		    VAContextID ctx,
-		    int type,
-		    unsigned int size,
-		    const void *data,
-		    VABufferID * buf_id, void **mapped_data);
+vaapiCreateBuffer(VADisplay dpy,
+		  VAContextID ctx,
+		  int type,
+		  unsigned int size,
+		  const void *data, VABufferID * bufId, void **mappedData);
 
-void vaapi_destroy_buffer(VADisplay dpy, VABufferID * buf_id);
+void vaapiDestroyBuffer(VADisplay dpy, VABufferID * bufId);
 
-const char *string_of_VAProfile(VAProfile profile);
+const char *stringOfVAProfile(VAProfile profile);
 
-const char *string_of_VAEntrypoint(VAEntrypoint entrypoint);
+const char *stringOfVAEntrypoint(VAEntrypoint entrypoint);
 
-uint32_t from_VaapiSurfaceRenderFlags(uint32_t flags);
+uint32_t fromVaapiSurfaceRenderFlags(uint32_t flags);
 
-uint32_t to_VaapiSurfaceStatus(uint32_t va_flags);
+uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
 
-uint32_t from_VaapiRotation(uint32_t value);
+uint32_t fromVaapiRotation(uint32_t value);
 
-uint32_t to_VaapiRotation(uint32_t value);
+uint32_t toVaapiRotation(uint32_t value);
 
-#endif				/* _VAAPI_UTILS_H */
+#endif				/* vaapiutils_h */

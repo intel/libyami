@@ -20,8 +20,8 @@
  */
 
 
-#ifndef VAAPI_DECODER_BASE_H_
-#define VAAPI_DECODER_BASE_H_
+#ifndef vaapidecoder_base_h
+#define vaapidecoder_base_h
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -64,7 +64,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     virtual void renderDone(VideoRenderBuffer * renderBuf);
 
     /* native window related functions */
-    void setXDisplay(Display * x_display);
+    void setXDisplay(Display * xDisplay);
     void enableNativeBuffers(void);
     Decode_Status getClientNativeWindowBuffer(void *bufferHeader,
 					      void *nativeBufferHandle);
@@ -76,40 +76,40 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status terminateVA(void);
     Decode_Status updateReference(void);
 
-    Display *mDisplay;
-    VADisplay mVADisplay;
-    VAContextID mVAContext;
-    VAConfigID mVAConfig;
-    bool mVAStarted;
+    Display *m_display;
+    VADisplay m_VADisplay;
+    VAContextID m_VAContext;
+    VAConfigID m_VAConfig;
+    bool m_VAStarted;
 
-    VideoConfigBuffer mConfigBuffer;
-    VideoFormatInfo mVideoFormatInfo;
+    VideoConfigBuffer m_configBuffer;
+    VideoFormatInfo m_videoFormatInfo;
 
     /* allocate all surfaces need for decoding & display
      * in one pool, the pool will responsable for allocating
      * empty surface, recycle used surface.
      */
-    VaapiSurfaceBufferPool *mBufPool;
+    VaapiSurfaceBufferPool *m_bufPool;
     /* the current render target for decoder */
     // XXX, not useful. decoding bases on VaapiPicture, rendering bases on IVideoDecoder->getOutput()
-    VideoSurfaceBuffer *mRenderTarget;
+    VideoSurfaceBuffer *m_renderTarget;
 
     /* reference picture, h264 will not use */
     // XXX, not used. reference frame management base on VaapiPicture
-    VideoSurfaceBuffer *mLastReference;
-    VideoSurfaceBuffer *mForwardReference;
+    VideoSurfaceBuffer *m_lastReference;
+    VideoSurfaceBuffer *m_forwardReference;
 
     /* hold serveral decoded picture coming from the dpb,
      * and rearrange the picture output order according to
      * customer required, for example, when output
      */
     //VideoSurfaceBuffer *outputList;
-    uint64_t mCurrentPTS;
+    uint64_t m_currentPTS;
 
   private:
-    bool mLowDelay;
-    bool mRawOutput;
-    bool mEnableNativeBuffersFlag;
+    bool m_lowDelay;
+    bool m_rawOutput;
+    bool m_enableNativeBuffersFlag;
 };
 
-#endif				// VIDEO_DECODER_BASE_H_
+#endif				// vaapidecoder_base_h

@@ -65,7 +65,7 @@ do{ \
 }while(0)
 #endif
 
-static inline bool vaapi_check_status(VAStatus status, const char *msg)
+static inline bool checkVaapiStatus(VAStatus status, const char *msg)
 {
     if (status != VA_STATUS_SUCCESS) {
 	ERROR("%s: %s", msg, vaErrorStr(status));

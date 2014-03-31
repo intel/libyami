@@ -20,8 +20,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef VAAPI_PICTURE_H
-#define VAAPI_PICTURE_H
+#ifndef vaapipicture_h
+#define vaapipicture_h
 
 #include <list>
 #include <vector>
@@ -53,7 +53,7 @@ typedef enum {
 } VaapiPictureFlags;
 
 #define VAAPI_PICTURE_FLAGS(picture) \
-    ((picture)->mFlags)
+    ((picture)->m_flags)
 
 #define VAAPI_PICTURE_FLAG_IS_SET(picture, flag) \
     ((VAAPI_PICTURE_FLAGS(picture) & (flag)) != 0)
@@ -83,7 +83,7 @@ typedef enum {
     VAAPI_PICTURE_FLAG_IS_SET(picture, VAAPI_PICTURE_FLAG_TFF)
 
 #define VAAPI_PICTURE_IS_FRAME(picture) \
-    ((picture)->mStructure == VAAPI_PICTURE_STRUCTURE_FRAME)
+    ((picture)->m_picStructure == VAAPI_PICTURE_STRUCTURE_FRAME)
 
 #define VAAPI_PICTURE_IS_COMPLETE(picture)          \
     (VAAPI_PICTURE_IS_FRAME(picture) ||             \
@@ -112,8 +112,8 @@ typedef enum {
 
 class VaapiSlice {
   public:
-    VaapiBufObject * mParam;
-    VaapiBufObject *mData;
+    VaapiBufObject * m_param;
+    VaapiBufObject *m_data;
 };
 
 class VaapiPicture {
@@ -133,24 +133,24 @@ class VaapiPicture {
     bool output();
 
   public:
-    uint64_t mTimeStamp;
-    uint32_t mPoc;
-    uint32_t mFlags;
-    VaapiPictureStructure mStructure;
-    VaapiPictureType mType;
-    VaapiBufObject *mPicParam;
-    VaapiBufObject *mIqMatrix;
-    VaapiBufObject *mBitPlane;
-    VaapiBufObject *mHufTable;
-    VaapiBufObject *mProbTable;
-    VASurfaceID mSurfaceID;
-    VADisplay mDisplay;
-    VAContextID mContext;
-    VideoSurfaceBuffer *mSurfBuf;
+     uint64_t m_timeStamp;
+    uint32_t m_POC;
+    uint32_t m_flags;
+    VaapiPictureStructure m_picStructure;
+    VaapiPictureType m_type;
+    VaapiBufObject *m_picParam;
+    VaapiBufObject *m_iqMatrix;
+    VaapiBufObject *m_bitPlane;
+    VaapiBufObject *m_hufTable;
+    VaapiBufObject *m_probTable;
+    VASurfaceID m_surfaceID;
+    VADisplay m_display;
+    VAContextID m_context;
+    VideoSurfaceBuffer *m_surfBuf;
 
   private:
-     VaapiSurfaceBufferPool * mSurfBufPool;
-     vector < VaapiSlice * >mSliceArray;
+     VaapiSurfaceBufferPool * m_surfBufPool;
+     vector < VaapiSlice * >m_sliceArray;
 };
 
 #endif

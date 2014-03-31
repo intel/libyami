@@ -1,5 +1,5 @@
 /*
- *  vaapidecoder_h264_dpb.cpp - DPB manager for h264 decoder 
+ *  vaapidecoder_h264_DPB.cpp - DPB manager for h264 decoder 
  *
  *  Copyright (C) 2013 Intel Corporation
  *
@@ -26,181 +26,178 @@
 
 #define ARRAY_REMOVE_INDEX(array, index) \
     do {  \
-      uint32_t size = array##_count; \
+      uint32_t size = array##Count; \
       assert(index < size); \
       if (index != --size); \
            (array)[index] = (array)[size]; \
       array[size] = NULL; \
-      array##_count = size;\
+      array##Count = size;\
     }while(0);
 
-#define SORT_REF_LIST(list, n, compare_func) \
-    qsort(list, n, sizeof(*(list)), compare_picture_##compare_func)
+#define SORT_REF_LIST(list, n, compareFunc) \
+    qsort(list, n, sizeof(*(list)), comparePicture##compareFunc)
 
-static uint32_t round_log2(uint32_t value)
+static uint32_t roundLog2(uint32_t value)
 {
     uint32_t ret = 0;
-    uint32_t value_square = value * value;
-    while ((1 << (ret + 1)) <= value_square)
+    uint32_t valueSquare = value * value;
+    while ((1 << (ret + 1)) <= valueSquare)
 	++ret;
 
     ret = (ret + 1) >> 1;
     return ret;
 }
 
-static int compare_picture_pic_num_dec(const void *a, const void *b)
+static int comparePicturePicNumDec(const void *a, const void *b)
 {
     const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
     const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
 
-    return picB->pic_num - picA->pic_num;
+    return picB->m_picNum - picA->m_picNum;
 }
 
-static int
-compare_picture_long_term_pic_num_inc(const void *a, const void *b)
+static int comparePictureLongTermPicNumInc(const void *a, const void *b)
 {
     const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
     const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
 
-    return picA->long_term_pic_num - picB->long_term_pic_num;
+    return picA->m_longTermPicNum - picB->m_longTermPicNum;
 }
 
-static int compare_picture_poc_dec(const void *a, const void *b)
+static int comparePicturePOCDec(const void *a, const void *b)
 {
     const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
     const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
 
-    return picB->mPoc - picA->mPoc;
+    return picB->m_POC - picA->m_POC;
 }
 
-static int compare_picture_poc_inc(const void *a, const void *b)
+static int comparePicturePOCInc(const void *a, const void *b)
 {
     const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
     const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
 
-    return picA->mPoc - picB->mPoc;
+    return picA->m_POC - picB->m_POC;
 }
 
-static int compare_picture_frame_num_wrap_dec(const void *a, const void *b)
+static int comparePictureFrameNumWrapDec(const void *a, const void *b)
 {
     const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
     const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
 
-    return picB->frame_num_wrap - picA->frame_num_wrap;
+    return picB->m_frameNumWrap - picA->m_frameNumWrap;
 }
 
-static int
-compare_picture_long_term_frame_idx_inc(const void *a, const void *b)
+static int comparePictureLongTermFrameIdxInc(const void *a, const void *b)
 {
     const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
     const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
 
-    return picA->long_term_frame_idx - picB->long_term_frame_idx;
+    return picA->m_longTermFrameIdx - picB->m_longTermFrameIdx;
 }
 
 static void
-h264_picture_set_reference(VaapiPictureH264 * picture,
-			   uint32_t reference_flags, bool other_field)
+setH264PictureReference(VaapiPictureH264 * picture,
+			uint32_t referenceFlags, bool otherField)
 {
     VAAPI_PICTURE_FLAG_UNSET(picture, VAAPI_PICTURE_FLAGS_REFERENCE);
-    VAAPI_PICTURE_FLAG_SET(picture, reference_flags);
+    VAAPI_PICTURE_FLAG_SET(picture, referenceFlags);
 
-    if (!other_field || !(picture = picture->other_field))
+    if (!otherField || !(picture = picture->m_otherField))
 	return;
 
     VAAPI_PICTURE_FLAG_UNSET(picture, VAAPI_PICTURE_FLAGS_REFERENCE);
-    VAAPI_PICTURE_FLAG_SET(picture, reference_flags);
+    VAAPI_PICTURE_FLAG_SET(picture, referenceFlags);
 }
 
 static int32_t
-get_picNumX(VaapiPictureH264 * picture,
-	    H264RefPicMarking * ref_pic_marking)
+getPicNumX(VaapiPictureH264 * picture, H264RefPicMarking * refPicMarking)
 {
-    int32_t pic_num;
+    int32_t picNum;
 
     if (VAAPI_PICTURE_IS_FRAME(picture))
-	pic_num = picture->frame_num_wrap;
+	picNum = picture->m_frameNumWrap;
     else
-	pic_num = 2 * picture->frame_num_wrap + 1;
-    pic_num -= ref_pic_marking->difference_of_pic_nums_minus1 + 1;
-    return pic_num;
+	picNum = 2 * picture->m_frameNumWrap + 1;
+    picNum -= refPicMarking->difference_of_pic_nums_minus1 + 1;
+    return picNum;
 }
 
-uint32_t get_max_dec_frame_buffering(H264SPS * sps, uint32_t views)
+uint32_t getMaxDecFrameBuffering(H264SPS * sps, uint32_t views)
 {
-    uint32_t max_dec_frame_buffering;
-    uint32_t MaxDpbMbs = 0;
-    uint32_t PicSizeMbs = 0;
+    uint32_t maxDecFrameBuffering;
+    uint32_t maxDpbMbs = 0;
+    uint32_t picSizeMbs = 0;
     //H264SPSExtMVC * const  mvc = &sps->extension.mvc;
 
     /* Table A-1 - Level limits */
     switch (sps->level_idc) {
     case 10:
-	MaxDpbMbs = 396;
+	maxDpbMbs = 396;
 	break;
     case 11:
-	MaxDpbMbs = 900;
+	maxDpbMbs = 900;
 	break;
     case 12:
-	MaxDpbMbs = 2376;
+	maxDpbMbs = 2376;
 	break;
     case 13:
-	MaxDpbMbs = 2376;
+	maxDpbMbs = 2376;
 	break;
     case 20:
-	MaxDpbMbs = 2376;
+	maxDpbMbs = 2376;
 	break;
     case 21:
-	MaxDpbMbs = 4752;
+	maxDpbMbs = 4752;
 	break;
     case 22:
-	MaxDpbMbs = 8100;
+	maxDpbMbs = 8100;
 	break;
     case 30:
-	MaxDpbMbs = 8100;
+	maxDpbMbs = 8100;
 	break;
     case 31:
-	MaxDpbMbs = 18000;
+	maxDpbMbs = 18000;
 	break;
     case 32:
-	MaxDpbMbs = 20480;
+	maxDpbMbs = 20480;
 	break;
     case 40:
-	MaxDpbMbs = 32768;
+	maxDpbMbs = 32768;
 	break;
     case 41:
-	MaxDpbMbs = 32768;
+	maxDpbMbs = 32768;
 	break;
     case 42:
-	MaxDpbMbs = 34816;
+	maxDpbMbs = 34816;
 	break;
     case 50:
-	MaxDpbMbs = 110400;
+	maxDpbMbs = 110400;
 	break;
     case 51:
-	MaxDpbMbs = 184320;
+	maxDpbMbs = 184320;
 	break;
     default:
 	assert(0);
 	break;
     }
 
-    PicSizeMbs = ((sps->pic_width_in_mbs_minus1 + 1) *
+    picSizeMbs = ((sps->pic_width_in_mbs_minus1 + 1) *
 		  (sps->pic_height_in_map_units_minus1 + 1) *
 		  (sps->frame_mbs_only_flag ? 1 : 2));
-    max_dec_frame_buffering = MaxDpbMbs / PicSizeMbs;
+    maxDecFrameBuffering = maxDpbMbs / picSizeMbs;
 
     if (views > 1) {
-	max_dec_frame_buffering = MIN(2 * max_dec_frame_buffering,
-				      16 * MAX(1, round_log2(views)));
-	max_dec_frame_buffering = max_dec_frame_buffering / views;
+	maxDecFrameBuffering = MIN(2 * maxDecFrameBuffering,
+				   16 * MAX(1, roundLog2(views)));
+	maxDecFrameBuffering = maxDecFrameBuffering / views;
     }
 
     /* VUI parameters */
     if (sps->vui_parameters_present_flag) {
-	H264VUIParams *const vui_params = &sps->vui_parameters;
-	if (vui_params->bitstream_restriction_flag)
-	    max_dec_frame_buffering = vui_params->max_dec_frame_buffering;
+	H264VUIParams *const vuiParams = &sps->vui_parameters;
+	if (vuiParams->bitstream_restriction_flag)
+	    maxDecFrameBuffering = vuiParams->max_dec_frame_buffering;
 	else {
 	    switch (sps->profile_idc) {
 	    case 44:		// CAVLC 4:4:4 Intra profile
@@ -210,218 +207,218 @@ uint32_t get_max_dec_frame_buffering(H264SPS * sps, uint32_t views)
 	    case 122:		// High 4:2:2 profile
 	    case 244:		// High 4:4:4 Predictive profile
 		if (sps->constraint_set3_flag)
-		    max_dec_frame_buffering = 0;
+		    maxDecFrameBuffering = 0;
 		break;
 	    }
 	}
     }
 
-    if (max_dec_frame_buffering > 16)
-	max_dec_frame_buffering = 16;
-    else if (max_dec_frame_buffering < sps->num_ref_frames)
-	max_dec_frame_buffering = sps->num_ref_frames;
-    return MAX(1, max_dec_frame_buffering);
+    if (maxDecFrameBuffering > 16)
+	maxDecFrameBuffering = 16;
+    else if (maxDecFrameBuffering < sps->num_ref_frames)
+	maxDecFrameBuffering = sps->num_ref_frames;
+    return MAX(1, maxDecFrameBuffering);
 }
 
-VaapiDPBManager::VaapiDPBManager(uint32_t dpb_size)
+VaapiDPBManager::VaapiDPBManager(uint32_t DPBSize)
 {
     uint32_t i;
-    dpb_layer =
-	(VaapiDecPicBufLayer *) malloc(sizeof(VaapiDecPicBufLayer));
-    memset((void *) dpb_layer, 0, sizeof(VaapiDecPicBufLayer));
-    dpb_layer->dpb_size = dpb_size;
+    DPBLayer = (VaapiDecPicBufLayer *) malloc(sizeof(VaapiDecPicBufLayer));
+    memset((void *) DPBLayer, 0, sizeof(VaapiDecPicBufLayer));
+    DPBLayer->DPBSize = DPBSize;
 }
 
-bool VaapiDPBManager::dpb_output(VaapiFrameStore * fs,
-				 VaapiPictureH264 * picture)
+bool VaapiDPBManager::outputDPB(VaapiFrameStore * frameStore,
+				VaapiPictureH264 * picture)
 {
-    picture->output_needed = false;
+    picture->m_outputNeeded = false;
 
-    if (fs) {
-	if (--fs->output_needed > 0)
+    if (frameStore) {
+	if (--frameStore->m_outputNeeded > 0)
 	    return true;
-	picture = fs->buffers[0];
+	picture = frameStore->m_buffers[0];
     }
 
-    DEBUG("dpb: output picture(Addr:%p, Poc:%d)", picture, picture->mPoc);
+    DEBUG("DPB: output picture(Addr:%p, Poc:%d)", picture, picture->m_POC);
     return picture->output();
 }
 
-void VaapiDPBManager::dpb_evict(VaapiPictureH264 * pic, uint32_t idx)
+void VaapiDPBManager::evictDPB(VaapiPictureH264 * pic, uint32_t idx)
 {
-    VaapiFrameStore *const fs = dpb_layer->dpb[idx];
-    if (!fs->output_needed && !fs->has_reference())
-	dpb_remove_index(idx);
+    VaapiFrameStore *const frameStore = DPBLayer->DPB[idx];
+    if (!frameStore->m_outputNeeded && !frameStore->hasReference())
+	removeDPBIndex(idx);
 }
 
-bool VaapiDPBManager::dpb_bump()
+bool VaapiDPBManager::bumpDPB()
 {
-    VaapiPictureH264 *found_picture = NULL;
-    uint32_t i, j, found_index;
+    VaapiPictureH264 *foundPicture = NULL;
+    uint32_t i, j, frameIndex;
     bool success;
 
-    for (i = 0; i < dpb_layer->dpb_count; i++) {
-	VaapiFrameStore *const fs = dpb_layer->dpb[i];
-	if (!fs->output_needed)
+    for (i = 0; i < DPBLayer->DPBCount; i++) {
+	VaapiFrameStore *const frameStore = DPBLayer->DPB[i];
+	if (!frameStore->m_outputNeeded)
 	    continue;
 
-	for (j = 0; j < fs->num_buffers; j++) {
-	    VaapiPictureH264 *const picture = fs->buffers[j];
-	    if (!picture->output_needed)
+	for (j = 0; j < frameStore->m_numBuffers; j++) {
+	    VaapiPictureH264 *const picture = frameStore->m_buffers[j];
+	    if (!picture->m_outputNeeded)
 		continue;
-	    if (!found_picture || found_picture->mPoc > picture->mPoc)
-		found_picture = picture, found_index = i;
+	    if (!foundPicture || foundPicture->m_POC > picture->m_POC)
+		foundPicture = picture, frameIndex = i;
 	}
     }
-    if (!found_picture)
+    if (!foundPicture)
 	return false;
 
-    success = dpb_output(dpb_layer->dpb[found_index], found_picture);
-    dpb_evict(found_picture, found_index);
+    success = outputDPB(DPBLayer->DPB[frameIndex], foundPicture);
+    evictDPB(foundPicture, frameIndex);
     return success;
 }
 
-void VaapiDPBManager::dpb_clear()
+void VaapiDPBManager::clearDPB()
 {
     uint32_t i;
-    if (dpb_layer) {
-	for (i = 0; i < dpb_layer->dpb_count; i++) {
-	    delete dpb_layer->dpb[i];
-	    dpb_layer->dpb[i] = NULL;
+    if (DPBLayer) {
+	for (i = 0; i < DPBLayer->DPBCount; i++) {
+	    delete DPBLayer->DPB[i];
+	    DPBLayer->DPB[i] = NULL;
 	}
-	dpb_layer->dpb_count = 0;
+	DPBLayer->DPBCount = 0;
     }
 }
 
-void VaapiDPBManager::dpb_flush()
+void VaapiDPBManager::flushDPB()
 {
-    while (dpb_bump());
-    dpb_clear();
+    while (bumpDPB());
+    clearDPB();
 }
 
-bool VaapiDPBManager::dpb_add(VaapiFrameStore * new_fs,
-			      VaapiPictureH264 * pic)
+bool VaapiDPBManager::addDPB(VaapiFrameStore * newFrameStore,
+			     VaapiPictureH264 * pic)
 {
     uint32_t i, j;
-    VaapiFrameStore *fs;
+    VaapiFrameStore *frameStore;
 
     // Remove all unused pictures
     if (!VAAPI_H264_PICTURE_IS_IDR(pic)) {
 	i = 0;
-	while (i < dpb_layer->dpb_count) {
-	    fs = dpb_layer->dpb[i];
-	    if (!fs->output_needed && !fs->has_reference()) {
-		dpb_remove_index(i);
+	while (i < DPBLayer->DPBCount) {
+	    frameStore = DPBLayer->DPB[i];
+	    if (!frameStore->m_outputNeeded && !frameStore->hasReference()) {
+		removeDPBIndex(i);
 	    } else
 		i++;
 	}
     }
     // C.4.5.1 - Storage and marking of a reference decoded picture into the DPB
     if (VAAPI_PICTURE_IS_REFERENCE(pic)) {
-	while (dpb_layer->dpb_count == dpb_layer->dpb_size) {
-	    if (!dpb_bump())
+	while (DPBLayer->DPBCount == DPBLayer->DPBSize) {
+	    if (!bumpDPB())
 		return false;
 	}
 
-	dpb_layer->dpb[dpb_layer->dpb_count++] = new_fs;
-	if (pic->output_flag) {
-	    pic->output_needed = true;
-	    new_fs->output_needed++;
+	DPBLayer->DPB[DPBLayer->DPBCount++] = newFrameStore;
+	if (pic->m_outputFlag) {
+	    pic->m_outputNeeded = true;
+	    newFrameStore->m_outputNeeded++;
 	}
     }
     // C.4.5.2 - Storage and marking of a non-reference decoded picture into the DPB
     else {
-	if (!pic->output_flag)
+	if (!pic->m_outputFlag)
 	    return true;
-	while (dpb_layer->dpb_count == dpb_layer->dpb_size) {
-	    bool found_picture = false;
-	    for (i = 0; !found_picture && i < dpb_layer->dpb_count; i++) {
-		fs = dpb_layer->dpb[i];
-		if (!fs->output_needed)
+	while (DPBLayer->DPBCount == DPBLayer->DPBSize) {
+	    bool foundPicture = false;
+	    for (i = 0; !foundPicture && i < DPBLayer->DPBCount; i++) {
+		frameStore = DPBLayer->DPB[i];
+		if (!frameStore->m_outputNeeded)
 		    continue;
-		for (j = 0; !found_picture && j < fs->num_buffers; j++)
-		    found_picture = fs->buffers[j]->output_needed &&
-			fs->buffers[j]->mPoc < pic->mPoc;
+		for (j = 0; !foundPicture && j < frameStore->m_numBuffers;
+		     j++)
+		    foundPicture = frameStore->m_buffers[j]->m_outputNeeded
+			&& frameStore->m_buffers[j]->m_POC < pic->m_POC;
 	    }
-	    if (!found_picture)
-		return dpb_output(NULL, pic);
-	    if (!dpb_bump())
+	    if (!foundPicture)
+		return outputDPB(NULL, pic);
+	    if (!bumpDPB())
 		return false;
 	}
 
-	dpb_layer->dpb[dpb_layer->dpb_count++] = new_fs;
-	pic->output_needed = true;
-	new_fs->output_needed++;
+	DPBLayer->DPB[DPBLayer->DPBCount++] = newFrameStore;
+	pic->m_outputNeeded = true;
+	newFrameStore->m_outputNeeded++;
     }
 
     return true;
 }
 
-void VaapiDPBManager::dpb_reset(H264SPS * sps)
+void VaapiDPBManager::resetDPB(H264SPS * sps)
 {
     uint32_t i;
     for (i = 0; i < 16; i++) {
-	if (dpb_layer->dpb[i]) {
-	    delete dpb_layer->dpb[i];
-	    dpb_layer->dpb[i] = NULL;
+	if (DPBLayer->DPB[i]) {
+	    delete DPBLayer->DPB[i];
+	    DPBLayer->DPB[i] = NULL;
 	}
     }
-    memset((void *) dpb_layer, 0, sizeof(VaapiDecPicBufLayer));
-    dpb_layer->dpb_size = get_max_dec_frame_buffering(sps, 1);
+    memset((void *) DPBLayer, 0, sizeof(VaapiDecPicBufLayer));
+    DPBLayer->DPBSize = getMaxDecFrameBuffering(sps, 1);
 }
 
 /* initialize reference list */
-void VaapiDPBManager::init_picture_refs(VaapiPictureH264 * pic,
-					H264SliceHdr * slice_hdr,
-					int32_t frame_num)
+void VaapiDPBManager::initPictureRefs(VaapiPictureH264 * pic,
+				      H264SliceHdr * sliceHdr,
+				      int32_t frameNum)
 {
-    uint32_t i, num_refs;
+    uint32_t i, numRefs;
 
-    init_picture_ref_lists(pic);
+    initPictureRefLists(pic);
 
-    init_picture_refs_pic_num(pic, slice_hdr, frame_num);
+    initPictureRefsPicNum(pic, sliceHdr, frameNum);
 
-    dpb_layer->RefPicList0_count = 0;
-    dpb_layer->RefPicList1_count = 0;
+    DPBLayer->refPicList0Count = 0;
+    DPBLayer->refPicList1Count = 0;
 
-    switch (pic->mType) {
+    switch (pic->m_type) {
     case VAAPI_PICTURE_TYPE_P:
     case VAAPI_PICTURE_TYPE_SP:
-	init_picture_refs_p_slice(pic, slice_hdr);
+	initPictureRefsPSlice(pic, sliceHdr);
 	break;
     case VAAPI_PICTURE_TYPE_B:
-	init_picture_refs_b_slice(pic, slice_hdr);
+	initPictureRefsBSlice(pic, sliceHdr);
 	break;
     default:
 	break;
     }
 
-    exec_picture_refs_modification(pic, slice_hdr);
+    execPictureRefsModification(pic, sliceHdr);
 
-    switch (pic->mType) {
+    switch (pic->m_type) {
     case VAAPI_PICTURE_TYPE_B:
-	num_refs = 1 + slice_hdr->num_ref_idx_l1_active_minus1;
-	for (i = dpb_layer->RefPicList1_count; i < num_refs; i++)
-	    dpb_layer->RefPicList1[i] = NULL;
-	//dpb_layer->RefPicList1_count = num_refs;
+	numRefs = 1 + sliceHdr->num_ref_idx_l1_active_minus1;
+	for (i = DPBLayer->refPicList1Count; i < numRefs; i++)
+	    DPBLayer->refPicList1[i] = NULL;
+	//DPBLayer->refPicList1Count = numRefs;
 
 	// fall-through
     case VAAPI_PICTURE_TYPE_P:
     case VAAPI_PICTURE_TYPE_SP:
-	num_refs = 1 + slice_hdr->num_ref_idx_l0_active_minus1;
-	for (i = dpb_layer->RefPicList0_count; i < num_refs; i++)
-	    dpb_layer->RefPicList0[i] = NULL;
-	//dpb_layer->RefPicList0_count = num_refs;
+	numRefs = 1 + sliceHdr->num_ref_idx_l0_active_minus1;
+	for (i = DPBLayer->refPicList0Count; i < numRefs; i++)
+	    DPBLayer->refPicList0[i] = NULL;
+	//DPBLayer->refPicList0Count = numRefs;
 	break;
     default:
 	break;
     }
 }
 
-bool VaapiDPBManager::exec_ref_pic_marking(VaapiPictureH264 * pic,
-					   bool * has_mmco5)
+bool VaapiDPBManager::execRefPicMarking(VaapiPictureH264 * pic,
+					bool * hasMMCO5)
 {
-    *has_mmco5 = false;
+    *hasMMCO5 = false;
 
     if (!VAAPI_PICTURE_IS_REFERENCE(pic)) {
 	return true;
@@ -430,14 +427,14 @@ bool VaapiDPBManager::exec_ref_pic_marking(VaapiPictureH264 * pic,
     if (!VAAPI_H264_PICTURE_IS_IDR(pic)) {
 	VaapiSliceH264 *const slice =
 	    (VaapiSliceH264 *) pic->getLastSlice();
-	H264DecRefPicMarking *const dec_ref_pic_marking =
-	    &slice->slice_hdr.dec_ref_pic_marking;
-	if (dec_ref_pic_marking->adaptive_ref_pic_marking_mode_flag) {
-	    if (!exec_ref_pic_marking_adaptive
-		(pic, dec_ref_pic_marking, has_mmco5))
+	H264DecRefPicMarking *const decRefPicMarking =
+	    &slice->m_sliceHdr.dec_ref_pic_marking;
+	if (decRefPicMarking->adaptive_ref_pic_marking_mode_flag) {
+	    if (!execRefPicMarkingAdaptive
+		(pic, decRefPicMarking, hasMMCO5))
 		return false;
 	} else {
-	    if (!exec_ref_pic_marking_sliding_window(pic))
+	    if (!execRefPicMarkingSlidingWindow(pic))
 		return false;
 	}
 
@@ -448,678 +445,659 @@ bool VaapiDPBManager::exec_ref_pic_marking(VaapiPictureH264 * pic,
 
 /* private functions */
 
-void VaapiDPBManager::init_picture_ref_lists(VaapiPictureH264 * pic)
+void VaapiDPBManager::initPictureRefLists(VaapiPictureH264 * pic)
 {
-    uint32_t i, j, short_ref_count, long_ref_count;
-    VaapiFrameStore *fs;
+    uint32_t i, j, shortRefCount, longRefCount;
+    VaapiFrameStore *frameStore;
     VaapiPictureH264 *picture;
 
-    short_ref_count = 0;
-    long_ref_count = 0;
-    if (pic->structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
-	for (i = 0; i < dpb_layer->dpb_count; i++) {
-	    fs = dpb_layer->dpb[i];
-	    if (!fs->has_frame())
+    shortRefCount = 0;
+    longRefCount = 0;
+    if (pic->m_structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
+	for (i = 0; i < DPBLayer->DPBCount; i++) {
+	    frameStore = DPBLayer->DPB[i];
+	    if (!frameStore->hasFrame())
 		continue;
-	    picture = fs->buffers[0];
+	    picture = frameStore->m_buffers[0];
 	    if (VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(picture))
-		dpb_layer->short_ref[short_ref_count++] = picture;
+		DPBLayer->shortRef[shortRefCount++] = picture;
 	    else if (VAAPI_H264_PICTURE_IS_LONG_TERM_REFERENCE(picture))
-		dpb_layer->long_ref[long_ref_count++] = picture;
-	    picture->structure = VAAPI_PICTURE_STRUCTURE_FRAME;
-	    picture->other_field = fs->buffers[1];
+		DPBLayer->longRef[longRefCount++] = picture;
+	    picture->m_structure = VAAPI_PICTURE_STRUCTURE_FRAME;
+	    picture->m_otherField = frameStore->m_buffers[1];
 	}
     } else {
-	for (i = 0; i < dpb_layer->dpb_count; i++) {
-	    fs = dpb_layer->dpb[i];
-	    for (j = 0; j < fs->num_buffers; j++) {
-		picture = fs->buffers[j];
+	for (i = 0; i < DPBLayer->DPBCount; i++) {
+	    frameStore = DPBLayer->DPB[i];
+	    for (j = 0; j < frameStore->m_numBuffers; j++) {
+		picture = frameStore->m_buffers[j];
 		if (VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(picture))
-		    dpb_layer->short_ref[short_ref_count++] = picture;
+		    DPBLayer->shortRef[shortRefCount++] = picture;
 		else if (VAAPI_H264_PICTURE_IS_LONG_TERM_REFERENCE
 			 (picture))
-		    dpb_layer->long_ref[long_ref_count++] = picture;
-		picture->structure = picture->mStructure;
-		picture->other_field = fs->buffers[j ^ 1];
+		    DPBLayer->longRef[longRefCount++] = picture;
+		picture->m_structure = picture->m_picStructure;
+		picture->m_otherField = frameStore->m_buffers[j ^ 1];
 	    }
 	}
     }
 
-    for (i = short_ref_count; i < dpb_layer->short_ref_count; i++)
-	dpb_layer->short_ref[i] = NULL;
-    dpb_layer->short_ref_count = short_ref_count;
+    for (i = shortRefCount; i < DPBLayer->shortRefCount; i++)
+	DPBLayer->shortRef[i] = NULL;
+    DPBLayer->shortRefCount = shortRefCount;
 
-    for (i = long_ref_count; i < dpb_layer->long_ref_count; i++)
-	dpb_layer->long_ref[i] = NULL;
-    dpb_layer->long_ref_count = long_ref_count;
+    for (i = longRefCount; i < DPBLayer->longRefCount; i++)
+	DPBLayer->longRef[i] = NULL;
+    DPBLayer->longRefCount = longRefCount;
 
 }
 
-void VaapiDPBManager::init_picture_refs_p_slice(VaapiPictureH264 * pic,
-						H264SliceHdr * slice_hdr)
+void VaapiDPBManager::initPictureRefsPSlice(VaapiPictureH264 * pic,
+					    H264SliceHdr * sliceHdr)
 {
-    VaapiPictureH264 **ref_list;
+    VaapiPictureH264 **refList;
     uint32_t i;
 
-    if (pic->structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
+    if (pic->m_structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
 	/* 8.2.4.2.1 - P and SP slices in frames */
-	if (dpb_layer->short_ref_count > 0) {
-	    ref_list = dpb_layer->RefPicList0;
-	    for (i = 0; i < dpb_layer->short_ref_count; i++)
-		ref_list[i] = dpb_layer->short_ref[i];
-	    SORT_REF_LIST(ref_list, i, pic_num_dec);
-	    dpb_layer->RefPicList0_count += i;
+	if (DPBLayer->shortRefCount > 0) {
+	    refList = DPBLayer->refPicList0;
+	    for (i = 0; i < DPBLayer->shortRefCount; i++)
+		refList[i] = DPBLayer->shortRef[i];
+	    SORT_REF_LIST(refList, i, PicNumDec);
+	    DPBLayer->refPicList0Count += i;
 	}
 
-	if (dpb_layer->long_ref_count > 0) {
-	    ref_list =
-		&dpb_layer->RefPicList0[dpb_layer->RefPicList0_count];
-	    for (i = 0; i < dpb_layer->long_ref_count; i++)
-		ref_list[i] = dpb_layer->long_ref[i];
-	    SORT_REF_LIST(ref_list, i, long_term_pic_num_inc);
-	    dpb_layer->RefPicList0_count += i;
+	if (DPBLayer->longRefCount > 0) {
+	    refList = &DPBLayer->refPicList0[DPBLayer->refPicList0Count];
+	    for (i = 0; i < DPBLayer->longRefCount; i++)
+		refList[i] = DPBLayer->longRef[i];
+	    SORT_REF_LIST(refList, i, LongTermPicNumInc);
+	    DPBLayer->refPicList0Count += i;
 	}
     } else {
 	/* 8.2.4.2.2 - P and SP slices in fields */
-	VaapiPictureH264 *short_ref[32];
-	uint32_t short_ref_count = 0;
-	VaapiPictureH264 *long_ref[32];
-	uint32_t long_ref_count = 0;
+	VaapiPictureH264 *shortRef[32];
+	uint32_t shortRefCount = 0;
+	VaapiPictureH264 *longRef[32];
+	uint32_t longRefCount = 0;
 
-	if (dpb_layer->short_ref_count > 0) {
-	    for (i = 0; i < dpb_layer->short_ref_count; i++)
-		short_ref[i] = dpb_layer->short_ref[i];
-	    SORT_REF_LIST(short_ref, i, frame_num_wrap_dec);
-	    short_ref_count = i;
+	if (DPBLayer->shortRefCount > 0) {
+	    for (i = 0; i < DPBLayer->shortRefCount; i++)
+		shortRef[i] = DPBLayer->shortRef[i];
+	    SORT_REF_LIST(shortRef, i, FrameNumWrapDec);
+	    shortRefCount = i;
 	}
 
-	if (dpb_layer->long_ref_count > 0) {
-	    for (i = 0; i < dpb_layer->long_ref_count; i++)
-		long_ref[i] = dpb_layer->long_ref[i];
-	    SORT_REF_LIST(long_ref, i, long_term_frame_idx_inc);
-	    long_ref_count = i;
+	if (DPBLayer->longRefCount > 0) {
+	    for (i = 0; i < DPBLayer->longRefCount; i++)
+		longRef[i] = DPBLayer->longRef[i];
+	    SORT_REF_LIST(longRef, i, LongTermFrameIdxInc);
+	    longRefCount = i;
 	}
 
-	init_picture_refs_fields(pic,
-				 dpb_layer->RefPicList0,
-				 &dpb_layer->RefPicList0_count, short_ref,
-				 short_ref_count, long_ref,
-				 long_ref_count);
+	initPictureRefsFields(pic,
+			      DPBLayer->refPicList0,
+			      &DPBLayer->refPicList0Count, shortRef,
+			      shortRefCount, longRef, longRefCount);
     }
 
 }
 
-void VaapiDPBManager::init_picture_refs_b_slice(VaapiPictureH264 * picture,
-						H264SliceHdr * slice_hdr)
+void VaapiDPBManager::initPictureRefsBSlice(VaapiPictureH264 * picture,
+					    H264SliceHdr * sliceHdr)
 {
-    VaapiPictureH264 **ref_list;
+    VaapiPictureH264 **refList;
     uint32_t i, n;
 
-    if (picture->structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
+    if (picture->m_structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
 	/* 8.2.4.2.3 - B slices in frames */
 
-	/* RefPicList0 */
-	if (dpb_layer->short_ref_count > 0) {
+	/* refPicList0 */
+	if (DPBLayer->shortRefCount > 0) {
 	    // 1. Short-term references
-	    ref_list = dpb_layer->RefPicList0;
-	    for (n = 0, i = 0; i < dpb_layer->short_ref_count; i++) {
-		if (dpb_layer->short_ref[i]->mPoc < picture->mPoc)
-		    ref_list[n++] = dpb_layer->short_ref[i];
+	    refList = DPBLayer->refPicList0;
+	    for (n = 0, i = 0; i < DPBLayer->shortRefCount; i++) {
+		if (DPBLayer->shortRef[i]->m_POC < picture->m_POC)
+		    refList[n++] = DPBLayer->shortRef[i];
 	    }
-	    SORT_REF_LIST(ref_list, n, poc_dec);
-	    dpb_layer->RefPicList0_count += n;
+	    SORT_REF_LIST(refList, n, POCDec);
+	    DPBLayer->refPicList0Count += n;
 
-	    ref_list =
-		&dpb_layer->RefPicList0[dpb_layer->RefPicList0_count];
-	    for (n = 0, i = 0; i < dpb_layer->short_ref_count; i++) {
-		if (dpb_layer->short_ref[i]->mPoc >= picture->mPoc)
-		    ref_list[n++] = dpb_layer->short_ref[i];
+	    refList = &DPBLayer->refPicList0[DPBLayer->refPicList0Count];
+	    for (n = 0, i = 0; i < DPBLayer->shortRefCount; i++) {
+		if (DPBLayer->shortRef[i]->m_POC >= picture->m_POC)
+		    refList[n++] = DPBLayer->shortRef[i];
 	    }
-	    SORT_REF_LIST(ref_list, n, poc_inc);
-	    dpb_layer->RefPicList0_count += n;
+	    SORT_REF_LIST(refList, n, POCInc);
+	    DPBLayer->refPicList0Count += n;
 	}
 
-	if (dpb_layer->long_ref_count > 0) {
+	if (DPBLayer->longRefCount > 0) {
 	    // 2. Long-term references
-	    ref_list =
-		&dpb_layer->RefPicList0[dpb_layer->RefPicList0_count];
-	    for (n = 0, i = 0; i < dpb_layer->long_ref_count; i++)
-		ref_list[n++] = dpb_layer->long_ref[i];
-	    SORT_REF_LIST(ref_list, n, long_term_pic_num_inc);
-	    dpb_layer->RefPicList0_count += n;
+	    refList = &DPBLayer->refPicList0[DPBLayer->refPicList0Count];
+	    for (n = 0, i = 0; i < DPBLayer->longRefCount; i++)
+		refList[n++] = DPBLayer->longRef[i];
+	    SORT_REF_LIST(refList, n, LongTermPicNumInc);
+	    DPBLayer->refPicList0Count += n;
 	}
 
-	/* RefPicList1 */
-	if (dpb_layer->short_ref_count > 0) {
+	/* refPicList1 */
+	if (DPBLayer->shortRefCount > 0) {
 	    // 1. Short-term references
-	    ref_list = dpb_layer->RefPicList1;
-	    for (n = 0, i = 0; i < dpb_layer->short_ref_count; i++) {
-		if (dpb_layer->short_ref[i]->mPoc > picture->mPoc)
-		    ref_list[n++] = dpb_layer->short_ref[i];
+	    refList = DPBLayer->refPicList1;
+	    for (n = 0, i = 0; i < DPBLayer->shortRefCount; i++) {
+		if (DPBLayer->shortRef[i]->m_POC > picture->m_POC)
+		    refList[n++] = DPBLayer->shortRef[i];
 	    }
-	    SORT_REF_LIST(ref_list, n, poc_inc);
-	    dpb_layer->RefPicList1_count += n;
+	    SORT_REF_LIST(refList, n, POCInc);
+	    DPBLayer->refPicList1Count += n;
 
-	    ref_list =
-		&dpb_layer->RefPicList1[dpb_layer->RefPicList1_count];
-	    for (n = 0, i = 0; i < dpb_layer->short_ref_count; i++) {
-		if (dpb_layer->short_ref[i]->mPoc <= picture->mPoc)
-		    ref_list[n++] = dpb_layer->short_ref[i];
+	    refList = &DPBLayer->refPicList1[DPBLayer->refPicList1Count];
+	    for (n = 0, i = 0; i < DPBLayer->shortRefCount; i++) {
+		if (DPBLayer->shortRef[i]->m_POC <= picture->m_POC)
+		    refList[n++] = DPBLayer->shortRef[i];
 	    }
-	    SORT_REF_LIST(ref_list, n, poc_dec);
-	    dpb_layer->RefPicList1_count += n;
+	    SORT_REF_LIST(refList, n, POCDec);
+	    DPBLayer->refPicList1Count += n;
 	}
 
-	if (dpb_layer->long_ref_count > 0) {
+	if (DPBLayer->longRefCount > 0) {
 	    // 2. Long-term references
-	    ref_list =
-		&dpb_layer->RefPicList1[dpb_layer->RefPicList1_count];
-	    for (n = 0, i = 0; i < dpb_layer->long_ref_count; i++)
-		ref_list[n++] = dpb_layer->long_ref[i];
-	    SORT_REF_LIST(ref_list, n, long_term_pic_num_inc);
-	    dpb_layer->RefPicList1_count += n;
+	    refList = &DPBLayer->refPicList1[DPBLayer->refPicList1Count];
+	    for (n = 0, i = 0; i < DPBLayer->longRefCount; i++)
+		refList[n++] = DPBLayer->longRef[i];
+	    SORT_REF_LIST(refList, n, LongTermPicNumInc);
+	    DPBLayer->refPicList1Count += n;
 	}
     } else {
 	/* 8.2.4.2.4 - B slices in fields */
-	VaapiPictureH264 *short_ref0[32];
-	uint32_t short_ref0_count = 0;
-	VaapiPictureH264 *short_ref1[32];
-	uint32_t short_ref1_count = 0;
-	VaapiPictureH264 *long_ref[32];
-	uint32_t long_ref_count = 0;
+	VaapiPictureH264 *shortRef0[32];
+	uint32_t shortRef0Count = 0;
+	VaapiPictureH264 *shortRef1[32];
+	uint32_t shortRef1Count = 0;
+	VaapiPictureH264 *longRef[32];
+	uint32_t longRefCount = 0;
 
 	/* refFrameList0ShortTerm */
-	if (dpb_layer->short_ref_count > 0) {
-	    ref_list = short_ref0;
-	    for (n = 0, i = 0; i < dpb_layer->short_ref_count; i++) {
-		if (dpb_layer->short_ref[i]->mPoc <= picture->mPoc)
-		    ref_list[n++] = dpb_layer->short_ref[i];
+	if (DPBLayer->shortRefCount > 0) {
+	    refList = shortRef0;
+	    for (n = 0, i = 0; i < DPBLayer->shortRefCount; i++) {
+		if (DPBLayer->shortRef[i]->m_POC <= picture->m_POC)
+		    refList[n++] = DPBLayer->shortRef[i];
 	    }
-	    SORT_REF_LIST(ref_list, n, poc_dec);
-	    short_ref0_count += n;
+	    SORT_REF_LIST(refList, n, POCDec);
+	    shortRef0Count += n;
 
-	    ref_list = &short_ref0[short_ref0_count];
-	    for (n = 0, i = 0; i < dpb_layer->short_ref_count; i++) {
-		if (dpb_layer->short_ref[i]->mPoc > picture->mPoc)
-		    ref_list[n++] = dpb_layer->short_ref[i];
+	    refList = &shortRef0[shortRef0Count];
+	    for (n = 0, i = 0; i < DPBLayer->shortRefCount; i++) {
+		if (DPBLayer->shortRef[i]->m_POC > picture->m_POC)
+		    refList[n++] = DPBLayer->shortRef[i];
 	    }
-	    SORT_REF_LIST(ref_list, n, poc_inc);
-	    short_ref0_count += n;
+	    SORT_REF_LIST(refList, n, POCInc);
+	    shortRef0Count += n;
 	}
 
 	/* refFrameList1ShortTerm */
-	if (dpb_layer->short_ref_count > 0) {
-	    ref_list = short_ref1;
-	    for (n = 0, i = 0; i < dpb_layer->short_ref_count; i++) {
-		if (dpb_layer->short_ref[i]->mPoc > picture->mPoc)
-		    ref_list[n++] = dpb_layer->short_ref[i];
+	if (DPBLayer->shortRefCount > 0) {
+	    refList = shortRef1;
+	    for (n = 0, i = 0; i < DPBLayer->shortRefCount; i++) {
+		if (DPBLayer->shortRef[i]->m_POC > picture->m_POC)
+		    refList[n++] = DPBLayer->shortRef[i];
 	    }
-	    SORT_REF_LIST(ref_list, n, poc_inc);
-	    short_ref1_count += n;
+	    SORT_REF_LIST(refList, n, POCInc);
+	    shortRef1Count += n;
 
-	    ref_list = &short_ref1[short_ref1_count];
-	    for (n = 0, i = 0; i < dpb_layer->short_ref_count; i++) {
-		if (dpb_layer->short_ref[i]->mPoc <= picture->mPoc)
-		    ref_list[n++] = dpb_layer->short_ref[i];
+	    refList = &shortRef1[shortRef1Count];
+	    for (n = 0, i = 0; i < DPBLayer->shortRefCount; i++) {
+		if (DPBLayer->shortRef[i]->m_POC <= picture->m_POC)
+		    refList[n++] = DPBLayer->shortRef[i];
 	    }
-	    SORT_REF_LIST(ref_list, n, poc_dec);
-	    short_ref1_count += n;
+	    SORT_REF_LIST(refList, n, POCDec);
+	    shortRef1Count += n;
 	}
 
 	/* refFrameListLongTerm */
-	if (dpb_layer->long_ref_count > 0) {
-	    for (i = 0; i < dpb_layer->long_ref_count; i++)
-		long_ref[i] = dpb_layer->long_ref[i];
-	    SORT_REF_LIST(long_ref, i, long_term_frame_idx_inc);
-	    long_ref_count = i;
+	if (DPBLayer->longRefCount > 0) {
+	    for (i = 0; i < DPBLayer->longRefCount; i++)
+		longRef[i] = DPBLayer->longRef[i];
+	    SORT_REF_LIST(longRef, i, LongTermFrameIdxInc);
+	    longRefCount = i;
 	}
 
-	init_picture_refs_fields(picture,
-				 dpb_layer->RefPicList0,
-				 &dpb_layer->RefPicList0_count, short_ref0,
-				 short_ref0_count, long_ref,
-				 long_ref_count);
+	initPictureRefsFields(picture,
+			      DPBLayer->refPicList0,
+			      &DPBLayer->refPicList0Count, shortRef0,
+			      shortRef0Count, longRef, longRefCount);
 
-	init_picture_refs_fields(picture,
-				 dpb_layer->RefPicList1,
-				 &dpb_layer->RefPicList1_count, short_ref1,
-				 short_ref1_count, long_ref,
-				 long_ref_count);
+	initPictureRefsFields(picture,
+			      DPBLayer->refPicList1,
+			      &DPBLayer->refPicList1Count, shortRef1,
+			      shortRef1Count, longRef, longRefCount);
     }
 
-    /* Check whether RefPicList1 is identical to RefPicList0, then
+    /* Check whether refPicList1 is identical to refPicList0, then
        swap if necessary */
-    if (dpb_layer->RefPicList1_count > 1 &&
-	dpb_layer->RefPicList1_count == dpb_layer->RefPicList0_count &&
-	memcmp(dpb_layer->RefPicList0, dpb_layer->RefPicList1,
-	       dpb_layer->RefPicList0_count *
-	       sizeof(dpb_layer->RefPicList0[0])) == 0) {
-	VaapiPictureH264 *const tmp = dpb_layer->RefPicList1[0];
-	dpb_layer->RefPicList1[0] = dpb_layer->RefPicList1[1];
-	dpb_layer->RefPicList1[1] = tmp;
+    if (DPBLayer->refPicList1Count > 1 &&
+	DPBLayer->refPicList1Count == DPBLayer->refPicList0Count &&
+	memcmp(DPBLayer->refPicList0, DPBLayer->refPicList1,
+	       DPBLayer->refPicList0Count *
+	       sizeof(DPBLayer->refPicList0[0])) == 0) {
+	VaapiPictureH264 *const tmp = DPBLayer->refPicList1[0];
+	DPBLayer->refPicList1[0] = DPBLayer->refPicList1[1];
+	DPBLayer->refPicList1[1] = tmp;
     }
 }
 
-void VaapiDPBManager::init_picture_refs_fields(VaapiPictureH264 * picture,
-					       VaapiPictureH264 *
-					       RefPicList[32],
-					       uint32_t * RefPicList_count,
-					       VaapiPictureH264 *
-					       short_ref[32],
-					       uint32_t short_ref_count,
-					       VaapiPictureH264 *
-					       long_ref[32],
-					       uint32_t long_ref_count)
+void VaapiDPBManager::initPictureRefsFields(VaapiPictureH264 * picture,
+					    VaapiPictureH264 *
+					    refPicList[32],
+					    uint32_t * refPicListCount,
+					    VaapiPictureH264 *
+					    shortRef[32],
+					    uint32_t shortRefCount,
+					    VaapiPictureH264 *
+					    longRef[32],
+					    uint32_t longRefCount)
 {
     uint32_t n = 0;
     /* 8.2.4.2.5 - reference picture lists in fields */
-    init_picture_refs_fields_1(picture->structure, RefPicList, &n,
-			       short_ref, short_ref_count);
-    init_picture_refs_fields_1(picture->structure, RefPicList, &n,
-			       long_ref, long_ref_count);
-    *RefPicList_count = n;
+    initPictureRefsFields1(picture->m_structure, refPicList, &n,
+			   shortRef, shortRefCount);
+    initPictureRefsFields1(picture->m_structure, refPicList, &n,
+			   longRef, longRefCount);
+    *refPicListCount = n;
 }
 
 void VaapiDPBManager::
-init_picture_refs_fields_1(uint32_t picture_structure,
-			   VaapiPictureH264 * RefPicList[32],
-			   uint32_t * RefPicList_count,
-			   VaapiPictureH264 * ref_list[32],
-			   uint32_t ref_list_count)
+initPictureRefsFields1(uint32_t pictureStructure,
+		       VaapiPictureH264 * refPicList[32],
+		       uint32_t * refPicListCount,
+		       VaapiPictureH264 * refList[32],
+		       uint32_t refListCount)
 {
     uint32_t i, j, n;
 
     i = 0;
     j = 0;
-    n = *RefPicList_count;
+    n = *refPicListCount;
     do {
 	assert(n < 32);
-	for (; i < ref_list_count; i++) {
-	    if (ref_list[i]->structure == picture_structure) {
-		RefPicList[n++] = ref_list[i++];
+	for (; i < refListCount; i++) {
+	    if (refList[i]->m_structure == pictureStructure) {
+		refPicList[n++] = refList[i++];
 		break;
 	    }
 	}
-	for (; j < ref_list_count; j++) {
-	    if (ref_list[j]->structure != picture_structure) {
-		RefPicList[n++] = ref_list[j++];
+	for (; j < refListCount; j++) {
+	    if (refList[j]->m_structure != pictureStructure) {
+		refPicList[n++] = refList[j++];
 		break;
 	    }
 	}
-    } while (i < ref_list_count || j < ref_list_count);
-    *RefPicList_count = n;
+    } while (i < refListCount || j < refListCount);
+    *refPicListCount = n;
 }
 
-void VaapiDPBManager::init_picture_refs_pic_num(VaapiPictureH264 * picture,
-						H264SliceHdr * slice_hdr,
-						int32_t frame_num)
+void VaapiDPBManager::initPictureRefsPicNum(VaapiPictureH264 * picture,
+					    H264SliceHdr * sliceHdr,
+					    int32_t frameNum)
 {
-    H264PPS *const pps = slice_hdr->pps;
+    H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
-    const int32_t MaxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
+    const int32_t maxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
     uint32_t i;
 
-    for (i = 0; i < dpb_layer->short_ref_count; i++) {
-	VaapiPictureH264 *const pic = dpb_layer->short_ref[i];
+    for (i = 0; i < DPBLayer->shortRefCount; i++) {
+	VaapiPictureH264 *const pic = DPBLayer->shortRef[i];
 
 	// (8-27)
-	if (pic->frame_num > frame_num)
-	    pic->frame_num_wrap = pic->frame_num - MaxFrameNum;
+	if (pic->m_frameNum > frameNum)
+	    pic->m_frameNumWrap = pic->m_frameNum - maxFrameNum;
 	else
-	    pic->frame_num_wrap = pic->frame_num;
+	    pic->m_frameNumWrap = pic->m_frameNum;
 
 	// (8-28, 8-30, 8-31)
 	if (VAAPI_PICTURE_IS_FRAME(picture))
-	    pic->pic_num = pic->frame_num_wrap;
+	    pic->m_picNum = pic->m_frameNumWrap;
 	else {
-	    if (pic->structure == picture->structure)
-		pic->pic_num = 2 * pic->frame_num_wrap + 1;
+	    if (pic->m_structure == picture->m_structure)
+		pic->m_picNum = 2 * pic->m_frameNumWrap + 1;
 	    else
-		pic->pic_num = 2 * pic->frame_num_wrap;
+		pic->m_picNum = 2 * pic->m_frameNumWrap;
 	}
     }
 
-    for (i = 0; i < dpb_layer->long_ref_count; i++) {
-	VaapiPictureH264 *const pic = dpb_layer->long_ref[i];
+    for (i = 0; i < DPBLayer->longRefCount; i++) {
+	VaapiPictureH264 *const pic = DPBLayer->longRef[i];
 
 	// (8-29, 8-32, 8-33)
-	if (picture->structure == VAAPI_PICTURE_STRUCTURE_FRAME)
-	    pic->long_term_pic_num = pic->long_term_frame_idx;
+	if (picture->m_structure == VAAPI_PICTURE_STRUCTURE_FRAME)
+	    pic->m_longTermPicNum = pic->m_longTermFrameIdx;
 	else {
-	    if (pic->structure == picture->structure)
-		pic->long_term_pic_num = 2 * pic->long_term_frame_idx + 1;
+	    if (pic->m_structure == picture->m_structure)
+		pic->m_longTermPicNum = 2 * pic->m_longTermFrameIdx + 1;
 	    else
-		pic->long_term_pic_num = 2 * pic->long_term_frame_idx;
+		pic->m_longTermPicNum = 2 * pic->m_longTermFrameIdx;
 	}
     }
 }
 
-void VaapiDPBManager::exec_picture_refs_modification(VaapiPictureH264 *
-						     picture,
-						     H264SliceHdr *
-						     slice_hdr)
+void VaapiDPBManager::execPictureRefsModification(VaapiPictureH264 *
+						  picture,
+						  H264SliceHdr * sliceHdr)
 {
-    /* RefPicList0 */
-    if (!H264_IS_I_SLICE(slice_hdr) && !H264_IS_SI_SLICE(slice_hdr) &&
-	slice_hdr->ref_pic_list_modification_flag_l0)
-	exec_picture_refs_modification_1(picture, slice_hdr, 0);
+    /* refPicList0 */
+    if (!H264_IS_I_SLICE(sliceHdr) && !H264_IS_SI_SLICE(sliceHdr) &&
+	sliceHdr->ref_pic_list_modification_flag_l0)
+	execPictureRefsModification1(picture, sliceHdr, 0);
 
-    /* RefPicList1 */
-    if (H264_IS_B_SLICE(slice_hdr) &&
-	slice_hdr->ref_pic_list_modification_flag_l1)
-	exec_picture_refs_modification_1(picture, slice_hdr, 1);
+    /* refPicList1 */
+    if (H264_IS_B_SLICE(sliceHdr) &&
+	sliceHdr->ref_pic_list_modification_flag_l1)
+	execPictureRefsModification1(picture, sliceHdr, 1);
 }
 
-void VaapiDPBManager::exec_picture_refs_modification_1(VaapiPictureH264 *
-						       picture,
-						       H264SliceHdr *
-						       slice_hdr,
-						       uint32_t list)
+void VaapiDPBManager::execPictureRefsModification1(VaapiPictureH264 *
+						   picture,
+						   H264SliceHdr *
+						   sliceHdr, uint32_t list)
 {
-    H264PPS *const pps = slice_hdr->pps;
+    H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
-    H264RefPicListModification *ref_pic_list_modification;
-    uint32_t num_ref_pic_list_modifications;
-    VaapiPictureH264 **ref_list;
-    uint32_t *ref_list_count_ptr, ref_list_count, ref_list_idx = 0;
-    uint32_t i, j, n, num_refs;
-    int32_t found_ref_idx;
-    int32_t MaxPicNum, CurrPicNum, picNumPred;
+    H264RefPicListModification *refPicListModification;
+    uint32_t numRefPicListModifications;
+    VaapiPictureH264 **refList;
+    uint32_t *refListCountPtr, refListCount, refListIdx = 0;
+    uint32_t i, j, n, numRefs;
+    int32_t foundRefIdx;
+    int32_t maxPicNum, currPicNum, picNumPred;
 
     if (list == 0) {
-	ref_pic_list_modification =
-	    slice_hdr->ref_pic_list_modification_l0;
-	num_ref_pic_list_modifications =
-	    slice_hdr->n_ref_pic_list_modification_l0;
-	ref_list = dpb_layer->RefPicList0;
-	ref_list_count_ptr = &dpb_layer->RefPicList0_count;
-	num_refs = slice_hdr->num_ref_idx_l0_active_minus1 + 1;
+	refPicListModification =
+	    sliceHdr->ref_pic_list_modification_flag_l0;
+	numRefPicListModifications =
+	    sliceHdr->n_ref_pic_list_modification_l0;
+	refList = DPBLayer->refPicList0;
+	refListCountPtr = &DPBLayer->refPicList0Count;
+	numRefs = sliceHdr->num_ref_idx_l0_active_minus1 + 1;
     } else {
-	ref_pic_list_modification =
-	    slice_hdr->ref_pic_list_modification_l1;
-	num_ref_pic_list_modifications =
-	    slice_hdr->n_ref_pic_list_modification_l1;
-	ref_list = dpb_layer->RefPicList1;
-	ref_list_count_ptr = &dpb_layer->RefPicList1_count;
-	num_refs = slice_hdr->num_ref_idx_l1_active_minus1 + 1;
+	refPicListModification =
+	    sliceHdr->ref_pic_list_modification_flag_l1;
+	numRefPicListModifications =
+	    sliceHdr->n_ref_pic_list_modification_l1;
+	refList = DPBLayer->refPicList1;
+	refListCountPtr = &DPBLayer->refPicList1Count;
+	numRefs = sliceHdr->num_ref_idx_l1_active_minus1 + 1;
     }
-    ref_list_count = *ref_list_count_ptr;
+    refListCount = *refListCountPtr;
 
-    if (picture->structure != VAAPI_PICTURE_STRUCTURE_FRAME) {
-	MaxPicNum = 1 << (sps->log2_max_frame_num_minus4 + 5);	// 2 * MaxFrameNum
-	CurrPicNum = 2 * slice_hdr->frame_num + 1;	// 2 * frame_num + 1
+    if (picture->m_structure != VAAPI_PICTURE_STRUCTURE_FRAME) {
+	maxPicNum = 1 << (sps->log2_max_frame_num_minus4 + 5);	// 2 * maxFrameNum
+	currPicNum = 2 * sliceHdr->frame_num + 1;	// 2 * frame_num + 1
     } else {
-	MaxPicNum = 1 << (sps->log2_max_frame_num_minus4 + 4);	// MaxFrameNum
-	CurrPicNum = slice_hdr->frame_num;	// frame_num
+	maxPicNum = 1 << (sps->log2_max_frame_num_minus4 + 4);	// maxFrameNum
+	currPicNum = sliceHdr->frame_num;	// frame_num
     }
 
 
-    picNumPred = CurrPicNum;
+    picNumPred = currPicNum;
 
-    for (i = 0; i < num_ref_pic_list_modifications; i++) {
-	H264RefPicListModification *const l =
-	    &ref_pic_list_modification[i];
+    for (i = 0; i < numRefPicListModifications; i++) {
+	H264RefPicListModification *const l = &refPicListModification[i];
 	if (l->modification_of_pic_nums_idc == 3)
 	    break;
 
 	/* 8.2.4.3.1 - Short-term reference pictures */
 	if (l->modification_of_pic_nums_idc == 0
 	    || l->modification_of_pic_nums_idc == 1) {
-	    int32_t abs_diff_pic_num =
-		l->value.abs_diff_pic_num_minus1 + 1;
+	    int32_t absDiffPicNum = l->value.abs_diff_pic_num_minus1 + 1;
 	    int32_t picNum, picNumNoWrap;
 
 	    // (8-34)
 	    if (l->modification_of_pic_nums_idc == 0) {
-		picNumNoWrap = picNumPred - abs_diff_pic_num;
+		picNumNoWrap = picNumPred - absDiffPicNum;
 		if (picNumNoWrap < 0)
-		    picNumNoWrap += MaxPicNum;
+		    picNumNoWrap += maxPicNum;
 	    }
 	    // (8-35)
 	    else {
-		picNumNoWrap = picNumPred + abs_diff_pic_num;
-		if (picNumNoWrap >= MaxPicNum)
-		    picNumNoWrap -= MaxPicNum;
+		picNumNoWrap = picNumPred + absDiffPicNum;
+		if (picNumNoWrap >= maxPicNum)
+		    picNumNoWrap -= maxPicNum;
 	    }
 	    picNumPred = picNumNoWrap;
 
 	    // (8-36)
 	    picNum = picNumNoWrap;
-	    if (picNum > CurrPicNum)
-		picNum -= MaxPicNum;
+	    if (picNum > currPicNum)
+		picNum -= maxPicNum;
 
 	    // (8-37)
-	    for (j = num_refs; j > ref_list_idx; j--)
-		ref_list[j] = ref_list[j - 1];
-	    found_ref_idx = find_short_term_reference(picNum);
-	    ref_list[ref_list_idx++] =
-		found_ref_idx >=
-		0 ? dpb_layer->short_ref[found_ref_idx] : NULL;
-	    n = ref_list_idx;
-	    for (j = ref_list_idx; j <= num_refs; j++) {
-		int32_t PicNumF;
-		if (!ref_list[j])
+	    for (j = numRefs; j > refListIdx; j--)
+		refList[j] = refList[j - 1];
+	    foundRefIdx = findShortRermReference(picNum);
+	    refList[refListIdx++] =
+		foundRefIdx >= 0 ? DPBLayer->shortRef[foundRefIdx] : NULL;
+	    n = refListIdx;
+	    for (j = refListIdx; j <= numRefs; j++) {
+		int32_t picNumF;
+		if (!refList[j])
 		    continue;
-		PicNumF =
-		    VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(ref_list[j])
-		    ? ref_list[j]->pic_num : MaxPicNum;
-		if (PicNumF != picNum)
-		    ref_list[n++] = ref_list[j];
+		picNumF =
+		    VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(refList[j])
+		    ? refList[j]->m_picNum : maxPicNum;
+		if (picNumF != picNum)
+		    refList[n++] = refList[j];
 	    }
 	}
 
 	/* 8.2.4.3.2 - Long-term reference pictures */
 	else if (l->modification_of_pic_nums_idc == 2) {
 
-	    for (j = num_refs; j > ref_list_idx; j--)
-		ref_list[j] = ref_list[j - 1];
-	    found_ref_idx =
-		find_long_term_reference(l->value.long_term_pic_num);
-	    ref_list[ref_list_idx++] =
-		found_ref_idx >=
-		0 ? dpb_layer->long_ref[found_ref_idx] : NULL;
-	    n = ref_list_idx;
-	    for (j = ref_list_idx; j <= num_refs; j++) {
-		uint32_t LongTermPicNumF;
-		if (!ref_list[j])
+	    for (j = numRefs; j > refListIdx; j--)
+		refList[j] = refList[j - 1];
+	    foundRefIdx =
+		findLongTermReference(l->value.long_term_pic_num);
+	    refList[refListIdx++] =
+		foundRefIdx >= 0 ? DPBLayer->longRef[foundRefIdx] : NULL;
+	    n = refListIdx;
+	    for (j = refListIdx; j <= numRefs; j++) {
+		uint32_t longTermPicNumF;
+		if (!refList[j])
 		    continue;
-		LongTermPicNumF =
-		    VAAPI_H264_PICTURE_IS_LONG_TERM_REFERENCE(ref_list[j])
-		    ? ref_list[j]->long_term_pic_num : INT_MAX;
-		if (LongTermPicNumF != l->value.long_term_pic_num)
-		    ref_list[n++] = ref_list[j];
+		longTermPicNumF =
+		    VAAPI_H264_PICTURE_IS_LONG_TERM_REFERENCE(refList[j])
+		    ? refList[j]->m_longTermPicNum : INT_MAX;
+		if (longTermPicNumF != l->value.long_term_pic_num)
+		    refList[n++] = refList[j];
 	    }
 	}
 
     }
 
-    for (i = num_refs; i > 0 && !ref_list[i - 1]; i--);
-    *ref_list_count_ptr = i;
+    for (i = numRefs; i > 0 && !refList[i - 1]; i--);
+    *refListCountPtr = i;
 }
 
 
-bool VaapiDPBManager::exec_ref_pic_marking_adaptive(VaapiPictureH264 *
-						    picture,
-						    H264DecRefPicMarking *
-						    dec_ref_pic_marking,
-						    bool * has_mmco5)
+bool VaapiDPBManager::execRefPicMarkingAdaptive(VaapiPictureH264 *
+						picture,
+						H264DecRefPicMarking *
+						decRefPicMarking,
+						bool * hasMMCO5)
 {
     uint32_t i;
-    for (i = 0; i < dec_ref_pic_marking->n_ref_pic_marking; i++) {
-	H264RefPicMarking *const ref_pic_marking =
-	    &dec_ref_pic_marking->ref_pic_marking[i];
+    for (i = 0; i < decRefPicMarking->n_ref_pic_marking; i++) {
+	H264RefPicMarking *const refPicMarking =
+	    &decRefPicMarking->ref_pic_marking[i];
 
-	uint32_t mmco =
-	    ref_pic_marking->memory_management_control_operation;
-	if (mmco == 5)
-	    *has_mmco5 = true;
+	uint32_t MMCO = refPicMarking->memory_management_control_operation;
+	if (MMCO == 5)
+	    *hasMMCO5 = true;
 
-	exec_ref_pic_marking_adaptive_1(picture, ref_pic_marking, mmco);
+	execRefPicMarkingAdaptive1(picture, refPicMarking, MMCO);
     }
     return true;
 }
 
-bool VaapiDPBManager::exec_ref_pic_marking_adaptive_1(VaapiPictureH264 *
-						      picture,
-						      H264RefPicMarking *
-						      ref_pic_marking,
-						      uint32_t mmco)
+bool VaapiDPBManager::execRefPicMarkingAdaptive1(VaapiPictureH264 *
+						 picture,
+						 H264RefPicMarking *
+						 refPicMarking,
+						 uint32_t MMCO)
 {
-    uint32_t picNumX, long_term_frame_idx;
-    VaapiPictureH264 *ref_picture;
-    int32_t found_idx = 0;
+    uint32_t picNumX, longTermFrameIdx;
+    VaapiPictureH264 *refPicture;
+    int32_t foundIdx = 0;
     uint32_t i;
 
-    switch (mmco) {
+    switch (MMCO) {
     case 1:
 	{
-	    picNumX = get_picNumX(picture, ref_pic_marking);
-	    found_idx = find_short_term_reference(picNumX);
-	    if (found_idx < 0)
+	    picNumX = getPicNumX(picture, refPicMarking);
+	    foundIdx = findShortRermReference(picNumX);
+	    if (foundIdx < 0)
 		return false;
 
-	    i = (uint32_t) found_idx;
-	    h264_picture_set_reference(dpb_layer->short_ref[i], 0,
-				       VAAPI_PICTURE_IS_FRAME(picture));
-	    ARRAY_REMOVE_INDEX(dpb_layer->short_ref, i);
+	    i = (uint32_t) foundIdx;
+	    setH264PictureReference(DPBLayer->shortRef[i], 0,
+				    VAAPI_PICTURE_IS_FRAME(picture));
+	    ARRAY_REMOVE_INDEX(DPBLayer->shortRef, i);
 	}
 	break;
     case 2:
 	{
-	    found_idx =
-		find_long_term_reference(ref_pic_marking->
-					 long_term_pic_num);
-	    if (found_idx < 0)
+	    foundIdx =
+		findLongTermReference(refPicMarking->long_term_pic_num);
+	    if (foundIdx < 0)
 		return false;
 
-	    i = (uint32_t) found_idx;
-	    h264_picture_set_reference(dpb_layer->long_ref[i], 0,
-				       VAAPI_PICTURE_IS_FRAME(picture));
-	    ARRAY_REMOVE_INDEX(dpb_layer->long_ref, i);
+	    i = (uint32_t) foundIdx;
+	    setH264PictureReference(DPBLayer->longRef[i], 0,
+				    VAAPI_PICTURE_IS_FRAME(picture));
+	    ARRAY_REMOVE_INDEX(DPBLayer->longRef, i);
 	}
 	break;
     case 3:
 	{
-	    for (i = 0; i < dpb_layer->long_ref_count; i++) {
-		if ((int32_t) dpb_layer->long_ref[i]->
-		    long_term_frame_idx ==
-		    ref_pic_marking->long_term_frame_idx)
+	    for (i = 0; i < DPBLayer->longRefCount; i++) {
+		if ((int32_t) DPBLayer->longRef[i]->m_longTermFrameIdx ==
+		    refPicMarking->long_term_frame_idx)
 		    break;
 	    }
 
-	    if (i != dpb_layer->long_ref_count) {
-		h264_picture_set_reference(dpb_layer->long_ref[i], 0,
-					   true);
-		ARRAY_REMOVE_INDEX(dpb_layer->long_ref, i);
+	    if (i != DPBLayer->longRefCount) {
+		setH264PictureReference(DPBLayer->longRef[i], 0, true);
+		ARRAY_REMOVE_INDEX(DPBLayer->longRef, i);
 	    }
 
-	    picNumX = get_picNumX(picture, ref_pic_marking);
-	    found_idx = find_short_term_reference(picNumX);
-	    if (found_idx < 0)
+	    picNumX = getPicNumX(picture, refPicMarking);
+	    foundIdx = findShortRermReference(picNumX);
+	    if (foundIdx < 0)
 		return false;
 
-	    i = (uint32_t) found_idx;
-	    ref_picture = dpb_layer->short_ref[i];
-	    ARRAY_REMOVE_INDEX(dpb_layer->short_ref, i);
-	    dpb_layer->long_ref[dpb_layer->long_ref_count++] = ref_picture;
+	    i = (uint32_t) foundIdx;
+	    refPicture = DPBLayer->shortRef[i];
+	    ARRAY_REMOVE_INDEX(DPBLayer->shortRef, i);
+	    DPBLayer->longRef[DPBLayer->longRefCount++] = refPicture;
 
-	    ref_picture->long_term_frame_idx =
-		ref_pic_marking->long_term_frame_idx;
-	    h264_picture_set_reference(ref_picture,
-				       VAAPI_PICTURE_FLAG_LONG_TERM_REFERENCE,
-				       VAAPI_PICTURE_IS_FRAME(picture));
+	    refPicture->m_longTermFrameIdx =
+		refPicMarking->long_term_frame_idx;
+	    setH264PictureReference(refPicture,
+				    VAAPI_PICTURE_FLAG_LONG_TERM_REFERENCE,
+				    VAAPI_PICTURE_IS_FRAME(picture));
 	}
 	break;
     case 4:
 	{
-	    long_term_frame_idx =
-		ref_pic_marking->max_long_term_frame_idx_plus1 - 1;
+	    longTermFrameIdx =
+		refPicMarking->max_long_term_frame_idx_plus1 - 1;
 
-	    for (i = 0; i < dpb_layer->long_ref_count; i++) {
-		if (dpb_layer->long_ref[i]->long_term_frame_idx <=
-		    long_term_frame_idx)
+	    for (i = 0; i < DPBLayer->longRefCount; i++) {
+		if (DPBLayer->longRef[i]->m_longTermFrameIdx <=
+		    longTermFrameIdx)
 		    continue;
-		h264_picture_set_reference(dpb_layer->long_ref[i], 0,
-					   false);
-		ARRAY_REMOVE_INDEX(dpb_layer->long_ref, i);
+		setH264PictureReference(DPBLayer->longRef[i], 0, false);
+		ARRAY_REMOVE_INDEX(DPBLayer->longRef, i);
 		i--;
 	    }
 	}
 	break;
     case 5:
 	{
-	    dpb_flush();
+	    flushDPB();
 	    /* The picture shall be inferred to have had frame_num equal to 0 (7.4.3) */
-	    picture->frame_num = 0;
+	    picture->m_frameNum = 0;
 
 	    /* Update TopFieldOrderCnt and BottomFieldOrderCnt (8.2.1) */
-	    if (picture->structure != VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD)
-		picture->field_poc[TOP_FIELD] -= picture->mPoc;
-	    if (picture->structure != VAAPI_PICTURE_STRUCTURE_TOP_FIELD)
-		picture->field_poc[BOTTOM_FIELD] -= picture->mPoc;
+	    if (picture->m_structure !=
+		VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD)
+		picture->m_fieldPoc[TOP_FIELD] -= picture->m_POC;
+	    if (picture->m_structure != VAAPI_PICTURE_STRUCTURE_TOP_FIELD)
+		picture->m_fieldPoc[BOTTOM_FIELD] -= picture->m_POC;
 
-	    picture->mPoc = 0;
+	    picture->m_POC = 0;
 
 	    if (VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(picture))
-		remove_short_reference(picture);
+		removeShortReference(picture);
 	}
 	break;
     case 6:
 	{
-	    picture->long_term_frame_idx =
-		ref_pic_marking->long_term_frame_idx;
-	    h264_picture_set_reference(picture,
-				       VAAPI_PICTURE_FLAG_LONG_TERM_REFERENCE,
-				       false);
+	    picture->m_longTermFrameIdx =
+		refPicMarking->long_term_frame_idx;
+	    setH264PictureReference(picture,
+				    VAAPI_PICTURE_FLAG_LONG_TERM_REFERENCE,
+				    false);
 	}
 	break;
     default:
-	ERROR("unsupported mmco type %d", mmco);
+	ERROR("unsupported MMCO type %d", MMCO);
 	break;
     }
     return true;
 }
 
-bool VaapiDPBManager::
-exec_ref_pic_marking_sliding_window(VaapiPictureH264 * picture)
+bool VaapiDPBManager::execRefPicMarkingSlidingWindow(VaapiPictureH264 *
+						     picture)
 {
-    H264PPS *const pps = picture->pps;
+    H264PPS *const pps = picture->m_pps;
     H264SPS *const sps = pps->sequence;
-    VaapiPictureH264 *ref_picture;
-    uint32_t i, m, max_num_ref_frames;
+    VaapiPictureH264 *refPicture;
+    uint32_t i, m, maxNumRefFrames;
 
     if (!VAAPI_PICTURE_IS_FIRST_FIELD(picture))
 	return true;
 
-    max_num_ref_frames = sps->num_ref_frames;
+    maxNumRefFrames = sps->num_ref_frames;
 
-    if (max_num_ref_frames == 0)
-	max_num_ref_frames = 1;
+    if (maxNumRefFrames == 0)
+	maxNumRefFrames = 1;
     if (!VAAPI_PICTURE_IS_FRAME(picture))
-	max_num_ref_frames <<= 1;
+	maxNumRefFrames <<= 1;
 
-    if (dpb_layer->short_ref_count + dpb_layer->long_ref_count <
-	max_num_ref_frames)
+    if (DPBLayer->shortRefCount + DPBLayer->longRefCount < maxNumRefFrames)
 	return true;
-    if (dpb_layer->short_ref_count < 1)
+    if (DPBLayer->shortRefCount < 1)
 	return false;
 
-    for (m = 0, i = 1; i < dpb_layer->short_ref_count; i++) {
-	VaapiPictureH264 *const pic = dpb_layer->short_ref[i];
-	if (pic->frame_num_wrap < dpb_layer->short_ref[m]->frame_num_wrap)
+    for (m = 0, i = 1; i < DPBLayer->shortRefCount; i++) {
+	VaapiPictureH264 *const pic = DPBLayer->shortRef[i];
+	if (pic->m_frameNumWrap < DPBLayer->shortRef[m]->m_frameNumWrap)
 	    m = i;
     }
 
-    ref_picture = dpb_layer->short_ref[m];
-    h264_picture_set_reference(ref_picture, 0, true);
-    ARRAY_REMOVE_INDEX(dpb_layer->short_ref, m);
+    refPicture = DPBLayer->shortRef[m];
+    setH264PictureReference(refPicture, 0, true);
+    ARRAY_REMOVE_INDEX(DPBLayer->shortRef, m);
 
     /* Both fields need to be marked as "unused for reference", so
-       remove the other field from the short_ref[] list as well */
-    if (!VAAPI_PICTURE_IS_FRAME(picture) && ref_picture->other_field) {
-	for (i = 0; i < dpb_layer->short_ref_count; i++) {
-	    if (dpb_layer->short_ref[i] == ref_picture->other_field) {
-		ARRAY_REMOVE_INDEX(dpb_layer->short_ref, i);
+       remove the other field from the shortRef[] list as well */
+    if (!VAAPI_PICTURE_IS_FRAME(picture) && refPicture->m_otherField) {
+	for (i = 0; i < DPBLayer->shortRefCount; i++) {
+	    if (DPBLayer->shortRef[i] == refPicture->m_otherField) {
+		ARRAY_REMOVE_INDEX(DPBLayer->shortRef, i);
 		break;
 	    }
 	}
@@ -1128,66 +1106,64 @@ exec_ref_pic_marking_sliding_window(VaapiPictureH264 * picture)
     return true;
 }
 
-int32_t VaapiDPBManager::find_short_term_reference(uint32_t pic_num)
+int32_t VaapiDPBManager::findShortRermReference(uint32_t picNum)
 {
     uint32_t i;
 
-    for (i = 0; i < dpb_layer->short_ref_count; i++) {
-	if (dpb_layer->short_ref[i]->pic_num == pic_num)
+    for (i = 0; i < DPBLayer->shortRefCount; i++) {
+	if (DPBLayer->shortRef[i]->m_picNum == picNum)
 	    return i;
     }
     ERROR("found no short-term reference picture with PicNum = %d",
-	  pic_num);
+	  picNum);
     return -1;
 }
 
-int32_t
-    VaapiDPBManager::find_long_term_reference(uint32_t long_term_pic_num)
+int32_t VaapiDPBManager::findLongTermReference(uint32_t longTermPicNum)
 {
     uint32_t i;
 
-    for (i = 0; i < dpb_layer->long_ref_count; i++) {
-	if (dpb_layer->long_ref[i]->long_term_pic_num == long_term_pic_num)
+    for (i = 0; i < DPBLayer->longRefCount; i++) {
+	if (DPBLayer->longRef[i]->m_longTermPicNum == longTermPicNum)
 	    return i;
     }
     ERROR("found no long-term reference picture with LongTermPicNum = %d",
-	  long_term_pic_num);
+	  longTermPicNum);
     return -1;
 }
 
-void
- VaapiDPBManager::remove_short_reference(VaapiPictureH264 * picture)
+void VaapiDPBManager::removeShortReference(VaapiPictureH264 * picture)
 {
-    VaapiPictureH264 *ref_picture;
+    VaapiPictureH264 *refPicture;
     uint32_t i;
-    uint32_t frame_num = picture->frame_num;
+    uint32_t frameNum = picture->m_frameNum;
 
-    for (i = 0; i < dpb_layer->short_ref_count; ++i) {
-	if (dpb_layer->short_ref[i]->frame_num == frame_num) {
-	    ref_picture = dpb_layer->short_ref[i];
-	    if (ref_picture != picture->other_field) {
-		h264_picture_set_reference(ref_picture, 0, false);
-		ARRAY_REMOVE_INDEX(dpb_layer->short_ref, i);
+    for (i = 0; i < DPBLayer->shortRefCount; ++i) {
+	if (DPBLayer->shortRef[i]->m_frameNum == frameNum) {
+	    refPicture = DPBLayer->shortRef[i];
+	    if (refPicture != picture->m_otherField) {
+		setH264PictureReference(refPicture, 0, false);
+		ARRAY_REMOVE_INDEX(DPBLayer->shortRef, i);
 	    }
 	    return;
 	}
     }
 }
 
-void VaapiDPBManager::dpb_remove_index(uint32_t index)
+void VaapiDPBManager::removeDPBIndex(uint32_t index)
 {
-    uint32_t i, num_frames = --dpb_layer->dpb_count;
+    uint32_t i, numFrames = --DPBLayer->DPBCount;
 
     /* delete the frame store */
-    delete dpb_layer->dpb[index];
-    dpb_layer->dpb[index] = NULL;
+    delete DPBLayer->DPB[index];
+    DPBLayer->DPB[index] = NULL;
 
     if (USE_STRICT_DPB_ORDERING) {
-	for (i = index; i < num_frames; i++)
-	    dpb_layer->dpb[i] = dpb_layer->dpb[i + 1];
-    } else if (index != num_frames)
-	dpb_layer->dpb[index] = dpb_layer->dpb[num_frames];
+	for (i = index; i < numFrames; i++)
+	    DPBLayer->DPB[i] = DPBLayer->DPB[i + 1];
+    } else if (index != numFrames)
+	DPBLayer->DPB[index] = DPBLayer->DPB[numFrames];
 
-    dpb_layer->dpb[num_frames] = NULL;
+    DPBLayer->DPB[numFrames] = NULL;
 
 }

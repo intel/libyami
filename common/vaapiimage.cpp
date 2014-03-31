@@ -27,7 +27,7 @@
 const VAImageFormat *VaapiImage::getVaFormat(VaapiImageFormat format)
 {
     const VaapiImageFormatMap *map = NULL;
-    for (map = vaapi_image_formats; map->format; map++) {
+    for (map = vaapiImageFormats; map->format; map++) {
 	if (map->format == format)
 	    return &map->vaFormat;
     }
@@ -41,11 +41,11 @@ VaapiImage::VaapiImage(VADisplay display,
     VAStatus status;
     VAImageFormat *vaFormat;
 
-    mDisplay = display;
-    mFormat = format;
-    mWidth = width;
-    mHeight = height;
-    mIsMapped = false;
+    m_display = display;
+    m_format = format;
+    m_width = width;
+    m_height = height;
+    m_isMapped = false;
 
     vaFormat = (VAImageFormat *) getVaFormat(format);
     if (!vaFormat) {
@@ -53,10 +53,11 @@ VaapiImage::VaapiImage(VADisplay display,
 	return;
     }
 
-    status = vaCreateImage(mDisplay, vaFormat, mWidth, mHeight, &mImage);
+    status =
+	vaCreateImage(m_display, vaFormat, m_width, m_height, &m_image);
 
     if (status != VA_STATUS_SUCCESS ||
-	mImage.format.fourcc != vaFormat->fourcc) {
+	m_image.format.fourcc != vaFormat->fourcc) {
 	ERROR("Create image failed");
 	return;
     }
@@ -66,27 +67,27 @@ VaapiImage::VaapiImage(VADisplay display, VAImage * image)
 {
     VAStatus status;
 
-    mDisplay = display;
-    mWidth = image->width;
-    mHeight = image->height;
-    mID = image->image_id;
-    mIsMapped = false;
+    m_display = display;
+    m_width = image->width;
+    m_height = image->height;
+    m_ID = image->image_id;
+    m_isMapped = false;
 
-    memcpy((void *) &mImage, (void *) image, sizeof(VAImage));
+    memcpy((void *) &m_image, (void *) image, sizeof(VAImage));
 }
 
 VaapiImage::~VaapiImage()
 {
     VAStatus status;
 
-    if (mIsMapped) {
+    if (m_isMapped) {
 	unmap();
-	mIsMapped = false;
+	m_isMapped = false;
     }
 
-    status = vaDestroyImage(mDisplay, mImage.image_id);
+    status = vaDestroyImage(m_display, m_image.image_id);
 
-    if (!vaapi_check_status(status, "vaDestoryImage()"))
+    if (!checkVaapiStatus(status, "vaDestoryImage()"))
 	return;
 }
 
@@ -96,68 +97,68 @@ VaapiImageRaw *VaapiImage::map()
     void *data;
     VAStatus status;
 
-    if (mIsMapped) {
-	return &mRawImage;
+    if (m_isMapped) {
+	return &m_rawImage;
     }
 
-    status = vaMapBuffer(mDisplay, mImage.buf, &data);
+    status = vaMapBuffer(m_display, m_image.buf, &data);
 
-    if (!vaapi_check_status(status, "vaMapBuffer()"))
+    if (!checkVaapiStatus(status, "vaMapBuffer()"))
 	return NULL;
 
-    mRawImage.format = mFormat;
-    mRawImage.width = mWidth;
-    mRawImage.height = mHeight;
-    mRawImage.num_planes = mImage.num_planes;
-    mRawImage.size = mImage.data_size;
+    m_rawImage.format = m_format;
+    m_rawImage.width = m_width;
+    m_rawImage.height = m_height;
+    m_rawImage.numPlanes = m_image.num_planes;
+    m_rawImage.size = m_image.data_size;
 
-    for (i = 0; i < mImage.num_planes; i++) {
-	mRawImage.pixels[i] =
-	    (uint8_t *) ((uint32_t) data + mImage.offsets[i]);
-	mRawImage.strides[i] = mImage.pitches[i];
+    for (i = 0; i < m_image.num_planes; i++) {
+	m_rawImage.pixels[i] =
+	    (uint8_t *) ((uint32_t) data + m_image.offsets[i]);
+	m_rawImage.strides[i] = m_image.pitches[i];
     }
-    mIsMapped = true;
+    m_isMapped = true;
 
-    return &mRawImage;
+    return &m_rawImage;
 }
 
 bool VaapiImage::unmap()
 {
     VAStatus status;
 
-    if (!mIsMapped)
+    if (!m_isMapped)
 	return true;
 
-    status = vaUnmapBuffer(mDisplay, mImage.buf);
-    if (!vaapi_check_status(status, "vaUnmapBuffer()"))
+    status = vaUnmapBuffer(m_display, m_image.buf);
+    if (!checkVaapiStatus(status, "vaUnmapBuffer()"))
 	return false;
 
-    mIsMapped = false;
+    m_isMapped = false;
 
     return true;
 }
 
 bool VaapiImage::isMapped()
 {
-    return mIsMapped;
+    return m_isMapped;
 }
 
 VaapiImageFormat VaapiImage::getFormat()
 {
-    return mFormat;
+    return m_format;
 }
 
 VAImageID VaapiImage::getID()
 {
-    return mID;
+    return m_ID;
 }
 
 uint32_t VaapiImage::getWidth()
 {
-    return mWidth;
+    return m_width;
 }
 
 uint32_t VaapiImage::getHeight()
 {
-    return mHeight;
+    return m_height;
 }

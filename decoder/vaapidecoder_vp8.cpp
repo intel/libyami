@@ -26,12 +26,12 @@
 
 // the following parameter apply to Intra-Predicted Macroblocks,
 // $11.2 $11.4: key frame default probs
-static const uint8 kf_y_mode_probs[4] = { 145, 156, 163, 128 };
-static const uint8 kf_uv_mode_probs[3] = { 142, 114, 183 };
+static const uint8 keyFrameYModeProbs[4] = { 145, 156, 163, 128 };
+static const uint8 keyFrameUVModeProbs[3] = { 142, 114, 183 };
 
 // $16.1: non-key frame default probs
-static const uint8 nk_default_y_mode_probs[4] = { 112, 86, 140, 37 };
-static const uint8 nk_default_uv_mode_probs[3] = { 162, 101, 204 };
+static const uint8 nonKeyFrameDefaultYModeProbs[4] = { 112, 86, 140, 37 };
+static const uint8 nonKeyFrameDefaultUVModeProbs[3] = { 162, 101, 204 };
 
 // XXX, move it to VaapiDecoderBase
 bool VaapiDecoderVP8::replacePicture(VaapiPictureVP8 ** pic1,
@@ -48,7 +48,7 @@ bool VaapiDecoderVP8::replacePicture(VaapiPictureVP8 ** pic1,
     return true;
 }
 
-static Decode_Status get_status(Vp8ParseResult result)
+static Decode_Status getStatus(Vp8ParseResult result)
 {
     Decode_Status status;
 
@@ -79,34 +79,34 @@ VaapiSliceVP8::VaapiSliceVP8(VADisplay display,
     }
 
     /* new vp8 slice data buffer */
-    mData = new VaapiBufObject(display,
-			       ctx, VASliceDataBufferType, sliceData,
-			       sliceSize);
+    m_data = new VaapiBufObject(display,
+				ctx, VASliceDataBufferType, sliceData,
+				sliceSize);
 
     /* new vp8 slice parameter buffer */
-    mParam = new VaapiBufObject(display,
-				ctx,
-				VASliceParameterBufferType, NULL,
-				sizeof(VASliceParameterBufferVP8));
+    m_param = new VaapiBufObject(display,
+				 ctx,
+				 VASliceParameterBufferType, NULL,
+				 sizeof(VASliceParameterBufferVP8));
 
-    paramBuf = (VASliceParameterBufferVP8 *) mParam->map();
+    paramBuf = (VASliceParameterBufferVP8 *) m_param->map();
 
     paramBuf->slice_data_size = sliceSize;
     paramBuf->slice_data_offset = 0;
     paramBuf->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
-    mParam->unmap();
+    m_param->unmap();
 }
 
 VaapiSliceVP8::~VaapiSliceVP8()
 {
-    if (mData) {
-	delete mData;
-	mData = NULL;
+    if (m_data) {
+	delete m_data;
+	m_data = NULL;
     }
 
-    if (mParam) {
-	delete mParam;
-	mParam = NULL;
+    if (m_param) {
+	delete m_param;
+	m_param = NULL;
     }
 }
 
@@ -119,25 +119,25 @@ VaapiPictureVP8::VaapiPictureVP8(VADisplay display,
     structure = VAAPI_PICTURE_STRUCTURE_FRAME;
 
     /* new vp8 slice parameter buffer */
-    mPicParam = new VaapiBufObject(display,
-				   context,
-				   VAPictureParameterBufferType,
-				   NULL,
-				   sizeof(VAPictureParameterBufferVP8));
-    if (!mPicParam)
+    m_picParam = new VaapiBufObject(display,
+				    context,
+				    VAPictureParameterBufferType,
+				    NULL,
+				    sizeof(VAPictureParameterBufferVP8));
+    if (!m_picParam)
 	ERROR("create vp8 picture parameter buffer object failed");
 
-    mIqMatrix = new VaapiBufObject(display,
-				   context, VAIQMatrixBufferType, NULL,
-				   sizeof(VAIQMatrixBufferVP8));
-    if (!mIqMatrix)
+    m_iqMatrix = new VaapiBufObject(display,
+				    context, VAIQMatrixBufferType, NULL,
+				    sizeof(VAIQMatrixBufferVP8));
+    if (!m_iqMatrix)
 	ERROR("create vp8 iq matrix buffer object failed");
 
-    mProbTable = new VaapiBufObject(display,
-				    context,
-				    VAProbabilityBufferType, NULL,
-				    sizeof(VAProbabilityDataBufferVP8));
-    if (!mProbTable)
+    m_probTable = new VaapiBufObject(display,
+				     context,
+				     VAProbabilityBufferType, NULL,
+				     sizeof(VAProbabilityDataBufferVP8));
+    if (!m_probTable)
 	ERROR("create vp8 probability table buffer object failed");
 
 }
@@ -151,8 +151,8 @@ Decode_Status VaapiDecoderVP8::ensureContext()
 	return DECODE_SUCCESS;
 
     // XXX, redudant to set surfaceNumber
-    mConfigBuffer.surfaceNumber = 3 + VP8_EXTRA_SURFACE_NUMBER;
-    VaapiDecoderBase::start(&mConfigBuffer);
+    m_configBuffer.surfaceNumber = 3 + VP8_EXTRA_SURFACE_NUMBER;
+    VaapiDecoderBase::start(&m_configBuffer);
     DEBUG("First time to Start VA context");
     m_hasContext = true;
 
@@ -161,65 +161,65 @@ Decode_Status VaapiDecoderVP8::ensureContext()
 
 bool VaapiDecoderVP8::fillSliceParam(VaapiSliceVP8 * slice)
 {
-    VaapiBufObject *slice_param_obj = slice->mParam;
-    VASliceParameterBufferVP8 *slice_param =
-	(VASliceParameterBufferVP8 *) slice_param_obj->map();
-    int32 last_partition_size, i;
+    VaapiBufObject *sliceParamObj = slice->m_param;
+    VASliceParameterBufferVP8 *sliceParam =
+	(VASliceParameterBufferVP8 *) sliceParamObj->map();
+    int32 lastPartitionSize, i;
 
 
     if (m_frameHdr.key_frame == VP8_KEY_FRAME)
-	slice_param->slice_data_offset =
+	sliceParam->slice_data_offset =
 	    VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME;
     else
-	slice_param->slice_data_offset =
+	sliceParam->slice_data_offset =
 	    VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME;
 
     // XXX, the buf start address m_buffer
-    slice_param->macroblock_offset =
+    sliceParam->macroblock_offset =
 	(m_frameHdr.rangedecoder_state.buffer - m_buffer -
-	 slice_param->slice_data_offset) * 8 -
+	 sliceParam->slice_data_offset) * 8 -
 	m_frameHdr.rangedecoder_state.remaining_bits;
-    slice_param->num_of_partitions = (1 << m_frameHdr.log2_nbr_of_dct_partitions) + 1;	// +1 for the frame header partition
+    sliceParam->num_of_partitions = (1 << m_frameHdr.log2_nbr_of_dct_partitions) + 1;	// +1 for the frame header partition
 
     // first_part_size doesn't include the uncompress data(frame-tage/magic-number/frame-width/height) at the begining of the frame.
     // partition_size[0] refer to 'first_part_size - parsed-bytes-by-range-decoder'
-    slice_param->partition_size[0] =
-	m_frameHdr.first_part_size - ((slice_param->macroblock_offset +
+    sliceParam->partition_size[0] =
+	m_frameHdr.first_part_size - ((sliceParam->macroblock_offset +
 				       7) >> 3);
 
     if (m_frameHdr.key_frame == VP8_KEY_FRAME)
-	last_partition_size =
+	lastPartitionSize =
 	    m_frameSize - VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME;
     else
-	last_partition_size =
+	lastPartitionSize =
 	    m_frameSize - VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME;
 
-    last_partition_size -= m_frameHdr.first_part_size;
+    lastPartitionSize -= m_frameHdr.first_part_size;
 
-    for (i = 1; i < slice_param->num_of_partitions - 1; i++) {
-	slice_param->partition_size[i] = m_frameHdr.partition_size[i - 1];
-	last_partition_size -= (m_frameHdr.partition_size[i - 1] + 3);
+    for (i = 1; i < sliceParam->num_of_partitions - 1; i++) {
+	sliceParam->partition_size[i] = m_frameHdr.partition_size[i - 1];
+	lastPartitionSize -= (m_frameHdr.partition_size[i - 1] + 3);
     }
-    slice_param->partition_size[slice_param->num_of_partitions - 1] =
-	last_partition_size;
+    sliceParam->partition_size[sliceParam->num_of_partitions - 1] =
+	lastPartitionSize;
 
-    slice_param_obj->unmap();
+    sliceParamObj->unmap();
     return true;
 }
 
 bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
 {
     int32 i, n;
-    VaapiBufObject *pic_param_obj = picture->mPicParam;
+    VaapiBufObject *picParamObj = picture->m_picParam;
 
-    VAPictureParameterBufferVP8 *pic_param =
-	(VAPictureParameterBufferVP8 *) pic_param_obj->map();
+    VAPictureParameterBufferVP8 *picParam =
+	(VAPictureParameterBufferVP8 *) picParamObj->map();
 
     /* Fill in VAPictureParameterBufferVP8 */
-    VASliceParameterBufferVP8 *slice_param = NULL;
+    VASliceParameterBufferVP8 *sliceParam = NULL;
     Vp8Segmentation *seg = &m_frameHdr.multi_frame_data->segmentation;
 
-    memset(pic_param, 0, sizeof(*pic_param));
+    memset(picParam, 0, sizeof(*picParam));
     /* Fill in VAPictureParameterBufferVP8 */
     if (m_frameHdr.key_frame == VP8_KEY_FRAME) {
 	m_frameWidth = m_frameHdr.width;
@@ -230,114 +230,113 @@ bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
     }
     // XXX, we don't support horizontal_scale or vertical_scale yet.
     // reject frames for upscale, simple accept the downscale frames
-    if (m_frameWidth > mVideoFormatInfo.width
-	|| m_frameHeight > mVideoFormatInfo.height)
+    if (m_frameWidth > m_videoFormatInfo.width
+	|| m_frameHeight > m_videoFormatInfo.height)
 	return FALSE;
 
-    pic_param->frame_width = m_frameWidth;
-    pic_param->frame_height = m_frameHeight;
+    picParam->frame_width = m_frameWidth;
+    picParam->frame_height = m_frameHeight;
     if (m_frameHdr.key_frame == VP8_KEY_FRAME) {
-	pic_param->last_ref_frame = VA_INVALID_SURFACE;
-	pic_param->golden_ref_frame = VA_INVALID_SURFACE;
-	pic_param->alt_ref_frame = VA_INVALID_SURFACE;
+	picParam->last_ref_frame = VA_INVALID_SURFACE;
+	picParam->golden_ref_frame = VA_INVALID_SURFACE;
+	picParam->alt_ref_frame = VA_INVALID_SURFACE;
     } else {
-	pic_param->last_ref_frame =
-	    m_lastPicture ? m_lastPicture->mSurfaceID : VA_INVALID_SURFACE;
-	pic_param->golden_ref_frame =
-	    m_goldenRefPicture ? m_goldenRefPicture->mSurfaceID :
+	picParam->last_ref_frame =
+	    m_lastPicture ? m_lastPicture->
+	    m_surfaceID : VA_INVALID_SURFACE;
+	picParam->golden_ref_frame =
+	    m_goldenRefPicture ? m_goldenRefPicture->
+	    m_surfaceID : VA_INVALID_SURFACE;
+	picParam->alt_ref_frame =
+	    m_altRefPicture ? m_altRefPicture->m_surfaceID :
 	    VA_INVALID_SURFACE;
-	pic_param->alt_ref_frame =
-	    m_altRefPicture ? m_altRefPicture->
-	    mSurfaceID : VA_INVALID_SURFACE;
     }
-    pic_param->out_of_loop_frame = VA_INVALID_SURFACE;	// not used currently
+    picParam->out_of_loop_frame = VA_INVALID_SURFACE;	// not used currently
 
-    pic_param->pic_fields.bits.key_frame = m_frameHdr.key_frame;
-    pic_param->pic_fields.bits.version = m_frameHdr.version;
-    pic_param->pic_fields.bits.segmentation_enabled =
+    picParam->pic_fields.bits.key_frame = m_frameHdr.key_frame;
+    picParam->pic_fields.bits.version = m_frameHdr.version;
+    picParam->pic_fields.bits.segmentation_enabled =
 	seg->segmentation_enabled;
-    pic_param->pic_fields.bits.update_mb_segmentation_map =
+    picParam->pic_fields.bits.update_mb_segmentation_map =
 	seg->update_mb_segmentation_map;
-    pic_param->pic_fields.bits.update_segment_feature_data =
+    picParam->pic_fields.bits.update_segment_feature_data =
 	seg->update_segment_feature_data;
-    pic_param->pic_fields.bits.filter_type = m_frameHdr.filter_type;
-    pic_param->pic_fields.bits.sharpness_level =
-	m_frameHdr.sharpness_level;
-    pic_param->pic_fields.bits.loop_filter_adj_enable =
+    picParam->pic_fields.bits.filter_type = m_frameHdr.filter_type;
+    picParam->pic_fields.bits.sharpness_level = m_frameHdr.sharpness_level;
+    picParam->pic_fields.bits.loop_filter_adj_enable =
 	m_frameHdr.multi_frame_data->mb_lf_adjust.loop_filter_adj_enable;
-    pic_param->pic_fields.bits.mode_ref_lf_delta_update =
+    picParam->pic_fields.bits.mode_ref_lf_delta_update =
 	m_frameHdr.multi_frame_data->mb_lf_adjust.mode_ref_lf_delta_update;
-    pic_param->pic_fields.bits.sign_bias_golden =
+    picParam->pic_fields.bits.sign_bias_golden =
 	m_frameHdr.sign_bias_golden;
-    pic_param->pic_fields.bits.sign_bias_alternate =
+    picParam->pic_fields.bits.sign_bias_alternate =
 	m_frameHdr.sign_bias_alternate;
-    pic_param->pic_fields.bits.mb_no_coeff_skip =
+    picParam->pic_fields.bits.mb_no_coeff_skip =
 	m_frameHdr.mb_no_skip_coeff;
 
     for (i = 0; i < 3; i++) {
-	pic_param->mb_segment_tree_probs[i] = seg->segment_prob[i];
+	picParam->mb_segment_tree_probs[i] = seg->segment_prob[i];
     }
 
     for (i = 0; i < 4; i++) {
 	if (seg->segmentation_enabled) {
-	    pic_param->loop_filter_level[i] = seg->lf_update_value[i];
+	    picParam->loop_filter_level[i] = seg->lf_update_value[i];
 	    if (!seg->segment_feature_mode)
-		pic_param->loop_filter_level[i] +=
+		picParam->loop_filter_level[i] +=
 		    m_frameHdr.loop_filter_level;
 	} else
-	    pic_param->loop_filter_level[i] = m_frameHdr.loop_filter_level;
+	    picParam->loop_filter_level[i] = m_frameHdr.loop_filter_level;
 
-	pic_param->loop_filter_deltas_ref_frame[i] =
+	picParam->loop_filter_deltas_ref_frame[i] =
 	    m_frameHdr.multi_frame_data->mb_lf_adjust.ref_frame_delta[i];
-	pic_param->loop_filter_deltas_mode[i] =
+	picParam->loop_filter_deltas_mode[i] =
 	    m_frameHdr.multi_frame_data->mb_lf_adjust.mb_mode_delta[i];
     }
-    if ((pic_param->pic_fields.bits.version == 0)
-	|| (pic_param->pic_fields.bits.version == 1)) {
-	pic_param->pic_fields.bits.loop_filter_disable =
-	    pic_param->loop_filter_level[0] == 0;
+    if ((picParam->pic_fields.bits.version == 0)
+	|| (picParam->pic_fields.bits.version == 1)) {
+	picParam->pic_fields.bits.loop_filter_disable =
+	    picParam->loop_filter_level[0] == 0;
     }
 
-    pic_param->prob_skip_false = m_frameHdr.prob_skip_false;
-    pic_param->prob_intra = m_frameHdr.prob_intra;
-    pic_param->prob_last = m_frameHdr.prob_last;
-    pic_param->prob_gf = m_frameHdr.prob_gf;
+    picParam->prob_skip_false = m_frameHdr.prob_skip_false;
+    picParam->prob_intra = m_frameHdr.prob_intra;
+    picParam->prob_last = m_frameHdr.prob_last;
+    picParam->prob_gf = m_frameHdr.prob_gf;
 
     if (m_frameHdr.key_frame == VP8_KEY_FRAME) {
 	// key frame use fixed prob table
-	memcpy(pic_param->y_mode_probs, kf_y_mode_probs, 4);
-	memcpy(pic_param->uv_mode_probs, kf_uv_mode_probs, 3);
+	memcpy(picParam->y_mode_probs, keyFrameYModeProbs, 4);
+	memcpy(picParam->uv_mode_probs, keyFrameUVModeProbs, 3);
 	// prepare for next frame which may be not a key frame
-	memcpy(m_yModeProbs, nk_default_y_mode_probs, 4);
-	memcpy(m_uvModeProbs, nk_default_uv_mode_probs, 3);
+	memcpy(m_yModeProbs, nonKeyFrameDefaultYModeProbs, 4);
+	memcpy(m_uvModeProbs, nonKeyFrameDefaultUVModeProbs, 3);
     } else {
 	if (m_frameHdr.intra_16x16_prob_update_flag) {
-	    memcpy(pic_param->y_mode_probs, m_frameHdr.intra_16x16_prob,
-		   4);
+	    memcpy(picParam->y_mode_probs, m_frameHdr.intra_16x16_prob, 4);
 	} else {
-	    memcpy(pic_param->y_mode_probs, m_yModeProbs, 4);
+	    memcpy(picParam->y_mode_probs, m_yModeProbs, 4);
 	}
 
 	if (m_frameHdr.intra_chroma_prob_update_flag) {
-	    memcpy(pic_param->uv_mode_probs, m_frameHdr.intra_chroma_prob,
+	    memcpy(picParam->uv_mode_probs, m_frameHdr.intra_chroma_prob,
 		   3);
 	} else {
-	    memcpy(pic_param->uv_mode_probs, m_uvModeProbs, 3);
+	    memcpy(picParam->uv_mode_probs, m_uvModeProbs, 3);
 	}
     }
 
-    memcpy(pic_param->mv_probs,
+    memcpy(picParam->mv_probs,
 	   m_frameHdr.multi_frame_data->mv_prob_update.prob,
-	   sizeof pic_param->mv_probs);
+	   sizeof picParam->mv_probs);
 
-    pic_param->bool_coder_ctx.range = m_frameHdr.rangedecoder_state.range;
-    pic_param->bool_coder_ctx.value =
+    picParam->bool_coder_ctx.range = m_frameHdr.rangedecoder_state.range;
+    picParam->bool_coder_ctx.value =
 	m_frameHdr.rangedecoder_state.code_word;
-    pic_param->bool_coder_ctx.count =
+    picParam->bool_coder_ctx.count =
 	m_frameHdr.rangedecoder_state.remaining_bits;
 
 
-    pic_param_obj->unmap();
+    picParamObj->unmap();
 
     return true;
 }
@@ -346,85 +345,80 @@ bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
 bool VaapiDecoderVP8::ensureQuantMatrix(VaapiPictureVP8 * pic)
 {
     Vp8Segmentation *seg = &m_frameHdr.multi_frame_data->segmentation;
-    VAIQMatrixBufferVP8 *iq_matrix;
-    int32 base_qi, i;
+    VAIQMatrixBufferVP8 *iqMatrix;
+    int32 baseQI, i;
 
-    iq_matrix = (VAIQMatrixBufferVP8 *) pic->mIqMatrix->map();
+    iqMatrix = (VAIQMatrixBufferVP8 *) pic->m_iqMatrix->map();
 
     for (i = 0; i < 4; i++) {
-	int32 temp_index;
+	int32 tempIndex;
 	const int32 MAX_QI_INDEX = 127;
 	if (seg->segmentation_enabled) {
-	    base_qi = seg->quantizer_update_value[i];
+	    baseQI = seg->quantizer_update_value[i];
 	    if (!seg->segment_feature_mode)	// 0 means delta update
-		base_qi += m_frameHdr.quant_indices.y_ac_qi;;
+		baseQI += m_frameHdr.quant_indices.y_ac_qi;;
 	} else
-	    base_qi = m_frameHdr.quant_indices.y_ac_qi;
+	    baseQI = m_frameHdr.quant_indices.y_ac_qi;
 
 	// the first component is y_ac_qi
-	temp_index =
-	    base_qi < 0 ? 0 : (base_qi >
-			       MAX_QI_INDEX ? MAX_QI_INDEX : base_qi);
-	iq_matrix->quantization_index[i][0] = temp_index;
+	tempIndex =
+	    baseQI < 0 ? 0 : (baseQI >
+			      MAX_QI_INDEX ? MAX_QI_INDEX : baseQI);
+	iqMatrix->quantization_index[i][0] = tempIndex;
 
-	temp_index = base_qi + m_frameHdr.quant_indices.y_dc_delta;
-	temp_index =
-	    temp_index < 0 ? 0 : (temp_index >
-				  MAX_QI_INDEX ? MAX_QI_INDEX :
-				  temp_index);
-	iq_matrix->quantization_index[i][1] = temp_index;
+	tempIndex = baseQI + m_frameHdr.quant_indices.y_dc_delta;
+	tempIndex =
+	    tempIndex < 0 ? 0 : (tempIndex >
+				 MAX_QI_INDEX ? MAX_QI_INDEX : tempIndex);
+	iqMatrix->quantization_index[i][1] = tempIndex;
 
-	temp_index = base_qi + m_frameHdr.quant_indices.y2_dc_delta;
-	temp_index =
-	    temp_index < 0 ? 0 : (temp_index >
-				  MAX_QI_INDEX ? MAX_QI_INDEX :
-				  temp_index);
-	iq_matrix->quantization_index[i][2] = temp_index;
+	tempIndex = baseQI + m_frameHdr.quant_indices.y2_dc_delta;
+	tempIndex =
+	    tempIndex < 0 ? 0 : (tempIndex >
+				 MAX_QI_INDEX ? MAX_QI_INDEX : tempIndex);
+	iqMatrix->quantization_index[i][2] = tempIndex;
 
-	temp_index = base_qi + m_frameHdr.quant_indices.y2_ac_delta;
-	temp_index =
-	    temp_index < 0 ? 0 : (temp_index >
-				  MAX_QI_INDEX ? MAX_QI_INDEX :
-				  temp_index);
-	iq_matrix->quantization_index[i][3] = temp_index;
+	tempIndex = baseQI + m_frameHdr.quant_indices.y2_ac_delta;
+	tempIndex =
+	    tempIndex < 0 ? 0 : (tempIndex >
+				 MAX_QI_INDEX ? MAX_QI_INDEX : tempIndex);
+	iqMatrix->quantization_index[i][3] = tempIndex;
 
-	temp_index = base_qi + m_frameHdr.quant_indices.uv_dc_delta;
-	temp_index =
-	    temp_index < 0 ? 0 : (temp_index >
-				  MAX_QI_INDEX ? MAX_QI_INDEX :
-				  temp_index);
-	iq_matrix->quantization_index[i][4] = temp_index;
+	tempIndex = baseQI + m_frameHdr.quant_indices.uv_dc_delta;
+	tempIndex =
+	    tempIndex < 0 ? 0 : (tempIndex >
+				 MAX_QI_INDEX ? MAX_QI_INDEX : tempIndex);
+	iqMatrix->quantization_index[i][4] = tempIndex;
 
-	temp_index = base_qi + m_frameHdr.quant_indices.uv_ac_delta;
-	temp_index =
-	    temp_index < 0 ? 0 : (temp_index >
-				  MAX_QI_INDEX ? MAX_QI_INDEX :
-				  temp_index);
-	iq_matrix->quantization_index[i][5] = temp_index;
+	tempIndex = baseQI + m_frameHdr.quant_indices.uv_ac_delta;
+	tempIndex =
+	    tempIndex < 0 ? 0 : (tempIndex >
+				 MAX_QI_INDEX ? MAX_QI_INDEX : tempIndex);
+	iqMatrix->quantization_index[i][5] = tempIndex;
     }
 
-    pic->mIqMatrix->unmap();
+    pic->m_iqMatrix->unmap();
     return true;
 }
 
 /* fill quant parameter buffers functions*/
-bool VaapiDecoderVP8::ensure_probability_table(VaapiPictureVP8 * pic)
+bool VaapiDecoderVP8::ensureProbabilityTable(VaapiPictureVP8 * pic)
 {
-    VAProbabilityDataBufferVP8 *prob_table;
+    VAProbabilityDataBufferVP8 *probTable;
     int32 i;
 
     // XXX, create/render VAProbabilityDataBufferVP8 in base class
-    prob_table = (VAProbabilityDataBufferVP8 *) pic->mProbTable->map();
+    probTable = (VAProbabilityDataBufferVP8 *) pic->m_probTable->map();
 
-    memcpy(prob_table->dct_coeff_probs,
+    memcpy(probTable->dct_coeff_probs,
 	   m_frameHdr.multi_frame_data->token_prob_update.coeff_prob,
-	   sizeof(prob_table->dct_coeff_probs));
+	   sizeof(probTable->dct_coeff_probs));
 
-    pic->mProbTable->unmap();
+    pic->m_probTable->unmap();
     return true;
 }
 
-void VaapiDecoderVP8::update_reference_pictures()
+void VaapiDecoderVP8::updateReferencePictures()
 {
     VaapiPicture *picture = m_currentPicture;
 
@@ -477,25 +471,22 @@ void VaapiDecoderVP8::update_reference_pictures()
 
 }
 
-bool VaapiDecoderVP8::alloc_new_picture()
+bool VaapiDecoderVP8::allocNewPicture()
 {
     int i;
 
     /* Create new picture */
 
-    /*accquire one surface from mBufPool in base decoder  */
+    /*accquire one surface from m_bufPool in base decoder  */
     VaapiPictureVP8 *picture;
-    picture = new VaapiPictureVP8(mVADisplay,
-				  mVAContext, mBufPool,
+    picture = new VaapiPictureVP8(m_VADisplay,
+				  m_VAContext, m_bufPool,
 				  VAAPI_PICTURE_STRUCTURE_FRAME);
     VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);
 
     for (i = 0; i < VP8_MAX_PICTURE_COUNT; i++) {
 	DEBUG("m_pictures[%d] = %p", i, m_pictures[i]);
-	if (m_pictures[i] && (m_pictures[i] == m_goldenRefPicture ||
-                              m_pictures[i] == m_altRefPicture ||
-                              m_pictures[i] == m_lastPicture ||
-                              m_pictures[i] == m_currentPicture))	// take m_currentPicture as a buffering area
+	if (m_pictures[i] && (m_pictures[i] == m_goldenRefPicture || m_pictures[i] == m_altRefPicture || m_pictures[i] == m_lastPicture || m_pictures[i] == m_currentPicture))	// take m_currentPicture as a buffering area
 	    continue;
 
 	if (m_pictures[i])
@@ -518,7 +509,7 @@ Decode_Status VaapiDecoderVP8::decodePicture()
     if (status != DECODE_SUCCESS)
 	return status;
 
-    if (!alloc_new_picture())
+    if (!allocNewPicture())
 	return DECODE_FAIL;
 
     if (!ensureQuantMatrix(m_currentPicture)) {
@@ -526,7 +517,7 @@ Decode_Status VaapiDecoderVP8::decodePicture()
 	return DECODE_FAIL;
     }
 
-    if (!ensure_probability_table(m_currentPicture)) {
+    if (!ensureProbabilityTable(m_currentPicture)) {
 	ERROR("failed to reset probability table");
 	return DECODE_FAIL;
     }
@@ -538,7 +529,7 @@ Decode_Status VaapiDecoderVP8::decodePicture()
 
     VaapiSliceVP8 *slice;
     slice =
-	new VaapiSliceVP8(mVADisplay, mVAContext, m_buffer, m_frameSize);
+	new VaapiSliceVP8(m_VADisplay, m_VAContext, m_buffer, m_frameSize);
     m_currentPicture->addSlice(slice);
     if (!fillSliceParam(slice)) {
 	ERROR("failed to fill slice parameters");
@@ -588,16 +579,16 @@ Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
 {
     DEBUG("VP8: start()");
     Decode_Status status;
-    bool got_config = false;
+    bool gotConfig = false;
 
     if ((buffer->flag & HAS_SURFACE_NUMBER)
 	&& (buffer->flag & HAS_VA_PROFILE)) {
-	got_config = true;
+	gotConfig = true;
     }
 
     buffer->profile = VAProfileVP8Version0_3;
     buffer->surfaceNumber = 3 + VP8_EXTRA_SURFACE_NUMBER;
-    got_config = true;
+    gotConfig = true;
 
     vp8_parse_init_default_multi_frame_data(&m_lastFrameContext);
 
@@ -605,7 +596,7 @@ Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
     buffer->graphicBufferWidth = buffer->width;
     buffer->graphicBufferHeight = buffer->height;
     buffer->flag &= ~USE_NATIVE_GRAPHIC_BUFFER;
-    if (got_config) {
+    if (gotConfig) {
 	VaapiDecoderBase::start(buffer);
 	m_hasContext = true;
     }
@@ -650,15 +641,15 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
 {
     Decode_Status status;
     Vp8ParseResult result;
-    bool is_eos = false;
+    bool isEOS = false;
 
-    mCurrentPTS = buffer->timeStamp;
+    m_currentPTS = buffer->timeStamp;
 
     m_buffer = buffer->data;
     m_frameSize = buffer->size;
 
     DEBUG("VP8: Decode(bufsize =%d, timestamp=%ld)", m_frameSize,
-	  mCurrentPTS);
+	  m_currentPTS);
 
     do {
 	if (m_frameSize == 0) {
@@ -670,7 +661,7 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
 	m_frameHdr.multi_frame_data = &m_currFrameContext;
 	result =
 	    vp8_parse_frame_header(&m_frameHdr, m_buffer, 0, m_frameSize);
-	status = get_status(result);
+	status = getStatus(result);
 	if (status != DECODE_SUCCESS) {
 	    break;
 	}
@@ -680,11 +671,11 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
 	    break;
 
 	if (m_frameHdr.show_frame) {
-	    m_currentPicture->mTimeStamp = mCurrentPTS;
+	    m_currentPicture->m_timeStamp = m_currentPTS;
 	    m_currentPicture->output();
 	}
 
-	update_reference_pictures();
+	updateReferencePictures();
 
 	if (m_frameHdr.refresh_entropy_probs) {
 	    memcpy(&m_lastFrameContext.token_prob_update,

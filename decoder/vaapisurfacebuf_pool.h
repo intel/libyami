@@ -19,8 +19,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef VAAPI_SURFACE_BUFFER_POOL_H
-#define VAAPI_SURFACE_BUFFER_POOL_H
+#ifndef vaapisurfacebuf_pool_h
+#define vaapisurfacebuf_pool_h
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -40,7 +40,7 @@ class VaapiSurfaceBufferPool {
     VideoSurfaceBuffer *searchAvailableBuffer();
     VideoSurfaceBuffer *acquireFreeBuffer();
     VideoSurfaceBuffer *acquireFreeBufferWithWait();
-    bool recycleBuffer(VideoSurfaceBuffer * buf, bool is_from_render);
+    bool recycleBuffer(VideoSurfaceBuffer * buf, bool isFromRender);
     void flushPool();
 
     VideoSurfaceBuffer *getOutputByMinTimeStamp();
@@ -59,18 +59,18 @@ class VaapiSurfaceBufferPool {
     void unmapSurfaceBuffers();
 
   private:
-    VADisplay mDisplay;
-    VideoSurfaceBuffer **mBufArray;
-    VaapiSurface **mSurfArray;
+    VADisplay m_display;
+    VideoSurfaceBuffer **m_bufArray;
+    VaapiSurface **m_surfArray;
 
-    uint32_t mBufCount;
-    uint32_t mFreeCount;
+    uint32_t m_bufCount;
+    uint32_t m_freeCount;
 
-    bool mUseExtBuf;
-    bool mBufMapped;
+    bool m_useExtBuf;
+    bool m_bufMapped;
 
-    pthread_mutex_t mLock;
-    pthread_cond_t mCond;
+    pthread_mutex_t m_lock;
+    pthread_cond_t m_cond;
 };
 
 #endif

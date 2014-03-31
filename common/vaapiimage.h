@@ -19,8 +19,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef VAAPI_IMAGE_H
-#define VAAPI_IMAGE_H
+#ifndef vaapiimage_h
+#define vaapiimage_h
 
 #include <stdint.h>
 #include "vaapitypes.h"
@@ -63,7 +63,7 @@ typedef struct _VaapiImageFormatMap {
     { DEF(RGB, FORMAT),                                                \
       { VA_FOURCC FOURCC, VA_##ENDIAN##_FIRST, BPP, DEPTH, R,G,B,A }, }
 
-const VaapiImageFormatMap vaapi_image_formats[] = {
+const VaapiImageFormatMap vaapiImageFormats[] = {
     DEF_YUV(NV12, ('N', 'V', '1', '2'), LSB, 12),
     DEF_YUV(YV12, ('Y', 'V', '1', '2'), LSB, 12),
     DEF_YUV(I420, ('I', '4', '2', '0'), LSB, 12),
@@ -90,7 +90,7 @@ typedef struct _VaapiImageRaw {
     VaapiImageFormat format;
     uint32_t width;
     uint32_t height;
-    uint32_t num_planes;
+    uint32_t numPlanes;
     uint8_t *pixels[3];
     uint32_t strides[3];
     uint32_t size;
@@ -118,16 +118,16 @@ class VaapiImage {
     const VAImageFormat *getVaFormat(VaapiImageFormat format);
 
   private:
-    VADisplay mDisplay;
-    VaapiImageFormat mFormat;
-    VAImageID mID;
-    uint32_t mWidth;
-    uint32_t mHeight;
+    VADisplay m_display;
+    VaapiImageFormat m_format;
+    VAImageID m_ID;
+    uint32_t m_width;
+    uint32_t m_height;
 
-    VAImage mImage;
-    uint8_t *mData;
-    bool mIsMapped;
-    VaapiImageRaw mRawImage;
+    VAImage m_image;
+    uint8_t *m_data;
+    bool m_isMapped;
+    VaapiImageRaw m_rawImage;
 };
 
 #endif				/* VAAPI_IMAGE_H */

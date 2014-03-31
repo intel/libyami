@@ -20,8 +20,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef VAAPI_DECODER_VP8_H
-#define VAAPI_DECODER_VP8_H
+#ifndef vaapidecoder_vp8_h
+#define vaapidecoder_vp8_h
 
 #include "vaapipicture.h"
 #include "vaapidecoder_base.h"
@@ -61,20 +61,20 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     virtual Decode_Status decode(VideoDecodeBuffer * buffer);
 
   private:
-    bool alloc_new_picture();
+     bool allocNewPicture();
     bool fillPictureParam(VaapiPictureVP8 * picture);
     /* fill Quant matrix parameters */
     bool ensureQuantMatrix(VaapiPictureVP8 * pic);
-    bool ensure_probability_table(VaapiPictureVP8 * pic);
+    bool ensureProbabilityTable(VaapiPictureVP8 * pic);
     bool fillSliceParam(VaapiSliceVP8 * slice);
     /* check the context reset senerios */
     Decode_Status ensureContext();
     /* decoding functions */
     Decode_Status decodePicture();
     bool replacePicture(VaapiPictureVP8 ** pic1, VaapiPicture * pic2);
-    void update_reference_pictures();
+    void updateReferencePictures();
   private:
-    VaapiPictureVP8 * m_currentPicture;
+     VaapiPictureVP8 * m_currentPicture;
     VaapiPictureVP8 *m_lastPicture;
     VaapiPictureVP8 *m_goldenRefPicture;
     VaapiPictureVP8 *m_altRefPicture;

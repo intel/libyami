@@ -36,10 +36,10 @@ class VaapiBufObject {
     void unmap();
 
   private:
-    VADisplay mDisplay;
-    VABufferID mBufID;
-    void *mBuf;
-    uint32_t mSize;
+    VADisplay m_display;
+    VABufferID m_bufID;
+    void *m_buf;
+    uint32_t m_size;
 };
 
 #endif				/* VAAPI_CODEC_OBJECT_H */

@@ -24,27 +24,27 @@
 
 VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
 					       VideoConfigBuffer * config)
-:mDisplay(display)
+:  m_display(display)
 {
     INFO("Construct the render buffer pool ");
 
     uint32_t i;
     uint32_t format = VA_RT_FORMAT_YUV420;
 
-    pthread_cond_init(&mCond, NULL);
-    pthread_mutex_init(&mLock, NULL);
+    pthread_cond_init(&m_cond, NULL);
+    pthread_mutex_init(&m_lock, NULL);
 
     if (!config) {
 	ERROR("Wrong parameter to init render buffer pool");
 	return;
     }
 
-    mBufCount = config->surfaceNumber;
-    mBufArray =
+    m_bufCount = config->surfaceNumber;
+    m_bufArray =
 	(VideoSurfaceBuffer **) malloc(sizeof(VideoSurfaceBuffer *) *
-				       mBufCount);
-    mSurfArray =
-	(VaapiSurface **) malloc(sizeof(VaapiSurface *) * mBufCount);
+				       m_bufCount);
+    m_surfArray =
+	(VaapiSurface **) malloc(sizeof(VaapiSurface *) * m_bufCount);
 
     if (config->flag & WANT_SURFACE_PROTECTION) {
 	format != VA_RT_FORMAT_PROTECTED;
@@ -52,7 +52,7 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
     }
 
     /* allocate surface for the pool */
-    mUseExtBuf = false;
+    m_useExtBuf = false;
     if (config->flag & USE_NATIVE_GRAPHIC_BUFFER) {
 	INFO("Use native graphci buffer for decoding");
 	VASurfaceAttrib surfaceAttribs[2];
@@ -89,33 +89,33 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
 	surfaceAttribs[1].value.type = VAGenericValueTypePointer;
 	surfaceAttribs[1].value.value.p = &surfAttribExtBuf;
 
-	for (i = 0; i < mBufCount; i++) {
+	for (i = 0; i < m_bufCount; i++) {
 	    surfAttribExtBuf.buffers[0] =
 		(unsigned long) config->graphicBufferHandler[i];
-	    mSurfArray[i] =
+	    m_surfArray[i] =
 		new VaapiSurface(display, VAAPI_CHROMA_TYPE_YUV420,
 				 config->graphicBufferWidth,
 				 config->graphicBufferHeight,
 				 (void *) &surfaceAttribs, 2);
 
-	    if (!mSurfArray[i]) {
+	    if (!m_surfArray[i]) {
 		ERROR("VaapiSurface allocation failed ");
 		return;
 	    }
 	}
 
-	mUseExtBuf = true;
+	m_useExtBuf = true;
 
 	if (surfAttribExtBuf.buffers)
 	    free(surfAttribExtBuf.buffers);
 
     } else {
-	for (i = 0; i < mBufCount; i++) {
-	    mSurfArray[i] = new VaapiSurface(display,
-					     VAAPI_CHROMA_TYPE_YUV420,
-					     config->width,
-					     config->height, NULL, 0);
-	    if (!mSurfArray[i]) {
+	for (i = 0; i < m_bufCount; i++) {
+	    m_surfArray[i] = new VaapiSurface(display,
+					      VAAPI_CHROMA_TYPE_YUV420,
+					      config->width,
+					      config->height, NULL, 0);
+	    if (!m_surfArray[i]) {
 		ERROR("VaapiSurface allocation failed ");
 		return;
 	    }
@@ -123,37 +123,36 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
     }
 
     /* Wrap vaapi surfaces into VideoSurfaceBuffer pool */
-    for (i = 0; i < mBufCount; i++) {
-	mBufArray[i] =
-	    (struct VideoSurfaceBuffer *)
+    for (i = 0; i < m_bufCount; i++) {
+	m_bufArray[i] = (struct VideoSurfaceBuffer *)
 	    malloc(sizeof(struct VideoSurfaceBuffer));
-	mBufArray[i]->pictureOrder = INVALID_POC;
-	mBufArray[i]->referenceFrame = false;
-	mBufArray[i]->asReferernce = false;	//todo fix the typo
-	mBufArray[i]->mappedData = NULL;
-	mBufArray[i]->renderBuffer.display = display;
-	mBufArray[i]->renderBuffer.surface = mSurfArray[i]->getID();
-	mBufArray[i]->renderBuffer.scanFormat = VA_FRAME_PICTURE;
-	mBufArray[i]->renderBuffer.timeStamp = INVALID_PTS;
-	mBufArray[i]->renderBuffer.flag = 0;
-	mBufArray[i]->renderBuffer.graphicBufferIndex = i;
-	if (mUseExtBuf) {
+	m_bufArray[i]->pictureOrder = INVALID_POC;
+	m_bufArray[i]->referenceFrame = false;
+	m_bufArray[i]->asReferernce = false;	//todo fix the typo
+	m_bufArray[i]->mappedData = NULL;
+	m_bufArray[i]->renderBuffer.display = display;
+	m_bufArray[i]->renderBuffer.surface = m_surfArray[i]->getID();
+	m_bufArray[i]->renderBuffer.scanFormat = VA_FRAME_PICTURE;
+	m_bufArray[i]->renderBuffer.timeStamp = INVALID_PTS;
+	m_bufArray[i]->renderBuffer.flag = 0;
+	m_bufArray[i]->renderBuffer.graphicBufferIndex = i;
+	if (m_useExtBuf) {
 	    /* buffers is hold by external client, such as graphics */
-	    mBufArray[i]->renderBuffer.graphicBufferHandle =
+	    m_bufArray[i]->renderBuffer.graphicBufferHandle =
 		config->graphicBufferHandler[i];
-	    mBufArray[i]->renderBuffer.renderDone = false;
-	    mBufArray[i]->status = SURFACE_RENDERING;
+	    m_bufArray[i]->renderBuffer.renderDone = false;
+	    m_bufArray[i]->status = SURFACE_RENDERING;
 	} else {
-	    mBufArray[i]->renderBuffer.graphicBufferHandle = NULL;
-	    mBufArray[i]->renderBuffer.renderDone = true;
-	    mBufArray[i]->status = SURFACE_FREE;
+	    m_bufArray[i]->renderBuffer.graphicBufferHandle = NULL;
+	    m_bufArray[i]->renderBuffer.renderDone = true;
+	    m_bufArray[i]->status = SURFACE_FREE;
 	}
     }
 
-    mBufMapped = false;
+    m_bufMapped = false;
     if (config->flag & WANT_RAW_OUTPUT) {
 	mapSurfaceBuffers();
-	mBufMapped = true;
+	m_bufMapped = true;
 	INFO("Surface is mapped out for raw output ");
     }
 }
@@ -163,27 +162,27 @@ VaapiSurfaceBufferPool::~VaapiSurfaceBufferPool()
     INFO("Destruct the render buffer pool ");
     uint32_t i;
 
-    if (mBufMapped) {
+    if (m_bufMapped) {
 	unmapSurfaceBuffers();
-	mBufMapped = false;
+	m_bufMapped = false;
     }
 
-    for (i = 0; i < mBufCount; i++) {
-	delete mSurfArray[i];
-	mSurfArray[i] = NULL;
+    for (i = 0; i < m_bufCount; i++) {
+	delete m_surfArray[i];
+	m_surfArray[i] = NULL;
     }
-    free(mSurfArray);
-    mSurfArray = NULL;
+    free(m_surfArray);
+    m_surfArray = NULL;
 
-    for (i = 0; i < mBufCount; i++) {
-	free(mBufArray[i]);
-	mBufArray[i] = NULL;
+    for (i = 0; i < m_bufCount; i++) {
+	free(m_bufArray[i]);
+	m_bufArray[i] = NULL;
     }
-    free(mBufArray);
-    mBufArray = NULL;
+    free(m_bufArray);
+    m_bufArray = NULL;
 
-    pthread_cond_destroy(&mCond);
-    pthread_mutex_destroy(&mLock);
+    pthread_cond_destroy(&m_cond);
+    pthread_mutex_destroy(&m_lock);
 }
 
 
@@ -192,12 +191,12 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::acquireFreeBuffer()
     VideoSurfaceBuffer *surfBuf = searchAvailableBuffer();
 
     if (surfBuf) {
-	pthread_mutex_lock(&mLock);
+	pthread_mutex_lock(&m_lock);
 	surfBuf->renderBuffer.driverRenderDone = true;
 	surfBuf->renderBuffer.timeStamp = INVALID_PTS;
 	surfBuf->pictureOrder = INVALID_POC;
 	surfBuf->status = SURFACE_DECODING;
-	pthread_mutex_unlock(&mLock);
+	pthread_mutex_unlock(&m_lock);
     }
     return surfBuf;
 }
@@ -208,9 +207,9 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::acquireFreeBufferWithWait()
 
     if (!surfBuf) {
 	INFO("Waiting for free surface buffer");
-	pthread_mutex_lock(&mLock);
-	pthread_cond_wait(&mCond, &mLock);
-	pthread_mutex_unlock(&mLock);
+	pthread_mutex_lock(&m_lock);
+	pthread_cond_wait(&m_cond, &m_lock);
+	pthread_mutex_unlock(&m_lock);
 	INFO("Receive signal about a free buffer availble");
 	surfBuf = searchAvailableBuffer();
 	if (!surfBuf) {
@@ -220,12 +219,12 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::acquireFreeBufferWithWait()
     }
 
     if (surfBuf) {
-	pthread_mutex_lock(&mLock);
+	pthread_mutex_lock(&m_lock);
 	surfBuf->renderBuffer.driverRenderDone = true;
 	surfBuf->renderBuffer.timeStamp = INVALID_PTS;
 	surfBuf->pictureOrder = INVALID_POC;
 	surfBuf->status = SURFACE_DECODING;
-	pthread_mutex_unlock(&mLock);
+	pthread_mutex_unlock(&m_lock);
     }
 
     return surfBuf;
@@ -235,10 +234,10 @@ bool VaapiSurfaceBufferPool::setReferenceInfo(VideoSurfaceBuffer * buf,
 					      bool referenceFrame,
 					      bool asReference)
 {
-    pthread_mutex_lock(&mLock);
+    pthread_mutex_lock(&m_lock);
     buf->referenceFrame = referenceFrame;
     buf->asReferernce = asReference;	//to fix typo error
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
     return true;
 }
 
@@ -249,18 +248,18 @@ bool VaapiSurfaceBufferPool::outputBuffer(VideoSurfaceBuffer * buf,
 	  buf->renderBuffer.surface, poc);
 
     uint32_t i = 0;
-    pthread_mutex_lock(&mLock);
-    for (i = 0; i < mBufCount; i++) {
-	if (mBufArray[i] == buf) {
-	    mBufArray[i]->pictureOrder = poc;
-	    mBufArray[i]->renderBuffer.timeStamp = timeStamp;
-	    mBufArray[i]->status |= SURFACE_TO_RENDER;
+    pthread_mutex_lock(&m_lock);
+    for (i = 0; i < m_bufCount; i++) {
+	if (m_bufArray[i] == buf) {
+	    m_bufArray[i]->pictureOrder = poc;
+	    m_bufArray[i]->renderBuffer.timeStamp = timeStamp;
+	    m_bufArray[i]->status |= SURFACE_TO_RENDER;
 	    break;
 	}
     }
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
 
-    if (i == mBufCount) {
+    if (i == m_bufCount) {
 	ERROR("Pool: outputbuffer, Error buffer pointer ");
 	return false;
     }
@@ -269,34 +268,34 @@ bool VaapiSurfaceBufferPool::outputBuffer(VideoSurfaceBuffer * buf,
 }
 
 bool VaapiSurfaceBufferPool::recycleBuffer(VideoSurfaceBuffer * buf,
-					   bool is_from_render)
+					   bool isFromRender)
 {
     uint32_t i;
 
-    pthread_mutex_lock(&mLock);
-    for (i = 0; i < mBufCount; i++) {
-	if (mBufArray[i] == buf) {
-	    if (is_from_render) {	//release from decoder
-		mBufArray[i]->renderBuffer.renderDone = true;
-		mBufArray[i]->status &= ~SURFACE_RENDERING;
+    pthread_mutex_lock(&m_lock);
+    for (i = 0; i < m_bufCount; i++) {
+	if (m_bufArray[i] == buf) {
+	    if (isFromRender) {	//release from decoder
+		m_bufArray[i]->renderBuffer.renderDone = true;
+		m_bufArray[i]->status &= ~SURFACE_RENDERING;
 		DEBUG("Pool: recy surf(%8x) from render, status = %d",
-		      buf->renderBuffer.surface, mBufArray[i]->status);
+		      buf->renderBuffer.surface, m_bufArray[i]->status);
 	    } else {		//release from decoder
-		mBufArray[i]->status &= ~SURFACE_DECODING;
+		m_bufArray[i]->status &= ~SURFACE_DECODING;
 		DEBUG("Pool: recy surf(%8x) from decoder, status = %d",
-		      buf->renderBuffer.surface, mBufArray[i]->status);
+		      buf->renderBuffer.surface, m_bufArray[i]->status);
 	    }
 
-	    if (mBufArray[i]->status == SURFACE_FREE) {
-		pthread_cond_signal(&mCond);
+	    if (m_bufArray[i]->status == SURFACE_FREE) {
+		pthread_cond_signal(&m_cond);
 	    }
 
-	    pthread_mutex_unlock(&mLock);
+	    pthread_mutex_unlock(&m_lock);
 	    return true;
 	}
     }
 
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
 
     ERROR("recycleBuffer: Can not find buf=%p in the pool", buf);
     return false;
@@ -306,15 +305,15 @@ void VaapiSurfaceBufferPool::flushPool()
 {
     uint32_t i;
 
-    pthread_mutex_lock(&mLock);
+    pthread_mutex_lock(&m_lock);
 
-    for (i = 0; i < mBufCount; i++) {
-	mBufArray[i]->referenceFrame = false;
-	mBufArray[i]->asReferernce = false;
-	mBufArray[i]->status = SURFACE_FREE;
+    for (i = 0; i < m_bufCount; i++) {
+	m_bufArray[i]->referenceFrame = false;
+	m_bufArray[i]->asReferernce = false;
+	m_bufArray[i]->status = SURFACE_FREE;
     }
 
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
 }
 
 void VaapiSurfaceBufferPool::mapSurfaceBuffers()
@@ -322,9 +321,9 @@ void VaapiSurfaceBufferPool::mapSurfaceBuffers()
     uint32_t i;
     VideoFrameRawData *rawData;
 
-    pthread_mutex_lock(&mLock);
-    for (i = 0; i < mBufCount; i++) {
-	VaapiSurface *surf = mSurfArray[i];
+    pthread_mutex_lock(&m_lock);
+    for (i = 0; i < m_bufCount; i++) {
+	VaapiSurface *surf = m_surfArray[i];
 	VaapiImage *image = surf->getDerivedImage();
 	VaapiImageRaw *imageRaw = image->map();
 
@@ -335,36 +334,36 @@ void VaapiSurfaceBufferPool::mapSurfaceBuffers()
 	rawData->size = imageRaw->size;
 	rawData->data = imageRaw->pixels[0];
 
-	for (i = 0; i < imageRaw->num_planes; i++) {
+	for (i = 0; i < imageRaw->numPlanes; i++) {
 	    rawData->offset[i] = imageRaw->pixels[i]
 		- imageRaw->pixels[0];
 	    rawData->pitch[i] = imageRaw->strides[i];
 	}
 
-	mBufArray[i]->renderBuffer.rawData = rawData;
-	mBufArray[i]->mappedData = rawData;
+	m_bufArray[i]->renderBuffer.rawData = rawData;
+	m_bufArray[i]->mappedData = rawData;
     }
 
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
 }
 
 void VaapiSurfaceBufferPool::unmapSurfaceBuffers()
 {
     uint32_t i;
-    pthread_mutex_lock(&mLock);
+    pthread_mutex_lock(&m_lock);
 
-    for (i = 0; i < mBufCount; i++) {
-	VaapiSurface *surf = mSurfArray[i];
+    for (i = 0; i < m_bufCount; i++) {
+	VaapiSurface *surf = m_surfArray[i];
 	VaapiImage *image = surf->getDerivedImage();
 
 	image->unmap();
 
-	delete mBufArray[i]->renderBuffer.rawData;
-	mBufArray[i]->renderBuffer.rawData = NULL;
-	mBufArray[i]->mappedData = NULL;
+	delete m_bufArray[i]->renderBuffer.rawData;
+	m_bufArray[i]->renderBuffer.rawData = NULL;
+	m_bufArray[i]->mappedData = NULL;
     }
 
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
 
 }
 
@@ -374,17 +373,17 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinTimeStamp()
     uint64_t pts = INVALID_PTS;
     VideoSurfaceBuffer *buf = NULL;
 
-    pthread_mutex_lock(&mLock);
-    for (i = 0; i < mBufCount; i++) {
-	if (!(mBufArray[i]->status & SURFACE_TO_RENDER))
+    pthread_mutex_lock(&m_lock);
+    for (i = 0; i < m_bufCount; i++) {
+	if (!(m_bufArray[i]->status & SURFACE_TO_RENDER))
 	    continue;
 
-	if (mBufArray[i]->renderBuffer.timeStamp == INVALID_PTS)
+	if (m_bufArray[i]->renderBuffer.timeStamp == INVALID_PTS)
 	    continue;
 
-	if ((uint64_t) (mBufArray[i]->renderBuffer.timeStamp) < pts) {
-	    pts = mBufArray[i]->renderBuffer.timeStamp;
-	    buf = mBufArray[i];
+	if ((uint64_t) (m_bufArray[i]->renderBuffer.timeStamp) < pts) {
+	    pts = m_bufArray[i]->renderBuffer.timeStamp;
+	    buf = m_bufArray[i];
 	}
     }
 
@@ -396,7 +395,7 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinTimeStamp()
 	      buf->renderBuffer.surface, pts);
     }
 
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
 
     return buf;
 }
@@ -407,18 +406,18 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinPOC()
     uint32_t poc = INVALID_POC;
     VideoSurfaceBuffer *buf = NULL;
 
-    pthread_mutex_lock(&mLock);
-    for (i = 0; i < mBufCount; i++) {
-	if (!(mBufArray[i]->status & SURFACE_TO_RENDER))
+    pthread_mutex_lock(&m_lock);
+    for (i = 0; i < m_bufCount; i++) {
+	if (!(m_bufArray[i]->status & SURFACE_TO_RENDER))
 	    continue;
 
-	if (mBufArray[i]->renderBuffer.timeStamp == INVALID_PTS ||
-	    mBufArray[i]->pictureOrder == INVALID_POC)
+	if (m_bufArray[i]->renderBuffer.timeStamp == INVALID_PTS ||
+	    m_bufArray[i]->pictureOrder == INVALID_POC)
 	    continue;
 
-	if ((uint64_t) (mBufArray[i]->pictureOrder) < poc) {
-	    poc = mBufArray[i]->pictureOrder;
-	    buf = mBufArray[i];
+	if ((uint64_t) (m_bufArray[i]->pictureOrder) < poc) {
+	    poc = m_bufArray[i]->pictureOrder;
+	    buf = m_bufArray[i];
 	}
     }
 
@@ -430,7 +429,7 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinPOC()
 	      buf->renderBuffer.surface, poc);
     }
 
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
 
     return buf;
 }
@@ -440,48 +439,48 @@ VaapiSurface *VaapiSurfaceBufferPool::getVaapiSurface(VideoSurfaceBuffer *
 {
     uint32_t i;
 
-    for (i = 0; i < mBufCount; i++) {
-	if (buf->renderBuffer.surface == mSurfArray[i]->getID())
-	    return mSurfArray[i];
+    for (i = 0; i < m_bufCount; i++) {
+	if (buf->renderBuffer.surface == m_surfArray[i]->getID())
+	    return m_surfArray[i];
     }
 
     return NULL;
 }
 
-VideoSurfaceBuffer *VaapiSurfaceBufferPool::
-getBufferBySurfaceID(VASurfaceID id)
+VideoSurfaceBuffer
+    *VaapiSurfaceBufferPool::getBufferBySurfaceID(VASurfaceID id)
 {
     uint32_t i;
 
-    for (i = 0; i < mBufCount; i++) {
-	if (mBufArray[i]->renderBuffer.surface == id)
-	    return mBufArray[i];
+    for (i = 0; i < m_bufCount; i++) {
+	if (m_bufArray[i]->renderBuffer.surface == id)
+	    return m_bufArray[i];
     }
 
     return NULL;
 }
 
-VideoSurfaceBuffer *VaapiSurfaceBufferPool::
-getBufferByHandler(void *graphicHandler)
+VideoSurfaceBuffer *VaapiSurfaceBufferPool::getBufferByHandler(void
+							       *graphicHandler)
 {
     uint32_t i;
 
-    if (!mUseExtBuf)
+    if (!m_useExtBuf)
 	return NULL;
 
-    for (i = 0; i < mBufCount; i++) {
-	if (mBufArray[i]->renderBuffer.graphicBufferHandle ==
+    for (i = 0; i < m_bufCount; i++) {
+	if (m_bufArray[i]->renderBuffer.graphicBufferHandle ==
 	    graphicHandler)
-	    return mBufArray[i];
+	    return m_bufArray[i];
     }
 
     return NULL;
 }
 
-VideoSurfaceBuffer *VaapiSurfaceBufferPool::
-getBufferByIndex(uint32_t index)
+VideoSurfaceBuffer *VaapiSurfaceBufferPool::getBufferByIndex(uint32_t
+							     index)
 {
-    return mBufArray[index];
+    return m_bufArray[index];
 }
 
 VideoSurfaceBuffer *VaapiSurfaceBufferPool::searchAvailableBuffer()
@@ -491,18 +490,18 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::searchAvailableBuffer()
     VASurfaceStatus surfStatus;
     VideoSurfaceBuffer *surfBuf = NULL;
 
-    pthread_mutex_lock(&mLock);
+    pthread_mutex_lock(&m_lock);
 
-    for (i = 0; i < mBufCount; i++) {
-	surfBuf = mBufArray[i];
+    for (i = 0; i < m_bufCount; i++) {
+	surfBuf = m_bufArray[i];
 	/* skip non free surface  */
 	if (surfBuf->status != SURFACE_FREE)
 	    continue;
 
-	if (!mUseExtBuf)
+	if (!m_useExtBuf)
 	    break;
 
-	vaStatus = vaQuerySurfaceStatus(mDisplay,
+	vaStatus = vaQuerySurfaceStatus(m_display,
 					surfBuf->renderBuffer.surface,
 					&surfStatus);
 
@@ -511,10 +510,10 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::searchAvailableBuffer()
 	    break;
     }
 
-    pthread_mutex_unlock(&mLock);
+    pthread_mutex_unlock(&m_lock);
 
-    if (i != mBufCount)
-	return mBufArray[i];
+    if (i != m_bufCount)
+	return m_bufArray[i];
     else
 	WARNING("Can not found availabe buffer");
 

@@ -19,8 +19,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef VAAPI_TYPES_H
-#define VAAPI_TYPES_H
+#ifndef vaapitypes_h
+#define vaapitypes_h
 #include <stdint.h>
 
 typedef struct _VaapiPoint {
@@ -79,4 +79,4 @@ typedef enum {
  (((unsigned long)(unsigned char) (ch0))      | ((unsigned long)(unsigned char) (ch1) << 8) | \
   ((unsigned long)(unsigned char) (ch2) << 16) | ((unsigned long)(unsigned char) (ch3) << 24 ))
 
-#endif				/* VAAPI_TYPES_H */
+#endif				/* vaapitypes_h */

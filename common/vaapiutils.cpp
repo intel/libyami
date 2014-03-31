@@ -33,15 +33,15 @@
 #define STRCASE(x)      case x: return STRINGIFY(x)
 
 /* Maps VA buffer */
-void *vaapi_map_buffer(VADisplay dpy, VABufferID buf_id)
+void *vaapiMapBuffer(VADisplay dpy, VABufferID bufId)
 {
     VAStatus status;
     void *data = NULL;
 
-    status = vaMapBuffer(dpy, buf_id, &data);
+    status = vaMapBuffer(dpy, bufId, &data);
 
-    if (!vaapi_check_status(status, "vaMapBuffer()")) {
-	ERROR("fail to map buf_id = %x", buf_id);
+    if (!checkVaapiStatus(status, "vaMapBuffer()")) {
+	ERROR("fail to map bufId = %x", bufId);
 	return NULL;
     }
 
@@ -49,64 +49,64 @@ void *vaapi_map_buffer(VADisplay dpy, VABufferID buf_id)
 }
 
 /* Unmaps VA buffer */
-void vaapi_unmap_buffer(VADisplay dpy, VABufferID buf_id, void **pbuf)
+void vaapiUnmapBuffer(VADisplay dpy, VABufferID bufId, void **pbuf)
 {
     VAStatus status;
 
     if (pbuf)
 	*pbuf = NULL;
 
-    status = vaUnmapBuffer(dpy, buf_id);
-    if (!vaapi_check_status(status, "vaUnmapBuffer()"))
+    status = vaUnmapBuffer(dpy, bufId);
+    if (!checkVaapiStatus(status, "vaUnmapBuffer()"))
 	return;
 }
 
 /* Creates and maps VA buffer */
 bool
-vaapi_create_buffer(VADisplay dpy,
-		    VAContextID ctx,
-		    int type,
-		    uint32_t size,
-		    const void *buf,
-		    VABufferID * buf_id_ptr, void **mapped_data)
+vaapiCreateBuffer(VADisplay dpy,
+		  VAContextID ctx,
+		  int type,
+		  uint32_t size,
+		  const void *buf,
+		  VABufferID * bufIdPtr, void **mappedData)
 {
-    VABufferID buf_id;
+    VABufferID bufId;
     VAStatus status;
     void *data = (void *) buf;
 
     status =
 	vaCreateBuffer(dpy, ctx, (VABufferType) type, size, 1, data,
-		       &buf_id);
-    if (!vaapi_check_status(status, "vaCreateBuffer()"))
+		       &bufId);
+    if (!checkVaapiStatus(status, "vaCreateBuffer()"))
 	return false;
 
-    if (mapped_data) {
-	data = vaapi_map_buffer(dpy, buf_id);
+    if (mappedData) {
+	data = vaapiMapBuffer(dpy, bufId);
 	if (!data)
 	    goto error;
-	*mapped_data = data;
+	*mappedData = data;
     }
 
-    *buf_id_ptr = buf_id;
+    *bufIdPtr = bufId;
     return true;
 
   error:
-    vaapi_destroy_buffer(dpy, &buf_id);
+    vaapiDestroyBuffer(dpy, &bufId);
     return false;
 }
 
 /* Destroy VA buffer */
-void vaapi_destroy_buffer(VADisplay dpy, VABufferID * buf_id_ptr)
+void vaapiDestroyBuffer(VADisplay dpy, VABufferID * bufIdPtr)
 {
-    if (!buf_id_ptr || *buf_id_ptr == VA_INVALID_ID)
+    if (!bufIdPtr || *bufIdPtr == VA_INVALID_ID)
 	return;
 
-    vaDestroyBuffer(dpy, *buf_id_ptr);
-    *buf_id_ptr = VA_INVALID_ID;
+    vaDestroyBuffer(dpy, *bufIdPtr);
+    *bufIdPtr = VA_INVALID_ID;
 }
 
 /* Return a string representation of a VAProfile */
-const char *string_of_VAProfile(VAProfile profile)
+const char *stringOfVAProfile(VAProfile profile)
 {
     switch (profile) {
 #define MAP(profile) \
@@ -135,7 +135,7 @@ const char *string_of_VAProfile(VAProfile profile)
 }
 
 /* Return a string representation of a VAEntrypoint */
-const char *string_of_VAEntrypoint(VAEntrypoint entrypoint)
+const char *stringOfVAEntrypoint(VAEntrypoint entrypoint)
 {
     switch (entrypoint) {
 #define MAP(entrypoint) \
@@ -154,13 +154,13 @@ const char *string_of_VAEntrypoint(VAEntrypoint entrypoint)
 
 #if 0
 /**
- * from_VaapiSurfaceRenderFlags:
+ * fromVaapiSurfaceRenderFlags:
  * @flags: the #VaapiSurfaceRenderFlags
  *
  * Converts #VaapiSurfaceRenderFlags to flags suitable for
  * vaPutSurface().
  */
-uint32_t from_VaapiSurfaceRenderFlags(uint32_t flags)
+uint32_t fromVaapiSurfaceRenderFlags(uint32_t flags)
 {
     uint32_t va_fields = 0, va_csc = 0;
 
@@ -185,7 +185,7 @@ uint32_t from_VaapiSurfaceRenderFlags(uint32_t flags)
 #endif
 
 /**
- * to_VaapiSurfaceStatus:
+ * toVaapiSurfaceStatus:
  * @flags: the #VaapiSurfaceStatus flags to translate
  *
  * Converts vaQuerySurfaceStatus() @flags to #VaapiSurfaceStatus
@@ -193,15 +193,15 @@ uint32_t from_VaapiSurfaceRenderFlags(uint32_t flags)
  *
  * Return value: the #VaapiSurfaceStatus flags
  */
-uint32_t to_VaapiSurfaceStatus(uint32_t va_flags)
+uint32_t toVaapiSurfaceStatus(uint32_t vaFlags)
 {
     uint32_t flags;
-    const uint32_t va_flags_mask = (VASurfaceReady |
-				    VASurfaceRendering |
-				    VASurfaceDisplaying);
+    const uint32_t vaFlagsMask = (VASurfaceReady |
+				  VASurfaceRendering |
+				  VASurfaceDisplaying);
 
     /* Check for core status */
-    switch (va_flags & va_flags_mask) {
+    switch (vaFlags & vaFlagsMask) {
     case VASurfaceReady:
 	flags = VAAPI_SURFACE_STATUS_IDLE;
 	break;
@@ -218,14 +218,14 @@ uint32_t to_VaapiSurfaceStatus(uint32_t va_flags)
 
     /* Check for encoder status */
 #if VA_CHECK_VERSION(0,30,0)
-    if (va_flags & VASurfaceSkipped)
+    if (vaFlags & VASurfaceSkipped)
 	flags |= VAAPI_SURFACE_STATUS_SKIPPED;
 #endif
     return flags;
 }
 
 /* Translate VaapiRotation value to VA-API rotation value */
-uint32_t from_VaapiRotation(uint32_t value)
+uint32_t fromVaapiRotation(uint32_t value)
 {
     switch (value) {
     case VAAPI_ROTATION_0:
@@ -242,7 +242,7 @@ uint32_t from_VaapiRotation(uint32_t value)
 }
 
 /* Translate VA-API rotation value to VaapiRotation value */
-uint32_t to_VaapiRotation(uint32_t value)
+uint32_t toVaapiRotation(uint32_t value)
 {
     switch (value) {
     case VA_ROTATION_NONE:
