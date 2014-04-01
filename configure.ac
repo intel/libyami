@@ -21,6 +21,14 @@ if test "$debug" = "yes"; then
 AC_DEFINE([__ENABLE_DEBUG__], [1], [Defined to 1 if --enable-debug="yes" ])
 fi
 
+AC_ARG_ENABLE(baytrail,
+    [AC_HELP_STRING([--enable-baytrail], [build with baytrail/chromeos support @<:@default=no@:>@])],
+    [], [enable_baytrail="no"])
+
+if test "$enable_baytrail" = "yes"; then
+AC_DEFINE([__PLATFORM_BYT__], [1], [Defined to 1 if --enable-baytrail="yes" ])
+fi
+
 # Checks for programs.
 AC_DISABLE_STATIC
 AC_PROG_CXX

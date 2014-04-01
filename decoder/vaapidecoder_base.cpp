@@ -252,6 +252,11 @@ Decode_Status
 #else
     if (!m_display)
         m_display = XOpenDisplay(NULL);
+    #if __PLATFORM_BYT__
+    if(setenv("LIBVA_DRIVER_NAME","wrapper",1) == 0) {
+        INFO("setting LIBVA_DRIVER_NAME to wrapper for chromeos");
+    }
+    #endif
 #endif
 
     m_VADisplay = vaGetDisplay(m_display);

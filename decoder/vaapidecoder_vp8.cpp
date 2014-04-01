@@ -231,8 +231,11 @@ bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
     // XXX, we don't support horizontal_scale or vertical_scale yet.
     // reject frames for upscale, simple accept the downscale frames
     if (m_frameWidth > m_videoFormatInfo.width
-        || m_frameHeight > m_videoFormatInfo.height)
-        return FALSE;
+        || m_frameHeight > m_videoFormatInfo.height) {
+        INFO("ignore frame size change check: current frame size: %d x %d, mVideoFormatInfo: %d x %d",
+            m_frameWidth, m_frameHeight, m_videoFormatInfo.width, m_videoFormatInfo.height);
+        // return FALSE;
+    }
 
     picParam->frame_width = m_frameWidth;
     picParam->frame_height = m_frameHeight;
@@ -469,6 +472,20 @@ void VaapiDecoderVP8::updateReferencePictures()
     if (m_frameHdr.key_frame == VP8_KEY_FRAME || m_frameHdr.refresh_last)
         replacePicture(&m_lastPicture, picture);
 
+    if (m_goldenRefPicture)
+        DEBUG("m_goldenRefPicture: %p, mSurfaceID: %x", m_goldenRefPicture, m_goldenRefPicture->mSurfaceID);
+    if (m_altRefPicture)
+        DEBUG("m_altRefPicture: %p, mSurfaceID: %x", m_altRefPicture, m_altRefPicture->mSurfaceID);
+    if (m_lastPicture)
+        DEBUG("m_lastPicture: %p, mSurfaceID: %x", m_lastPicture, m_lastPicture->mSurfaceID);
+    if (m_currentPicture)
+        DEBUG("m_currentPicture: %p, mSurfaceID: %x", m_currentPicture, m_currentPicture->mSurfaceID);
+    int i;
+    for (i=0; i<4; i++) {
+        if (m_pictures[i])
+            DEBUG("m_pictures[%d]: %p, mSurfaceID: %x", i, m_pictures[i], m_pictures[i]->mSurfaceID);
+    }
+
 }
 
 bool VaapiDecoderVP8::allocNewPicture()
@@ -485,18 +502,29 @@ bool VaapiDecoderVP8::allocNewPicture()
     VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);
 
     for (i = 0; i < VP8_MAX_PICTURE_COUNT; i++) {
-        DEBUG("m_pictures[%d] = %p", i, m_pictures[i]);
+        DEBUG("m_pictures[%d] = %p, surfaceID: %x", i, m_pictures[i], m_pictures[i] ? m_pictures[i]->mSurfaceID : VA_INVALID_SURFACE);
         if (m_pictures[i] && (m_pictures[i] == m_goldenRefPicture || m_pictures[i] == m_altRefPicture || m_pictures[i] == m_lastPicture || m_pictures[i] == m_currentPicture))  // take m_currentPicture as a buffering area
             continue;
 
-        if (m_pictures[i])
-            delete m_pictures[i];
-        m_pictures[i] = picture;
-        break;
+        if (m_pictures[i]) {
+            // XXXX, psb and i965 behave differently, small memory leak here
+            #if __PLATFORM_BYT__
+                DEBUG("Does nothing, since 1) psb video delete misc buffer automatically, 2) surface is recycled by renderDone()");
+            #else
+                delete m_pictures[i];
+            #endif
+       }
+
+       m_pictures[i] = picture;
+       break;
     }
     if (i == VP8_MAX_PICTURE_COUNT)
         return false;
     replacePicture(&m_currentPicture, picture);
+    DEBUG("i: %d, alloc new picture: %p with surface ID: %x, iq matrix buffer id: %x",
+        i, m_currentPicture,
+        m_currentPicture->mSurfaceID,
+        m_currentPicture->mIqMatrix->getID());
 
     return true;
 }
@@ -539,6 +567,7 @@ Decode_Status VaapiDecoderVP8::decodePicture()
     if (!m_currentPicture->decodePicture())
         return DECODE_FAIL;
 
+    DEBUG("VaapiDecoderVP8::decodePicture success");
     return status;
 }
 
@@ -601,7 +630,8 @@ Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
         m_hasContext = true;
     }
 
-    return DECODE_FORMAT_CHANGE;        // notify up layer for necessary re-configuration
+    // it should be a good timing to report resolution change, however, it fails on chromeos
+    return DECODE_SUCCESS; // DECODE_FORMAT_CHANGE; // notify up layer for necessary re-configuration
 }
 
 Decode_Status VaapiDecoderVP8::reset(VideoConfigBuffer * buffer)
@@ -664,6 +694,14 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
         status = getStatus(result);
         if (status != DECODE_SUCCESS) {
             break;
+        }
+
+        if (m_frameHdr.key_frame == VP8_KEY_FRAME) {
+            if (m_frameWidth != m_frameHdr.width || m_frameHeight != m_frameHdr.height) {
+                m_frameWidth  = m_frameHdr.width;
+                m_frameHeight = m_frameHdr.height;
+                return DECODE_FORMAT_CHANGE;
+            }
         }
 
         status = decodePicture();
