@@ -3,8 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libvacodec decoder part
+Name: libyami decoder part
 Description: Intel Open source decoder based on libva
 Version: 1.0.0
-Libs: -L${libdir} -lvacodec_decoder -lvacodec_common -lcodecparser
-Cflags: -I${includedir}/libvacodec_decoder
+Libs: -L${libdir} -lyami_decoder -lyami_common -lcodecparser
+Cflags: -I${includedir}/libyami_decoder

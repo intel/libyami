@@ -23,7 +23,7 @@ LOCAL_SHARED_LIBRARIES :=       \
         libva-android           \
         libva-tpi               \
         libcodecparsers         \
-        libvacodec_common        
+        libyami_common
 
 LOCAL_C_INCLUDES += \
         external/stlport/stlport \
@@ -32,7 +32,7 @@ LOCAL_C_INCLUDES += \
 
 LOCAL_SHARED_LIBRARIES += libstlport
 
-LOCAL_MODULE := libvadecoder_h264
+LOCAL_MODULE := libyami_decoder
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_SHARED_LIBRARY)

@@ -1,11 +1,11 @@
-libvacodec_common_source_c = \
+libyami_common_source_c = \
         vaapibuffer.cpp \
         vaapiimage.cpp \
         vaapisurface.cpp\
         vaapiutils.cpp \
 	$(NULL)
 
-libvacodec_common_source_h = \
+libyami_common_source_h = \
         vaapibuffer.h \
         vaapiimage.h \
         vaapisurface.h \
@@ -14,23 +14,23 @@ libvacodec_common_source_h = \
         log.h \
 	$(NULL)
 
-libvacodec_common_ldflags = \
+libyami_common_ldflags = \
 	-version-info 0:2:0  \
         $(LIBVA_LIBS) \
         $(LIBVA_DRM_LIBS) \
 	$(NULL)
 
-libvacodec_common_cppflags = \
+libyami_common_cppflags = \
         $(LIBVA_CFLAGS) \
         -fpermissive \
 	$(NULL)
 
-lib_LTLIBRARIES			 = libvacodec_common.la
-libvacodec_commonincludedir      = ${includedir}/libvacodec_common
-libvacodec_commoninclude_HEADERS = $(libvacodec_common_source_h)
-libvacodec_common_la_SOURCES	 = $(libvacodec_common_source_c)
-libvacodec_common_la_LDFLAGS	 = $(libvacodec_common_ldflags)
-libvacodec_common_la_CPPFLAGS    = $(libvacodec_common_cppflags)
+lib_LTLIBRARIES	              = libyami_common.la
+libyami_commonincludedir      = ${includedir}/libyami_common
+libyami_commoninclude_HEADERS = $(libyami_common_source_h)
+libyami_common_la_SOURCES     = $(libyami_common_source_c)
+libyami_common_la_LDFLAGS     = $(libyami_common_ldflags)
+libyami_common_la_CPPFLAGS    = $(libyami_common_cppflags)
 
 DISTCLEANFILES = \
 	Makefile.in 

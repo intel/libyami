@@ -3,7 +3,7 @@ INCLUDES = -I$(top_srcdir) \
            -I$(top_srcdir)/common \
            -I$(top_srcdir)/codecparsers 
 
-libvacodec_decoder_source_c = \
+libyami_decoder_source_c = \
         vaapipicture.cpp \
         vaapidecoder_base.cpp \
         vaapidecoder_h264.cpp \
@@ -13,13 +13,13 @@ libvacodec_decoder_source_c = \
         vaapisurfacebuf_pool.cpp \
 	$(NULL)
 
-libvacodec_decoder_source_h = \
+libyami_decoder_source_h = \
         ../interface/VideoDecoderDefs.h      \
         ../interface/VideoDecoderInterface.h \
         ../interface/VideoDecoderHost.h \
 	$(NULL)
 
-libvacodec_decoder_source_h_priv = \
+libyami_decoder_source_h_priv = \
         vaapipicture.h    \
         vaapidecoder_base.h \
         vaapidecoder_h264.h \
@@ -27,18 +27,18 @@ libvacodec_decoder_source_h_priv = \
         vaapisurfacebuf_pool.h \
 	$(NULL)
 
-libvacodec_decoder_la_LIBADD = \
-		$(top_builddir)/common/libvacodec_common.la \
+libyami_decoder_la_LIBADD = \
+		$(top_builddir)/common/libyami_common.la \
 		$(top_builddir)/codecparsers/libcodecparser.la
 
-libvacodec_decoder_ldflags = \
+libyami_decoder_ldflags = \
 	-version-info 0:2:0  \
         $(LIBVA_LIBS)        \
         $(LIBVA_X11_LIBS)    \
         -ldl                 \
         $(NULL)
 
-libvacodec_decoder_cppflags = \
+libyami_decoder_cppflags = \
         $(LIBVA_CFLAGS) \
         $(LIBVA_X11_CFLAGS) \
         $(LIBVA_DRM_CFLAGS) \
@@ -46,13 +46,13 @@ libvacodec_decoder_cppflags = \
 	$(NULL)
 
 
-lib_LTLIBRARIES			  = libvacodec_decoder.la
-libvacodec_decoderincludedir      = $(includedir)/libvacodec_decoder
-libvacodec_decoderinclude_HEADERS = $(libvacodec_decoder_source_h)
-noinst_HEADERS                   = $(libvacodec_decoder_source_h_priv)
-libvacodec_decoder_la_SOURCES	  = $(libvacodec_decoder_source_c)
-libvacodec_decoder_la_LDFLAGS	  = $(libvacodec_decoder_ldflags)
-libvacodec_decoder_la_CPPFLAGS    = $(libvacodec_decoder_cppflags)
+lib_LTLIBRARIES	               = libyami_decoder.la
+libyami_decoderincludedir      = $(includedir)/libyami_decoder
+libyami_decoderinclude_HEADERS = $(libyami_decoder_source_h)
+noinst_HEADERS                 = $(libyami_decoder_source_h_priv)
+libyami_decoder_la_SOURCES     = $(libyami_decoder_source_c)
+libyami_decoder_la_LDFLAGS     = $(libyami_decoder_ldflags)
+libyami_decoder_la_CPPFLAGS    = $(libyami_decoder_cppflags)
 
 DISTCLEANFILES = \
 	Makefile.in 

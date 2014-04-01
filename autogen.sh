@@ -1,5 +1,5 @@
 
-PROJECT="libvacodec"
+PROJECT="libyami"
 
 test -n "$srcdir" || srcdir="`dirname \"$0\"`"
 test -n "$srcdir" || srcdir=.

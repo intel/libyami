@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.68])
-AC_INIT([libvacodec], [0.2.0], [xiaowei.a.li@intel.com])
+AC_INIT([libyami], [0.2.0], [xiaowei.a.li@intel.com])
 AC_CONFIG_SRCDIR([common/vaapitypes.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -78,7 +78,7 @@ AC_CONFIG_FILES([Makefile
 
 AC_OUTPUT([
          pkgconfig/libcodecparser.pc
-         pkgconfig/libvacodec_common.pc
-         pkgconfig/libvacodec_decoder.pc
+         pkgconfig/libyami_common.pc
+         pkgconfig/libyami_decoder.pc
 ])
 

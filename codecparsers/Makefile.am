@@ -36,9 +36,9 @@ libcodecparser_ldflags = \
 	$(NULL)
 
 libcodecparser_cppflags = \
-   -Dvp8_norm=libvacodec_vp8_norm \
-   -Dvp8dx_start_decode=libvacodec_vp8dx_start_decode \
-   -Dvp8dx_bool_decoder_fill=libvacodec_vp8dx_bool_decoder_fill
+   -Dvp8_norm=libyami_vp8_norm \
+   -Dvp8dx_start_decode=libyami_vp8dx_start_decode \
+   -Dvp8dx_bool_decoder_fill=libyami_vp8dx_bool_decoder_fill
 	$(NULL)
 
 lib_LTLIBRARIES			= libcodecparser.la

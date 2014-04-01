@@ -1,7 +1,7 @@
 pkg_config_files = \
 	libcodecparser.pc \
-	libvacodec_common.pc \
-	libvacodec_decoder.pc \
+	libyami_common.pc \
+	libyami_decoder.pc \
 	$(NULL)
 
 pkgconfigdir = @pkgconfigdir@

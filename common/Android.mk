@@ -20,7 +20,7 @@ LOCAL_SHARED_LIBRARIES :=       \
         libva-android           \
         libva-tpi               \
 
-LOCAL_MODULE := libvacodec_common
+LOCAL_MODULE := libyami_common
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_SHARED_LIBRARY)
