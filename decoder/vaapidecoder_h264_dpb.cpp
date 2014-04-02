@@ -815,7 +815,7 @@ void VaapiDPBManager::execPictureRefsModification1(VaapiPictureH264 *
 
     if (list == 0) {
         refPicListModification =
-            sliceHdr->ref_pic_list_modification_flag_l0;
+            sliceHdr->ref_pic_list_modification_l0;
         numRefPicListModifications =
             sliceHdr->n_ref_pic_list_modification_l0;
         refList = DPBLayer->refPicList0;
@@ -823,7 +823,7 @@ void VaapiDPBManager::execPictureRefsModification1(VaapiPictureH264 *
         numRefs = sliceHdr->num_ref_idx_l0_active_minus1 + 1;
     } else {
         refPicListModification =
-            sliceHdr->ref_pic_list_modification_flag_l1;
+            sliceHdr->ref_pic_list_modification_l1;
         numRefPicListModifications =
             sliceHdr->n_ref_pic_list_modification_l1;
         refList = DPBLayer->refPicList1;
