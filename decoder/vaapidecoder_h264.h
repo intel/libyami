@@ -240,7 +240,7 @@ class VaapiDecoderH264:public VaapiDecoderBase {
     bool fillRefPicList(VaapiSliceH264 * slice);
     bool fillSlice(VaapiSliceH264 * slice, H264NalUnit * nalu);
     /* check the context reset senerios */
-    Decode_Status ensureContext(H264SPS * sps);
+    Decode_Status ensureContext(H264PPS * pps);
     /* decoding functions */
     bool isNewPicture(H264NalUnit * nalu, H264SliceHdr * sliceHdr);
 

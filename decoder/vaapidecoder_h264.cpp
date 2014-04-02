@@ -49,15 +49,20 @@ static Decode_Status getStatus(H264ParserResult result)
     return status;
 }
 
-static VAProfile getH264VAProfile(H264SPS * sps)
+static VAProfile getH264VAProfile(H264PPS * pps)
 {
-    VAProfile profile;
+    VAProfile profile = VAProfileH264High;
+    H264SPS *const sps = pps->sequence;
 
     switch (sps->profile_idc) {
     case 66:
-	profile = VAProfileH264Baseline;
-	break;
+        if (sps->constraint_set1_flag ||
+             (pps->num_slice_groups_minus1 == 0 &&
+              !pps->redundant_pic_cnt_present_flag))
+	profile = VAProfileH264ConstrainedBaseline;
+    break;
     case 77:
+    case 88:
 	profile = VAProfileH264Main;
 	break;
     case 100:
@@ -994,8 +999,9 @@ bool VaapiDecoderH264::fillSlice(VaapiSliceH264 * slice,
     return true;
 }
 
-Decode_Status VaapiDecoderH264::ensureContext(H264SPS * sps)
+Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
 {
+    H264SPS *const sps = pps->sequence;
     VAProfile parsedProfile;
     VaapiChromaType parsedChroma;
     uint32_t mbWidth, mbHeight;
@@ -1010,7 +1016,7 @@ Decode_Status VaapiDecoderH264::ensureContext(H264SPS * sps)
     }
 
     VideoConfigBuffer *config = &m_configBuffer;
-    parsedProfile = getH264VAProfile(sps);
+    parsedProfile = getH264VAProfile(pps);
     if (parsedProfile != m_configBuffer.profile) {
 	DEBUG("H264: profile changed: old = %d, new = %d, \n",
 	      m_configBuffer.profile, parsedProfile);
@@ -1199,7 +1205,7 @@ Decode_Status VaapiDecoderH264::decodeCurrentPicture()
     if (!m_currentPicture)
 	return DECODE_SUCCESS;
 
-    status = ensureContext(m_currentPicture->m_pps->sequence);
+    status = ensureContext(m_currentPicture->m_pps);
     if (status != DECODE_SUCCESS)
 	return status;
 
@@ -1288,7 +1294,7 @@ Decode_Status VaapiDecoderH264::decodeSlice(H264NalUnit * nalu)
     }
 
     /* check info and reset VA resource if necessary */
-    status = ensureContext(tmpSliceHdr.pps->sequence);
+    status = ensureContext(tmpSliceHdr.pps);
     if (status != DECODE_SUCCESS)
 	return status;
 
