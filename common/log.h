@@ -41,7 +41,7 @@
 }while (0)
 #endif
 
-#else				//__ENABLE_DEBUG__
+#else                           //__ENABLE_DEBUG__
 #ifndef INFO
 #define INFO(format, ...)
 #endif
@@ -53,9 +53,9 @@
 #ifndef DEBUG
 #define DEBUG(format, ...)
 #endif
-#endif				//__ENABLE_DEBUG__
+#endif                          //__ENABLE_DEBUG__
 
-#endif				//__ANDROID
+#endif                          //__ANDROID
 
 #ifndef RETURN_IF_FAIL
 #define RETURN_IF_FAIL(condition, val) \
@@ -68,8 +68,8 @@ do{ \
 static inline bool checkVaapiStatus(VAStatus status, const char *msg)
 {
     if (status != VA_STATUS_SUCCESS) {
-	ERROR("%s: %s", msg, vaErrorStr(status));
-	return false;
+        ERROR("%s: %s", msg, vaErrorStr(status));
+        return false;
     }
     return true;
 }

@@ -25,10 +25,11 @@
 
 /* picture class implementation */
 VaapiPicture::VaapiPicture(VADisplay display,
-			   VAContextID context,
-			   VaapiSurfaceBufferPool * surfBufPool,
-			   VaapiPictureStructure structure)
+                           VAContextID context,
+                           VaapiSurfaceBufferPool * surfBufPool,
+                           VaapiPictureStructure structure)
 :
+
 
 m_display(display), m_context(context),
 m_surfBufPool(surfBufPool), m_picStructure(structure)
@@ -46,11 +47,11 @@ m_surfBufPool(surfBufPool), m_picStructure(structure)
     m_surfaceID = 0;
 
     if (m_surfBufPool) {
-	m_surfBuf = m_surfBufPool->acquireFreeBufferWithWait();
-	if (m_surfBuf) {
-	    m_surfaceID = m_surfBuf->renderBuffer.surface;
-	} else
-	    ERROR("VaapiPicture: acquire surface fail");
+        m_surfBuf = m_surfBufPool->acquireFreeBufferWithWait();
+        if (m_surfBuf) {
+            m_surfaceID = m_surfBuf->renderBuffer.surface;
+        } else
+            ERROR("VaapiPicture: acquire surface fail");
     }
 }
 
@@ -59,38 +60,38 @@ VaapiPicture::~VaapiPicture()
     vector < VaapiSlice * >::iterator iter;
 
     if (m_picParam) {
-	delete m_picParam;
-	m_picParam = NULL;
+        delete m_picParam;
+        m_picParam = NULL;
     }
 
     if (m_iqMatrix) {
-	delete m_iqMatrix;
-	m_iqMatrix = NULL;
+        delete m_iqMatrix;
+        m_iqMatrix = NULL;
     }
 
     if (m_bitPlane) {
-	delete m_bitPlane;
-	m_bitPlane = NULL;
+        delete m_bitPlane;
+        m_bitPlane = NULL;
     }
 
     if (m_hufTable) {
-	delete m_hufTable;
-	m_hufTable = NULL;
+        delete m_hufTable;
+        m_hufTable = NULL;
     }
 
     if (m_probTable) {
-	delete m_probTable;
-	m_probTable = NULL;
+        delete m_probTable;
+        m_probTable = NULL;
     }
 
     for (iter = m_sliceArray.begin(); iter != m_sliceArray.end(); iter++)
-	delete *iter;
+        delete *iter;
     //m_sliceArray.clear();
 
     // XXX, has the surface been rendered?
     if (m_surfBufPool && m_surfBuf) {
-	m_surfBufPool->recycleBuffer(m_surfBuf, false);
-	m_surfBuf = NULL;
+        m_surfBufPool->recycleBuffer(m_surfBuf, false);
+        m_surfBuf = NULL;
     }
 
 }
@@ -116,64 +117,64 @@ bool VaapiPicture::decodePicture()
 
     status = vaBeginPicture(m_display, m_context, m_surfaceID);
     if (!checkVaapiStatus(status, "vaBeginPicture()"))
-	return false;
+        return false;
 
     if (m_picParam) {
-	bufferID = m_picParam->getID();
-	status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-	if (!checkVaapiStatus
-	    (status, "vaRenderPicture(), render pic param"))
-	    return false;
+        bufferID = m_picParam->getID();
+        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
+        if (!checkVaapiStatus
+            (status, "vaRenderPicture(), render pic param"))
+            return false;
     }
 
     if (m_iqMatrix) {
-	bufferID = m_iqMatrix->getID();
-	status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-	if (!checkVaapiStatus
-	    (status, "vaRenderPicture(), render IQ matrix"))
-	    return false;
+        bufferID = m_iqMatrix->getID();
+        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
+        if (!checkVaapiStatus
+            (status, "vaRenderPicture(), render IQ matrix"))
+            return false;
     }
 
     if (m_probTable) {
-	bufferID = m_probTable->getID();
-	status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-	if (!checkVaapiStatus
-	    (status, "vaRenderPicture(), render probability table"))
-	    return false;
+        bufferID = m_probTable->getID();
+        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
+        if (!checkVaapiStatus
+            (status, "vaRenderPicture(), render probability table"))
+            return false;
     }
 
     if (m_bitPlane) {
-	bufferID = m_bitPlane->getID();
-	status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-	if (!checkVaapiStatus
-	    (status, "vaRenderPicture(), render bit plane"))
-	    return false;
+        bufferID = m_bitPlane->getID();
+        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
+        if (!checkVaapiStatus
+            (status, "vaRenderPicture(), render bit plane"))
+            return false;
     }
 
     if (m_hufTable) {
-	bufferID = m_hufTable->getID();
-	status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-	if (!checkVaapiStatus
-	    (status, "vaRenderPicture(), render huf table"))
-	    return false;
+        bufferID = m_hufTable->getID();
+        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
+        if (!checkVaapiStatus
+            (status, "vaRenderPicture(), render huf table"))
+            return false;
     }
 
     for (iter = m_sliceArray.begin(); iter != m_sliceArray.end(); iter++) {
-	VaapiBufObject *paramBuf = (*iter)->m_param;
-	VaapiBufObject *dataBuf = (*iter)->m_data;
-	VABufferID vaBuffers[2];
+        VaapiBufObject *paramBuf = (*iter)->m_param;
+        VaapiBufObject *dataBuf = (*iter)->m_data;
+        VABufferID vaBuffers[2];
 
-	vaBuffers[0] = paramBuf->getID();
-	vaBuffers[1] = dataBuf->getID();
+        vaBuffers[0] = paramBuf->getID();
+        vaBuffers[1] = dataBuf->getID();
 
-	status = vaRenderPicture(m_display, m_context, vaBuffers, 2);
-	if (!checkVaapiStatus(status, "vaRenderPicture()"))
-	    return false;
+        status = vaRenderPicture(m_display, m_context, vaBuffers, 2);
+        if (!checkVaapiStatus(status, "vaRenderPicture()"))
+            return false;
     }
 
     status = vaEndPicture(m_display, m_context);
     if (!checkVaapiStatus(status, "vaEndPicture()"))
-	return false;
+        return false;
     return true;
 }
 
@@ -183,18 +184,18 @@ bool VaapiPicture::output()
     bool usedAsReference = false;
 
     if (!m_surfBufPool || !m_surfBuf) {
-	ERROR("no surface buffer pool ");
-	return false;
+        ERROR("no surface buffer pool ");
+        return false;
     }
 
     if (m_type == VAAPI_PICTURE_TYPE_I || m_type == VAAPI_PICTURE_TYPE_P)
-	isReferenceFrame = true;
+        isReferenceFrame = true;
 
     if (m_flags & VAAPI_PICTURE_FLAG_REFERENCE)
-	usedAsReference = true;
+        usedAsReference = true;
 
     m_surfBufPool->setReferenceInfo(m_surfBuf, isReferenceFrame,
-				    usedAsReference);
+                                    usedAsReference);
 
     return m_surfBufPool->outputBuffer(m_surfBuf, m_timeStamp, m_POC);
 }

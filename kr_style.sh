@@ -28,11 +28,11 @@
 # -ncdb : --no-comments-delimiters-on-blank-lines
 # -ce   : --cuddle-else
 # -ci4  : --continuation-indentation4
-# cli0  : --case-indentation0
+# -cli0 : --case-indentation0
 # -cp33 : --else-endif-column33
 # -cs   : --space-after-cast
-# -d0   : --line-comments-indentation
-# -di1  : --declaration-indentation
+# -d0   : --line-comments-indentation0
+# -di1  : --declaration-indentation1
 # -nfc1 : --dont-format-first-column-comments
 # -nfca : --dont-format-comments
 # -hnl  : --honour-newlines
@@ -74,8 +74,11 @@ case `$INDENT --version` in
       ;;
 esac
 
-# Convert code indent style
-INDENT_PARAMETERS="-kr"
+# Convert code indent style and remove tabs
+INDENT_PARAMETERS="-kr \
+                   --no-tabs \
+                   --tab-size4"
+
 echo "Convert code to Kernighan & Ritchie style: "
 for file in `find $1 -name "*.[hc]*"`; do
    echo "processing file : $file"

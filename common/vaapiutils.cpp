@@ -41,8 +41,8 @@ void *vaapiMapBuffer(VADisplay dpy, VABufferID bufId)
     status = vaMapBuffer(dpy, bufId, &data);
 
     if (!checkVaapiStatus(status, "vaMapBuffer()")) {
-	ERROR("fail to map bufId = %x", bufId);
-	return NULL;
+        ERROR("fail to map bufId = %x", bufId);
+        return NULL;
     }
 
     return data;
@@ -54,37 +54,37 @@ void vaapiUnmapBuffer(VADisplay dpy, VABufferID bufId, void **pbuf)
     VAStatus status;
 
     if (pbuf)
-	*pbuf = NULL;
+        *pbuf = NULL;
 
     status = vaUnmapBuffer(dpy, bufId);
     if (!checkVaapiStatus(status, "vaUnmapBuffer()"))
-	return;
+        return;
 }
 
 /* Creates and maps VA buffer */
 bool
 vaapiCreateBuffer(VADisplay dpy,
-		  VAContextID ctx,
-		  int type,
-		  uint32_t size,
-		  const void *buf,
-		  VABufferID * bufIdPtr, void **mappedData)
+                  VAContextID ctx,
+                  int type,
+                  uint32_t size,
+                  const void *buf,
+                  VABufferID * bufIdPtr, void **mappedData)
 {
     VABufferID bufId;
     VAStatus status;
     void *data = (void *) buf;
 
     status =
-	vaCreateBuffer(dpy, ctx, (VABufferType) type, size, 1, data,
-		       &bufId);
+        vaCreateBuffer(dpy, ctx, (VABufferType) type, size, 1, data,
+                       &bufId);
     if (!checkVaapiStatus(status, "vaCreateBuffer()"))
-	return false;
+        return false;
 
     if (mappedData) {
-	data = vaapiMapBuffer(dpy, bufId);
-	if (!data)
-	    goto error;
-	*mappedData = data;
+        data = vaapiMapBuffer(dpy, bufId);
+        if (!data)
+            goto error;
+        *mappedData = data;
     }
 
     *bufIdPtr = bufId;
@@ -99,7 +99,7 @@ vaapiCreateBuffer(VADisplay dpy,
 void vaapiDestroyBuffer(VADisplay dpy, VABufferID * bufIdPtr)
 {
     if (!bufIdPtr || *bufIdPtr == VA_INVALID_ID)
-	return;
+        return;
 
     vaDestroyBuffer(dpy, *bufIdPtr);
     *bufIdPtr = VA_INVALID_ID;
@@ -111,25 +111,25 @@ const char *stringOfVAProfile(VAProfile profile)
     switch (profile) {
 #define MAP(profile) \
         STRCASEP(VAProfile, profile)
-	MAP(MPEG2Simple);
-	MAP(MPEG2Main);
-	MAP(MPEG4Simple);
-	MAP(MPEG4AdvancedSimple);
-	MAP(MPEG4Main);
+        MAP(MPEG2Simple);
+        MAP(MPEG2Main);
+        MAP(MPEG4Simple);
+        MAP(MPEG4AdvancedSimple);
+        MAP(MPEG4Main);
 #if VA_CHECK_VERSION(0,32,0)
-	MAP(JPEGBaseline);
-	MAP(H263Baseline);
-	MAP(H264ConstrainedBaseline);
+        MAP(JPEGBaseline);
+        MAP(H263Baseline);
+        MAP(H264ConstrainedBaseline);
 #endif
-	MAP(H264Baseline);
-	MAP(H264Main);
-	MAP(H264High);
-	MAP(VC1Simple);
-	MAP(VC1Main);
-	MAP(VC1Advanced);
+        MAP(H264Baseline);
+        MAP(H264Main);
+        MAP(H264High);
+        MAP(VC1Simple);
+        MAP(VC1Main);
+        MAP(VC1Advanced);
 #undef MAP
     default:
-	break;
+        break;
     }
     return "<unknown>";
 }
@@ -140,14 +140,14 @@ const char *stringOfVAEntrypoint(VAEntrypoint entrypoint)
     switch (entrypoint) {
 #define MAP(entrypoint) \
         STRCASEP(VAEntrypoint, entrypoint)
-	MAP(VLD);
-	MAP(IZZ);
-	MAP(IDCT);
-	MAP(MoComp);
-	MAP(Deblocking);
+        MAP(VLD);
+        MAP(IZZ);
+        MAP(IDCT);
+        MAP(MoComp);
+        MAP(Deblocking);
 #undef MAP
     default:
-	break;
+        break;
     }
     return "<unknown>";
 }
@@ -165,19 +165,19 @@ uint32_t fromVaapiSurfaceRenderFlags(uint32_t flags)
     uint32_t va_fields = 0, va_csc = 0;
 
     if (flags & VAAPI_PICTURE_STRUCTURE_TOP_FIELD)
-	va_fields |= VA_TOP_FIELD;
+        va_fields |= VA_TOP_FIELD;
     if (flags & VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD)
-	va_fields |= VA_BOTTOM_FIELD;
+        va_fields |= VA_BOTTOM_FIELD;
     if ((va_fields ^ (VA_TOP_FIELD | VA_BOTTOM_FIELD)) == 0)
-	va_fields = VA_FRAME_PICTURE;
+        va_fields = VA_FRAME_PICTURE;
 
 #ifdef VA_SRC_BT601
     if (flags & VAAPI_COLOR_STANDARD_ITUR_BT_601)
-	va_csc = VA_SRC_BT601;
+        va_csc = VA_SRC_BT601;
 #endif
 #ifdef VA_SRC_BT709
     if (flags & VAAPI_COLOR_STANDARD_ITUR_BT_709)
-	va_csc = VA_SRC_BT709;
+        va_csc = VA_SRC_BT709;
 #endif
 
     return va_fields | va_csc;
@@ -197,29 +197,29 @@ uint32_t toVaapiSurfaceStatus(uint32_t vaFlags)
 {
     uint32_t flags;
     const uint32_t vaFlagsMask = (VASurfaceReady |
-				  VASurfaceRendering |
-				  VASurfaceDisplaying);
+                                  VASurfaceRendering |
+                                  VASurfaceDisplaying);
 
     /* Check for core status */
     switch (vaFlags & vaFlagsMask) {
     case VASurfaceReady:
-	flags = VAAPI_SURFACE_STATUS_IDLE;
-	break;
+        flags = VAAPI_SURFACE_STATUS_IDLE;
+        break;
     case VASurfaceRendering:
-	flags = VAAPI_SURFACE_STATUS_RENDERING;
-	break;
+        flags = VAAPI_SURFACE_STATUS_RENDERING;
+        break;
     case VASurfaceDisplaying:
-	flags = VAAPI_SURFACE_STATUS_DISPLAYING;
-	break;
+        flags = VAAPI_SURFACE_STATUS_DISPLAYING;
+        break;
     default:
-	flags = 0;
-	break;
+        flags = 0;
+        break;
     }
 
     /* Check for encoder status */
 #if VA_CHECK_VERSION(0,30,0)
     if (vaFlags & VASurfaceSkipped)
-	flags |= VAAPI_SURFACE_STATUS_SKIPPED;
+        flags |= VAAPI_SURFACE_STATUS_SKIPPED;
 #endif
     return flags;
 }
@@ -229,13 +229,13 @@ uint32_t fromVaapiRotation(uint32_t value)
 {
     switch (value) {
     case VAAPI_ROTATION_0:
-	return VA_ROTATION_NONE;
+        return VA_ROTATION_NONE;
     case VAAPI_ROTATION_90:
-	return VA_ROTATION_90;
+        return VA_ROTATION_90;
     case VAAPI_ROTATION_180:
-	return VA_ROTATION_180;
+        return VA_ROTATION_180;
     case VAAPI_ROTATION_270:
-	return VA_ROTATION_270;
+        return VA_ROTATION_270;
     }
     ERROR("unsupported VaapiRotation value %d", value);
     return VA_ROTATION_NONE;
@@ -246,13 +246,13 @@ uint32_t toVaapiRotation(uint32_t value)
 {
     switch (value) {
     case VA_ROTATION_NONE:
-	return VAAPI_ROTATION_0;
+        return VAAPI_ROTATION_0;
     case VA_ROTATION_90:
-	return VAAPI_ROTATION_90;
+        return VAAPI_ROTATION_90;
     case VA_ROTATION_180:
-	return VAAPI_ROTATION_180;
+        return VAAPI_ROTATION_180;
     case VA_ROTATION_270:
-	return VAAPI_ROTATION_270;
+        return VAAPI_ROTATION_270;
     }
     ERROR("unsupported VA-API rotation value %d", value);
     return VAAPI_ROTATION_0;

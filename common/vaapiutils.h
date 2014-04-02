@@ -34,10 +34,10 @@ void vaapiUnmapBuffer(VADisplay dpy, VABufferID bufId, void **pbuf);
 
 bool
 vaapiCreateBuffer(VADisplay dpy,
-		  VAContextID ctx,
-		  int type,
-		  unsigned int size,
-		  const void *data, VABufferID * bufId, void **mappedData);
+                  VAContextID ctx,
+                  int type,
+                  unsigned int size,
+                  const void *data, VABufferID * bufId, void **mappedData);
 
 void vaapiDestroyBuffer(VADisplay dpy, VABufferID * bufId);
 
@@ -53,4 +53,4 @@ uint32_t fromVaapiRotation(uint32_t value);
 
 uint32_t toVaapiRotation(uint32_t value);
 
-#endif				/* vaapiutils_h */
+#endif                          /* vaapiutils_h */

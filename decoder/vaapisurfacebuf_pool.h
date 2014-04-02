@@ -50,9 +50,9 @@ class VaapiSurfaceBufferPool {
     VideoSurfaceBuffer *getBufferByIndex(uint32_t index);
     VaapiSurface *getVaapiSurface(VideoSurfaceBuffer * buf);
     bool outputBuffer(VideoSurfaceBuffer * buf,
-		      uint64_t timeStamp, uint32_t poc);
+                      uint64_t timeStamp, uint32_t poc);
     bool setReferenceInfo(VideoSurfaceBuffer * buf,
-			  bool referenceFrame, bool asReference);
+                          bool referenceFrame, bool asReference);
 
   private:
     void mapSurfaceBuffers();

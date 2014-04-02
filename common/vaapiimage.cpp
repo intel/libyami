@@ -28,15 +28,15 @@ const VAImageFormat *VaapiImage::getVaFormat(VaapiImageFormat format)
 {
     const VaapiImageFormatMap *map = NULL;
     for (map = vaapiImageFormats; map->format; map++) {
-	if (map->format == format)
-	    return &map->vaFormat;
+        if (map->format == format)
+            return &map->vaFormat;
     }
     return NULL;
 }
 
 VaapiImage::VaapiImage(VADisplay display,
-		       VaapiImageFormat format,
-		       uint32_t width, uint32_t height)
+                       VaapiImageFormat format,
+                       uint32_t width, uint32_t height)
 {
     VAStatus status;
     VAImageFormat *vaFormat;
@@ -49,17 +49,17 @@ VaapiImage::VaapiImage(VADisplay display,
 
     vaFormat = (VAImageFormat *) getVaFormat(format);
     if (!vaFormat) {
-	ERROR("Create image failed, not supported fourcc");
-	return;
+        ERROR("Create image failed, not supported fourcc");
+        return;
     }
 
     status =
-	vaCreateImage(m_display, vaFormat, m_width, m_height, &m_image);
+        vaCreateImage(m_display, vaFormat, m_width, m_height, &m_image);
 
     if (status != VA_STATUS_SUCCESS ||
-	m_image.format.fourcc != vaFormat->fourcc) {
-	ERROR("Create image failed");
-	return;
+        m_image.format.fourcc != vaFormat->fourcc) {
+        ERROR("Create image failed");
+        return;
     }
 }
 
@@ -81,14 +81,14 @@ VaapiImage::~VaapiImage()
     VAStatus status;
 
     if (m_isMapped) {
-	unmap();
-	m_isMapped = false;
+        unmap();
+        m_isMapped = false;
     }
 
     status = vaDestroyImage(m_display, m_image.image_id);
 
     if (!checkVaapiStatus(status, "vaDestoryImage()"))
-	return;
+        return;
 }
 
 VaapiImageRaw *VaapiImage::map()
@@ -98,13 +98,13 @@ VaapiImageRaw *VaapiImage::map()
     VAStatus status;
 
     if (m_isMapped) {
-	return &m_rawImage;
+        return &m_rawImage;
     }
 
     status = vaMapBuffer(m_display, m_image.buf, &data);
 
     if (!checkVaapiStatus(status, "vaMapBuffer()"))
-	return NULL;
+        return NULL;
 
     m_rawImage.format = m_format;
     m_rawImage.width = m_width;
@@ -113,9 +113,9 @@ VaapiImageRaw *VaapiImage::map()
     m_rawImage.size = m_image.data_size;
 
     for (i = 0; i < m_image.num_planes; i++) {
-	m_rawImage.pixels[i] =
-	    (uint8_t *) ((uint32_t) data + m_image.offsets[i]);
-	m_rawImage.strides[i] = m_image.pitches[i];
+        m_rawImage.pixels[i] =
+            (uint8_t *) ((uint32_t) data + m_image.offsets[i]);
+        m_rawImage.strides[i] = m_image.pitches[i];
     }
     m_isMapped = true;
 
@@ -127,11 +127,11 @@ bool VaapiImage::unmap()
     VAStatus status;
 
     if (!m_isMapped)
-	return true;
+        return true;
 
     status = vaUnmapBuffer(m_display, m_image.buf);
     if (!checkVaapiStatus(status, "vaUnmapBuffer()"))
-	return false;
+        return false;
 
     m_isMapped = false;
 

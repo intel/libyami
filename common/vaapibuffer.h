@@ -27,8 +27,8 @@
 class VaapiBufObject {
   public:
     VaapiBufObject(VADisplay display,
-		   VAContextID context,
-		   uint32_t bufType, void *param, uint32_t size);
+                   VAContextID context,
+                   uint32_t bufType, void *param, uint32_t size);
     ~VaapiBufObject();
     VABufferID getID();
     uint32_t getSize();
@@ -42,4 +42,4 @@ class VaapiBufObject {
     uint32_t m_size;
 };
 
-#endif				/* VAAPI_CODEC_OBJECT_H */
+#endif                          /* VAAPI_CODEC_OBJECT_H */

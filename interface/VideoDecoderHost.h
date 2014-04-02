@@ -28,4 +28,4 @@
 IVideoDecoder *createVideoDecoder(const char *mimeType);
 void releaseVideoDecoder(IVideoDecoder * p);
 
-#endif				/* VIDEO_DECODER_HOST_H_ */
+#endif                          /* VIDEO_DECODER_HOST_H_ */

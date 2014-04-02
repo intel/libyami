@@ -29,46 +29,46 @@
 class IntelMetadataBuffer {
   public:
     enum IMB_Result {
-	IMB_SUCCESS = 0,
-	IMB_INVAL_PARAM = 1,
-	IMB_INVAL_BUFFER = 2,
+        IMB_SUCCESS = 0,
+        IMB_INVAL_PARAM = 1,
+        IMB_INVAL_BUFFER = 2,
     };
 
     enum MemMode {
-	MEM_MODE_MALLOC = 1,
-	MEM_MODE_CI = 2,
-	MEM_MODE_V4L2 = 4,
-	MEM_MODE_SURFACE = 8,
-	MEM_MODE_USRPTR = 16,
-	MEM_MODE_GFXHANDLE = 32,
-	MEM_MODE_KBUFHANDLE = 64,
-	MEM_MODE_ION = 128,
-	MEM_MODE_DRMPRIME = 256,
-	MEM_MODE_DRMFLINK = 512,
+        MEM_MODE_MALLOC = 1,
+        MEM_MODE_CI = 2,
+        MEM_MODE_V4L2 = 4,
+        MEM_MODE_SURFACE = 8,
+        MEM_MODE_USRPTR = 16,
+        MEM_MODE_GFXHANDLE = 32,
+        MEM_MODE_KBUFHANDLE = 64,
+        MEM_MODE_ION = 128,
+        MEM_MODE_DRMPRIME = 256,
+        MEM_MODE_DRMFLINK = 512,
     };
 
     struct ValueInfo {
-	MemMode mode;		//memory type, vasurface/malloc/gfx/ion/v4l2/ci etc
-	uint32_t handle;	//handle
-	uint32_t size;		//memory size
-	uint32_t width;		//picture width
-	uint32_t height;	//picture height
-	uint32_t lumaStride;	//picture luma stride
-	uint32_t chromStride;	//picture chrom stride
-	uint32_t format;	//color format
-	uint32_t s3dformat;	//S3D format
+        MemMode mode;           //memory type, vasurface/malloc/gfx/ion/v4l2/ci etc
+        uint32_t handle;        //handle
+        uint32_t size;          //memory size
+        uint32_t width;         //picture width
+        uint32_t height;        //picture height
+        uint32_t lumaStride;    //picture luma stride
+        uint32_t chromStride;   //picture chrom stride
+        uint32_t format;        //color format
+        uint32_t s3dformat;     //S3D format
     };
 
     enum MetadataBufferType {
-	MetadataBufferTypeCameraSource = 0,	//for CameraSource
-	MetadataBufferTypeGrallocSource = 1,	//for SurfaceMediaSource
-	MetadataBufferTypeEncoder = 2,	//for WiDi clone mode
-	MetadataBufferTypeUser = 3,	//for WiDi user mode
-	MetadataBufferTypeLast = 4,	//type number
+        MetadataBufferTypeCameraSource = 0,     //for CameraSource
+        MetadataBufferTypeGrallocSource = 1,    //for SurfaceMediaSource
+        MetadataBufferTypeEncoder = 2,  //for WiDi clone mode
+        MetadataBufferTypeUser = 3,     //for WiDi user mode
+        MetadataBufferTypeLast = 4,     //type number
     };
 
-     IntelMetadataBuffer();	//for generator
-     IntelMetadataBuffer(MetadataBufferType type, int32_t value);	//for quick generator
+     IntelMetadataBuffer();     //for generator
+     IntelMetadataBuffer(MetadataBufferType type, int32_t value);       //for quick generator
     ~IntelMetadataBuffer();
 
     IMB_Result GetType(MetadataBufferType & type);

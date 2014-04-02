@@ -32,14 +32,14 @@
 using namespace std;
 
 typedef enum {
-    VAAPI_PICTURE_TYPE_NONE = 0,	// Undefined
-    VAAPI_PICTURE_TYPE_I,	// Intra
-    VAAPI_PICTURE_TYPE_P,	// Predicted
-    VAAPI_PICTURE_TYPE_B,	// Bi-directional predicted
-    VAAPI_PICTURE_TYPE_S,	// S(GMC)-VOP (MPEG-4)
-    VAAPI_PICTURE_TYPE_SI,	// Switching Intra
-    VAAPI_PICTURE_TYPE_SP,	// Switching Predicted
-    VAAPI_PICTURE_TYPE_BI,	// BI type (VC-1)
+    VAAPI_PICTURE_TYPE_NONE = 0,        // Undefined
+    VAAPI_PICTURE_TYPE_I,       // Intra
+    VAAPI_PICTURE_TYPE_P,       // Predicted
+    VAAPI_PICTURE_TYPE_B,       // Bi-directional predicted
+    VAAPI_PICTURE_TYPE_S,       // S(GMC)-VOP (MPEG-4)
+    VAAPI_PICTURE_TYPE_SI,      // Switching Intra
+    VAAPI_PICTURE_TYPE_SP,      // Switching Predicted
+    VAAPI_PICTURE_TYPE_BI,      // BI type (VC-1)
 } VaapiPictureType;
 
 typedef enum {
@@ -93,21 +93,21 @@ typedef enum {
     VAAPI_PICTURE_STRUCTURE_TOP_FIELD = 1 << 0,
     VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD = 1 << 1,
     VAAPI_PICTURE_STRUCTURE_FRAME =
-	(VAAPI_PICTURE_STRUCTURE_TOP_FIELD |
-	 VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD),
+        (VAAPI_PICTURE_STRUCTURE_TOP_FIELD |
+         VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD),
     VAAPI_COLOR_STANDARD_ITUR_BT_601 = 1 << 2,
     VAAPI_COLOR_STANDARD_ITUR_BT_709 = 1 << 3,
     VAAPI_PICTURE_LEFT_VIEW = 1 << 4,
     VAAPI_PICTURE_RIGHT_VIEW = 1 << 5,
     VAAPI_PICTURE_MVC_VIEW =
-	(VAAPI_PICTURE_LEFT_VIEW | VAAPI_PICTURE_RIGHT_VIEW),
+        (VAAPI_PICTURE_LEFT_VIEW | VAAPI_PICTURE_RIGHT_VIEW),
     VAAPI_S3D_STRUCTURE_FRAME_PACKING = 1 << 6,
     VAAPI_S3D_STRUCTURE_TOP_ON_BOTTOM = 1 << 7,
     VAAPI_S3D_STRUCTURE_SIDE_BY_SIDE = 1 << 8,
     VAAPI_S3D_STRUCTURE_COMPOSITED =
-	(VAAPI_S3D_STRUCTURE_FRAME_PACKING |
-	 VAAPI_S3D_STRUCTURE_TOP_ON_BOTTOM |
-	 VAAPI_S3D_STRUCTURE_SIDE_BY_SIDE)
+        (VAAPI_S3D_STRUCTURE_FRAME_PACKING |
+         VAAPI_S3D_STRUCTURE_TOP_ON_BOTTOM |
+         VAAPI_S3D_STRUCTURE_SIDE_BY_SIDE)
 } VaapiPictureStructure;
 
 class VaapiSlice {
@@ -119,9 +119,9 @@ class VaapiSlice {
 class VaapiPicture {
   public:
     VaapiPicture(VADisplay display,
-		 VAContextID context,
-		 VaapiSurfaceBufferPool * surfBufPool,
-		 VaapiPictureStructure structure);
+                 VAContextID context,
+                 VaapiSurfaceBufferPool * surfBufPool,
+                 VaapiPictureStructure structure);
 
     ~VaapiPicture();
 
@@ -133,7 +133,7 @@ class VaapiPicture {
     bool output();
 
   public:
-     uint64_t m_timeStamp;
+    uint64_t m_timeStamp;
     uint32_t m_POC;
     uint32_t m_flags;
     VaapiPictureStructure m_picStructure;
@@ -149,8 +149,8 @@ class VaapiPicture {
     VideoSurfaceBuffer *m_surfBuf;
 
   private:
-     VaapiSurfaceBufferPool * m_surfBufPool;
-     vector < VaapiSlice * >m_sliceArray;
+    VaapiSurfaceBufferPool * m_surfBufPool;
+    vector < VaapiSlice * >m_sliceArray;
 };
 
 #endif

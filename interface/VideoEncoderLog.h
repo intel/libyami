@@ -75,4 +75,4 @@
         mix_errorLog("Invalid pointer\n"); \
         return ENCODE_NULL_PTR;\
     }
-#endif				/*  __VIDEO_ENCODER_LOG_H__ */
+#endif                          /*  __VIDEO_ENCODER_LOG_H__ */

@@ -30,14 +30,14 @@
 
 enum {
     VP8_EXTRA_SURFACE_NUMBER = 11,
-    VP8_MAX_PICTURE_COUNT = 5,	// XXX, 4 should be ok
+    VP8_MAX_PICTURE_COUNT = 5,  // XXX, 4 should be ok
 };
 
 class VaapiSliceVP8:public VaapiSlice {
   public:
     VaapiSliceVP8(VADisplay display,
-		  VAContextID ctx, uint8_t * sliceData,
-		  uint32_t sliceSize);
+                  VAContextID ctx, uint8_t * sliceData,
+                  uint32_t sliceSize);
 
     ~VaapiSliceVP8();
 };
@@ -45,15 +45,15 @@ class VaapiSliceVP8:public VaapiSlice {
 class VaapiPictureVP8:public VaapiPicture {
   public:
     VaapiPictureVP8(VADisplay display,
-		    VAContextID context,
-		    VaapiSurfaceBufferPool * surfBufPool,
-		    VaapiPictureStructure structure);
+                    VAContextID context,
+                    VaapiSurfaceBufferPool * surfBufPool,
+                    VaapiPictureStructure structure);
 };
 
 class VaapiDecoderVP8:public VaapiDecoderBase {
   public:
     VaapiDecoderVP8(const char *mimeType);
-     virtual ~ VaapiDecoderVP8();
+    virtual ~ VaapiDecoderVP8();
     virtual Decode_Status start(VideoConfigBuffer * buffer);
     virtual Decode_Status reset(VideoConfigBuffer * buffer);
     virtual void stop(void);
@@ -61,7 +61,7 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     virtual Decode_Status decode(VideoDecodeBuffer * buffer);
 
   private:
-     bool allocNewPicture();
+    bool allocNewPicture();
     bool fillPictureParam(VaapiPictureVP8 * picture);
     /* fill Quant matrix parameters */
     bool ensureQuantMatrix(VaapiPictureVP8 * pic);
@@ -74,7 +74,7 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     bool replacePicture(VaapiPictureVP8 ** pic1, VaapiPicture * pic2);
     void updateReferencePictures();
   private:
-     VaapiPictureVP8 * m_currentPicture;
+    VaapiPictureVP8 * m_currentPicture;
     VaapiPictureVP8 *m_lastPicture;
     VaapiPictureVP8 *m_goldenRefPicture;
     VaapiPictureVP8 *m_altRefPicture;

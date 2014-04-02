@@ -47,9 +47,9 @@ class VideoEncoderBase:IVideoEncoder {
 
 
     virtual Encode_Status getParameters(VideoParamConfigSet *
-					videoEncParams);
+                                        videoEncParams);
     virtual Encode_Status setParameters(VideoParamConfigSet *
-					videoEncParams);
+                                        videoEncParams);
     virtual Encode_Status setConfig(VideoParamConfigSet * videoEncConfig);
     virtual Encode_Status getConfig(VideoParamConfigSet * videoEncConfig);
 
@@ -57,18 +57,18 @@ class VideoEncoderBase:IVideoEncoder {
 
 
   protected:
-    virtual Encode_Status sendEncodeCommand(void) = 0;
+     virtual Encode_Status sendEncodeCommand(void) = 0;
     virtual Encode_Status derivedSetParams(VideoParamConfigSet *
-					   videoEncParams) = 0;
+                                           videoEncParams) = 0;
     virtual Encode_Status derivedGetParams(VideoParamConfigSet *
-					   videoEncParams) = 0;
+                                           videoEncParams) = 0;
     virtual Encode_Status derivedGetConfig(VideoParamConfigSet *
-					   videoEncConfig) = 0;
+                                           videoEncConfig) = 0;
     virtual Encode_Status derivedSetConfig(VideoParamConfigSet *
-					   videoEncConfig) = 0;
+                                           videoEncConfig) = 0;
 
     Encode_Status prepareForOutput(VideoEncOutputBuffer * outBuffer,
-				   bool * useLocalBuffer);
+                                   bool * useLocalBuffer);
     Encode_Status cleanupForOutput();
     Encode_Status outputAllData(VideoEncOutputBuffer * outBuffer);
     Encode_Status renderDynamicFrameRate();
@@ -77,25 +77,25 @@ class VideoEncoderBase:IVideoEncoder {
   private:
     void setDefaultParams(void);
     Encode_Status setUpstreamBuffer(VideoBufferSharingMode bufferMode,
-				    uint32_t * bufList, uint32_t bufCnt);
+                                    uint32_t * bufList, uint32_t bufCnt);
     Encode_Status getNewUsrptrFromSurface(uint32_t width, uint32_t height,
-					  uint32_t format,
-					  uint32_t expectedSize,
-					  uint32_t * outsize,
-					  uint32_t * stride,
-					  uint8_t ** usrptr);
+                                          uint32_t format,
+                                          uint32_t expectedSize,
+                                          uint32_t * outsize,
+                                          uint32_t * stride,
+                                          uint8_t ** usrptr);
 
     VideoEncSurfaceBuffer *appendVideoSurfaceBuffer(VideoEncSurfaceBuffer *
-						    head,
-						    VideoEncSurfaceBuffer *
-						    buffer);
+                                                    head,
+                                                    VideoEncSurfaceBuffer *
+                                                    buffer);
     VideoEncSurfaceBuffer *removeVideoSurfaceBuffer(VideoEncSurfaceBuffer *
-						    head,
-						    VideoEncSurfaceBuffer *
-						    buffer);
-    VideoEncSurfaceBuffer
-	*getVideoSurfaceBufferByIndex(VideoEncSurfaceBuffer * head,
-				      uint32_t index);
+                                                    head,
+                                                    VideoEncSurfaceBuffer *
+                                                    buffer);
+     VideoEncSurfaceBuffer
+        * getVideoSurfaceBufferByIndex(VideoEncSurfaceBuffer * head,
+                                       uint32_t index);
 
     Encode_Status manageSrcSurface(VideoEncRawBuffer * inBuffer);
     void updateProperities(void);
@@ -103,7 +103,6 @@ class VideoEncoderBase:IVideoEncoder {
     Encode_Status uploadDataToSurface(VideoEncRawBuffer * inBuffer);
 
   protected:
-
     bool mInitialized;
     VADisplay mVADisplay;
     VAContextID mVAContext;
@@ -125,7 +124,7 @@ class VideoEncoderBase:IVideoEncoder {
     bool mNewHeader;
     bool mFirstFrame;
 
-    bool mRenderMSS;		//Max Slice Size
+    bool mRenderMSS;            //Max Slice Size
     bool mRenderQP;
     bool mRenderAIR;
     bool mRenderFrameRate;
@@ -146,10 +145,10 @@ class VideoEncoderBase:IVideoEncoder {
     uint8_t **mUsrPtr;
 
     VideoEncSurfaceBuffer *mVideoSrcBufferList;
-    VideoEncSurfaceBuffer *mCurFrame;	//current input frame to be encoded;
-    VideoEncSurfaceBuffer *mRefFrame;	//reference frame
-    VideoEncSurfaceBuffer *mRecFrame;	//reconstructed frame;
-    VideoEncSurfaceBuffer *mLastFrame;	//last frame;
+    VideoEncSurfaceBuffer *mCurFrame;   //current input frame to be encoded;
+    VideoEncSurfaceBuffer *mRefFrame;   //reference frame
+    VideoEncSurfaceBuffer *mRecFrame;   //reconstructed frame;
+    VideoEncSurfaceBuffer *mLastFrame;  //last frame;
 
     VideoEncRawBuffer *mLastInputRawBuffer;
 
@@ -166,4 +165,4 @@ class VideoEncoderBase:IVideoEncoder {
     bool mKeyFrame;
 };
 
-#endif				/* __MIX_VIDEO_ENC_BASE_H__ */
+#endif                          /* __MIX_VIDEO_ENC_BASE_H__ */

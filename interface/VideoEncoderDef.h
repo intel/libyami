@@ -45,13 +45,13 @@ enum {
     ENCODE_SUCCESS = 0,
     ENCODE_ALREADY_INIT = 1,
     ENCODE_SLICESIZE_OVERFLOW = 2,
-    ENCODE_BUFFER_TOO_SMALL = 3	// The buffer passed to encode is too small to contain encoded data
+    ENCODE_BUFFER_TOO_SMALL = 3 // The buffer passed to encode is too small to contain encoded data
 };
 
 enum VideoOutputFormat {
-    OUTPUT_EVERYTHING = 0,	//Output whatever driver generates
+    OUTPUT_EVERYTHING = 0,      //Output whatever driver generates
     OUTPUT_CODEC_DATA = 1,
-    OUTPUT_FRAME_DATA = 2,	//Equal to OUTPUT_EVERYTHING when no header along with the frame data
+    OUTPUT_FRAME_DATA = 2,      //Equal to OUTPUT_EVERYTHING when no header along with the frame data
     OUTPUT_ONE_NAL = 4,
     OUTPUT_ONE_NAL_WITHOUT_STARTCODE = 8,
     OUTPUT_LENGTH_PREFIXED = 16,
@@ -98,15 +98,15 @@ enum AVCDelimiterType {
 };
 
 enum VideoIntraRefreshType {
-    VIDEO_ENC_NONIR,		// Non intra refresh
-    VIDEO_ENC_CIR,		// Cyclic intra refresh
-    VIDEO_ENC_AIR,		// Adaptive intra refresh
+    VIDEO_ENC_NONIR,            // Non intra refresh
+    VIDEO_ENC_CIR,              // Cyclic intra refresh
+    VIDEO_ENC_AIR,              // Adaptive intra refresh
     VIDEO_ENC_BOTH,
     VIDEO_ENC_LAST
 };
 
 enum VideoBufferSharingMode {
-    BUFFER_SHARING_NONE = 1,	//Means non shared buffer mode
+    BUFFER_SHARING_NONE = 1,    //Means non shared buffer mode
     BUFFER_SHARING_CI = 2,
     BUFFER_SHARING_V4L2 = 4,
     BUFFER_SHARING_SURFACE = 8,
@@ -127,14 +127,14 @@ enum VideoBufferSharingMode {
 
 struct VideoEncOutputBuffer {
     uint8_t *data;
-    uint32_t bufferSize;	//buffer size
-    uint32_t dataSize;		//actuall size
+    uint32_t bufferSize;        //buffer size
+    uint32_t dataSize;          //actuall size
     uint32_t remainingSize;
-    int flag;			//Key frame, Codec Data etc
-    VideoOutputFormat format;	//output format
-    uint64_t timeStamp;		//reserved
+    int flag;                   //Key frame, Codec Data etc
+    VideoOutputFormat format;   //output format
+    uint64_t timeStamp;         //reserved
 
-    VideoEncOutputBuffer():data(0), bufferSize(0), dataSize(0)
+     VideoEncOutputBuffer():data(0), bufferSize(0), dataSize(0)
     , remainingSize(0), flag(0), format(OUTPUT_BUFFER_LAST), timeStamp(0) {
     };
 };
@@ -142,11 +142,11 @@ struct VideoEncOutputBuffer {
 struct VideoEncRawBuffer {
     uint8_t *data;
     uint32_t size;
-    bool bufAvailable;		//To indicate whether this buffer can be reused
-    uint64_t timeStamp;		//reserved
+    bool bufAvailable;          //To indicate whether this buffer can be reused
+    uint64_t timeStamp;         //reserved
 
-    VideoEncRawBuffer():data(0), size(0), bufAvailable(false),
-	timeStamp(0) {
+     VideoEncRawBuffer():data(0), size(0), bufAvailable(false),
+        timeStamp(0) {
 }};
 
 struct VideoEncSurfaceBuffer {
@@ -155,7 +155,7 @@ struct VideoEncSurfaceBuffer {
     uint32_t index;
     bool bufAvailable;
     VideoEncSurfaceBuffer *next;
-    VideoEncSurfaceBuffer():surface(VA_INVALID_ID), usrptr(0)
+     VideoEncSurfaceBuffer():surface(VA_INVALID_ID), usrptr(0)
     , index(0), bufAvailable(false) {
 }};
 
@@ -164,17 +164,17 @@ struct AirParams {
     uint32_t airThreshold;
     uint32_t airAuto;
 
-    AirParams():airMBs(0), airThreshold(0), airAuto(0) {
+     AirParams():airMBs(0), airThreshold(0), airAuto(0) {
     };
 
     AirParams & operator=(const AirParams & other) {
-	if (this == &other)
-	    return *this;
+        if (this == &other)
+            return *this;
 
-	this->airMBs = other.airMBs;
-	this->airThreshold = other.airThreshold;
-	this->airAuto = other.airAuto;
-	return *this;
+        this->airMBs = other.airMBs;
+        this->airThreshold = other.airThreshold;
+        this->airAuto = other.airAuto;
+        return *this;
     }
 };
 
@@ -182,16 +182,14 @@ struct VideoFrameRate {
     uint32_t frameRateNum;
     uint32_t frameRateDenom;
 
-    VideoFrameRate():frameRateNum(0), frameRateDenom(1) {
-    } 
+     VideoFrameRate():frameRateNum(0), frameRateDenom(1) {
+    } VideoFrameRate & operator=(const VideoFrameRate & other) {
+        if (this == &other)
+            return *this;
 
-    VideoFrameRate & operator=(const VideoFrameRate & other) {
-	if (this == &other)
-	    return *this;
-
-	this->frameRateNum = other.frameRateNum;
-	this->frameRateDenom = other.frameRateDenom;
-	return *this;
+        this->frameRateNum = other.frameRateNum;
+        this->frameRateDenom = other.frameRateDenom;
+        return *this;
     }
 };
 
@@ -199,16 +197,16 @@ struct VideoResolution {
     uint32_t width;
     uint32_t height;
 
-    VideoResolution():width(0), height(0) {
+     VideoResolution():width(0), height(0) {
     };
 
     VideoResolution & operator=(const VideoResolution & other) {
-	if (this == &other)
-	    return *this;
+        if (this == &other)
+            return *this;
 
-	this->width = other.width;
-	this->height = other.height;
-	return *this;
+        this->width = other.width;
+        this->height = other.height;
+        return *this;
     }
 };
 
@@ -221,24 +219,24 @@ struct VideoRateControlParams {
     uint32_t disableFrameSkip;
     uint32_t disableBitsStuffing;
 
-    VideoRateControlParams():bitRate(0), initQP(0), minQP(0)
+     VideoRateControlParams():bitRate(0), initQP(0), minQP(0)
     , windowSize(0), targetPercentage(0)
     , disableFrameSkip(0), disableBitsStuffing(0) {
     };
 
     VideoRateControlParams & operator=(const VideoRateControlParams &
-				       other) {
-	if (this == &other)
-	    return *this;
+                                       other) {
+        if (this == &other)
+            return *this;
 
-	this->bitRate = other.bitRate;
-	this->initQP = other.initQP;
-	this->minQP = other.minQP;
-	this->windowSize = other.windowSize;
-	this->targetPercentage = other.targetPercentage;
-	this->disableFrameSkip = other.disableFrameSkip;
-	this->disableBitsStuffing = other.disableBitsStuffing;
-	return *this;
+        this->bitRate = other.bitRate;
+        this->initQP = other.initQP;
+        this->minQP = other.minQP;
+        this->windowSize = other.windowSize;
+        this->targetPercentage = other.targetPercentage;
+        this->disableFrameSkip = other.disableFrameSkip;
+        this->disableBitsStuffing = other.disableBitsStuffing;
+        return *this;
     };
 };
 
@@ -246,16 +244,16 @@ struct SliceNum {
     uint32_t iSliceNum;
     uint32_t pSliceNum;
 
-    SliceNum():iSliceNum(1), pSliceNum(1) {
+     SliceNum():iSliceNum(1), pSliceNum(1) {
     };
 
     SliceNum & operator=(const SliceNum & other) {
-	if (this == &other)
-	    return *this;
+        if (this == &other)
+            return *this;
 
-	this->iSliceNum = other.iSliceNum;
-	this->pSliceNum = other.pSliceNum;
-	return *this;
+        this->iSliceNum = other.iSliceNum;
+        this->pSliceNum = other.pSliceNum;
+        return *this;
     };
 };
 
@@ -273,19 +271,19 @@ struct Cropping {
     uint32_t TopOffset;
     uint32_t BottomOffset;
 
-    Cropping():LeftOffset(0), RightOffset(0),
-	TopOffset(0), BottomOffset(0) {
+     Cropping():LeftOffset(0), RightOffset(0),
+        TopOffset(0), BottomOffset(0) {
     };
 
     Cropping & operator=(const Cropping & other) {
-	if (this == &other)
-	    return *this;
+        if (this == &other)
+            return *this;
 
-	this->LeftOffset = other.LeftOffset;
-	this->RightOffset = other.RightOffset;
-	this->TopOffset = other.TopOffset;
-	this->BottomOffset = other.BottomOffset;
-	return *this;
+        this->LeftOffset = other.LeftOffset;
+        this->RightOffset = other.RightOffset;
+        this->TopOffset = other.TopOffset;
+        this->BottomOffset = other.BottomOffset;
+        return *this;
     }
 };
 
@@ -293,15 +291,15 @@ struct SamplingAspectRatio {
     uint16_t SarWidth;
     uint16_t SarHeight;
 
-    SamplingAspectRatio():SarWidth(0), SarHeight(0) {
+     SamplingAspectRatio():SarWidth(0), SarHeight(0) {
     };
 
     SamplingAspectRatio & operator=(const SamplingAspectRatio & other) {
-	if (this == &other)
-	    return *this;
-	this->SarWidth = other.SarWidth;
-	this->SarHeight = other.SarHeight;
-	return *this;
+        if (this == &other)
+            return *this;
+        this->SarWidth = other.SarWidth;
+        this->SarHeight = other.SarHeight;
+        return *this;
     }
 };
 
@@ -341,11 +339,11 @@ struct VideoParamConfigSet {
     };
 
     VideoParamConfigSet & operator=(const VideoParamConfigSet & other) {
-	if (this == &other)
-	    return *this;
-	this->type = other.type;
-	this->size = other.size;
-	return *this;
+        if (this == &other)
+            return *this;
+        this->type = other.type;
+        this->size = other.size;
+        return *this;
     }
 
   private:
@@ -369,7 +367,7 @@ struct VideoParamsCommon:VideoParamConfigSet {
     uint32_t disableDeblocking;
     bool syncEncMode;
 
-     VideoParamsCommon()
+    VideoParamsCommon()
     :VideoParamConfigSet(VideoParamsTypeCommon, sizeof(VideoParamsCommon))
     , profile(VAProfileNone)
     , level(0)
@@ -386,30 +384,30 @@ struct VideoParamsCommon:VideoParamConfigSet {
     };
 
     VideoParamsCommon & operator=(const VideoParamsCommon & other) {
-	if (this == &other)
-	    return *this;
+        if (this == &other)
+            return *this;
 
-	VideoParamConfigSet::operator=(other);
-	this->profile = other.profile;
-	this->level = other.level;
-	this->rawFormat = other.rawFormat;
-	this->resolution = other.resolution;
-	this->frameRate = other.frameRate;
-	this->intraPeriod = other.intraPeriod;
-	this->rcMode = other.rcMode;
-	this->rcParams = other.rcParams;
-	this->refreshType = other.refreshType;
-	this->cyclicFrameInterval = other.cyclicFrameInterval;
-	this->airParams = other.airParams;
-	this->disableDeblocking = other.disableDeblocking;
-	this->syncEncMode = other.syncEncMode;
-	return *this;
+        VideoParamConfigSet::operator=(other);
+        this->profile = other.profile;
+        this->level = other.level;
+        this->rawFormat = other.rawFormat;
+        this->resolution = other.resolution;
+        this->frameRate = other.frameRate;
+        this->intraPeriod = other.intraPeriod;
+        this->rcMode = other.rcMode;
+        this->rcParams = other.rcParams;
+        this->refreshType = other.refreshType;
+        this->cyclicFrameInterval = other.cyclicFrameInterval;
+        this->airParams = other.airParams;
+        this->disableDeblocking = other.disableDeblocking;
+        this->syncEncMode = other.syncEncMode;
+        return *this;
     }
 };
 
 struct VideoParamsAVC:VideoParamConfigSet {
 
-    uint32_t basicUnitSize;	//for rate control
+    uint32_t basicUnitSize;     //for rate control
     uint8_t VUIFlag;
     int32_t maxSliceSize;
     uint32_t idrInterval;
@@ -418,7 +416,7 @@ struct VideoParamsAVC:VideoParamConfigSet {
     Cropping crop;
     SamplingAspectRatio SAR;
 
-    VideoParamsAVC()
+     VideoParamsAVC()
     :VideoParamConfigSet(VideoParamsTypeAVC, sizeof(VideoParamsAVC))
     , basicUnitSize(0)
     , VUIFlag(0)
@@ -431,24 +429,24 @@ struct VideoParamsAVC:VideoParamConfigSet {
     };
 
     VideoParamsAVC & operator=(const VideoParamsAVC & other) {
-	if (this == &other)
-	    return *this;
+        if (this == &other)
+            return *this;
 
-	VideoParamConfigSet::operator=(other);
-	this->basicUnitSize = other.basicUnitSize;
-	this->VUIFlag = other.VUIFlag;
-	this->maxSliceSize = other.maxSliceSize;
-	this->idrInterval = other.idrInterval;
-	this->sliceNum = other.sliceNum;
-	this->delimiterType = other.delimiterType;
-	this->crop.LeftOffset = other.crop.LeftOffset;
-	this->crop.RightOffset = other.crop.RightOffset;
-	this->crop.TopOffset = other.crop.TopOffset;
-	this->crop.BottomOffset = other.crop.BottomOffset;
-	this->SAR.SarWidth = other.SAR.SarWidth;
-	this->SAR.SarHeight = other.SAR.SarHeight;
+        VideoParamConfigSet::operator=(other);
+        this->basicUnitSize = other.basicUnitSize;
+        this->VUIFlag = other.VUIFlag;
+        this->maxSliceSize = other.maxSliceSize;
+        this->idrInterval = other.idrInterval;
+        this->sliceNum = other.sliceNum;
+        this->delimiterType = other.delimiterType;
+        this->crop.LeftOffset = other.crop.LeftOffset;
+        this->crop.RightOffset = other.crop.RightOffset;
+        this->crop.TopOffset = other.crop.TopOffset;
+        this->crop.BottomOffset = other.crop.BottomOffset;
+        this->SAR.SarWidth = other.SAR.SarWidth;
+        this->SAR.SarHeight = other.SAR.SarHeight;
 
-	return *this;
+        return *this;
     }
 };
 
@@ -456,7 +454,7 @@ struct VideoParamsUpstreamBuffer:VideoParamConfigSet {
 
     VideoParamsUpstreamBuffer()
     :VideoParamConfigSet(VideoParamsTypeUpSteamBuffer,
-			 sizeof(VideoParamsUpstreamBuffer))
+                         sizeof(VideoParamsUpstreamBuffer))
     , bufferMode(BUFFER_SHARING_NONE)
     , bufList(0)
     , bufCnt(0)
@@ -475,11 +473,10 @@ struct VideoParamsUsrptrBuffer:VideoParamConfigSet {
 
     VideoParamsUsrptrBuffer()
     :VideoParamConfigSet(VideoParamsTypeUsrptrBuffer,
-			 sizeof(VideoParamsUsrptrBuffer))
+                         sizeof(VideoParamsUsrptrBuffer))
     , width(0), height(0), format(0), expectedSize(0) {
     }
-    //input uint32_t width;
-    uint32_t height;
+    //input uint32_t width; uint32_t height;
     uint32_t format;
     uint32_t expectedSize;
 
@@ -492,7 +489,7 @@ struct VideoParamsUsrptrBuffer:VideoParamConfigSet {
 struct VideoParamsHRD:VideoParamConfigSet {
 
     VideoParamsHRD():VideoParamConfigSet(VideoParamsTypeHRD,
-					 sizeof(VideoParamsHRD))
+                                         sizeof(VideoParamsHRD))
     , bufferSize(0), initBufferFullness(0) {
     };
 
@@ -504,88 +501,98 @@ struct VideoParamsStoreMetaDataInBuffers:VideoParamConfigSet {
 
     VideoParamsStoreMetaDataInBuffers()
     :VideoParamConfigSet(VideoParamsTypeStoreMetaDataInBuffers,
-			 sizeof(VideoParamsStoreMetaDataInBuffers))
+                         sizeof(VideoParamsStoreMetaDataInBuffers))
     , isEnabled(false) {
-    } bool isEnabled;
+    }
+    bool isEnabled;
 };
 
 struct VideoConfigFrameRate:VideoParamConfigSet {
 
     VideoConfigFrameRate()
     :VideoParamConfigSet(VideoConfigTypeFrameRate,
-			 sizeof(VideoConfigFrameRate))
+                         sizeof(VideoConfigFrameRate))
     , frameRate() {
-    } VideoFrameRate frameRate;
+    }
+    VideoFrameRate frameRate;
 };
 
 struct VideoConfigBitRate:VideoParamConfigSet {
 
     VideoConfigBitRate()
     :VideoParamConfigSet(VideoConfigTypeBitRate,
-			 sizeof(VideoConfigBitRate))
+                         sizeof(VideoConfigBitRate))
     , rcParams() {
-    } VideoRateControlParams rcParams;
+    }
+    VideoRateControlParams rcParams;
 };
 
 struct VideoConfigAVCIntraPeriod:VideoParamConfigSet {
 
     VideoConfigAVCIntraPeriod()
     :VideoParamConfigSet(VideoConfigTypeAVCIntraPeriod,
-			 sizeof(VideoConfigAVCIntraPeriod))
+                         sizeof(VideoConfigAVCIntraPeriod))
     , idrInterval(0), intraPeriod(0) {
-    } uint32_t idrInterval;	//How many Intra frame will have a IDR frame
+    }
+    uint32_t idrInterval;       //How many Intra frame will have a IDR frame
     uint32_t intraPeriod;
 };
 
 struct VideoConfigNALSize:VideoParamConfigSet {
 
     VideoConfigNALSize():VideoParamConfigSet(VideoConfigTypeNALSize,
-					     sizeof(VideoConfigNALSize))
+                                             sizeof(VideoConfigNALSize))
     , maxSliceSize(1) {
-    } uint32_t maxSliceSize;
+    }
+    uint32_t maxSliceSize;
 };
 
 struct VideoConfigResoltuion:VideoParamConfigSet {
 
     VideoConfigResoltuion()
     :VideoParamConfigSet(VideoConfigTypeResolution,
-			 sizeof(VideoConfigResoltuion))
+                         sizeof(VideoConfigResoltuion))
     , resolution() {
-    } VideoResolution resolution;
+    }
+    VideoResolution resolution;
 };
 
 struct VideoConfigIntraRefreshType:VideoParamConfigSet {
 
     VideoConfigIntraRefreshType()
     :VideoParamConfigSet(VideoConfigTypeIntraRefreshType,
-			 sizeof(VideoConfigIntraRefreshType))
+                         sizeof(VideoConfigIntraRefreshType))
     , refreshType(VIDEO_ENC_NONIR) {
-    } VideoIntraRefreshType refreshType;
+    }
+    VideoIntraRefreshType refreshType;
 };
 
 struct VideoConfigCyclicFrameInterval:VideoParamConfigSet {
 
     VideoConfigCyclicFrameInterval()
     :VideoParamConfigSet(VideoConfigTypeCyclicFrameInterval,
-			 sizeof(VideoConfigCyclicFrameInterval))
+                         sizeof(VideoConfigCyclicFrameInterval))
     , cyclicFrameInterval(0) {
-    } int32_t cyclicFrameInterval;
+    }
+    int32_t cyclicFrameInterval;
 };
 
 struct VideoConfigAIR:VideoParamConfigSet {
 
     VideoConfigAIR():VideoParamConfigSet(VideoConfigTypeAIR,
-					 sizeof(VideoConfigAIR))
+                                         sizeof(VideoConfigAIR))
     , airParams() {
-    } AirParams airParams;
+    }
+    AirParams airParams;
 };
 
 struct VideoConfigSliceNum:VideoParamConfigSet {
 
     VideoConfigSliceNum():VideoParamConfigSet(VideoConfigTypeSliceNum,
-					      sizeof(VideoConfigSliceNum))
+                                              sizeof(VideoConfigSliceNum))
     , sliceNum() {
-    } SliceNum sliceNum;
+    }
+    SliceNum sliceNum;
 };
 
 typedef struct {
@@ -598,4 +605,4 @@ typedef struct {
     uint32_t min_encode_frame;
 } VideoStatistics;
 
-#endif				/*  __VIDEO_ENCODER_DEF_H__ */
+#endif                          /*  __VIDEO_ENCODER_DEF_H__ */

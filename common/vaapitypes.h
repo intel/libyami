@@ -79,4 +79,4 @@ typedef enum {
  (((unsigned long)(unsigned char) (ch0))      | ((unsigned long)(unsigned char) (ch1) << 8) | \
   ((unsigned long)(unsigned char) (ch2) << 16) | ((unsigned long)(unsigned char) (ch3) << 24 ))
 
-#endif				/* vaapitypes_h */
+#endif                          /* vaapitypes_h */

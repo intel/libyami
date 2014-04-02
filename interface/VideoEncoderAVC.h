@@ -35,13 +35,13 @@ class VideoEncoderAVC:public VideoEncoderBase {
     virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer);
 
     virtual Encode_Status derivedSetParams(VideoParamConfigSet *
-					   videoEncParams);
+                                           videoEncParams);
     virtual Encode_Status derivedGetParams(VideoParamConfigSet *
-					   videoEncParams);
+                                           videoEncParams);
     virtual Encode_Status derivedGetConfig(VideoParamConfigSet *
-					   videoEncConfig);
+                                           videoEncConfig);
     virtual Encode_Status derivedSetConfig(VideoParamConfigSet *
-					   videoEncConfig);
+                                           videoEncConfig);
 
   protected:
     virtual Encode_Status sendEncodeCommand(void);
@@ -49,13 +49,13 @@ class VideoEncoderAVC:public VideoEncoderBase {
   private:
     // Local Methods
     Encode_Status getOneNALUnit(uint8_t * inBuffer, uint32_t bufSize,
-				uint32_t * nalSize, uint32_t * nalType,
-				uint32_t * nalOffset);
+                                uint32_t * nalSize, uint32_t * nalType,
+                                uint32_t * nalOffset);
     Encode_Status getHeader(uint8_t * inBuffer, uint32_t bufSize,
-			    uint32_t * headerSize);
+                            uint32_t * headerSize);
     Encode_Status outputCodecData(VideoEncOutputBuffer * outBuffer);
     Encode_Status outputOneNALU(VideoEncOutputBuffer * outBuffer,
-				bool startCode);
+                                bool startCode);
     Encode_Status outputLengthPrefixed(VideoEncOutputBuffer * outBuffer);
 
     Encode_Status renderMaxSliceSize();
@@ -70,4 +70,4 @@ class VideoEncoderAVC:public VideoEncoderBase {
     uint32_t mSliceNum;
 };
 
-#endif				/* __VIDEO_ENCODER_AVC_H__ */
+#endif                          /* __VIDEO_ENCODER_AVC_H__ */

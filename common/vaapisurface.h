@@ -44,10 +44,10 @@ typedef enum {
 class VaapiSurface {
   public:
     VaapiSurface(VADisplay display,
-		 VaapiChromaType chromaType,
-		 uint32_t width,
-		 uint32_t height,
-		 void *surfaceAttribArray, uint32_t surfAttribNum);
+                 VaapiChromaType chromaType,
+                 uint32_t width,
+                 uint32_t height,
+                 void *surfaceAttribArray, uint32_t surfAttribNum);
 
     ~VaapiSurface();
 
@@ -65,7 +65,7 @@ class VaapiSurface {
     VaapiImage *getDerivedImage();
 
   private:
-     uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
+    uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
 
   private:
     VADisplay m_display;
@@ -74,8 +74,8 @@ class VaapiSurface {
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_fourcc;
-    uint32_t m_externalBufHandle;	//allocate surface from extenal buf
+    uint32_t m_externalBufHandle;       //allocate surface from extenal buf
     VaapiImage *m_derivedImage;
 };
 
-#endif				/* VAAPI_SURFACE_H */
+#endif                          /* VAAPI_SURFACE_H */

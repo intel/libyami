@@ -36,20 +36,20 @@ class VideoEncoderH263:public VideoEncoderBase {
   protected:
     virtual Encode_Status sendEncodeCommand(void);
     virtual Encode_Status derivedSetParams(VideoParamConfigSet *
-					   videoEncParams) {
-	return ENCODE_SUCCESS;
+                                           videoEncParams) {
+        return ENCODE_SUCCESS;
     }
     virtual Encode_Status derivedGetParams(VideoParamConfigSet *
-					   videoEncParams) {
-	return ENCODE_SUCCESS;
+                                           videoEncParams) {
+        return ENCODE_SUCCESS;
     }
     virtual Encode_Status derivedGetConfig(VideoParamConfigSet *
-					   videoEncConfig) {
-	return ENCODE_SUCCESS;
+                                           videoEncConfig) {
+        return ENCODE_SUCCESS;
     }
     virtual Encode_Status derivedSetConfig(VideoParamConfigSet *
-					   videoEncConfig) {
-	return ENCODE_SUCCESS;
+                                           videoEncConfig) {
+        return ENCODE_SUCCESS;
     }
 
     // Local Methods
@@ -59,4 +59,4 @@ class VideoEncoderH263:public VideoEncoderBase {
     Encode_Status renderSliceParams();
 };
 
-#endif				/* __VIDEO_ENCODER_H263_H__ */
+#endif                          /* __VIDEO_ENCODER_H263_H__ */

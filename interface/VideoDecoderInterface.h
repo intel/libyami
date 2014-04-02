@@ -43,13 +43,12 @@ class IVideoDecoder {
 
     virtual void setXDisplay(Display * x_display) = 0;
     virtual void enableNativeBuffers(void) = 0;
-    virtual Decode_Status getClientNativeWindowBuffer(void *bufferHeader,
-						      void
-						      *nativeBufferHandle)
-	= 0;
+    virtual Decode_Status getClientNativeWindowBuffer(void *bufferHeader, void
+                                                      *nativeBufferHandle)
+        = 0;
     virtual void renderDone(VideoRenderBuffer * buffer) = 0;
     virtual Decode_Status flagNativeBuffer(void *pBuffer) = 0;
     virtual void releaseLock(void) = 0;
 };
 
-#endif				/* VIDEO_DECODER_INTERFACE_H_ */
+#endif                          /* VIDEO_DECODER_INTERFACE_H_ */

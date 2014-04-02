@@ -27,4 +27,4 @@
 IVideoEncoder *createVideoEncoder(const char *mimeType);
 void releaseVideoEncoder(IVideoEncoder * p);
 
-#endif				/* VIDEO_ENCODER_HOST_H_ */
+#endif                          /* VIDEO_ENCODER_HOST_H_ */

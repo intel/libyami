@@ -27,9 +27,9 @@
 
 /* Image format definition */
 typedef enum {
-    VAAPI_IMAGE_FORMAT_TYPE_YCBCR = 1,	/* YUV */
-    VAAPI_IMAGE_FORMAT_TYPE_RGB,	/* RGB */
-    VAAPI_IMAGE_FORMAT_TYPE_INDEXED	/* paletted */
+    VAAPI_IMAGE_FORMAT_TYPE_YCBCR = 1,  /* YUV */
+    VAAPI_IMAGE_FORMAT_TYPE_RGB,        /* RGB */
+    VAAPI_IMAGE_FORMAT_TYPE_INDEXED     /* paletted */
 } VaapiImageFormatType;
 
 typedef enum {
@@ -70,14 +70,14 @@ const VaapiImageFormatMap vaapiImageFormats[] = {
     DEF_YUV(AYUV, ('A', 'Y', 'U', 'V'), LSB, 32),
 #if __BIG_ENDIAN__
     DEF_RGB(ARGB, ('A', 'R', 'G', 'B'), MSB, 32,
-	    32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000),
+            32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000),
     DEF_RGB(ABGR, ('A', 'B', 'G', 'R'), MSB, 32,
-	    32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000),
+            32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000),
 #else
     DEF_RGB(BGRA, ('B', 'G', 'R', 'A'), LSB, 32,
-	    32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000),
+            32, 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000),
     DEF_RGB(RGBA, ('R', 'G', 'B', 'A'), LSB, 32,
-	    32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000),
+            32, 0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000),
 #endif
 };
 
@@ -99,7 +99,7 @@ typedef struct _VaapiImageRaw {
 class VaapiImage {
   public:
     VaapiImage(VADisplay display,
-	       VaapiImageFormat format, uint32_t width, uint32_t height);
+               VaapiImageFormat format, uint32_t width, uint32_t height);
 
     VaapiImage(VADisplay display, VAImage * image);
 
@@ -118,7 +118,7 @@ class VaapiImage {
     const VAImageFormat *getVaFormat(VaapiImageFormat format);
 
   private:
-    VADisplay m_display;
+     VADisplay m_display;
     VaapiImageFormat m_format;
     VAImageID m_ID;
     uint32_t m_width;
@@ -130,4 +130,4 @@ class VaapiImage {
     VaapiImageRaw m_rawImage;
 };
 
-#endif				/* VAAPI_IMAGE_H */
+#endif                          /* VAAPI_IMAGE_H */

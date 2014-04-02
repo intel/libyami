@@ -67,7 +67,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     void setXDisplay(Display * xDisplay);
     void enableNativeBuffers(void);
     Decode_Status getClientNativeWindowBuffer(void *bufferHeader,
-					      void *nativeBufferHandle);
+                                              void *nativeBufferHandle);
     Decode_Status flagNativeBuffer(void *pBuffer);
     void releaseLock();
 
@@ -112,4 +112,4 @@ class VaapiDecoderBase:public IVideoDecoder {
     bool m_enableNativeBuffersFlag;
 };
 
-#endif				// vaapidecoder_base_h
+#endif                          // vaapidecoder_base_h

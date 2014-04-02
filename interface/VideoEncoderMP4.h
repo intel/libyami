@@ -39,25 +39,25 @@ class VideoEncoderMP4:public VideoEncoderBase {
     virtual Encode_Status sendEncodeCommand(void);
 
     virtual Encode_Status derivedSetParams(VideoParamConfigSet *
-					   videoEncParams) {
-	return ENCODE_SUCCESS;
+                                           videoEncParams) {
+        return ENCODE_SUCCESS;
     }
     virtual Encode_Status derivedGetParams(VideoParamConfigSet *
-					   videoEncParams) {
-	return ENCODE_SUCCESS;
+                                           videoEncParams) {
+        return ENCODE_SUCCESS;
     }
     virtual Encode_Status derivedGetConfig(VideoParamConfigSet *
-					   videoEncConfig) {
-	return ENCODE_SUCCESS;
+                                           videoEncConfig) {
+        return ENCODE_SUCCESS;
     }
     virtual Encode_Status derivedSetConfig(VideoParamConfigSet *
-					   videoEncConfig) {
-	return ENCODE_SUCCESS;
+                                           videoEncConfig) {
+        return ENCODE_SUCCESS;
     }
     // Local Methods
   private:
     Encode_Status getHeaderPos(uint8_t * inBuffer, uint32_t bufSize,
-			       uint32_t * headerSize);
+                               uint32_t * headerSize);
     Encode_Status outputConfigData(VideoEncOutputBuffer * outBuffer);
     Encode_Status renderSequenceParams();
     Encode_Status renderPictureParams();
@@ -67,4 +67,4 @@ class VideoEncoderMP4:public VideoEncoderBase {
     uint32_t mFixedVOPTimeIncrement;
 };
 
-#endif				/* __VIDEO_ENCODER__MPEG4_H__ */
+#endif                          /* __VIDEO_ENCODER__MPEG4_H__ */
