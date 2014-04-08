@@ -22,7 +22,7 @@
 #ifndef VAAPI_CODEC_OBJECT_H
 #define VAAPI_CODEC_OBJECT_H
 
-#include "vaapitypes.h"
+#include <va/va.h>
 
 class VaapiBufObject {
   public:

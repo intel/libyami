@@ -19,9 +19,14 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#include <assert.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "vaapipicture.h"
+#include "log.h"
 #include "common/vaapiutils.h"
+#include <assert.h>
 
 /* picture class implementation */
 VaapiPicture::VaapiPicture(VADisplay display,

@@ -24,7 +24,6 @@
 
 #include <stdint.h>
 #include <va/va.h>
-#include "log.h"
 
 bool checkVaapiStatus(VAStatus status, const char *msg);
 

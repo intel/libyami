@@ -19,10 +19,14 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#include <string.h>
-#include <va/va_backend.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "vaapidecoder_base.h"
 #include "common/log.h"
+#include <string.h>
+#include <va/va_backend.h>
 
 #ifdef ANDROID
 #include <va/va_android.h>

@@ -22,9 +22,9 @@
 #ifndef vaapidecoder_h264_h
 #define vaapidecoder_h264_h
 
-#include "vaapipicture.h"
-#include "vaapidecoder_base.h"
 #include "codecparsers/h264parser.h"
+#include "vaapidecoder_base.h"
+#include "vaapipicture.h"
 
 #define TOP_FIELD    0
 #define BOTTOM_FIELD 1

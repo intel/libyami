@@ -23,11 +23,10 @@
 #ifndef vaapipicture_h
 #define vaapipicture_h
 
-#include <list>
-#include <vector>
-#include "common/vaapisurface.h"
 #include "common/vaapibuffer.h"
 #include "vaapisurfacebuf_pool.h"
+#include <list>
+#include <vector>
 
 using namespace std;
 

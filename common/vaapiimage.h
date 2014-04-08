@@ -22,8 +22,9 @@
 #ifndef vaapiimage_h
 #define vaapiimage_h
 
-#include <stdint.h>
 #include "vaapitypes.h"
+#include <va/va.h>
+#include <stdint.h>
 
 /* Image format definition */
 typedef enum {

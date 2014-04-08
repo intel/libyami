@@ -19,6 +19,10 @@
  *  Boston, MA 02110-1301 USA
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "vaapidecoder_h264.h"
 
 /* Defined to 1 if strict ordering of DPB is needed. Only useful for debug */

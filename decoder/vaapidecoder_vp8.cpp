@@ -21,6 +21,10 @@
  */
 
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "vaapidecoder_vp8.h"
 #include "codecparsers/bytereader.h"
 
