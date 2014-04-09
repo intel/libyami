@@ -50,6 +50,8 @@ BitReader *
 bit_reader_new (const uint8 * data, uint32 size)
 {
   BitReader *ret = (BitReader*) malloc (sizeof(BitReader));
+  if (!ret)
+    return NULL;
 
   ret->data = data;
   ret->size = size;

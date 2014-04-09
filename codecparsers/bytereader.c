@@ -55,6 +55,8 @@ ByteReader *
 byte_reader_new (const uint8 * data, uint32 size)
 {
   ByteReader *ret =  (ByteReader*) malloc (sizeof(ByteReader));
+  if (!ret)
+    return NULL;
 
   ret->data = data;
   ret->size = size;

@@ -49,6 +49,8 @@ NalReader *
 nal_reader_new (const uint8 * data, uint32 size)
 {
   NalReader *ret = (NalReader*) malloc (sizeof(NalReader));
+  if (!ret)
+    return NULL;
 
   ret->data = data;
   ret->size = size;
