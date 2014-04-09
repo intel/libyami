@@ -477,17 +477,17 @@ void VaapiDecoderVP8::updateReferencePictures()
         replacePicture(&m_lastPicture, picture);
 
     if (m_goldenRefPicture)
-        DEBUG("m_goldenRefPicture: %p, mSurfaceID: %x", m_goldenRefPicture, m_goldenRefPicture->mSurfaceID);
+        DEBUG("m_goldenRefPicture: %p, m_surfaceID: %x", m_goldenRefPicture, m_goldenRefPicture->m_surfaceID);
     if (m_altRefPicture)
-        DEBUG("m_altRefPicture: %p, mSurfaceID: %x", m_altRefPicture, m_altRefPicture->mSurfaceID);
+        DEBUG("m_altRefPicture: %p, m_surfaceID: %x", m_altRefPicture, m_altRefPicture->m_surfaceID);
     if (m_lastPicture)
-        DEBUG("m_lastPicture: %p, mSurfaceID: %x", m_lastPicture, m_lastPicture->mSurfaceID);
+        DEBUG("m_lastPicture: %p, m_surfaceID: %x", m_lastPicture, m_lastPicture->m_surfaceID);
     if (m_currentPicture)
-        DEBUG("m_currentPicture: %p, mSurfaceID: %x", m_currentPicture, m_currentPicture->mSurfaceID);
+        DEBUG("m_currentPicture: %p, m_surfaceID: %x", m_currentPicture, m_currentPicture->m_surfaceID);
     int i;
     for (i=0; i<4; i++) {
         if (m_pictures[i])
-            DEBUG("m_pictures[%d]: %p, mSurfaceID: %x", i, m_pictures[i], m_pictures[i]->mSurfaceID);
+            DEBUG("m_pictures[%d]: %p, m_surfaceID: %x", i, m_pictures[i], m_pictures[i]->m_surfaceID);
     }
 
 }
@@ -506,7 +506,7 @@ bool VaapiDecoderVP8::allocNewPicture()
     VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);
 
     for (i = 0; i < VP8_MAX_PICTURE_COUNT; i++) {
-        DEBUG("m_pictures[%d] = %p, surfaceID: %x", i, m_pictures[i], m_pictures[i] ? m_pictures[i]->mSurfaceID : VA_INVALID_SURFACE);
+        DEBUG("m_pictures[%d] = %p, surfaceID: %x", i, m_pictures[i], m_pictures[i] ? m_pictures[i]->m_surfaceID : VA_INVALID_SURFACE);
         if (m_pictures[i] && (m_pictures[i] == m_goldenRefPicture || m_pictures[i] == m_altRefPicture || m_pictures[i] == m_lastPicture || m_pictures[i] == m_currentPicture))  // take m_currentPicture as a buffering area
             continue;
 
@@ -527,8 +527,8 @@ bool VaapiDecoderVP8::allocNewPicture()
     replacePicture(&m_currentPicture, picture);
     DEBUG("i: %d, alloc new picture: %p with surface ID: %x, iq matrix buffer id: %x",
         i, m_currentPicture,
-        m_currentPicture->mSurfaceID,
-        m_currentPicture->mIqMatrix->getID());
+        m_currentPicture->m_surfaceID,
+        m_currentPicture->m_iqMatrix->getID());
 
     return true;
 }
