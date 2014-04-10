@@ -23,9 +23,9 @@
 #ifndef vaapidecoder_vp8_h
 #define vaapidecoder_vp8_h
 
-#include "vaapipicture.h"
-#include "vaapidecoder_base.h"
 #include "codecparsers/vp8parser.h"
+#include "vaapidecoder_base.h"
+#include "vaapipicture.h"
 #include "va/va_dec_vp8.h"
 
 enum {

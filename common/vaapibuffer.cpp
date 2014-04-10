@@ -19,10 +19,14 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#include <va/va.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "vaapibuffer.h"
 #include "log.h"
 #include "vaapiutils.h"
-#include "vaapibuffer.h"
+#include <va/va.h>
 
 VaapiBufObject::VaapiBufObject(VADisplay display,
                                VAContextID context,

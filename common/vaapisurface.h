@@ -22,10 +22,10 @@
 #ifndef vaapisurface_h
 #define vaapisurface_h
 
-#include <va/va.h>
-#include <va/va_drmcommon.h>
-#include "vaapitypes.h"
 #include "vaapiimage.h"
+#include "vaapitypes.h"
+#include <va/va_drmcommon.h>
+#include <va/va.h>
 
 typedef enum {
     VAAPI_CHROMA_TYPE_YUV400,

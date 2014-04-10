@@ -20,6 +20,10 @@
  */
 
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "vaapidecoder_h264.h"
 #include "codecparsers/bytereader.h"
 

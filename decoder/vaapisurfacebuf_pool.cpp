@@ -19,8 +19,12 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#include "common/log.h"
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "vaapisurfacebuf_pool.h"
+#include "common/log.h"
 
 VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
                                                VideoConfigBuffer * config)

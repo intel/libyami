@@ -22,10 +22,10 @@
 #ifndef vaapisurfacebuf_pool_h
 #define vaapisurfacebuf_pool_h
 
-#include <pthread.h>
-#include <semaphore.h>
 #include "common/vaapisurface.h"
 #include "interface/VideoDecoderDefs.h"
+#include <pthread.h>
+#include <semaphore.h>
 
 #define INVALID_PTS ((uint64_t)-1)
 #define INVALID_POC ((uint32_t)-1)

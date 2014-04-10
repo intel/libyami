@@ -19,9 +19,13 @@
  *  Boston, MA 02110-1301 USA
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "vaapisurface.h"
 #include "log.h"
 #include "vaapiutils.h"
-#include "vaapisurface.h"
 
 VaapiSurface::VaapiSurface(VADisplay display,
                            VaapiChromaType chromaType,

@@ -19,10 +19,14 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#include <stdlib.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "vaapiimage.h"
 #include "log.h"
 #include "vaapiutils.h"
-#include "vaapiimage.h"
+#include <stdlib.h>
 
 const VAImageFormat *VaapiImage::getVaFormat(VaapiImageFormat format)
 {

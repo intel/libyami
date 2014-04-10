@@ -19,11 +19,16 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#include <stdio.h>
-#include <stdarg.h>
-#include "log.h"
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "vaapiutils.h"
+#include "log.h"
 #include "vaapisurface.h"
+#include <stdarg.h>
+#include <stdio.h>
 
 #define CONCAT(a, b)    CONCAT_(a, b)
 #define CONCAT_(a, b)   a##b

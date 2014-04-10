@@ -19,10 +19,14 @@
  *  Boston, MA 02110-1301 USA
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "common/log.h"
+#include "interface/VideoDecoderHost.h"
 #include "vaapidecoder_h264.h"
 #include "vaapidecoder_vp8.h"
-#include "interface/VideoDecoderHost.h"
-#include "common/log.h"
 #include <string.h>
 
 IVideoDecoder *createVideoDecoder(const char *mimeType)
