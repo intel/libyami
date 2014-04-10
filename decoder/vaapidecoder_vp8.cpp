@@ -518,8 +518,10 @@ bool VaapiDecoderVP8::allocNewPicture()
        m_pictures[i] = picture;
        break;
     }
-    if (i == VP8_MAX_PICTURE_COUNT)
+    if (i == VP8_MAX_PICTURE_COUNT) {
+        delete picture;
         return false;
+    }
     replacePicture(&m_currentPicture, picture);
     DEBUG("i: %d, alloc new picture: %p with surface ID: %x, iq matrix buffer id: %x",
         i, m_currentPicture,

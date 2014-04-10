@@ -114,7 +114,7 @@ VaapiImageRaw *VaapiImage::map()
 
     for (i = 0; i < m_image.num_planes; i++) {
         m_rawImage.pixels[i] =
-            (uint8_t *) ((uint32_t) data + m_image.offsets[i]);
+            (uint8_t *)data + m_image.offsets[i];
         m_rawImage.strides[i] = m_image.pitches[i];
     }
     m_isMapped = true;
