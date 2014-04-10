@@ -226,10 +226,21 @@ uint32_t getMaxDecFrameBuffering(H264SPS * sps, uint32_t views)
 
 VaapiDPBManager::VaapiDPBManager(uint32_t DPBSize)
 {
-    uint32_t i;
     DPBLayer = (VaapiDecPicBufLayer *) malloc(sizeof(VaapiDecPicBufLayer));
+    if (!DPBLayer) {
+        ERROR("No system memory avaliable when malloc");
+        return;
+    }
+
     memset((void *) DPBLayer, 0, sizeof(VaapiDecPicBufLayer));
     DPBLayer->DPBSize = DPBSize;
+}
+
+VaapiDPBManager::~VaapiDPBManager()
+{
+    if (DPBLayer) {
+        free(DPBLayer);
+    }
 }
 
 bool VaapiDPBManager::outputDPB(VaapiFrameStore * frameStore,
@@ -726,13 +737,17 @@ initPictureRefsFields1(uint32_t pictureStructure,
     j = 0;
     n = *refPicListCount;
     do {
-        assert(n < 32);
+        if (n >= 32)
+            return;
         for (; i < refListCount; i++) {
             if (refList[i]->m_structure == pictureStructure) {
                 refPicList[n++] = refList[i++];
                 break;
             }
         }
+
+        if (n >= 32)
+            return;
         for (; j < refListCount; j++) {
             if (refList[j]->m_structure != pictureStructure) {
                 refPicList[n++] = refList[j++];

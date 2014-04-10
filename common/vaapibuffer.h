@@ -25,6 +25,8 @@
 #include <va/va.h>
 
 class VaapiBufObject {
+  private:
+    DISALLOW_COPY_AND_ASSIGN(VaapiBufObject);
   public:
     VaapiBufObject(VADisplay display,
                    VAContextID context,

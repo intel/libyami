@@ -33,6 +33,8 @@
 #define MINIMUM_POC  0x80000000
 
 class VaapiSurfaceBufferPool {
+  private:
+    DISALLOW_COPY_AND_ASSIGN(VaapiSurfaceBufferPool);
   public:
     VaapiSurfaceBufferPool(VADisplay display, VideoConfigBuffer * config);
     ~VaapiSurfaceBufferPool();
@@ -53,10 +55,6 @@ class VaapiSurfaceBufferPool {
                       uint64_t timeStamp, uint32_t poc);
     bool setReferenceInfo(VideoSurfaceBuffer * buf,
                           bool referenceFrame, bool asReference);
-
-  private:
-    void mapSurfaceBuffers();
-    void unmapSurfaceBuffers();
 
   private:
     VADisplay m_display;

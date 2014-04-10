@@ -72,7 +72,6 @@ class VaapiPictureH264:public VaapiPicture {
                      VAContextID context,
                      VaapiSurfaceBufferPool * surfBufPool,
                      VaapiPictureStructure structure);
-
     VaapiPictureH264 *newField();
 
   public:
@@ -124,6 +123,7 @@ class VaapiDecoderH264;
 class VaapiDPBManager {
   public:
     VaapiDPBManager(uint32_t DPBSize);
+    ~VaapiDPBManager();
 
     /* Decode Picture Buffer operations */
     bool outputDPB(VaapiFrameStore * frameStore, VaapiPictureH264 * pic);

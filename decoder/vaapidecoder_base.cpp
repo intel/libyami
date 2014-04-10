@@ -287,9 +287,11 @@ Decode_Status
     m_bufPool = new VaapiSurfaceBufferPool(m_VADisplay, &m_configBuffer);
     surfaces = new VASurfaceID[numSurface];
     for (i = 0; i < numSurface; i++) {
+        surfaces[i] = NULL;
         buf = m_bufPool->getBufferByIndex(i);
         suf = m_bufPool->getVaapiSurface(buf);
-        surfaces[i] = suf->getID();
+        if (suf)
+           surfaces[i] = suf->getID();
     }
 
     vaStatus = vaCreateContext(m_VADisplay,

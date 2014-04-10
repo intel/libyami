@@ -148,7 +148,6 @@ VaapiPictureVP8::VaapiPictureVP8(VADisplay display,
 
 /////////////////////////////////////////////////////
 
-
 Decode_Status VaapiDecoderVP8::ensureContext()
 {
     if (m_hasContext)

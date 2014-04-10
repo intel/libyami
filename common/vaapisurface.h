@@ -42,6 +42,8 @@ typedef enum {
 } VaapiSurfaceStatus;
 
 class VaapiSurface {
+  private:
+    DISALLOW_COPY_AND_ASSIGN(VaapiSurface);
   public:
     VaapiSurface(VADisplay display,
                  VaapiChromaType chromaType,

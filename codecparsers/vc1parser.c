@@ -721,6 +721,9 @@ parse_hrd_param_flag (BitReader * br, VC1HrdParam * hrd_param)
 
   hrd_param->hrd_num_leaky_buckets =
       bit_reader_get_bits_uint8_unchecked (br, 5);
+
+  assert(hrd_param->hrd_num_leaky_buckets <= MAX_HRD_NUM_LEAKY_BUCKETS);
+
   hrd_param->bit_rate_exponent =
       bit_reader_get_bits_uint8_unchecked (br, 4);
   hrd_param->buffer_size_exponent =

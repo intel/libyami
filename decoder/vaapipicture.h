@@ -116,19 +116,22 @@ class VaapiSlice {
 };
 
 class VaapiPicture {
+  private:
+    DISALLOW_COPY_AND_ASSIGN(VaapiPicture);
   public:
     VaapiPicture(VADisplay display,
                  VAContextID context,
                  VaapiSurfaceBufferPool * surfBufPool,
                  VaapiPictureStructure structure);
-
     ~VaapiPicture();
 
     void addSlice(VaapiSlice * slice);
     VaapiSlice *getLastSlice();
     bool decodePicture();
 
-    // XXX, combine both decoding and rendering in one class, the compressed data can't be deleted before rendering
+    /* combine both decoding and rendering in one class,
+     * the uncompressed data can't be deleted before rendering
+     */
     bool output();
 
   public:
