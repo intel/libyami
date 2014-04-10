@@ -33,10 +33,7 @@ VaapiPicture::VaapiPicture(VADisplay display,
                            VAContextID context,
                            VaapiSurfaceBufferPool * surfBufPool,
                            VaapiPictureStructure structure)
-:
-
-
-m_display(display), m_context(context),
+:m_display(display), m_context(context),
 m_surfBufPool(surfBufPool), m_picStructure(structure)
 {
     m_picParam = NULL;
@@ -91,9 +88,7 @@ VaapiPicture::~VaapiPicture()
 
     for (iter = m_sliceArray.begin(); iter != m_sliceArray.end(); iter++)
         delete *iter;
-    //m_sliceArray.clear();
 
-    // XXX, has the surface been rendered?
     if (m_surfBufPool && m_surfBuf) {
         m_surfBufPool->recycleBuffer(m_surfBuf, false);
         m_surfBuf = NULL;

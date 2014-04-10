@@ -79,4 +79,8 @@ typedef enum {
  (((unsigned long)(unsigned char) (ch0))      | ((unsigned long)(unsigned char) (ch1) << 8) | \
   ((unsigned long)(unsigned char) (ch2) << 16) | ((unsigned long)(unsigned char) (ch3) << 24 ))
 
+#define DISALLOW_COPY_AND_ASSIGN(className) \
+      className(const className&); \
+      className & operator=(const className&); \
+
 #endif                          /* vaapitypes_h */

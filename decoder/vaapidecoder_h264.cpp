@@ -285,14 +285,9 @@ VaapiFrameStore::VaapiFrameStore(VaapiPictureH264 * pic)
 
 VaapiFrameStore::~VaapiFrameStore()
 {
-    if (m_buffers[0]) {
-        delete m_buffers[0];
-        m_buffers[0] = NULL;
-    }
-    if (m_buffers[1]) {
-        delete m_buffers[1];
-        m_buffers[1] = NULL;
-    }
+   uint32_t i;
+   for (i = 0; i < m_numBuffers; i++)
+       delete m_buffers[i];
 }
 
 void
@@ -331,6 +326,9 @@ bool VaapiFrameStore::splitFields()
     firstField->m_flags |= VAAPI_PICTURE_FLAG_INTERLACED;
 
     secondField = firstField->newField();
+    if (!secondField)
+       return false;
+
     secondField->m_frameNum = firstField->m_frameNum;
     secondField->m_fieldPoc[0] = firstField->m_fieldPoc[0];
     secondField->m_fieldPoc[1] = firstField->m_fieldPoc[1];
@@ -341,7 +339,7 @@ bool VaapiFrameStore::splitFields()
     }
 
     m_numBuffers++;
-    m_buffers[m_numBuffers] = secondField;
+    m_buffers[m_numBuffers - 1] = secondField;
 
     return true;
 }
@@ -1402,11 +1400,11 @@ bool VaapiDecoderH264::decodeCodecData(uint8_t * buf, uint32_t bufSize)
                                                buf, ofs, bufSize, 2,
                                                &nalu);
         if (result != H264_PARSER_OK)
-            return getStatus(result);
+            return false;
 
         status = decodeSPS(&nalu);
         if (status != DECODE_SUCCESS)
-            return status;
+            return false;
         ofs = nalu.offset + nalu.size;
     }
 
@@ -1418,16 +1416,16 @@ bool VaapiDecoderH264::decodeCodecData(uint8_t * buf, uint32_t bufSize)
                                                buf, ofs, bufSize, 2,
                                                &nalu);
         if (result != H264_PARSER_OK)
-            return getStatus(result);
+            return false;
 
         status = decodePPS(&nalu);
         if (status != DECODE_SUCCESS)
-            return status;
+            return false;
         ofs = nalu.offset + nalu.size;
     }
 
     m_isAVC = true;
-    return status;
+    return true;
 }
 
 void VaapiDecoderH264::updateFrameInfo()
@@ -1488,13 +1486,7 @@ VaapiDecoderH264::VaapiDecoderH264(const char *mimeType)
 VaapiDecoderH264::~VaapiDecoderH264()
 {
     stop();
-
-    if (m_DPBManager) {
-        delete m_DPBManager;
-        m_DPBManager = NULL;
-    }
 }
-
 
 Decode_Status VaapiDecoderH264::start(VideoConfigBuffer * buffer)
 {
@@ -1544,6 +1536,10 @@ void VaapiDecoderH264::stop(void)
     DEBUG("H264: stop()");
     flush();
     VaapiDecoderBase::stop();
+
+    delete m_DPBManager;
+
+    m_DPBManager = NULL;
 }
 
 void VaapiDecoderH264::flush(void)
@@ -1559,7 +1555,7 @@ void VaapiDecoderH264::flush(void)
 
 Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
 {
-    Decode_Status status;
+    Decode_Status status = DECODE_SUCCESS;
     H264ParserResult result;
     H264NalUnit nalu;
 
@@ -1629,7 +1625,7 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
         if (status == DECODE_SUCCESS) {
             status = decodeNalu(&nalu);
         } else {
-            ERROR("parser nalu uncheck failed code =%d", status);
+            ERROR("parser nalu uncheck failed code =%ld", status);
         }
 
     } while (status == DECODE_SUCCESS);

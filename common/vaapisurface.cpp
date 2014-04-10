@@ -54,6 +54,7 @@ m_height(height)
         break;
     }
 
+    m_externalBufHandle = NULL;
     if (surfAttribs && surfAttribNum) {
         status = vaCreateSurfaces(m_display, format, width, height,
                                   &m_ID, 1, surfAttribs, surfAttribNum);
@@ -69,7 +70,6 @@ m_height(height)
     } else {
         status = vaCreateSurfaces(m_display, format, width, height,
                                   &m_ID, 1, NULL, 0);
-        m_externalBufHandle = 0;
     }
 
     if (!checkVaapiStatus(status, "vaCreateSurfacesWithAttribute()"))
@@ -82,14 +82,13 @@ VaapiSurface::~VaapiSurface()
 {
     VAStatus status;
 
-    if (m_derivedImage) {
-        delete m_derivedImage;
-    }
+    delete m_derivedImage;
 
     status = vaDestroySurfaces(m_display, &m_ID, 1);
 
     if (!checkVaapiStatus(status, "vaDestroySurfaces()"))
         WARNING("failed to destroy surface");
+
 }
 
 VaapiChromaType VaapiSurface::getChromaType(void)

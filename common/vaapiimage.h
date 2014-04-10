@@ -98,6 +98,8 @@ typedef struct _VaapiImageRaw {
 } VaapiImageRaw;
 
 class VaapiImage {
+  private:
+    DISALLOW_COPY_AND_ASSIGN(VaapiImage);
   public:
     VaapiImage(VADisplay display,
                VaapiImageFormat format, uint32_t width, uint32_t height);
