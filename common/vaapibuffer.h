@@ -19,9 +19,9 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef VAAPI_CODEC_OBJECT_H
-#define VAAPI_CODEC_OBJECT_H
-
+#ifndef VAAPIBUFFER_H
+#define VAAPIBUFFER_H
+#include <stdint.h>
 #include <va/va.h>
 
 class VaapiBufObject {
@@ -44,4 +44,4 @@ class VaapiBufObject {
     uint32_t m_size;
 };
 
-#endif                          /* VAAPI_CODEC_OBJECT_H */
+#endif                          /* VAAPIBUFFER_H */

@@ -25,8 +25,6 @@
 #include <stdint.h>
 #include <va/va.h>
 
-bool checkVaapiStatus(VAStatus status, const char *msg);
-
 void *vaapiMapBuffer(VADisplay dpy, VABufferID bufId);
 
 void vaapiUnmapBuffer(VADisplay dpy, VABufferID bufId, void **pbuf);
