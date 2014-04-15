@@ -234,6 +234,12 @@ bool VaapiDecoderVP8::fillSliceParam(VaapiSliceVP8 * slice)
         m_frameHdr.first_part_size - ((sliceParam->macroblock_offset +
                                        7) >> 3);
 
+#if __PLATFORM_BYT__
+    sliceParam->slice_data_offset = 0;
+    sliceParam->macroblock_offset =
+        8 - m_frameHdr.rangedecoder_state.remaining_bits;
+#endif
+
     if (m_frameHdr.key_frame == VP8_KEY_FRAME)
         lastPartitionSize =
             m_frameSize - VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME;
@@ -597,8 +603,16 @@ Decode_Status VaapiDecoderVP8::decodePicture()
     }
 
     VaapiSliceVP8 *slice;
-    slice =
-        new VaapiSliceVP8(m_VADisplay, m_VAContext, m_buffer, m_frameSize);
+    slice = new VaapiSliceVP8(m_VADisplay, m_VAContext,
+#if __PLATFORM_BYT__
+                              // PSB requires slice_data_offset normalize to 0 and macroblock_offset normalized to [0,7]
+                              m_frameHdr.rangedecoder_state.buffer,
+                              m_frameSize -
+                              (m_frameHdr.rangedecoder_state.buffer -
+                               m_buffer));
+#else
+                              m_buffer, m_frameSize);
+#endif
     m_currentPicture->addSlice(slice);
     if (!fillSliceParam(slice)) {
         ERROR("failed to fill slice parameters");
@@ -685,12 +699,6 @@ void VaapiDecoderVP8::stop(void)
     int i;
     DEBUG("VP8: stop()");
     flush();
-    // XXX, is it possible that the picture is still displaying?
-    // m_lastPicture = NULL;
-    // m_currentPicture = NULL;
-    // XXX, should we use delete?
-    // replacePicture (m_goldenRefPicture , NULL);
-    // replacePicture (m_altRefPicture, NULL);
     for (i = 0; i < VP8_MAX_PICTURE_COUNT; i++) {
         if (m_pictures[i]) {
             delete m_pictures[i];
@@ -749,6 +757,8 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
         if (m_frameHdr.show_frame) {
             m_currentPicture->m_timeStamp = m_currentPTS;
             m_currentPicture->output();
+        } else {
+            WARNING("warning: this picture isn't sent to render");
         }
 
         updateReferencePictures();
