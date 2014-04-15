@@ -76,13 +76,18 @@ esac
 
 # Convert code indent style and remove tabs
 INDENT_PARAMETERS="-kr \
+                   --indent-modifiers \
                    --no-tabs \
                    --tab-size4"
 
-echo "Convert code to Kernighan & Ritchie style: "
-for file in `find $1 -name "*.[hc]*"`; do
-   echo "processing file : $file"
-   $INDENT ${INDENT_PARAMETERS} $file -o $file 2>> /dev/NULL
-done
+if test "x$1" = "x"; then
+    echo "Convert code to Kernighan & Ritchie style: "
+    for file in `find -name "*.[hc]*"`; do
+       echo "processing file : $file"
+       $INDENT ${INDENT_PARAMETERS} $file -o $file 2>> /dev/null
+    done
+    echo "conversion done!"
+else
+    $INDENT ${INDENT_PARAMETERS} $1 -o $1 2>> /dev/null
+fi
 
-echo "conversion done!"

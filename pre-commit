@@ -1,0 +1,32 @@
+## strip trailing whitespace
+for file in `git diff --check --cached | grep '^[^+-]' | grep -o '^.*[0-9]\+:'` ; do
+    file_name=`echo ${file} | grep -o '^[^:]\+'`
+    line_number=`echo ${file} | grep -oP '(?<=:)[0-9]+(?=:)'`
+    # I think the reason there are two sed commands here
+    # is that 'sed -i' is different on different systems.
+    # shoot me.
+    (sed -i "${line_number}s/\s*$//" "${file_name}" > /dev/null 2>&1 \
+        || sed -i '' -E "${line_number}s/\s*$//" "${file_name}")
+    git add ${file_name}
+    echo "Re-wrote ${file_name} to trim whitespace."
+done
+
+## remove 'x' bit and apply kr style for source file
+for file in `git diff --cached  --name-only`; do
+    filename=$(basename "$file")
+    extension="${filename##*.}"
+    if test "$extension" = "h" || test "$extension" = "c" || test "$extension" = "cpp"; then
+        # remove the 'x' bit for files
+        echo "remove 'x' for ${file}"
+        chmod -x ${file}
+        # apply kr_style
+        ./kr_style.sh ${file}
+    fi
+done
+
+echo "****************************************************"
+echo "* applying kr_style to the changed files, you can:"
+echo "*     a) [check ] it by 'git diff'"
+echo "*     b) [accept] it by 'git commit -a --amend'"
+echo "*     c) [reject] it by 'git reset --hard'"
+echo "****************************************************"
