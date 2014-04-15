@@ -83,6 +83,10 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
 
     setupVA(buffer->surfaceNumber, buffer->profile);
 
+    DEBUG
+        ("m_videoFormatInfo video size: %d x %d, m_videoFormatInfo surface size: %d x %d",
+         m_videoFormatInfo.width, m_videoFormatInfo.height,
+         m_videoFormatInfo.surfaceWidth, m_videoFormatInfo.surfaceHeight);
     return DECODE_SUCCESS;
 }
 

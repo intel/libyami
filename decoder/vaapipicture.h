@@ -31,7 +31,7 @@
 using namespace std;
 
 typedef enum {
-    VAAPI_PICTURE_TYPE_NONE = 0,        // Undefined
+    VAAPI_PICTURE_TYPE_NONE = 0,    // Undefined
     VAAPI_PICTURE_TYPE_I,       // Intra
     VAAPI_PICTURE_TYPE_P,       // Predicted
     VAAPI_PICTURE_TYPE_B,       // Bi-directional predicted
@@ -151,7 +151,8 @@ class VaapiPicture {
     VideoSurfaceBuffer *m_surfBuf;
 
   private:
-    VaapiSurfaceBufferPool * m_surfBufPool;
+    bool renderVaBuffer(VaapiBufObject * &buffer, const char *bufferInfo);
+    VaapiSurfaceBufferPool *m_surfBufPool;
     vector < VaapiSlice * >m_sliceArray;
 };
 
