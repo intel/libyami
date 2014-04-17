@@ -15,17 +15,21 @@ done
 for file in `git diff --cached  --name-only`; do
     filename=$(basename "$file")
     extension="${filename##*.}"
+    dir_name=$(dirname "$file")
     if test "$extension" = "h" || test "$extension" = "c" || test "$extension" = "cpp"; then
         # remove the 'x' bit for files
         echo "remove 'x' for ${file}"
         chmod -x ${file}
-        # apply kr_style
-        ./kr_style.sh ${file}
+        if test "$dir_name" = "codecparsers"; then
+            ./gst_style.sh ${file}
+        else
+            ./kr_style.sh ${file}
+        fi
     fi
 done
 
 echo "****************************************************"
-echo "* applying kr_style to the changed files, you can:"
+echo "* applying coding style to the changed files, you can:"
 echo "*     a) [check ] it by 'git diff'"
 echo "*     b) [accept] it by 'git commit -a --amend'"
 echo "*     c) [reject] it by 'git reset --hard'"
