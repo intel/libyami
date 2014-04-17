@@ -30,7 +30,8 @@
 
 VaapiBufObject::VaapiBufObject(VADisplay display,
                                VAContextID context,
-                               uint32_t bufType, void *data, uint32_t size)
+                               uint32_t bufType, const void *data,
+                               uint32_t size)
 :m_display(display), m_size(size), m_buf(NULL)
 {
     VAStatus status;

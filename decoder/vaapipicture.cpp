@@ -106,71 +106,89 @@ VaapiSlice *VaapiPicture::getLastSlice()
     return m_sliceArray.back();
 }
 
+bool VaapiPicture::renderVaBuffer(VaapiBufObject * &buffer,
+                                  const char *bufferInfo)
+{
+    VAStatus status = VA_STATUS_SUCCESS;
+    VABufferID bufferID = VA_INVALID_ID;
+
+    if (!buffer)
+        return false;
+
+    bufferID = buffer->getID();
+    if (bufferID == VA_INVALID_ID)
+        return false;
+
+    status = vaRenderPicture(m_display, m_context, &bufferID, 1);
+    if (!checkVaapiStatus(status, bufferInfo))
+        return false;
+
+    delete buffer;
+    buffer = NULL;
+
+    return true;
+}
+
 bool VaapiPicture::decodePicture()
 {
     VAStatus status;
     uint32_t i;
     vector < VaapiSlice * >::iterator iter;
-    VABufferID bufferID;
 
-    DEBUG("VP: decode picture 0x%08x", m_surfaceID);
+    DEBUG("VaapiPicture::decodePicture 0x%08x", m_surfaceID);
 
     status = vaBeginPicture(m_display, m_context, m_surfaceID);
     if (!checkVaapiStatus(status, "vaBeginPicture()"))
         return false;
 
     if (m_picParam) {
-        bufferID = m_picParam->getID();
-        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-        if (!checkVaapiStatus
-            (status, "vaRenderPicture(), render pic param"))
-            return false;
-    }
-
-    if (m_iqMatrix) {
-        bufferID = m_iqMatrix->getID();
-        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-        if (!checkVaapiStatus
-            (status, "vaRenderPicture(), render IQ matrix"))
+        if (!renderVaBuffer
+            (m_picParam, "vaRenderPicture(), render pic param"))
             return false;
     }
 
     if (m_probTable) {
-        bufferID = m_probTable->getID();
-        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-        if (!checkVaapiStatus
-            (status, "vaRenderPicture(), render probability table"))
+        if (!renderVaBuffer
+            (m_probTable, "vaRenderPicture(), render probability table"))
+            return false;
+    }
+
+    if (m_iqMatrix) {
+        if (!renderVaBuffer
+            (m_iqMatrix, "vaRenderPicture(), render IQ matrix"))
             return false;
     }
 
     if (m_bitPlane) {
-        bufferID = m_bitPlane->getID();
-        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-        if (!checkVaapiStatus
-            (status, "vaRenderPicture(), render bit plane"))
+        if (!renderVaBuffer
+            (m_bitPlane, "vaRenderPicture(), render bit plane"))
             return false;
     }
 
     if (m_hufTable) {
-        bufferID = m_hufTable->getID();
-        status = vaRenderPicture(m_display, m_context, &bufferID, 1);
-        if (!checkVaapiStatus
-            (status, "vaRenderPicture(), render huf table"))
+        if (!renderVaBuffer
+            (m_hufTable, "vaRenderPicture(), render huffman table"))
             return false;
     }
 
-    for (iter = m_sliceArray.begin(); iter != m_sliceArray.end(); iter++) {
+    for (iter = m_sliceArray.begin(); iter != m_sliceArray.end(); ++iter) {
         VaapiBufObject *paramBuf = (*iter)->m_param;
         VaapiBufObject *dataBuf = (*iter)->m_data;
-        VABufferID vaBuffers[2];
 
-        vaBuffers[0] = paramBuf->getID();
-        vaBuffers[1] = dataBuf->getID();
+        if (!renderVaBuffer
+            (paramBuf, "vaRenderPicture(), render slice param"))
+            break;
 
-        status = vaRenderPicture(m_display, m_context, vaBuffers, 2);
-        if (!checkVaapiStatus(status, "vaRenderPicture()"))
-            return false;
+        if (!renderVaBuffer
+            (dataBuf, "vaRenderPicture(), render slice data"))
+            break;
     }
+
+    if (iter != m_sliceArray.end()) {
+        m_sliceArray.clear();
+        return false;
+    }
+    m_sliceArray.clear();
 
     status = vaEndPicture(m_display, m_context);
     if (!checkVaapiStatus(status, "vaEndPicture()"))

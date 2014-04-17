@@ -25,6 +25,7 @@
 #include "config.h"
 #endif
 
+#include "common/log.h"
 #include "vaapidecoder_vp8.h"
 #include "codecparsers/bytereader.h"
 
@@ -37,18 +38,11 @@ static const uint8 keyFrameUVModeProbs[3] = { 142, 114, 183 };
 static const uint8 nonKeyFrameDefaultYModeProbs[4] = { 112, 86, 140, 37 };
 static const uint8 nonKeyFrameDefaultUVModeProbs[3] = { 162, 101, 204 };
 
-// XXX, move it to VaapiDecoderBase
-bool VaapiDecoderVP8::replacePicture(VaapiPictureVP8 ** pic1,
-                                     VaapiPicture * pic2)
+bool VaapiDecoderVP8::replacePicture(VaapiPictureVP8 * &pic1,
+                                     VaapiPictureVP8 * pic2)
 {
-#if 0
-    if (!*pic1)
-        return false;
-    delete *pic1;
-#endif
-    // XX increase ref count for pic2
-    *pic1 = pic2;
-
+    // VP8 picture ref count is simple, we just replace the pointer
+    pic1 = pic2;
     return true;
 }
 
@@ -72,8 +66,8 @@ static Decode_Status getStatus(Vp8ParseResult result)
 
 
 VaapiSliceVP8::VaapiSliceVP8(VADisplay display,
-                             VAContextID ctx, uint8_t * sliceData,
-                             uint32_t sliceSize)
+                             VAContextID ctx,
+                             const uint8_t * sliceData, uint32_t sliceSize)
 {
     VASliceParameterBufferVP8 *paramBuf;
 
@@ -103,15 +97,8 @@ VaapiSliceVP8::VaapiSliceVP8(VADisplay display,
 
 VaapiSliceVP8::~VaapiSliceVP8()
 {
-    if (m_data) {
-        delete m_data;
-        m_data = NULL;
-    }
-
-    if (m_param) {
-        delete m_param;
-        m_param = NULL;
-    }
+    delete m_data;
+    delete m_param;
 }
 
 VaapiPictureVP8::VaapiPictureVP8(VADisplay display,
@@ -150,14 +137,71 @@ VaapiPictureVP8::VaapiPictureVP8(VADisplay display,
 
 Decode_Status VaapiDecoderVP8::ensureContext()
 {
+    bool resetContext = false;
+    Decode_Status status = DECODE_SUCCESS;
+
+    if (m_frameHdr.key_frame != VP8_KEY_FRAME) {
+        return DECODE_SUCCESS;
+    }
+
+    /*
+     - for VP8 spec, there are two resolution,
+        1. one is frame resolution, it may (or may not) change upon key frame: m_frameWidth/m_frameHeight.
+        2. another is stream resolution, it is the max resolution of frames. (for example, resolution in ivf header).
+            (represented by m_configBuffer width/height below)
+     - for codec, there are two set of resolution,
+        1. one is in m_configBuffer: width/height and graphicsBufferWidth/graphicsBufferHeight
+            it is set from upper layer to config codec
+        2. another is m_videoFormatInfo: width/height and surfaceWidth/surfaceHeight
+            it is reported to upper layer for configured codec
+     - solution here:
+        1. vp8 decoder only update m_configBuffer, since VaapiDecoderBase::start() will copy
+            m_configBuffer resolution to  m_videoFormatInfo. (todo, is it ok to mark m_videoFormatInfo as private?)
+        2. we use the resolution in m_configBuffer as stream resolution of VP8 spec.
+            so, m_confiBuffer width/height may update upon key frame
+        3. we don't care m_configBuffer graphicBufferWidth/graphicBufferHeight for now,
+            since that is used for android
+     */
+
+    DEBUG("got frame size: %d x %d", m_frameHdr.width, m_frameHdr.height);
+    m_frameWidth = m_frameHdr.width;
+    m_frameHeight = m_frameHdr.height;
+
+    // only reset va context when there is a larger frame
+    if (m_configBuffer.width < m_frameHdr.width
+        || m_configBuffer.height < m_frameHdr.height) {
+        resetContext = true;
+        INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d", m_configBuffer.width, m_configBuffer.height, m_frameHdr.width, m_frameHdr.height);
+        m_configBuffer.width = m_frameHdr.width;
+        m_configBuffer.height = m_frameHdr.height;
+        DEBUG("USE_NATIVE_GRAPHIC_BUFFER: %d",
+              m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER);
+        if (m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER) {
+            m_configBuffer.graphicBufferWidth = m_configBuffer.width;
+            m_configBuffer.graphicBufferHeight = m_configBuffer.height;
+        }
+
+        if (m_hasContext)
+            status = VaapiDecoderBase::terminateVA();
+        m_hasContext = false;
+
+        if (status != DECODE_SUCCESS)
+            return status;
+    }
+
     if (m_hasContext)
         return DECODE_SUCCESS;
 
-    // XXX, redudant to set surfaceNumber
-    m_configBuffer.surfaceNumber = 3 + VP8_EXTRA_SURFACE_NUMBER;
-    VaapiDecoderBase::start(&m_configBuffer);
-    DEBUG("First time to Start VA context");
+    DEBUG("Start VA context");
+    status = VaapiDecoderBase::start(&m_configBuffer);
+
+    if (status != DECODE_SUCCESS)
+        return status;
+
     m_hasContext = true;
+
+    if (resetContext)
+        return DECODE_FORMAT_CHANGE;
 
     return DECODE_SUCCESS;
 }
@@ -189,6 +233,12 @@ bool VaapiDecoderVP8::fillSliceParam(VaapiSliceVP8 * slice)
     sliceParam->partition_size[0] =
         m_frameHdr.first_part_size - ((sliceParam->macroblock_offset +
                                        7) >> 3);
+
+#if __PLATFORM_BYT__
+    sliceParam->slice_data_offset = 0;
+    sliceParam->macroblock_offset =
+        8 - m_frameHdr.rangedecoder_state.remaining_bits;
+#endif
 
     if (m_frameHdr.key_frame == VP8_KEY_FRAME)
         lastPartitionSize =
@@ -225,19 +275,9 @@ bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
     memset(picParam, 0, sizeof(*picParam));
     /* Fill in VAPictureParameterBufferVP8 */
     if (m_frameHdr.key_frame == VP8_KEY_FRAME) {
-        m_frameWidth = m_frameHdr.width;
-        m_frameHeight = m_frameHdr.height;
         if (m_frameHdr.horizontal_scale || m_frameHdr.vertical_scale)
             WARNING
                 ("horizontal_scale or vertical_scale in VP8 isn't supported yet");
-    }
-    // XXX, we don't support horizontal_scale or vertical_scale yet.
-    // reject frames for upscale, simple accept the downscale frames
-    if (m_frameWidth > m_videoFormatInfo.width
-        || m_frameHeight > m_videoFormatInfo.height) {
-        INFO("ignore frame size change check: current frame size: %d x %d, mVideoFormatInfo: %d x %d",
-            m_frameWidth, m_frameHeight, m_videoFormatInfo.width, m_videoFormatInfo.height);
-        // return FALSE;
     }
 
     picParam->frame_width = m_frameWidth;
@@ -254,8 +294,8 @@ bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
             m_goldenRefPicture ? m_goldenRefPicture->m_surfaceID :
             VA_INVALID_SURFACE;
         picParam->alt_ref_frame =
-            m_altRefPicture ? m_altRefPicture->
-            m_surfaceID : VA_INVALID_SURFACE;
+            m_altRefPicture ? m_altRefPicture->m_surfaceID :
+            VA_INVALID_SURFACE;
     }
     picParam->out_of_loop_frame = VA_INVALID_SURFACE;   // not used currently
 
@@ -361,7 +401,7 @@ bool VaapiDecoderVP8::ensureQuantMatrix(VaapiPictureVP8 * pic)
         const int32 MAX_QI_INDEX = 127;
         if (seg->segmentation_enabled) {
             baseQI = seg->quantizer_update_value[i];
-            if (!seg->segment_feature_mode)     // 0 means delta update
+            if (!seg->segment_feature_mode) // 0 means delta update
                 baseQI += m_frameHdr.quant_indices.y_ac_qi;;
         } else
             baseQI = m_frameHdr.quant_indices.y_ac_qi;
@@ -426,26 +466,26 @@ bool VaapiDecoderVP8::ensureProbabilityTable(VaapiPictureVP8 * pic)
 
 void VaapiDecoderVP8::updateReferencePictures()
 {
-    VaapiPicture *picture = m_currentPicture;
+    VaapiPictureVP8 *picture = m_currentPicture;
 
     // update picture reference
     if (m_frameHdr.key_frame == VP8_KEY_FRAME) {
-        replacePicture(&m_goldenRefPicture, picture);
-        replacePicture(&m_altRefPicture, picture);
+        replacePicture(m_goldenRefPicture, picture);
+        replacePicture(m_altRefPicture, picture);
     } else {
         // process refresh_alternate_frame/copy_buffer_to_alternate first
         if (m_frameHdr.refresh_alternate_frame) {
-            replacePicture(&m_altRefPicture, picture);
+            replacePicture(m_altRefPicture, picture);
         } else {
             switch (m_frameHdr.copy_buffer_to_alternate) {
             case 0:
                 // do nothing
                 break;
             case 1:
-                replacePicture(&m_altRefPicture, m_lastPicture);
+                replacePicture(m_altRefPicture, m_lastPicture);
                 break;
             case 2:
-                replacePicture(&m_altRefPicture, m_goldenRefPicture);
+                replacePicture(m_altRefPicture, m_goldenRefPicture);
                 break;
             default:
                 WARNING
@@ -454,17 +494,17 @@ void VaapiDecoderVP8::updateReferencePictures()
         }
 
         if (m_frameHdr.refresh_golden_frame) {
-            replacePicture(&m_goldenRefPicture, picture);
+            replacePicture(m_goldenRefPicture, picture);
         } else {
             switch (m_frameHdr.copy_buffer_to_golden) {
             case 0:
                 // do nothing
                 break;
             case 1:
-                replacePicture(&m_goldenRefPicture, m_lastPicture);
+                replacePicture(m_goldenRefPicture, m_lastPicture);
                 break;
             case 2:
-                replacePicture(&m_goldenRefPicture, m_altRefPicture);
+                replacePicture(m_goldenRefPicture, m_altRefPicture);
                 break;
             default:
                 WARNING
@@ -473,20 +513,25 @@ void VaapiDecoderVP8::updateReferencePictures()
         }
     }
     if (m_frameHdr.key_frame == VP8_KEY_FRAME || m_frameHdr.refresh_last)
-        replacePicture(&m_lastPicture, picture);
+        replacePicture(m_lastPicture, picture);
 
     if (m_goldenRefPicture)
-        DEBUG("m_goldenRefPicture: %p, m_surfaceID: %x", m_goldenRefPicture, m_goldenRefPicture->m_surfaceID);
+        DEBUG("m_goldenRefPicture: %p, m_surfaceID: %x",
+              m_goldenRefPicture, m_goldenRefPicture->m_surfaceID);
     if (m_altRefPicture)
-        DEBUG("m_altRefPicture: %p, m_surfaceID: %x", m_altRefPicture, m_altRefPicture->m_surfaceID);
+        DEBUG("m_altRefPicture: %p, m_surfaceID: %x", m_altRefPicture,
+              m_altRefPicture->m_surfaceID);
     if (m_lastPicture)
-        DEBUG("m_lastPicture: %p, m_surfaceID: %x", m_lastPicture, m_lastPicture->m_surfaceID);
+        DEBUG("m_lastPicture: %p, m_surfaceID: %x", m_lastPicture,
+              m_lastPicture->m_surfaceID);
     if (m_currentPicture)
-        DEBUG("m_currentPicture: %p, m_surfaceID: %x", m_currentPicture, m_currentPicture->m_surfaceID);
+        DEBUG("m_currentPicture: %p, m_surfaceID: %x", m_currentPicture,
+              m_currentPicture->m_surfaceID);
     int i;
-    for (i=0; i<4; i++) {
+    for (i = 0; i < VP8_MAX_PICTURE_COUNT; i++) {
         if (m_pictures[i])
-            DEBUG("m_pictures[%d]: %p, m_surfaceID: %x", i, m_pictures[i], m_pictures[i]->m_surfaceID);
+            DEBUG("m_pictures[%d]: %p, m_surfaceID: %x", i, m_pictures[i],
+                  m_pictures[i]->m_surfaceID);
     }
 
 }
@@ -505,31 +550,32 @@ bool VaapiDecoderVP8::allocNewPicture()
     VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);
 
     for (i = 0; i < VP8_MAX_PICTURE_COUNT; i++) {
-        DEBUG("m_pictures[%d] = %p, surfaceID: %x", i, m_pictures[i], m_pictures[i] ? m_pictures[i]->m_surfaceID : VA_INVALID_SURFACE);
-        if (m_pictures[i] && (m_pictures[i] == m_goldenRefPicture || m_pictures[i] == m_altRefPicture || m_pictures[i] == m_lastPicture || m_pictures[i] == m_currentPicture))  // take m_currentPicture as a buffering area
+        DEBUG("m_pictures[%d] = %p, surfaceID: %x", i, m_pictures[i],
+              m_pictures[i] ? m_pictures[i]->m_surfaceID :
+              VA_INVALID_SURFACE);
+        if (m_pictures[i]
+            && (m_pictures[i] == m_goldenRefPicture
+                || m_pictures[i] == m_altRefPicture
+                || m_pictures[i] == m_lastPicture
+                || m_pictures[i] == m_currentPicture))
             continue;
 
         if (m_pictures[i]) {
-            // XXXX, psb and i965 behave differently, small memory leak here
-            #if __PLATFORM_BYT__
-                DEBUG("Does nothing, since 1) psb video delete misc buffer automatically, 2) surface is recycled by renderDone()");
-            #else
-                delete m_pictures[i];
-            #endif
-       }
+            delete m_pictures[i];
+        }
 
-       m_pictures[i] = picture;
-       break;
+        m_pictures[i] = picture;
+        break;
     }
     if (i == VP8_MAX_PICTURE_COUNT) {
         delete picture;
         return false;
     }
-    replacePicture(&m_currentPicture, picture);
-    DEBUG("i: %d, alloc new picture: %p with surface ID: %x, iq matrix buffer id: %x",
-        i, m_currentPicture,
-        m_currentPicture->m_surfaceID,
-        m_currentPicture->m_iqMatrix->getID());
+    replacePicture(m_currentPicture, picture);
+    DEBUG
+        ("i: %d, alloc new picture: %p with surface ID: %x, iq matrix buffer id: %x",
+         i, m_currentPicture, m_currentPicture->m_surfaceID,
+         m_currentPicture->m_iqMatrix->getID());
 
     return true;
 }
@@ -537,10 +583,6 @@ bool VaapiDecoderVP8::allocNewPicture()
 Decode_Status VaapiDecoderVP8::decodePicture()
 {
     Decode_Status status = DECODE_SUCCESS;
-
-    status = ensureContext();
-    if (status != DECODE_SUCCESS)
-        return status;
 
     if (!allocNewPicture())
         return DECODE_FAIL;
@@ -561,8 +603,16 @@ Decode_Status VaapiDecoderVP8::decodePicture()
     }
 
     VaapiSliceVP8 *slice;
-    slice =
-        new VaapiSliceVP8(m_VADisplay, m_VAContext, m_buffer, m_frameSize);
+    slice = new VaapiSliceVP8(m_VADisplay, m_VAContext,
+#if __PLATFORM_BYT__
+                              // PSB requires slice_data_offset normalize to 0 and macroblock_offset normalized to [0,7]
+                              m_frameHdr.rangedecoder_state.buffer,
+                              m_frameSize -
+                              (m_frameHdr.rangedecoder_state.buffer -
+                               m_buffer));
+#else
+                              m_buffer, m_frameSize);
+#endif
     m_currentPicture->addSlice(slice);
     if (!fillSliceParam(slice)) {
         ERROR("failed to fill slice parameters");
@@ -611,32 +661,31 @@ VaapiDecoderVP8::~VaapiDecoderVP8()
 
 Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
 {
-    DEBUG("VP8: start()");
+    DEBUG("VP8: start() buffer size: %d x %d", buffer->width,
+          buffer->height);
     Decode_Status status;
-    bool gotConfig = false;
 
     if ((buffer->flag & HAS_SURFACE_NUMBER)
         && (buffer->flag & HAS_VA_PROFILE)) {
-        gotConfig = true;
     }
 
     buffer->profile = VAProfileVP8Version0_3;
     buffer->surfaceNumber = 3 + VP8_EXTRA_SURFACE_NUMBER;
-    gotConfig = true;
 
     vp8_parse_init_default_multi_frame_data(&m_lastFrameContext);
 
-    // XXX
-    buffer->graphicBufferWidth = buffer->width;
-    buffer->graphicBufferHeight = buffer->height;
+    DEBUG("disable native graphics buffer");
     buffer->flag &= ~USE_NATIVE_GRAPHIC_BUFFER;
-    if (gotConfig) {
-        VaapiDecoderBase::start(buffer);
-        m_hasContext = true;
-    }
+    m_configBuffer = *buffer;
+    m_configBuffer.data = NULL;
+    m_configBuffer.size = 0;
 
-    // it should be a good timing to report resolution change, however, it fails on chromeos
-    return DECODE_SUCCESS; // DECODE_FORMAT_CHANGE; // notify up layer for necessary re-configuration
+    // it is a good timing to report resolution change (gst-omx does), however, it fails on chromeos
+    // so we force to update resolution on first key frame
+    m_configBuffer.width = 0;
+    m_configBuffer.height = 0;
+
+    return DECODE_SUCCESS;
 }
 
 Decode_Status VaapiDecoderVP8::reset(VideoConfigBuffer * buffer)
@@ -650,12 +699,6 @@ void VaapiDecoderVP8::stop(void)
     int i;
     DEBUG("VP8: stop()");
     flush();
-    // XXX, is it possible that the picture is still displaying?
-    // m_lastPicture = NULL;
-    // m_currentPicture = NULL;
-    // XXX, should we use delete?
-    // replacePicture (&m_goldenRefPicture , NULL);
-    // replacePicture (&m_altRefPicture, NULL);
     for (i = 0; i < VP8_MAX_PICTURE_COUNT; i++) {
         if (m_pictures[i]) {
             delete m_pictures[i];
@@ -702,11 +745,9 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
         }
 
         if (m_frameHdr.key_frame == VP8_KEY_FRAME) {
-            if (m_frameWidth != m_frameHdr.width || m_frameHeight != m_frameHdr.height) {
-                m_frameWidth  = m_frameHdr.width;
-                m_frameHeight = m_frameHdr.height;
-                return DECODE_FORMAT_CHANGE;
-            }
+            status = ensureContext();
+            if (status != DECODE_SUCCESS)
+                return status;
         }
 
         status = decodePicture();
@@ -716,6 +757,8 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
         if (m_frameHdr.show_frame) {
             m_currentPicture->m_timeStamp = m_currentPTS;
             m_currentPicture->output();
+        } else {
+            WARNING("warning: this picture isn't sent to render");
         }
 
         updateReferencePictures();

@@ -36,8 +36,8 @@ enum {
 class VaapiSliceVP8:public VaapiSlice {
   public:
     VaapiSliceVP8(VADisplay display,
-                  VAContextID ctx, uint8_t * sliceData,
-                  uint32_t sliceSize);
+                  VAContextID ctx,
+                  const uint8_t * sliceData, uint32_t sliceSize);
 
     ~VaapiSliceVP8();
 };
@@ -71,7 +71,7 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     Decode_Status ensureContext();
     /* decoding functions */
     Decode_Status decodePicture();
-    bool replacePicture(VaapiPictureVP8 ** pic1, VaapiPicture * pic2);
+    bool replacePicture(VaapiPictureVP8 * &pic1, VaapiPictureVP8 * pic2);
     void updateReferencePictures();
   private:
     VaapiPictureVP8 * m_currentPicture;
@@ -85,7 +85,7 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     // resolution of current frame, VP8 may change frame resolution starting with a key frame
     uint32 m_frameWidth;
     uint32 m_frameHeight;
-    uint8 *m_buffer;
+    const uint8 *m_buffer;
     uint32 m_frameSize;
     Vp8FrameHdr m_frameHdr;
     Vp8MultiFrameData m_lastFrameContext;
