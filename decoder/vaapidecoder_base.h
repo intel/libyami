@@ -104,6 +104,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     bool m_lowDelay;
     bool m_rawOutput;
     bool m_enableNativeBuffersFlag;
+    bool m_ownNativeDisplay;
 };
 
 #endif                          // vaapidecoder_base_h

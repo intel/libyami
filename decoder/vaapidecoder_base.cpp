@@ -254,8 +254,10 @@ Decode_Status
     m_display = new Display;
     *m_display = ANDROID_DISPLAY_HANDLE;
 #else
-    if (!m_display)
+    if (!m_display) {
         m_display = XOpenDisplay(NULL);
+        m_ownNativeDisplay = true;
+    }
 #if __PLATFORM_BYT__
     if (setenv("LIBVA_DRIVER_NAME", "wrapper", 1) == 0) {
         INFO("setting LIBVA_DRIVER_NAME to wrapper for chromeos");
@@ -287,7 +289,7 @@ Decode_Status
     m_bufPool = new VaapiSurfaceBufferPool(m_VADisplay, &m_configBuffer);
     surfaces = new VASurfaceID[numSurface];
     for (i = 0; i < numSurface; i++) {
-        surfaces[i] = NULL;
+        surfaces[i] = VA_INVALID_SURFACE;
         buf = m_bufPool->getBufferByIndex(i);
         suf = m_bufPool->getVaapiSurface(buf);
         if (suf)
@@ -348,11 +350,14 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
         vaTerminate(m_VADisplay);
         m_VADisplay = NULL;
     }
-
-    if (m_display) {
-        delete m_display;
-        m_display = NULL;
+#ifdef ANDROID
+    delete m_display;
+#else
+    if (m_display && m_ownNativeDisplay) {
+        XCloseDisplay(m_display);
     }
+#endif
+    m_display = NULL;
 
     m_VAStarted = false;
     return DECODE_SUCCESS;
@@ -361,7 +366,17 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
 /* not used funtion here */
 void VaapiDecoderBase::setXDisplay(Display * xDisplay)
 {
+    if (m_display && m_ownNativeDisplay) {
+        WARNING("it may be buggy that va context has been setup with self X display");
+#ifndef ANDROID
+        XCloseDisplay(m_display);
+        // usually it is unnecessary to reset va context on X except driver is buggy.
+        // it is always required to reset va context for wayland if we support that.
+#endif
+    }
+
     m_display = xDisplay;
+    m_ownNativeDisplay = false;
 }
 
 void VaapiDecoderBase::enableNativeBuffers(void)
