@@ -64,6 +64,8 @@ static VAProfile getH264VAProfile(H264PPS * pps)
             (pps->num_slice_groups_minus1 == 0 &&
              !pps->redundant_pic_cnt_present_flag))
             profile = VAProfileH264ConstrainedBaseline;
+        else
+            profile = VAProfileH264Baseline;
         break;
     case 77:
     case 88:
