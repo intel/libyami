@@ -41,6 +41,12 @@
 }while (0)
 #endif
 
+#ifndef DEBUG_
+#define DEBUG_(format, ...)   do { \
+   fprintf(stderr, format, ##__VA_ARGS__);\
+}while (0)
+#endif
+
 #else                           //__ENABLE_DEBUG__
 #ifndef INFO
 #define INFO(format, ...)
@@ -52,6 +58,9 @@
 
 #ifndef DEBUG
 #define DEBUG(format, ...)
+#endif
+#ifndef DEBUG_
+#define DEBUG_(format, ...)
 #endif
 #endif                          //__ENABLE_DEBUG__
 
