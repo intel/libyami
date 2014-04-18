@@ -145,22 +145,22 @@ Decode_Status VaapiDecoderVP8::ensureContext()
     }
 
     /*
-     - for VP8 spec, there are two resolution,
-        1. one is frame resolution, it may (or may not) change upon key frame: m_frameWidth/m_frameHeight.
-        2. another is stream resolution, it is the max resolution of frames. (for example, resolution in ivf header).
-            (represented by m_configBuffer width/height below)
-     - for codec, there are two set of resolution,
-        1. one is in m_configBuffer: width/height and graphicsBufferWidth/graphicsBufferHeight
-            it is set from upper layer to config codec
-        2. another is m_videoFormatInfo: width/height and surfaceWidth/surfaceHeight
-            it is reported to upper layer for configured codec
-     - solution here:
-        1. vp8 decoder only update m_configBuffer, since VaapiDecoderBase::start() will copy
-            m_configBuffer resolution to  m_videoFormatInfo. (todo, is it ok to mark m_videoFormatInfo as private?)
-        2. we use the resolution in m_configBuffer as stream resolution of VP8 spec.
-            so, m_confiBuffer width/height may update upon key frame
-        3. we don't care m_configBuffer graphicBufferWidth/graphicBufferHeight for now,
-            since that is used for android
+       - for VP8 spec, there are two resolution,
+       1. one is frame resolution, it may (or may not) change upon key frame: m_frameWidth/m_frameHeight.
+       2. another is stream resolution, it is the max resolution of frames. (for example, resolution in ivf header).
+       (represented by m_configBuffer width/height below)
+       - for codec, there are two set of resolution,
+       1. one is in m_configBuffer: width/height and graphicsBufferWidth/graphicsBufferHeight
+       it is set from upper layer to config codec
+       2. another is m_videoFormatInfo: width/height and surfaceWidth/surfaceHeight
+       it is reported to upper layer for configured codec
+       - solution here:
+       1. vp8 decoder only update m_configBuffer, since VaapiDecoderBase::start() will copy
+       m_configBuffer resolution to  m_videoFormatInfo. (todo, is it ok to mark m_videoFormatInfo as private?)
+       2. we use the resolution in m_configBuffer as stream resolution of VP8 spec.
+       so, m_confiBuffer width/height may update upon key frame
+       3. we don't care m_configBuffer graphicBufferWidth/graphicBufferHeight for now,
+       since that is used for android
      */
 
     DEBUG("got frame size: %d x %d", m_frameHdr.width, m_frameHdr.height);

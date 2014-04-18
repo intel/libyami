@@ -371,7 +371,8 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
 void VaapiDecoderBase::setXDisplay(Display * xDisplay)
 {
     if (m_display && m_ownNativeDisplay) {
-        WARNING("it may be buggy that va context has been setup with self X display");
+        WARNING
+            ("it may be buggy that va context has been setup with self X display");
 #ifndef ANDROID
         XCloseDisplay(m_display);
         // usually it is unnecessary to reset va context on X except driver is buggy.

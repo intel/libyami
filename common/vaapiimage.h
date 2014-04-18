@@ -29,8 +29,8 @@
 /* Image format definition */
 typedef enum {
     VAAPI_IMAGE_FORMAT_TYPE_YCBCR = 1,  /* YUV */
-    VAAPI_IMAGE_FORMAT_TYPE_RGB,        /* RGB */
-    VAAPI_IMAGE_FORMAT_TYPE_INDEXED     /* paletted */
+    VAAPI_IMAGE_FORMAT_TYPE_RGB,    /* RGB */
+    VAAPI_IMAGE_FORMAT_TYPE_INDEXED /* paletted */
 } VaapiImageFormatType;
 
 typedef enum {

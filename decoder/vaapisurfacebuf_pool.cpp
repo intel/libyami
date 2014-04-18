@@ -28,15 +28,15 @@
 
 VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
                                                VideoConfigBuffer * config)
-:m_display(display)
+:  m_display(display)
 {
     INFO("Construct the render buffer pool ");
     uint32_t i;
     uint32_t format = VA_RT_FORMAT_YUV420;
 
-    m_bufArray  = NULL;
+    m_bufArray = NULL;
     m_surfArray = NULL;
-    m_bufCount  = 0;
+    m_bufCount = 0;
     m_bufMapped = false;
     m_useExtBuf = false;
     pthread_cond_init(&m_cond, NULL);
@@ -74,7 +74,8 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
         VASurfaceAttrib surfaceAttribs[2];
         VASurfaceAttribExternalBuffers surfAttribExtBuf;
         memset(surfaceAttribs, 0, sizeof(VASurfaceAttrib) * 2);
-        memset(&surfAttribExtBuf, 0, sizeof(VASurfaceAttribExternalBuffers));
+        memset(&surfAttribExtBuf, 0,
+               sizeof(VASurfaceAttribExternalBuffers));
 
         surfaceAttribs[0].type = VASurfaceAttribMemoryType;
         surfaceAttribs[0].flags = VA_SURFACE_ATTRIB_SETTABLE;
@@ -105,7 +106,7 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
             return;
         }
 
-        surfAttribExtBuf.buffers[0] = (unsigned long)NULL;
+        surfAttribExtBuf.buffers[0] = (unsigned long) NULL;
         surfAttribExtBuf.flags = 0;
         surfAttribExtBuf.private_data = NULL;
         surfaceAttribs[1].type = VASurfaceAttribExternalBufferDescriptor;
@@ -233,7 +234,7 @@ VaapiSurfaceBufferPool::~VaapiSurfaceBufferPool()
 
     if (m_surfArray) {
         for (i = 0; i < m_bufCount; i++)
-           delete m_surfArray[i];
+            delete m_surfArray[i];
         free(m_surfArray);
     }
 

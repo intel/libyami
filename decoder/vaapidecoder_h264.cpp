@@ -265,10 +265,7 @@ VaapiPictureH264 *VaapiPictureH264::newField()
 {
     VaapiPictureH264 *field = NULL;
 
-    field = new VaapiPictureH264(m_display,
-                                 m_context,
-                                 NULL,
-                                 0);
+    field = new VaapiPictureH264(m_display, m_context, NULL, 0);
     if (!field)
         return NULL;
 
@@ -278,7 +275,7 @@ VaapiPictureH264 *VaapiPictureH264::newField()
 
     field->m_fieldPoc[0] = m_fieldPoc[0];
     field->m_fieldPoc[1] = m_fieldPoc[1];
-    field->m_frameNum    = m_frameNum;
+    field->m_frameNum = m_frameNum;
 
     return field;
 }
@@ -294,9 +291,9 @@ VaapiFrameStore::VaapiFrameStore(VaapiPictureH264 * pic)
 
 VaapiFrameStore::~VaapiFrameStore()
 {
-   uint32_t i;
-   for (i = 0; i < m_numBuffers; i++)
-       delete m_buffers[i];
+    uint32_t i;
+    for (i = 0; i < m_numBuffers; i++)
+        delete m_buffers[i];
 }
 
 void
@@ -596,7 +593,8 @@ void VaapiDecoderH264::initPicturePOC(VaapiPictureH264 * picture,
         picture->m_fieldPoc[BOTTOM_FIELD] = m_fieldPoc[BOTTOM_FIELD];
 
     if (picture->m_structure != VAAPI_PICTURE_STRUCTURE_TOP_FIELD)
-        picture->m_POC = MIN(picture->m_fieldPoc[0], picture->m_fieldPoc[1]);
+        picture->m_POC =
+            MIN(picture->m_fieldPoc[0], picture->m_fieldPoc[1]);
     else
         picture->m_POC = picture->m_fieldPoc[TOP_FIELD];
 
@@ -612,7 +610,7 @@ bool VaapiDecoderH264::initPicture(VaapiPictureH264 * picture,
     m_frameNum = sliceHdr->frame_num;
     picture->m_frameNum = m_frameNum;
     picture->m_frameNumWrap = m_frameNum;
-    picture->m_outputFlag = true;       /* XXX: conformant to Annex A only */
+    picture->m_outputFlag = true;   /* XXX: conformant to Annex A only */
     picture->m_timeStamp = m_currentPTS;
 
     /* Reset decoder state for IDR pictures */
@@ -771,10 +769,10 @@ bool VaapiDecoderH264::fillPicture(VaapiPictureH264 * picture,
     COPY_FIELD(pps, chroma_qp_index_offset);
     COPY_FIELD(pps, second_chroma_qp_index_offset);
 
-    picParam->seq_fields.value = 0;     /* reset all bits */
+    picParam->seq_fields.value = 0; /* reset all bits */
     picParam->seq_fields.bits.residual_colour_transform_flag =
         sps->separate_colour_plane_flag;
-    picParam->seq_fields.bits.MinLumaBiPredSize8x8 = sps->level_idc >= 31;      /* A.3.3.2 */
+    picParam->seq_fields.bits.MinLumaBiPredSize8x8 = sps->level_idc >= 31;  /* A.3.3.2 */
 
     COPY_BFM(seq_fields, sps, chroma_format_idc);
     COPY_BFM(seq_fields, sps, gaps_in_frame_num_value_allowed_flag);
@@ -786,7 +784,7 @@ bool VaapiDecoderH264::fillPicture(VaapiPictureH264 * picture,
     COPY_BFM(seq_fields, sps, log2_max_pic_order_cnt_lsb_minus4);
     COPY_BFM(seq_fields, sps, delta_pic_order_always_zero_flag);
 
-    picParam->pic_fields.value = 0;     /* reset all bits */
+    picParam->pic_fields.value = 0; /* reset all bits */
     picParam->pic_fields.bits.field_pic_flag = sliceHdr->field_pic_flag;
     picParam->pic_fields.bits.reference_pic_flag =
         VAAPI_PICTURE_IS_REFERENCE(picture);
