@@ -48,13 +48,12 @@ m_surfBufPool(surfBufPool), m_picStructure(structure)
     m_surfBuf = NULL;
     m_surfaceID = 0;
 
-    if (m_surfBufPool) {
+    if (!m_surfBuf && m_surfBufPool) {
         m_surfBuf = m_surfBufPool->acquireFreeBufferWithWait();
-        if (m_surfBuf) {
-            m_surfaceID = m_surfBuf->renderBuffer.surface;
-        } else
-            ERROR("VaapiPicture: acquire surface fail");
     }
+
+    if (m_surfBuf)
+       m_surfaceID = m_surfBuf->renderBuffer.surface;
 }
 
 VaapiPicture::~VaapiPicture()
@@ -95,6 +94,24 @@ VaapiPicture::~VaapiPicture()
     }
 
 }
+
+void VaapiPicture::attachSurfaceBuf(VaapiSurfaceBufferPool * surfBufPool,
+                                    VideoSurfaceBuffer *surfBuf,
+                                    VaapiPictureStructure structure)
+{
+    if (m_surfBuf && m_surfBufPool) {
+       m_surfBufPool->recycleBuffer(m_surfBuf, false);
+       m_surfaceID = 0;
+    }
+
+    m_surfBufPool  = surfBufPool;
+    m_surfBuf      = surfBuf;
+    m_picStructure = structure;
+
+    if (m_surfBuf)
+       m_surfaceID = m_surfBuf->renderBuffer.surface;
+}
+
 
 void VaapiPicture::addSlice(VaapiSlice * slice)
 {

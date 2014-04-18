@@ -125,6 +125,10 @@ class VaapiPicture {
                  VaapiPictureStructure structure);
     ~VaapiPicture();
 
+    void attachSurfaceBuf(VaapiSurfaceBufferPool * surfBufPool,
+                          VideoSurfaceBuffer *surfBuf,
+                          VaapiPictureStructure structure);
+
     void addSlice(VaapiSlice * slice);
     VaapiSlice *getLastSlice();
     bool decodePicture();
@@ -149,10 +153,10 @@ class VaapiPicture {
     VADisplay m_display;
     VAContextID m_context;
     VideoSurfaceBuffer *m_surfBuf;
+    VaapiSurfaceBufferPool *m_surfBufPool;
 
   private:
     bool renderVaBuffer(VaapiBufObject * &buffer, const char *bufferInfo);
-    VaapiSurfaceBufferPool *m_surfBufPool;
     vector < VaapiSlice * >m_sliceArray;
 };
 

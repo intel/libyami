@@ -93,7 +93,6 @@ class VaapiFrameStore {
     VaapiFrameStore(VaapiPictureH264 * pic);
     ~VaapiFrameStore();
     void addPicture(VaapiPictureH264 * pic);
-    bool splitFields();
     bool hasFrame();
     bool hasReference();
 
