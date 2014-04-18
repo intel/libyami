@@ -1246,6 +1246,12 @@ Decode_Status
         DEBUG("New filed() is called for interlace frame");
         picture = m_currentPicture->newField();
         if (!picture) {
+            /* FIXME: this is a temporary workaroud,need review
+               this after interlaced mode have been implemented.
+               Current picture in dpb store, do not delete it.
+            */
+            m_currentPicture = NULL;
+
             ERROR("failed to allocate field picture");
             return DECODE_FAIL;
         }
