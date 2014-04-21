@@ -76,7 +76,7 @@ class VaapiSurface {
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_fourcc;
-    uint32_t m_externalBufHandle;       //allocate surface from extenal buf
+    uint32_t m_externalBufHandle;   //allocate surface from extenal buf
     VaapiImage *m_derivedImage;
 };
 

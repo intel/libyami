@@ -28,15 +28,15 @@
 
 VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
                                                VideoConfigBuffer * config)
-:m_display(display)
+:  m_display(display)
 {
     INFO("Construct the render buffer pool ");
     uint32_t i;
     uint32_t format = VA_RT_FORMAT_YUV420;
 
-    m_bufArray  = NULL;
+    m_bufArray = NULL;
     m_surfArray = NULL;
-    m_bufCount  = 0;
+    m_bufCount = 0;
     m_bufMapped = false;
     m_useExtBuf = false;
     pthread_cond_init(&m_cond, NULL);
@@ -74,7 +74,8 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
         VASurfaceAttrib surfaceAttribs[2];
         VASurfaceAttribExternalBuffers surfAttribExtBuf;
         memset(surfaceAttribs, 0, sizeof(VASurfaceAttrib) * 2);
-        memset(&surfAttribExtBuf, 0, sizeof(VASurfaceAttribExternalBuffers));
+        memset(&surfAttribExtBuf, 0,
+               sizeof(VASurfaceAttribExternalBuffers));
 
         surfaceAttribs[0].type = VASurfaceAttribMemoryType;
         surfaceAttribs[0].flags = VA_SURFACE_ATTRIB_SETTABLE;
@@ -105,7 +106,7 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
             return;
         }
 
-        surfAttribExtBuf.buffers[0] = (unsigned long)NULL;
+        surfAttribExtBuf.buffers[0] = (unsigned long) NULL;
         surfAttribExtBuf.flags = 0;
         surfAttribExtBuf.private_data = NULL;
         surfaceAttribs[1].type = VASurfaceAttribExternalBufferDescriptor;
@@ -176,6 +177,7 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
             m_bufArray[i]->renderBuffer.renderDone = true;
             m_bufArray[i]->status = SURFACE_FREE;
         }
+        m_freeBufferIndexList.push_back(i);
     }
 
     // map out the surface
@@ -233,7 +235,7 @@ VaapiSurfaceBufferPool::~VaapiSurfaceBufferPool()
 
     if (m_surfArray) {
         for (i = 0; i < m_bufCount; i++)
-           delete m_surfArray[i];
+            delete m_surfArray[i];
         free(m_surfArray);
     }
 
@@ -243,6 +245,8 @@ VaapiSurfaceBufferPool::~VaapiSurfaceBufferPool()
         free(m_bufArray);
     }
 
+    while (!m_freeBufferIndexList.empty())
+        m_freeBufferIndexList.pop_front();
     pthread_cond_destroy(&m_cond);
     pthread_mutex_destroy(&m_lock);
 }
@@ -340,15 +344,39 @@ bool VaapiSurfaceBufferPool::recycleBuffer(VideoSurfaceBuffer * buf,
             if (isFromRender) { //release from decoder
                 m_bufArray[i]->renderBuffer.renderDone = true;
                 m_bufArray[i]->status &= ~SURFACE_RENDERING;
-                DEBUG("Pool: recy surf(%8x) from render, status = %d",
+                DEBUG("Pool: recy surf(0x%x) from render, status = %d",
                       buf->renderBuffer.surface, m_bufArray[i]->status);
             } else {            //release from decoder
                 m_bufArray[i]->status &= ~SURFACE_DECODING;
-                DEBUG("Pool: recy surf(%8x) from decoder, status = %d",
+                DEBUG("Pool: recy surf(0x%x) from decoder, status = %d",
                       buf->renderBuffer.surface, m_bufArray[i]->status);
             }
 
             if (m_bufArray[i]->status == SURFACE_FREE) {
+                std::deque < uint32_t >::iterator it =
+                    m_freeBufferIndexList.begin();
+                bool isDuplicated = false;
+
+                DEBUG_("Pool: free surface buffer list (index):");
+                while (it != m_freeBufferIndexList.end()) {
+                    if (i == *it)
+                        isDuplicated = true;
+
+                    DEBUG_(" %d,", *it);
+                    it++;
+                }
+                DEBUG_("\n");
+
+                if (isDuplicated) {
+                    WARNING
+                        ("duplicated surface buffer for recyling, surf:(0x%x). it is usually ok immediately after flush, otherwise buggy",
+                         buf->renderBuffer.surface);
+                } else {
+                    DEBUG
+                        ("push surface buffer into free list, index: %d, surface id: 0x%x",
+                         i, m_bufArray[i]->renderBuffer.surface);
+                    m_freeBufferIndexList.push_back(i);
+                }
                 pthread_cond_signal(&m_cond);
             }
 
@@ -369,10 +397,14 @@ void VaapiSurfaceBufferPool::flushPool()
 
     pthread_mutex_lock(&m_lock);
 
+    while (!m_freeBufferIndexList.empty())
+        m_freeBufferIndexList.pop_front();
+
     for (i = 0; i < m_bufCount; i++) {
         m_bufArray[i]->referenceFrame = false;
         m_bufArray[i]->asReferernce = false;
         m_bufArray[i]->status = SURFACE_FREE;
+        m_freeBufferIndexList.push_back(i);
     }
 
     pthread_mutex_unlock(&m_lock);
@@ -497,36 +529,18 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getBufferByIndex(uint32_t
 VideoSurfaceBuffer *VaapiSurfaceBufferPool::searchAvailableBuffer()
 {
     uint32_t i;
-    VAStatus vaStatus;
-    VASurfaceStatus surfStatus;
-    VideoSurfaceBuffer *surfBuf = NULL;
 
-    pthread_mutex_lock(&m_lock);
-
-    for (i = 0; i < m_bufCount; i++) {
-        surfBuf = m_bufArray[i];
-        /* skip non free surface  */
-        if (surfBuf->status != SURFACE_FREE)
-            continue;
-
-        if (!m_useExtBuf)
-            break;
-
-        vaStatus = vaQuerySurfaceStatus(m_display,
-                                        surfBuf->renderBuffer.surface,
-                                        &surfStatus);
-
-        if ((vaStatus == VA_STATUS_SUCCESS &&
-             surfStatus == VASurfaceReady))
-            break;
+    if (m_freeBufferIndexList.empty()) {
+        WARNING("Can not found availabe buffer");
+        return NULL;
     }
 
-    pthread_mutex_unlock(&m_lock);
+    i = m_freeBufferIndexList.front();
+    m_freeBufferIndexList.pop_front();
+    DEBUG
+        ("pop surface buffer from free list, index: %d, surface id: 0x%x, queue size: %d",
+         i, m_bufArray[i]->renderBuffer.surface,
+         m_freeBufferIndexList.size());
 
-    if (i != m_bufCount)
-        return m_bufArray[i];
-    else
-        WARNING("Can not found availabe buffer");
-
-    return NULL;
+    return m_bufArray[i];
 }

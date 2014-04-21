@@ -833,16 +833,14 @@ void VaapiDPBManager::execPictureRefsModification1(VaapiPictureH264 *
     int32_t maxPicNum, currPicNum, picNumPred;
 
     if (list == 0) {
-        refPicListModification =
-            sliceHdr->ref_pic_list_modification_l0;
+        refPicListModification = sliceHdr->ref_pic_list_modification_l0;
         numRefPicListModifications =
             sliceHdr->n_ref_pic_list_modification_l0;
         refList = DPBLayer->refPicList0;
         refListCountPtr = &DPBLayer->refPicList0Count;
         numRefs = sliceHdr->num_ref_idx_l0_active_minus1 + 1;
     } else {
-        refPicListModification =
-            sliceHdr->ref_pic_list_modification_l1;
+        refPicListModification = sliceHdr->ref_pic_list_modification_l1;
         numRefPicListModifications =
             sliceHdr->n_ref_pic_list_modification_l1;
         refList = DPBLayer->refPicList1;
@@ -853,10 +851,10 @@ void VaapiDPBManager::execPictureRefsModification1(VaapiPictureH264 *
 
     if (picture->m_structure != VAAPI_PICTURE_STRUCTURE_FRAME) {
         maxPicNum = 1 << (sps->log2_max_frame_num_minus4 + 5);  // 2 * maxFrameNum
-        currPicNum = 2 * sliceHdr->frame_num + 1;       // 2 * frame_num + 1
+        currPicNum = 2 * sliceHdr->frame_num + 1;   // 2 * frame_num + 1
     } else {
         maxPicNum = 1 << (sps->log2_max_frame_num_minus4 + 4);  // maxFrameNum
-        currPicNum = sliceHdr->frame_num;       // frame_num
+        currPicNum = sliceHdr->frame_num;   // frame_num
     }
 
 

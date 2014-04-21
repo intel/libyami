@@ -287,6 +287,16 @@ Decode_Status
     vaStatus = vaCreateConfig(m_VADisplay,
                               profile,
                               VAEntrypointVLD, &attrib, 1, &m_VAConfig);
+
+    // VAProfileH264Baseline is super profile for VAProfileH264ConstrainedBaseline
+    // old i965 driver incorrectly claims supporting VAProfileH264Baseline, but not VAProfileH264ConstrainedBaseline
+    if (vaStatus == VA_STATUS_ERROR_UNSUPPORTED_PROFILE
+        && profile == VAProfileH264ConstrainedBaseline)
+        vaStatus = vaCreateConfig(m_VADisplay,
+                                  VAProfileH264Baseline,
+                                  VAEntrypointVLD, &attrib, 1,
+                                  &m_VAConfig);
+
     checkVaapiStatus(vaStatus, "vaCreateConfig");
 
     m_configBuffer.surfaceNumber = numSurface;
@@ -371,7 +381,8 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
 void VaapiDecoderBase::setXDisplay(Display * xDisplay)
 {
     if (m_display && m_ownNativeDisplay) {
-        WARNING("it may be buggy that va context has been setup with self X display");
+        WARNING
+            ("it may be buggy that va context has been setup with self X display");
 #ifndef ANDROID
         XCloseDisplay(m_display);
         // usually it is unnecessary to reset va context on X except driver is buggy.

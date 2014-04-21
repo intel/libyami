@@ -76,9 +76,10 @@ esac
 
 # Convert code indent style and remove tabs
 INDENT_PARAMETERS="-kr \
-                   --indent-modifiers \
                    --no-tabs \
                    --tab-size4"
+
+#                  --indent-modifiers # not supported on Ubuntu 13.10 yet
 
 if test "x$1" = "x"; then
     echo "Convert code to Kernighan & Ritchie style: "
@@ -88,6 +89,6 @@ if test "x$1" = "x"; then
     done
     echo "conversion done!"
 else
-    $INDENT ${INDENT_PARAMETERS} $1 -o $1 2>> /dev/null
+    $INDENT ${INDENT_PARAMETERS} $1
 fi
 

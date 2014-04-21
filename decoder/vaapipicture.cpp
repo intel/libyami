@@ -33,8 +33,10 @@ VaapiPicture::VaapiPicture(VADisplay display,
                            VAContextID context,
                            VaapiSurfaceBufferPool * surfBufPool,
                            VaapiPictureStructure structure)
-:m_display(display), m_context(context),
-m_surfBufPool(surfBufPool), m_picStructure(structure)
+:  m_display(display)
+    , m_context(context)
+    , m_surfBufPool(surfBufPool)
+    , m_picStructure(structure)
 {
     m_picParam = NULL;
     m_iqMatrix = NULL;

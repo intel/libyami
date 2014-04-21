@@ -26,6 +26,7 @@
 #include "interface/VideoDecoderDefs.h"
 #include <pthread.h>
 #include <semaphore.h>
+#include <deque>
 
 #define INVALID_PTS ((uint64_t)-1)
 #define INVALID_POC ((uint32_t)-1)
@@ -60,6 +61,7 @@ class VaapiSurfaceBufferPool {
     VADisplay m_display;
     VideoSurfaceBuffer **m_bufArray;
     VaapiSurface **m_surfArray;
+    std::deque<uint32_t> m_freeBufferIndexList;
 
     uint32_t m_bufCount;
     uint32_t m_freeCount;

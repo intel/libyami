@@ -29,8 +29,8 @@
 #include "va/va_dec_vp8.h"
 
 enum {
-    VP8_EXTRA_SURFACE_NUMBER = 11,
-    VP8_MAX_PICTURE_COUNT = 5,  // XXX, 4 should be ok
+    VP8_EXTRA_SURFACE_NUMBER = 5,
+    VP8_MAX_PICTURE_COUNT = 5,  // gold_ref, alt_ref, last_ref, previous (m_currentPicture, optional), and the newly allocated one
 };
 
 class VaapiSliceVP8:public VaapiSlice {
