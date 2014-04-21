@@ -1004,6 +1004,7 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
         DEBUG("H264: profile changed: old = %d, new = %d, \n",
               m_configBuffer.profile, parsedProfile);
         m_configBuffer.profile = parsedProfile;
+        m_configBuffer.flag |= HAS_VA_PROFILE;
         resetContext = true;
     }
 
@@ -1038,10 +1039,12 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
     if (!m_hasContext) {
         DPBSize = getMaxDecFrameBuffering(sps, 1);
         m_configBuffer.surfaceNumber = DPBSize + H264_EXTRA_SURFACE_NUMBER;
+        m_configBuffer.flag |= HAS_SURFACE_NUMBER;
         VaapiDecoderBase::start(&m_configBuffer);
         DEBUG("First time to Start VA context");
         m_resetContext = true;
     } else if (resetContext) {
+        m_hasContext = false;
         VaapiDecoderBase::reset(&m_configBuffer);
         if (m_DPBManager)
             m_DPBManager->resetDPB(sps);
