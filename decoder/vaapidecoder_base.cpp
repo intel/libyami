@@ -62,6 +62,8 @@ VaapiDecoderBase::~VaapiDecoderBase()
 
 Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
 {
+    Decode_Status status;
+
     INFO("base: start()");
 
     if (buffer == NULL) {
@@ -81,7 +83,9 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
     m_lowDelay = buffer->flag & WANT_LOW_DELAY;
     m_rawOutput = buffer->flag & WANT_RAW_OUTPUT;
 
-    setupVA(buffer->surfaceNumber, buffer->profile);
+    status = setupVA(buffer->surfaceNumber, buffer->profile);
+    if (status != DECODE_SUCCESS)
+        return status;
 
     DEBUG
         ("m_videoFormatInfo video size: %d x %d, m_videoFormatInfo surface size: %d x %d",
@@ -92,14 +96,22 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
 
 Decode_Status VaapiDecoderBase::reset(VideoConfigBuffer * buffer)
 {
+    Decode_Status status;
+
     INFO("base: reset()");
     if (buffer == NULL) {
         return DECODE_INVALID_DATA;
     }
 
     flush();
-    terminateVA();
-    start(buffer);
+
+    status = terminateVA();
+    if (status != DECODE_SUCCESS)
+        return status;
+
+    status = start(buffer);
+    if (status != DECODE_SUCCESS)
+        return status;
 
     return DECODE_SUCCESS;
 }
@@ -272,12 +284,13 @@ Decode_Status
     m_VADisplay = vaGetDisplay(m_display);
     if (m_VADisplay == NULL) {
         ERROR("vaGetDisplay failed.");
-        return DECODE_DRIVER_FAIL;
+        return DECODE_FAIL;
     }
 
     int majorVersion, minorVersion;
     vaStatus = vaInitialize(m_VADisplay, &majorVersion, &minorVersion);
-    checkVaapiStatus(vaStatus, "vaInitialize");
+    if (!checkVaapiStatus(vaStatus, "vaInitialize"))
+        return DECODE_FAIL;
 
     VAConfigAttrib attrib;
     attrib.type = VAConfigAttribRTFormat;
@@ -297,7 +310,8 @@ Decode_Status
                                   VAEntrypointVLD, &attrib, 1,
                                   &m_VAConfig);
 
-    checkVaapiStatus(vaStatus, "vaCreateConfig");
+    if (!checkVaapiStatus(vaStatus, "vaCreateConfig"))
+        return DECODE_FAIL;
 
     m_configBuffer.surfaceNumber = numSurface;
     m_bufPool = new VaapiSurfaceBufferPool(m_VADisplay, &m_configBuffer);
@@ -315,7 +329,8 @@ Decode_Status
                                m_videoFormatInfo.width,
                                m_videoFormatInfo.height,
                                0, surfaces, numSurface, &m_VAContext);
-    checkVaapiStatus(vaStatus, "vaCreateContext");
+    if (!checkVaapiStatus(vaStatus, "vaCreateContext"))
+        return DECODE_FAIL;
 
     VADisplayAttribute rotate;
     rotate.type = VADisplayAttribRotation;
@@ -330,6 +345,8 @@ Decode_Status
         rotate.value = VA_ROTATION_270;
 
     vaStatus = vaSetDisplayAttributes(m_VADisplay, &rotate, 1);
+    if (!checkVaapiStatus(vaStatus, "vaSetDisplayAttributes"))
+        return DECODE_FAIL;
 
     m_videoFormatInfo.surfaceNumber = numSurface;
     m_videoFormatInfo.ctxSurfaces = surfaces;
