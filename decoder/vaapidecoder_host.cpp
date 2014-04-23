@@ -27,6 +27,7 @@
 #include "interface/VideoDecoderHost.h"
 #include "vaapidecoder_h264.h"
 #include "vaapidecoder_vp8.h"
+#include "vaapidecoder_jpeg.h"
 #include <string.h>
 
 IVideoDecoder *createVideoDecoder(const char *mimeType)
@@ -45,6 +46,10 @@ IVideoDecoder *createVideoDecoder(const char *mimeType)
                   strcasecmp(mimeType, "video/h264") == 0) {
         DEBUG("Create H264 decoder ");
         IVideoDecoder *p = new VaapiDecoderH264(mimeType);
+        return (IVideoDecoder *) p;
+    } else if (strcasecmp(mimeType, "jpeg") == 0 ) {
+        DEBUG("Create JPEG decoder ");
+        IVideoDecoder *p = new VaapiDecoderJpeg(mimeType);
         return (IVideoDecoder *) p;
 #if 0
     } else if (strcasecmp(mimeType, "video/mp4v-es") == 0 ||

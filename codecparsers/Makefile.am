@@ -7,6 +7,7 @@ libcodecparser_source_c = \
         vc1parser.c \
         dboolhuff.c \
         vp8parser.c \
+        jpegparser.c \
         parserutils.c \
         nalreader.c \
 	$(NULL)
@@ -19,6 +20,7 @@ libcodecparser_source_h = \
         mpeg4parser.h \
         vc1parser.h \
         vp8parser.h \
+        jpegparser.h \
         parserutils.h \
         basictype.h \
         nalreader.h \
