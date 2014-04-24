@@ -687,7 +687,9 @@ Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
     // so we force to update resolution on first key frame
     m_configBuffer.width = 0;
     m_configBuffer.height = 0;
-
+#if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
+    m_isFirstFrame = true;
+#endif
     return DECODE_SUCCESS;
 }
 
@@ -752,8 +754,23 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
             if (status != DECODE_SUCCESS)
                 return status;
         }
+#if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
+        int ii = 0;
+        int decodeCount = 1;
 
+        if (m_isFirstFrame) {
+            decodeCount = 1280 * 720 / m_frameWidth / m_frameHeight * 2;
+            m_isFirstFrame = false;
+        }
+
+        do {
+            status = decodePicture();
+        } while (status == DECODE_SUCCESS && ++ii < decodeCount);
+
+#else
         status = decodePicture();
+#endif
+
         if (status != DECODE_SUCCESS)
             break;
 

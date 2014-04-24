@@ -28,6 +28,12 @@
 #include "vaapipicture.h"
 #include "va/va_dec_vp8.h"
 
+#if __PLATFORM_BYT__
+#define __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__ 1
+#else
+#define __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__ 0
+#endif
+
 enum {
     VP8_EXTRA_SURFACE_NUMBER = 5,
     VP8_MAX_PICTURE_COUNT = 5,  // gold_ref, alt_ref, last_ref, previous (m_currentPicture, optional), and the newly allocated one
@@ -93,6 +99,10 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     uint8 m_yModeProbs[4];
     uint8 m_uvModeProbs[3];
     uint32 m_sizeChanged:1;
+
+#if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
+    bool m_isFirstFrame;
+#endif
 };
 
 
