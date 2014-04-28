@@ -140,7 +140,7 @@ class VaapiPicture {
 
   public:
     uint64_t m_timeStamp;
-    uint32_t m_POC;
+    int32_t  m_POC;
     uint32_t m_flags;
     VaapiPictureStructure m_picStructure;
     VaapiPictureType m_type;
