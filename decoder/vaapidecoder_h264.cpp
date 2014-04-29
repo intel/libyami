@@ -1148,6 +1148,7 @@ bool VaapiDecoderH264::markingPicture(VaapiPictureH264 * pic)
     if (m_prevPicHasMMCO5) {
         m_frameNum = 0;
         m_frameNumOffset = 0;
+        m_prevFrame = NULL;
     }
 
     m_prevPicStructure = pic->m_structure;
