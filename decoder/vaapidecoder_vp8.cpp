@@ -327,9 +327,12 @@ bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
     for (i = 0; i < 4; i++) {
         if (seg->segmentation_enabled) {
             picParam->loop_filter_level[i] = seg->lf_update_value[i];
-            if (!seg->segment_feature_mode)
+            if (!seg->segment_feature_mode) {
                 picParam->loop_filter_level[i] +=
                     m_frameHdr.loop_filter_level;
+                picParam->loop_filter_level[i] =
+                    CLAMP(picParam->loop_filter_level[i], 0, 63);
+            }
         } else
             picParam->loop_filter_level[i] = m_frameHdr.loop_filter_level;
 
@@ -341,7 +344,7 @@ bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
     if ((picParam->pic_fields.bits.version == 0)
         || (picParam->pic_fields.bits.version == 1)) {
         picParam->pic_fields.bits.loop_filter_disable =
-            picParam->loop_filter_level[0] == 0;
+            m_frameHdr.loop_filter_level == 0;
     }
 
     picParam->prob_skip_false = m_frameHdr.prob_skip_false;
@@ -684,7 +687,9 @@ Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
     // so we force to update resolution on first key frame
     m_configBuffer.width = 0;
     m_configBuffer.height = 0;
-
+#if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
+    m_isFirstFrame = true;
+#endif
     return DECODE_SUCCESS;
 }
 
@@ -749,8 +754,23 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
             if (status != DECODE_SUCCESS)
                 return status;
         }
+#if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
+        int ii = 0;
+        int decodeCount = 1;
 
+        if (m_isFirstFrame) {
+            decodeCount = 1280 * 720 / m_frameWidth / m_frameHeight * 2;
+            m_isFirstFrame = false;
+        }
+
+        do {
+            status = decodePicture();
+        } while (status == DECODE_SUCCESS && ++ii < decodeCount);
+
+#else
         status = decodePicture();
+#endif
+
         if (status != DECODE_SUCCESS)
             break;
 
