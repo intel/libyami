@@ -390,6 +390,7 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
         m_configBuffer.height = m_height;
         VaapiDecoderBase::start(&m_configBuffer);
         m_hasContext = TRUE;
+        return DECODE_FORMAT_CHANGE;
     } else if (m_configBuffer.profile != profile ||
                m_configBuffer.width != m_width ||
                m_configBuffer.height != m_height) {
@@ -397,7 +398,7 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
         m_configBuffer.width = m_width;
         m_configBuffer.height = m_height;
         VaapiDecoderBase::reset(&m_configBuffer);
-        return DECODE_SUCCESS;
+        return DECODE_FORMAT_CHANGE;
     }
 
     if (!m_picture)
@@ -472,10 +473,11 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
     ofs = 0;
     while (jpeg_parse(&seg, buf, bufSize, ofs)) {
         if (seg.size < 0) {
-            DEBUG("buffer to short for parsing");
+            DEBUG("JPEG: buffer too short for parsing");
             return DECODE_PARSER_FAIL;
         }
-        ofs += seg.size;
+        // seg.offset points to the byte after current marker (oxFFXY)
+        ofs = seg.offset;
 
         /* Decode scan, if complete */
         if (seg.marker == JPEG_MARKER_EOI && scanSeg.m_headerSize > 0) {
@@ -489,15 +491,19 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
                                      buf + scanSeg.m_headerOffset,
                                      scanSeg.m_headerSize);
 
-            if (status != DECODE_SUCCESS)
+            if (status != DECODE_SUCCESS) {
+                ERROR("JPEG: fail to parser a scan header");
                 break;
+            }
 
             status = fillSliceParam(&scanHdr,
                                     buf + scanSeg.m_dataOffset,
                                     scanSeg.m_dataSize);
 
-            if (status != DECODE_SUCCESS)
+            if (status != DECODE_SUCCESS) {
+                ERROR("JPEG: fail to fill slice param");
                 break;
+            }
         }
 
         appendEcs = TRUE;
@@ -522,7 +528,7 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
             status = parseRestartInterval(buf + seg.offset, seg.size);
             break;
         case JPEG_MARKER_DAC:
-            ERROR("unsupported arithmetic coding mode");
+            ERROR("JPEG: unsupported arithmetic coding mode");
             status = DECODE_FAIL;
             break;
         case JPEG_MARKER_SOS:
@@ -545,12 +551,17 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
                 seg.marker <= JPEG_MARKER_SOF_MAX) {
 
                 status = parseFrameHeader(buf + seg.offset, seg.size);
-                if (status != DECODE_SUCCESS)
+                if (status != DECODE_SUCCESS) {
+                    ERROR("JPEG: fail to parse frame header");
                     return status;
+                }
 
                 status = decodePictureStart();
-                if (status != DECODE_SUCCESS)
+                if (status != DECODE_SUCCESS) {
+                    if (status != DECODE_FORMAT_CHANGE)
+                        ERROR("JPEG: fail to start picture decoding");
                     return status;
+                }
 
                 break;
             }
@@ -571,8 +582,10 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
         if (appendEcs)
             scanSeg.m_dataSize = seg.offset - scanSeg.m_dataOffset;
 
-        if (status != DECODE_SUCCESS)
+        if (status != DECODE_SUCCESS) {
+            ERROR("JPEG: unknown error");
             break;
+        }
     }
   end:
     return status;
@@ -600,6 +613,7 @@ Decode_Status VaapiDecoderJpeg::start(VideoConfigBuffer * buffer)
 
         VaapiDecoderBase::start(buffer);
         m_hasContext = true;
+        return DECODE_FORMAT_CHANGE;
     }
 
     return DECODE_SUCCESS;

@@ -195,6 +195,7 @@ VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
             VideoFrameRawData *rawData = new VideoFrameRawData;
             rawData->width = imageRaw->width;
             rawData->height = imageRaw->height;
+            // XXX, the surface format isn't reliable now, it is incorrect for jpeg case
             rawData->fourcc = imageRaw->format;
             rawData->size = imageRaw->size;
             rawData->data = imageRaw->pixels[0];

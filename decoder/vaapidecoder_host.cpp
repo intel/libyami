@@ -47,7 +47,7 @@ IVideoDecoder *createVideoDecoder(const char *mimeType)
         DEBUG("Create H264 decoder ");
         IVideoDecoder *p = new VaapiDecoderH264(mimeType);
         return (IVideoDecoder *) p;
-    } else if (strcasecmp(mimeType, "jpeg") == 0 ) {
+    } else if (strcasecmp(mimeType, "image/jpeg") == 0) {
         DEBUG("Create JPEG decoder ");
         IVideoDecoder *p = new VaapiDecoderJpeg(mimeType);
         return (IVideoDecoder *) p;
