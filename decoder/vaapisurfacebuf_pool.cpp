@@ -530,6 +530,9 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::searchAvailableBuffer()
 {
     uint32_t i;
 
+#ifdef __ENABLE_DEBUG__
+    debugSurfaceStatus();
+#endif
     if (m_freeBufferIndexList.empty()) {
         WARNING("Can not found availabe buffer");
         return NULL;
@@ -543,4 +546,20 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::searchAvailableBuffer()
          m_freeBufferIndexList.size());
 
     return m_bufArray[i];
+}
+
+void VaapiSurfaceBufferPool::debugSurfaceStatus()
+{
+    uint32_t i;
+
+    DEBUG_
+        ("libyami: current surface status[index, surface ID: free?, (RENDERING, DPB, DECODING)]\n");
+    for (i = 0; i < m_bufCount; i++) {
+        DEBUG_("[%2d, 0x%x: %s, (%d, %d, %d)]\n", i,
+               m_bufArray[i]->renderBuffer.surface,
+               m_bufArray[i]->status == SURFACE_FREE ? "free " : "inuse",
+               m_bufArray[i]->status & SURFACE_DECODING ? 1 : 0,
+               m_bufArray[i]->status & SURFACE_TO_RENDER ? 1 : 0,
+               m_bufArray[i]->status & SURFACE_RENDERING ? 1 : 0);
+    }
 }
