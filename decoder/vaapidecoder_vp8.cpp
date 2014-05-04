@@ -234,7 +234,7 @@ bool VaapiDecoderVP8::fillSliceParam(VaapiSliceVP8 * slice)
         m_frameHdr.first_part_size - ((sliceParam->macroblock_offset +
                                        7) >> 3);
 
-#if __PLATFORM_BYT__
+#if __PSB_VP8_INTERFACE_WORK_AROUND__
     sliceParam->slice_data_offset = 0;
     sliceParam->macroblock_offset =
         8 - m_frameHdr.rangedecoder_state.remaining_bits;
@@ -607,7 +607,7 @@ Decode_Status VaapiDecoderVP8::decodePicture()
 
     VaapiSliceVP8 *slice;
     slice = new VaapiSliceVP8(m_VADisplay, m_VAContext,
-#if __PLATFORM_BYT__
+#if __PSB_VP8_INTERFACE_WORK_AROUND__
                               // PSB requires slice_data_offset normalize to 0 and macroblock_offset normalized to [0,7]
                               m_frameHdr.rangedecoder_state.buffer,
                               m_frameSize -
