@@ -340,8 +340,7 @@ failed:
 }
 
 static inline uint32
-calculate_nb_pan_scan_win (VC1AdvancedSeqHdr * advseqhdr,
-    VC1PicAdvanced * pic)
+calculate_nb_pan_scan_win (VC1AdvancedSeqHdr * advseqhdr, VC1PicAdvanced * pic)
 {
   if (advseqhdr->interlace && !advseqhdr->psf) {
     if (advseqhdr->pulldown)
@@ -412,7 +411,7 @@ bitplane_decoding (BitReader * br, uint8 * data,
   invert_mask = -invert;
 
   if (!decode_vlc (br, &imode, vc1_imode_vlc_table,
-          G_N_ELEMENTS (vc1_imode_vlc_table)))
+          N_ELEMENTS (vc1_imode_vlc_table)))
     goto failed;
 
   switch (imode) {
@@ -446,7 +445,7 @@ bitplane_decoding (BitReader * br, uint8 * data,
 
       for (y = o; y < height * width; y += 2) {
         if (!decode_vlc (br, &v, vc1_norm2_vlc_table,
-                G_N_ELEMENTS (vc1_norm2_vlc_table)))
+                N_ELEMENTS (vc1_norm2_vlc_table)))
           goto failed;
         if (pdata) {
           v ^= invert_mask;
@@ -475,7 +474,7 @@ bitplane_decoding (BitReader * br, uint8 * data,
         for (y = 0; y < height; y += 3) {
           for (x = width & 1; x < width; x += 2) {
             if (!decode_vlc (br, &v, vc1_norm6_vlc_table,
-                    G_N_ELEMENTS (vc1_norm6_vlc_table)))
+                    N_ELEMENTS (vc1_norm6_vlc_table)))
               goto failed;
 
             if (pdata) {
@@ -501,7 +500,7 @@ bitplane_decoding (BitReader * br, uint8 * data,
         for (y = height & 1; y < height; y += 2) {
           for (x = width % 3; x < width; x += 3) {
             if (!decode_vlc (br, &v, vc1_norm6_vlc_table,
-                    G_N_ELEMENTS (vc1_norm6_vlc_table)))
+                    N_ELEMENTS (vc1_norm6_vlc_table)))
               goto failed;
 
             if (pdata) {
@@ -623,8 +622,7 @@ parse_vopdquant (BitReader * br, VC1FrameHdr * framehdr, uint8 dquant)
           break;
       }
 
-      if (vopdquant->dqbilevel
-          || vopdquant->dqprofile != VC1_DQPROFILE_ALL_MBS) {
+      if (vopdquant->dqbilevel || vopdquant->dqprofile != VC1_DQPROFILE_ALL_MBS) {
         {
           READ_UINT8 (br, vopdquant->pqdiff, 3);
 
@@ -654,8 +652,7 @@ scan_for_start_codes (const uint8 * data, uint32 size)
   byte_reader_init (&br, data, size);
 
   /* NALU not empty, so we can at least expect 1 (even 2) bytes following sc */
-  return byte_reader_masked_scan_uint32 (&br, 0xffffff00, 0x00000100,
-      0, size);
+  return byte_reader_masked_scan_uint32 (&br, 0xffffff00, 0x00000100, 0, size);
 }
 
 static inline int32
@@ -722,21 +719,17 @@ parse_hrd_param_flag (BitReader * br, VC1HrdParam * hrd_param)
   hrd_param->hrd_num_leaky_buckets =
       bit_reader_get_bits_uint8_unchecked (br, 5);
 
-  assert(hrd_param->hrd_num_leaky_buckets <= MAX_HRD_NUM_LEAKY_BUCKETS);
+  assert (hrd_param->hrd_num_leaky_buckets <= MAX_HRD_NUM_LEAKY_BUCKETS);
 
-  hrd_param->bit_rate_exponent =
-      bit_reader_get_bits_uint8_unchecked (br, 4);
-  hrd_param->buffer_size_exponent =
-      bit_reader_get_bits_uint8_unchecked (br, 4);
+  hrd_param->bit_rate_exponent = bit_reader_get_bits_uint8_unchecked (br, 4);
+  hrd_param->buffer_size_exponent = bit_reader_get_bits_uint8_unchecked (br, 4);
 
-  if (bit_reader_get_remaining (br) <
-      (32 * hrd_param->hrd_num_leaky_buckets))
+  if (bit_reader_get_remaining (br) < (32 * hrd_param->hrd_num_leaky_buckets))
     goto failed;
 
   for (i = 0; i < hrd_param->hrd_num_leaky_buckets; i++) {
     hrd_param->hrd_rate[i] = bit_reader_get_bits_uint16_unchecked (br, 16);
-    hrd_param->hrd_buffer[i] =
-        bit_reader_get_bits_uint16_unchecked (br, 16);
+    hrd_param->hrd_buffer[i] = bit_reader_get_bits_uint16_unchecked (br, 16);
   }
 
   return VC1_PARSER_OK;
@@ -778,8 +771,7 @@ parse_sequence_header_advanced (VC1SeqHdr * seqhdr, BitReader * br)
 
   advanced->postprocflag = bit_reader_get_bits_uint8_unchecked (br, 1);
   advanced->max_coded_width = bit_reader_get_bits_uint16_unchecked (br, 12);
-  advanced->max_coded_height =
-      bit_reader_get_bits_uint16_unchecked (br, 12);
+  advanced->max_coded_height = bit_reader_get_bits_uint16_unchecked (br, 12);
   advanced->max_coded_width = (advanced->max_coded_width + 1) << 1;
   advanced->max_coded_height = (advanced->max_coded_height + 1) << 1;
   calculate_mb_size (seqhdr, advanced->max_coded_width,
@@ -1812,8 +1804,7 @@ vc1_parse_sequence_header_struct_c (const uint8 * data, size_t size,
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_sequence_header (const uint8 * data, size_t size,
-    VC1SeqHdr * seqhdr)
+vc1_parse_sequence_header (const uint8 * data, size_t size, VC1SeqHdr * seqhdr)
 {
   BitReader br = BIT_READER_INIT (data, size);
 
@@ -1978,8 +1969,7 @@ vc1_parse_frame_layer (const uint8 * data, size_t size,
  */
 VC1ParserResult
 vc1_parse_frame_header (const uint8 * data, size_t size,
-    VC1FrameHdr * framehdr, VC1SeqHdr * seqhdr,
-    VC1BitPlanes * bitplanes)
+    VC1FrameHdr * framehdr, VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes)
 {
   BitReader br;
   VC1ParserResult result;
@@ -2010,8 +2000,7 @@ vc1_parse_frame_header (const uint8 * data, size_t size,
  */
 VC1ParserResult
 vc1_parse_field_header (const uint8 * data, size_t size,
-    VC1FrameHdr * fieldhdr, VC1SeqHdr * seqhdr,
-    VC1BitPlanes * bitplanes)
+    VC1FrameHdr * fieldhdr, VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes)
 {
   BitReader br;
   VC1ParserResult result;
@@ -2126,8 +2115,7 @@ vc1_bitplanes_free_1 (VC1BitPlanes * bitplanes)
  * Returns: %TRUE if everything went fine, %FALSE otherwize
  */
 boolean
-vc1_bitplanes_ensure_size (VC1BitPlanes * bitplanes,
-    VC1SeqHdr * seqhdr)
+vc1_bitplanes_ensure_size (VC1BitPlanes * bitplanes, VC1SeqHdr * seqhdr)
 {
   RETURN_VAL_IF_FAIL (bitplanes != NULL, FALSE);
   RETURN_VAL_IF_FAIL (seqhdr != NULL, FALSE);
