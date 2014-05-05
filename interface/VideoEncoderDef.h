@@ -478,7 +478,10 @@ struct VideoParamsUsrptrBuffer:VideoParamConfigSet {
                          sizeof(VideoParamsUsrptrBuffer))
     , width(0), height(0), format(0), expectedSize(0) {
     }
-    //input uint32_t width; uint32_t height;
+
+    //input
+    uint32_t width;
+    uint32_t height;
     uint32_t format;
     uint32_t expectedSize;
 
