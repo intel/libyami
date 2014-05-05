@@ -46,7 +46,8 @@ enum {
     ENCODE_SUCCESS = 0,
     ENCODE_ALREADY_INIT = 1,
     ENCODE_SLICESIZE_OVERFLOW = 2,
-    ENCODE_BUFFER_TOO_SMALL = 3 // The buffer passed to encode is too small to contain encoded data
+    ENCODE_BUFFER_TOO_SMALL = 3, // The buffer passed to encode is too small to contain encoded data
+    ENCODE_BUFFER_NO_MORE = 4,   //No more output buffers.
 };
 
 enum VideoOutputFormat {
