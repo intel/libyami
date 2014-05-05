@@ -22,6 +22,7 @@
 #ifndef __VIDEO_ENCODER_DEF_H__
 #define __VIDEO_ENCODER_DEF_H__
 
+#include <va/va.h>
 #include <stdint.h>
 
 #define STRING_TO_FOURCC(format) ((uint32_t)(((format)[0])|((format)[1]<<8)|((format)[2]<<16)|((format)[3]<<24)))
