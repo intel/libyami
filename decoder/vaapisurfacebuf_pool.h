@@ -58,10 +58,12 @@ class VaapiSurfaceBufferPool {
                           bool referenceFrame, bool asReference);
 
   private:
+    void debugSurfaceStatus();
+
     VADisplay m_display;
     VideoSurfaceBuffer **m_bufArray;
     VaapiSurface **m_surfArray;
-    std::deque<uint32_t> m_freeBufferIndexList;
+    std::deque < uint32_t > m_freeBufferIndexList;
 
     uint32_t m_bufCount;
     uint32_t m_freeCount;

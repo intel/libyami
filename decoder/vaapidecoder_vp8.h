@@ -30,8 +30,10 @@
 
 #if __PLATFORM_BYT__
 #define __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__ 1
+#define __PSB_VP8_INTERFACE_WORK_AROUND__   0
 #else
 #define __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__ 0
+#define __PSB_VP8_INTERFACE_WORK_AROUND__   0
 #endif
 
 enum {

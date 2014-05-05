@@ -27,7 +27,6 @@
 #include "vaapidecoder_h264.h"
 #include "codecparsers/bytereader.h"
 
-#define G_N_ELEMENTS(array) (sizeof(array)/sizeof((array)[0]))
 #define MACROBLOCK_SIZE 16
 #define MACROBLOCK_ALIGN (2 * MACROBLOCK_SIZE)
 #define MB_ALIGN(arg) (((arg) + (MACROBLOCK_ALIGN - 1)) & (~(MACROBLOCK_ALIGN - 1)) )
@@ -116,15 +115,15 @@ fillIqMatrix4x4(VAIQMatrixBufferH264 * iqMatrix, const H264PPS * pps)
     uint32_t i, j;
 
     /* There are always 6 4x4 scaling lists */
-    assert(G_N_ELEMENTS(iqMatrix->ScalingList4x4) == 6);
-    assert(G_N_ELEMENTS(iqMatrix->ScalingList4x4[0]) == 16);
+    assert(N_ELEMENTS(iqMatrix->ScalingList4x4) == 6);
+    assert(N_ELEMENTS(iqMatrix->ScalingList4x4[0]) == 16);
 
     if (sizeof(iqMatrix->ScalingList4x4[0][0]) == 1)
         memcpy(iqMatrix->ScalingList4x4, *ScalingList4x4,
                sizeof(iqMatrix->ScalingList4x4));
     else {
-        for (i = 0; i < G_N_ELEMENTS(iqMatrix->ScalingList4x4); i++) {
-            for (j = 0; j < G_N_ELEMENTS(iqMatrix->ScalingList4x4[i]); j++)
+        for (i = 0; i < N_ELEMENTS(iqMatrix->ScalingList4x4); i++) {
+            for (j = 0; j < N_ELEMENTS(iqMatrix->ScalingList4x4[i]); j++)
                 iqMatrix->ScalingList4x4[i][j] = (*ScalingList4x4)[i][j];
         }
     }
@@ -141,8 +140,8 @@ fillIqMatrix8x8(VAIQMatrixBufferH264 * iqMatrix, const H264PPS * pps)
     if (!pps->transform_8x8_mode_flag)
         return;
 
-    assert(G_N_ELEMENTS(iqMatrix->ScalingList8x8) >= 2);
-    assert(G_N_ELEMENTS(iqMatrix->ScalingList8x8[0]) == 64);
+    assert(N_ELEMENTS(iqMatrix->ScalingList8x8) >= 2);
+    assert(N_ELEMENTS(iqMatrix->ScalingList8x8[0]) == 64);
 
     if (sizeof(iqMatrix->ScalingList8x8[0][0]) == 1)
         memcpy(iqMatrix->ScalingList8x8, *ScalingList8x8,
@@ -150,7 +149,7 @@ fillIqMatrix8x8(VAIQMatrixBufferH264 * iqMatrix, const H264PPS * pps)
     else {
         n = (sps->chroma_format_idc != 3) ? 2 : 6;
         for (i = 0; i < n; i++) {
-            for (j = 0; j < G_N_ELEMENTS(iqMatrix->ScalingList8x8[i]); j++)
+            for (j = 0; j < N_ELEMENTS(iqMatrix->ScalingList8x8[i]); j++)
                 iqMatrix->ScalingList8x8[i][j] = (*ScalingList8x8)[i][j];
         }
     }
@@ -747,7 +746,7 @@ bool VaapiDecoderH264::fillPicture(VaapiPictureH264 * picture,
                              frameStore->m_structure);
     }
 
-    for (; n < G_N_ELEMENTS(picParam->ReferenceFrames); n++)
+    for (; n < N_ELEMENTS(picParam->ReferenceFrames); n++)
         vaapiInitPicture(&picParam->ReferenceFrames[n]);
 
 #define COPY_FIELD(s, f) \
