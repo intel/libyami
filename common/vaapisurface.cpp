@@ -31,6 +31,82 @@
 #include "log.h"
 #include "vaapiutils.h"
 
+#ifndef N_ELEMENTS
+#define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
+#endif
+
+/* FIXME: find a better place for this*/
+static uint32_t vaapiChromaToVaChroma(VaapiChromaType chroma)
+{
+
+    struct chromaItem {
+        VaapiChromaType vaapiChroma;
+        uint32_t vaChroma;
+    };
+    static const chromaItem chromaMap[] = {
+        {VAAPI_CHROMA_TYPE_YUV420, VA_RT_FORMAT_YUV420},
+        {VAAPI_CHROMA_TYPE_YUV422, VA_RT_FORMAT_YUV422},
+        {VAAPI_CHROMA_TYPE_YUV444, VA_RT_FORMAT_YUV444}
+    };
+    for (int i = 0; i < N_ELEMENTS(chromaMap); i++) {
+        if (chromaMap[i].vaapiChroma == chroma)
+            return chromaMap[i].vaChroma;
+    }
+    return VA_RT_FORMAT_YUV420;
+}
+
+SurfacePtr VaapiSurface::create(VADisplay display,
+                                VaapiChromaType chromaType,
+                                uint32_t width,
+                                uint32_t height,
+                                void *surfAttribArray,
+                                uint32_t surfAttribNum)
+{
+    VAStatus status;
+    uint32_t format, i;
+    VASurfaceAttrib *surfAttribs = (VASurfaceAttrib *) surfAttribArray;
+    SurfacePtr surface;
+    VASurfaceID id;
+
+    assert((surfAttribs && surfAttribNum)
+           || (!surfAttribs && !surfAttribNum));
+
+
+    format = vaapiChromaToVaChroma(chromaType);
+    uint32_t externalBufHandle = 0;
+    status = vaCreateSurfaces(display, format, width, height,
+                              &id, 1, surfAttribs, surfAttribNum);
+    if (!checkVaapiStatus(status, "vaCreateSurfacesWithAttribute()"))
+        return surface;
+
+    for (int i = 0; i < surfAttribNum; i++) {
+        if (surfAttribs[i].type == VASurfaceAttribExternalBufferDescriptor) {
+            VASurfaceAttribExternalBuffers *surfAttribExtBuf
+                =
+                (VASurfaceAttribExternalBuffers *) surfAttribs[i].value.
+                value.p;
+            externalBufHandle = surfAttribExtBuf->buffers[0];
+            break;
+        }
+    }
+    surface.reset(new
+                  VaapiSurface(display, id, chromaType, width, height,
+                               externalBufHandle));
+    return surface;
+}
+
+VaapiSurface::VaapiSurface(VADisplay display,
+                           VASurfaceID id,
+                           VaapiChromaType chromaType,
+                           uint32_t width,
+                           uint32_t height, uint32_t externalBufHandle)
+:m_display(display), m_chromaType(chromaType), m_width(width),
+m_height(height),m_externalBufHandle(externalBufHandle), m_ID(id),
+m_derivedImage(NULL)
+{
+
+}
+
 VaapiSurface::VaapiSurface(VADisplay display,
                            VaapiChromaType chromaType,
                            uint32_t width,
