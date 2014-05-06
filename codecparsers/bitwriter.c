@@ -97,6 +97,8 @@ BitWriter *
 bit_writer_new (uint32 reserved_bits)
 {
   BitWriter *ret = (BitWriter *) malloc (sizeof (BitWriter));
+  if (!ret)
+    return NULL;
 
   bit_writer_init (ret, reserved_bits);
 
@@ -119,6 +121,8 @@ BitWriter *
 bit_writer_new_fill (uint8 * data, uint32 bits)
 {
   BitWriter *ret = (BitWriter *) calloc (sizeof (BitWriter), 1);
+  if (!ret)
+    return NULL;
 
   bit_writer_init_fill (ret, data, bits);
 

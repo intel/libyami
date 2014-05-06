@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libyami encoder part
+Description: Intel Open source encoder based on libva
+Version: 1.0.0
+Libs: -L${libdir} -lyami_encoder -lyami_common -lcodecparser
+Cflags: -I${includedir}/libyami_encoder
