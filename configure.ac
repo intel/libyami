@@ -74,11 +74,13 @@ AC_CONFIG_FILES([Makefile
                  codecparsers/Makefile
                  common/Makefile
                  decoder/Makefile
+                 encoder/Makefile
                  pkgconfig/Makefile])
 
 AC_OUTPUT([
          pkgconfig/libcodecparser.pc
          pkgconfig/libyami_common.pc
          pkgconfig/libyami_decoder.pc
+         pkgconfig/libyami_encoder.pc
 ])
 
