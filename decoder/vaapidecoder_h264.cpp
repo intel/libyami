@@ -1,7 +1,7 @@
 /*
  *  vaapidecoder_h264.cpp - h264 decoder 
  *
- *  Copyright (C) 2013 Intel Corporation
+ *  Copyright (C) 2011-2014 Intel Corporation
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License

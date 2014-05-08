@@ -1,6 +1,8 @@
 /*
  *  vaapitypes.h - Basic types
  *
+ *  Copyright (C) 2010-2011 Splitted-Desktop Systems
+ *  Copyright (C) 2012 Intel Corporation
  *  Copyright (C) 2013 Intel Corporation
  *
  *  This library is free software; you can redistribute it and/or

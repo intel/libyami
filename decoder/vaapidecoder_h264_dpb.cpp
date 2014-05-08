@@ -1,7 +1,7 @@
 /*
- *  vaapidecoder_h264_DPB.cpp - DPB manager for h264 decoder 
+ *  vaapidecoder_h264_dpb.cpp - DPB manager for h264 decoder
  *
- *  Copyright (C) 2013 Intel Corporation
+ *  Copyright (C) 2012-2014 Intel Corporation
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
