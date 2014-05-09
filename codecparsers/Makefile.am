@@ -31,7 +31,7 @@ libcodecparser_source_h_priv = \
 		dboolhuff.h \
 	$(NULL)
 
-EXTRA_DIST = dboolhuff.LICENSE
+EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
 
 libcodecparser_ldflags = \
 	-version-info 0:2:0  \
