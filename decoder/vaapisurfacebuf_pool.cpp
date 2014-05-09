@@ -2,7 +2,11 @@
  *  vaapisurfacebuffer_pool.cpp - VA surface pool
  *
  *  Copyright (C) 2010-2011 Splitted-Desktop Systems
+ *    Author: Gwenole Beauchesne <gwenole.beauchesne@splitted-desktop.com>
  *  Copyright (C) 2012-2014 Intel Corporation
+ *    Author: Gwenole Beauchesne <gwenole.beauchesne@intel.com>
+ *    Author: Xiaowei Li <xiaowei.li@intel.com>
+ *    Author: Halley Zhao <halley.zhao@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
