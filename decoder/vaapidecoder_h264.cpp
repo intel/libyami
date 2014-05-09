@@ -1175,11 +1175,11 @@ bool VaapiDecoderH264::storeDecodedPicture(VaapiPictureH264 * pic)
 
     m_prevFrame = frameStore;
 
-    if (!m_DPBManager->addDPB(frameStore, pic))
-        return false;
-
     if (m_prevFrame && m_prevFrame->hasFrame())
         m_currentPicture = NULL;
+
+    if (!m_DPBManager->addDPB(m_prevFrame, pic))
+        return false;
 
     return true;
 }

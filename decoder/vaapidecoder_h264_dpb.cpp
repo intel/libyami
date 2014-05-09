@@ -257,6 +257,10 @@ bool VaapiDPBManager::outputDPB(VaapiFrameStore * frameStore,
     }
 
     DEBUG("DPB: output picture(Addr:%p, Poc:%d)", picture, picture->m_POC);
+
+    if (!frameStore)
+        picture->m_surfBuf->status &= ~SURFACE_DECODING;
+
     return picture->output();
 }
 
@@ -312,7 +316,7 @@ void VaapiDPBManager::flushDPB()
     clearDPB();
 }
 
-bool VaapiDPBManager::addDPB(VaapiFrameStore * newFrameStore,
+bool VaapiDPBManager::addDPB(VaapiFrameStore * &newFrameStore,
                              VaapiPictureH264 * pic)
 {
     uint32_t i, j;
@@ -357,8 +361,13 @@ bool VaapiDPBManager::addDPB(VaapiFrameStore * newFrameStore,
                     foundPicture = frameStore->m_buffers[j]->m_outputNeeded
                         && frameStore->m_buffers[j]->m_POC < pic->m_POC;
             }
-            if (!foundPicture)
-                return outputDPB(NULL, pic);
+            if (!foundPicture) {
+                bool ret = outputDPB(NULL, pic);
+                delete newFrameStore;
+                newFrameStore = NULL;
+                pic = NULL;
+                return ret;
+            }
             if (!bumpDPB())
                 return false;
         }

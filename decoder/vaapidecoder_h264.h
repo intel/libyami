@@ -132,7 +132,7 @@ class VaapiDPBManager {
     bool bumpDPB();
     void clearDPB();
     void flushDPB();
-    bool addDPB(VaapiFrameStore * newFrameStore, VaapiPictureH264 * pic);
+    bool addDPB(VaapiFrameStore * &newFrameStore, VaapiPictureH264 * pic);
     void resetDPB(H264SPS * sps);
     /* initialize and reorder reference list */
     void initPictureRefs(VaapiPictureH264 * pic,
