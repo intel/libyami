@@ -40,7 +40,7 @@ class VaapiSliceJpeg:public VaapiSlice {
 
 class VaapiDecoderJpeg:public VaapiDecoderBase {
   public:
-    VaapiDecoderJpeg(const char *mimeType);
+    VaapiDecoderJpeg();
     virtual ~ VaapiDecoderJpeg();
     virtual Decode_Status start(VideoConfigBuffer * buffer);
     virtual Decode_Status reset(VideoConfigBuffer * buffer);

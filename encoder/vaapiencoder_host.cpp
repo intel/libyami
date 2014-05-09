@@ -22,24 +22,32 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#include "basictype.h"
 #include "common/log.h"
 #include "interface/VideoEncoderHost.h"
 #include "vaapiencoder_h264.h"
+#include "vaapi_host.h"
 #include <string.h>
 
+DEFINE_CLASS_FACTORY(Encoder)
+static const EncoderEntry g_encoderEntries[] = {
+    DEFINE_ENCODER_ENTRY("video/avc", H264),
+    DEFINE_ENCODER_ENTRY("video/h264", H264)
+};
+
 IVideoEncoder* createVideoEncoder(const char* mimeType) {
-    if (mimeType == NULL) {
+    if (!mimeType) {
         ERROR("NULL mime type.");
         return NULL;
     }
-    if (strcasecmp(mimeType, "video/avc") == 0 ||
-            strcasecmp(mimeType, "video/h264") == 0) {
-        DEBUG("Create H264 encoder ");
-        IVideoEncoder *p = new VaapiEncoderH264();
-        return (IVideoEncoder *)p;
-    } else {
-        ERROR("Unsupported mime type: %s", mimeType);
+    INFO("mimeType: %s\n", mimeType);
+    for (int i = 0; i < N_ELEMENTS(g_encoderEntries); i++) {
+        const EncoderEntry *e = g_encoderEntries + i;
+        if (strcasecmp(e->mime, mimeType) == 0)
+            return e->create();
     }
+    ERROR("Failed to create %s", mimeType);
     return NULL;
 }
 

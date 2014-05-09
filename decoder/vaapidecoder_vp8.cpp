@@ -629,8 +629,7 @@ Decode_Status VaapiDecoderVP8::decodePicture()
     return status;
 }
 
-VaapiDecoderVP8::VaapiDecoderVP8(const char *mimeType)
-:  VaapiDecoderBase(mimeType)
+VaapiDecoderVP8::VaapiDecoderVP8()
 {
     int32 i;
 

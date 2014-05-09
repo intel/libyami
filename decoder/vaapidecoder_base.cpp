@@ -34,7 +34,7 @@
 
 #define ANDROID_DISPLAY_HANDLE 0x18C34078
 
-VaapiDecoderBase::VaapiDecoderBase(const char *mimeType)
+VaapiDecoderBase::VaapiDecoderBase()
 :m_display(NULL),
 m_VADisplay(NULL),
 m_VAContext(VA_INVALID_ID),
@@ -48,7 +48,6 @@ m_currentPTS(INVALID_PTS), m_enableNativeBuffersFlag(false)
     INFO("base: construct()");
     memset(&m_videoFormatInfo, 0, sizeof(VideoFormatInfo));
     memset(&m_configBuffer, 0, sizeof(m_configBuffer));
-    m_videoFormatInfo.mimeType = strdup(mimeType);
     m_bufPool = NULL;
 }
 
@@ -56,7 +55,6 @@ VaapiDecoderBase::~VaapiDecoderBase()
 {
     INFO("base: deconstruct()");
     stop();
-    free(m_videoFormatInfo.mimeType);
     delete[] m_videoFormatInfo.ctxSurfaces;
 }
 
