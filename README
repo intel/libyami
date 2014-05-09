@@ -1,1 +1,68 @@
 
+  libyami
+  Yet Another Media Infrastructure.
+  It is YUMMY to your video experience on Linux like platform.
+
+  Yami is core building block for media solution. it parses video stream
+  and decodes them leverage hardware acceleration.
+  one usage is to encapsulate yami into openMAX component,
+  to be used on Chromeos, Android or Linux (by gst-omx).
+
+  Copyright (C) 2010-2011 Splitted-Desktop Systems
+  Copyright (C) 2011 Collabora Ltd.
+  Copyright (C) 2011-2014 Intel Corporation
+
+
+License
+-------
+
+libyami libraries are available under the terms of the
+GNU Lesser General Public License v2.1+
+
+
+Overview
+--------
+
+libyami consists of several libraries:
+    * 'codecparsers': it is bit stream parser,
+        most files are reused from gst-plugins-bad <http://cgit.freedesktop.org/gstreamer/gst-plugins-bad>
+    * 'common': common objects/operation to work with vaapi (hw acceleration interface)
+    * 'decoder': video decoder implementation
+    * 'encoder': video encoder implementation
+       some files in common/decoder/encoder are reused from
+       gstreamer-vaapi: <http://gitorious.org/vaapi/gstreamer-vaapi>
+
+Features
+--------
+
+  * H.264, VP8, JPEG ad-hoc decoder
+
+
+Requirements
+------------
+
+Hardware requirements
+
+  * Intel Sandybridge, Ivybridge, Haswell and Broadwell (HD Graphics)
+  * Intel Baytrail
+
+
+Usage
+-----
+
+  * the usage in chromeos, please refer to chromium OVDA
+  * for development/degbu purpose, it can be verified in gst-omx,
+    refer to our fork for gst-omx: <https://github.com/01org/gst-omx/wiki>
+
+Sources
+-------
+
+  Git repository for work-in-progress changes is available at:
+  <https://github.com/01org/libyami>
+
+
+Reporting Bugs
+--------------
+
+  Bugs can be reported in the github system at:
+  <https://github.com/01org/libyami/issues/new>
