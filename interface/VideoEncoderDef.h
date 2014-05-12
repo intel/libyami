@@ -22,6 +22,7 @@
 #ifndef __VIDEO_ENCODER_DEF_H__
 #define __VIDEO_ENCODER_DEF_H__
 
+#include <va/va.h>
 #include <stdint.h>
 
 #define STRING_TO_FOURCC(format) ((uint32_t)(((format)[0])|((format)[1]<<8)|((format)[2]<<16)|((format)[3]<<24)))
@@ -45,7 +46,8 @@ enum {
     ENCODE_SUCCESS = 0,
     ENCODE_ALREADY_INIT = 1,
     ENCODE_SLICESIZE_OVERFLOW = 2,
-    ENCODE_BUFFER_TOO_SMALL = 3 // The buffer passed to encode is too small to contain encoded data
+    ENCODE_BUFFER_TOO_SMALL = 3, // The buffer passed to encode is too small to contain encoded data
+    ENCODE_BUFFER_NO_MORE = 4,   //No more output buffers.
 };
 
 enum VideoOutputFormat {
@@ -476,7 +478,10 @@ struct VideoParamsUsrptrBuffer:VideoParamConfigSet {
                          sizeof(VideoParamsUsrptrBuffer))
     , width(0), height(0), format(0), expectedSize(0) {
     }
-    //input uint32_t width; uint32_t height;
+
+    //input
+    uint32_t width;
+    uint32_t height;
     uint32_t format;
     uint32_t expectedSize;
 

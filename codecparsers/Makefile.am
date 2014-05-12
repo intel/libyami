@@ -10,6 +10,7 @@ libcodecparser_source_c = \
         jpegparser.c \
         parserutils.c \
         nalreader.c \
+        bitwriter.c \
 	$(NULL)
 
 libcodecparser_source_h = \
@@ -24,6 +25,7 @@ libcodecparser_source_h = \
         parserutils.h \
         basictype.h \
         nalreader.h \
+        bitwriter.h \
         log.h \
 	$(NULL)
 

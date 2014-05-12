@@ -18,26 +18,26 @@
 #include <stdio.h>
 #ifndef ERROR
 #define ERROR(format, ...)   do { \
-   fprintf(stderr, "libyami error: "format"\n", ##__VA_ARGS__);\
+   fprintf(stderr, "libyami error(%s, %d): " format "\n", __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifdef __ENABLE_DEBUG__
 #ifndef INFO
 #define INFO(format, ...)   do { \
-   fprintf(stderr, "libyami info: "format"\n", ##__VA_ARGS__);\
+   fprintf(stderr, "libyami info(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifndef WARNING
 #define WARNING(format, ...)   do { \
-   fprintf(stderr, "libyami warning: "format"\n", ##__VA_ARGS__);\
+   fprintf(stderr, "libyami warning(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifndef DEBUG
 #define DEBUG(format, ...)   do { \
-   fprintf(stderr, "libyami debug: "format"\n", ##__VA_ARGS__);\
+   fprintf(stderr, "libyami debug(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 

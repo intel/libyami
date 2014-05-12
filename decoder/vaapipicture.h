@@ -34,17 +34,6 @@
 using namespace std;
 
 typedef enum {
-    VAAPI_PICTURE_TYPE_NONE = 0,    // Undefined
-    VAAPI_PICTURE_TYPE_I,       // Intra
-    VAAPI_PICTURE_TYPE_P,       // Predicted
-    VAAPI_PICTURE_TYPE_B,       // Bi-directional predicted
-    VAAPI_PICTURE_TYPE_S,       // S(GMC)-VOP (MPEG-4)
-    VAAPI_PICTURE_TYPE_SI,      // Switching Intra
-    VAAPI_PICTURE_TYPE_SP,      // Switching Predicted
-    VAAPI_PICTURE_TYPE_BI,      // BI type (VC-1)
-} VaapiPictureType;
-
-typedef enum {
     VAAPI_PICTURE_FLAG_SKIPPED = (1 << 0),
     VAAPI_PICTURE_FLAG_REFERENCE = (1 << 1),
     VAAPI_PICTURE_FLAG_OUTPUT = (1 << 2),

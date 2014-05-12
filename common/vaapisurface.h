@@ -27,6 +27,7 @@
 #define vaapisurface_h
 
 #include "vaapiimage.h"
+#include "vaapiptrs.h"
 #include "vaapitypes.h"
 #include <va/va_drmcommon.h>
 #include <va/va.h>
@@ -49,6 +50,13 @@ class VaapiSurface {
   private:
     DISALLOW_COPY_AND_ASSIGN(VaapiSurface);
   public:
+    static SurfacePtr create(VADisplay,
+                             VaapiChromaType,
+                             uint32_t width,
+                             uint32_t height,
+                             void *surfaceAttribArray,
+                             uint32_t surfAttribNum);
+
     VaapiSurface(VADisplay display,
                  VaapiChromaType chromaType,
                  uint32_t width,
@@ -71,9 +79,14 @@ class VaapiSurface {
     VaapiImage *getDerivedImage();
 
   private:
+    VaapiSurface(VADisplay,
+                 VASurfaceID,
+                 VaapiChromaType,
+                 uint32_t width,
+                 uint32_t height, uint32_t externalBufHandle);
+
     uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
 
-  private:
     VADisplay m_display;
     VaapiChromaType m_chromaType;
     VASurfaceID m_ID;

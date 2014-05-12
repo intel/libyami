@@ -62,8 +62,12 @@ typedef enum {
     VAAPI_PROFILE_MPEG4_MAIN,
     VAAPI_PROFILE_H263_BASELINE,
     VAAPI_PROFILE_H264_BASELINE,
+    VAAPI_PROFILE_H264_CONSTRAINED_BASELINE,
     VAAPI_PROFILE_H264_MAIN,
     VAAPI_PROFILE_H264_HIGH,
+    VAAPI_PROFILE_H264_HIGH10,
+    VAAPI_PROFILE_H264_HIGH_422,
+    VAAPI_PROFILE_H264_HIGH_444,
     VAAPI_PROFILE_H264_MULTIVIEW_HIGH,
     VAAPI_PROFILE_H264_STEREO_HIGH,
     VAAPI_PROFILE_VC1_SIMPLE,
@@ -86,5 +90,17 @@ typedef enum {
 #define DISALLOW_COPY_AND_ASSIGN(className) \
       className(const className&); \
       className & operator=(const className&); \
+
+
+typedef enum {
+    VAAPI_PICTURE_TYPE_NONE = 0,        // Undefined
+    VAAPI_PICTURE_TYPE_I,               // Intra
+    VAAPI_PICTURE_TYPE_P,               // Predicted
+    VAAPI_PICTURE_TYPE_B,               // Bi-directional predicted
+    VAAPI_PICTURE_TYPE_S,               // S(GMC)-VOP (MPEG-4)
+    VAAPI_PICTURE_TYPE_SI,              // Switching Intra
+    VAAPI_PICTURE_TYPE_SP,              // Switching Predicted
+    VAAPI_PICTURE_TYPE_BI,              // BI type (VC-1)
+} VaapiPictureType;
 
 #endif                          /* vaapitypes_h */

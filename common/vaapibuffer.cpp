@@ -45,12 +45,18 @@ VaapiBufObject::VaapiBufObject(VADisplay display,
         return;
     }
 
-    if (!vaapiCreateBuffer(display,
-                           context,
+    if (!vaapiCreateBuffer(display, context,
                            bufType, size, data, &m_bufID, (void **) 0)) {
         ERROR("create buffer failed");
         return;
     }
+}
+
+VaapiBufObject::VaapiBufObject(VADisplay display,
+                               VABufferID bufID, void *buf, uint32_t size)
+:m_display(display), m_bufID(bufID), m_buf(buf), m_size(size)
+{
+
 }
 
 VaapiBufObject::~VaapiBufObject()
@@ -63,7 +69,7 @@ VaapiBufObject::~VaapiBufObject()
     vaapiDestroyBuffer(m_display, &m_bufID);
 }
 
-VABufferID VaapiBufObject::getID()
+VABufferID VaapiBufObject::getID() const
 {
     return m_bufID;
 }
@@ -88,4 +94,35 @@ void VaapiBufObject::unmap()
         vaapiUnmapBuffer(m_display, m_bufID, &m_buf);
         m_buf = NULL;
     }
+}
+
+bool VaapiBufObject::isMapped() const
+{
+    return m_buf != NULL;
+}
+
+BufObjectPtr VaapiBufObject::create(VADisplay display,
+                                    VAContextID context,
+                                    VABufferType bufType,
+                                    uint32_t size,
+                                    const void *data, void **mapped_data)
+{
+    VAStatus status;
+    BufObjectPtr buf;
+
+    if (size == 0) {
+        ERROR("buffer size is zero");
+        return buf;
+    }
+
+    VABufferID bufID;
+    if (!vaapiCreateBuffer(display, context,
+                           bufType, size, data, &bufID, mapped_data)) {
+        ERROR("create buffer failed");
+        return buf;
+    }
+
+    void *mapped = mapped_data ? *mapped_data : NULL;
+    buf.reset(new VaapiBufObject(display, bufID, mapped, size));
+    return buf;
 }
