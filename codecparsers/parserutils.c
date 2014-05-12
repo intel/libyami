@@ -19,16 +19,19 @@
  * Boston, MA 02110-1301, USA.
  */
 
+#include <stdint.h>
+#include <limits.h>
+#include <stdbool.h>
 #include "parserutils.h"
 #include "log.h"
 
-boolean
-decode_vlc (BitReader * br, uint32 * res, const VLCTable * table,
-    uint32 length)
+bool
+decode_vlc (BitReader * br, uint32_t * res, const VLCTable * table,
+    uint32_t length)
 {
-  uint8 i;
-  uint32 cbits = 0;
-  uint32 value = 0;
+  uint8_t i;
+  uint32_t cbits = 0;
+  uint32_t value = 0;
 
   for (i = 0; i < length; i++) {
     if (cbits != table[i].cbits) {
@@ -43,7 +46,7 @@ decode_vlc (BitReader * br, uint32 * res, const VLCTable * table,
       if (res)
         *res = table[i].value;
 
-      return TRUE;
+      return true;
     }
   }
 
@@ -53,14 +56,14 @@ failed:
   {
     LOG_WARNING ("Could not decode VLC returning");
 
-    return FALSE;
+    return false;
   }
 }
 
-inline uint32 
-bit_storage_calculate(uint32 value)
+inline uint32_t 
+bit_storage_calculate(uint32_t value)
 {
-  uint32 bits = 0;
+  uint32_t bits = 0;
   while (value >> bits)
      bits ++;
   

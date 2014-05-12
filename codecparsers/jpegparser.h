@@ -26,7 +26,10 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include "basictype.h"
+#include <stdint.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <string.h>
 
 /**
  * JPEG_MAX_FRAME_COMPONENTS:
@@ -137,9 +140,9 @@ typedef enum {
  */
 struct _JpegQuantTable
 {
-  uint8 quant_precision;
-  uint16 quant_table[JPEG_MAX_QUANT_ELEMENTS];
-  boolean valid;
+  uint8_t quant_precision;
+  uint16_t quant_table[JPEG_MAX_QUANT_ELEMENTS];
+  bool valid;
 };
 
 /**
@@ -165,9 +168,9 @@ struct _JpegQuantTables
  */
 struct _JpegHuffmanTable
 {
-  uint8 huf_bits[16];
-  uint8 huf_values[256];
-  boolean valid;
+  uint8_t huf_bits[16];
+  uint8_t huf_values[256];
+  bool valid;
 };
 
 /**
@@ -194,9 +197,9 @@ struct _JpegHuffmanTables
  */
 struct _JpegScanComponent
 {
-    uint8 component_selector;          /* 0 .. 255     */
-    uint8 dc_selector;                 /* 0 .. 3       */
-    uint8 ac_selector;                 /* 0 .. 3       */
+    uint8_t component_selector;          /* 0 .. 255     */
+    uint8_t dc_selector;                 /* 0 .. 3       */
+    uint8_t ac_selector;                 /* 0 .. 3       */
 };
 
 /**
@@ -208,7 +211,7 @@ struct _JpegScanComponent
  */
 struct _JpegScanHdr
 {
-  uint8 num_components;                /* 1 .. 4       */
+  uint8_t num_components;                /* 1 .. 4       */
   JpegScanComponent components[JPEG_MAX_SCAN_COMPONENTS];
 };
 
@@ -223,10 +226,10 @@ struct _JpegScanHdr
  */
 struct _JpegFrameComponent
 {
-  uint8 identifier;                    /* 0 .. 255     */
-  uint8 horizontal_factor;             /* 1 .. 4       */
-  uint8 vertical_factor;               /* 1 .. 4       */
-  uint8 quant_table_selector;          /* 0 .. 3       */
+  uint8_t identifier;                    /* 0 .. 255     */
+  uint8_t horizontal_factor;             /* 1 .. 4       */
+  uint8_t vertical_factor;               /* 1 .. 4       */
+  uint8_t quant_table_selector;          /* 0 .. 3       */
 };
 
 /**
@@ -242,10 +245,10 @@ struct _JpegFrameComponent
  */
 struct _JpegFrameHdr
 {
-  uint8 sample_precision;              /* 2 .. 16      */
-  uint16 width;                        /* 1 .. 65535   */
-  uint16 height;                       /* 0 .. 65535   */
-  uint8 num_components;                /* 1 .. 255     */
+  uint8_t sample_precision;              /* 2 .. 16      */
+  uint16_t width;                        /* 1 .. 65535   */
+  uint16_t height;                       /* 0 .. 65535   */
+  uint8_t num_components;                /* 1 .. 255     */
   JpegFrameComponent components[JPEG_MAX_FRAME_COMPONENTS];
 };
 
@@ -261,9 +264,9 @@ struct _JpegFrameHdr
  */
 struct _JpegMarkerSegment
 {
-  uint8 marker;
-  uint32 offset;
-  int32 size;
+  uint8_t marker;
+  uint32_t offset;
+  int32_t size;
 };
 
 /**
@@ -278,9 +281,9 @@ struct _JpegMarkerSegment
  *
  * Returns: offset to the marker code if found, or -1 if not found.
  */
-int32   jpeg_scan_for_marker_code   (const uint8 * data,
+int32_t   jpeg_scan_for_marker_code   (const uint8_t * data,
                                      size_t size,
-                                     uint32 offset);
+                                     uint32_t offset);
 
 /**
  * jpeg_parse:
@@ -291,12 +294,12 @@ int32   jpeg_scan_for_marker_code   (const uint8 * data,
  * Parses the JPEG bitstream contained in @data, and returns the
  * detected segment as a #GstJpegMarkerSegment.
  *
- * Returns: TRUE if a packet start code was found.
+ * Returns: true if a packet start code was found.
  */
-boolean    jpeg_parse (JpegMarkerSegment * seg,
-                       const uint8 * data,
+bool    jpeg_parse (JpegMarkerSegment * seg,
+                       const uint8_t * data,
                        size_t size,
-                       uint32 offset);
+                       uint32_t offset);
 
 /**
  * jpeg_parse_frame_hdr:
@@ -307,12 +310,12 @@ boolean    jpeg_parse (JpegMarkerSegment * seg,
  *
  * Parses the @hdr JPEG frame header structure members from @data.
  *
- * Returns: TRUE if the frame header was correctly parsed.
+ * Returns: true if the frame header was correctly parsed.
  */
-boolean    jpeg_parse_frame_hdr  (JpegFrameHdr * hdr,
-                                  const uint8 * data,
+bool    jpeg_parse_frame_hdr  (JpegFrameHdr * hdr,
+                                  const uint8_t * data,
                                   size_t size,
-                                  uint32 offset);
+                                  uint32_t offset);
 
 /**
  * jpeg_parse_scan_hdr:
@@ -323,12 +326,12 @@ boolean    jpeg_parse_frame_hdr  (JpegFrameHdr * hdr,
  *
  * Parses the @hdr JPEG scan header structure members from @data.
  *
- * Returns: TRUE if the scan header was correctly parsed
+ * Returns: true if the scan header was correctly parsed
  */
-boolean   jpeg_parse_scan_hdr  (JpegScanHdr * hdr,
-                                const uint8 * data,
+bool   jpeg_parse_scan_hdr  (JpegScanHdr * hdr,
+                                const uint8_t * data,
                                 size_t size,
-                                uint32 offset);
+                                uint32_t offset);
 
 /**
  * jpeg_parse_quantization_table:
@@ -344,14 +347,14 @@ boolean   jpeg_parse_scan_hdr  (JpegScanHdr * hdr,
  * quantization tables. However, the parser will only write to the
  * quantization table specified by the table destination identifier
  * (Tq). While doing so, the @valid flag of the specified quantization
- * table will also be set to %TRUE.
+ * table will also be set to %true.
  *
- * Returns: TRUE if the quantization table was correctly parsed.
+ * Returns: true if the quantization table was correctly parsed.
  */
-boolean  jpeg_parse_quant_table   (JpegQuantTables *quant_tables,
-                                   const uint8 * data,
+bool  jpeg_parse_quant_table   (JpegQuantTables *quant_tables,
+                                   const uint8_t * data,
                                    size_t size,
-                                   uint32 offset);
+                                   uint32_t offset);
 
 /**
  * jpeg_parse_huffman_table:
@@ -366,14 +369,14 @@ boolean  jpeg_parse_quant_table   (JpegQuantTables *quant_tables,
  * tables. However, the parser will only write to the Huffman table
  * specified by the table destination identifier (Th). While doing so,
  * the @valid flag of the specified Huffman table will also be set to
- * %TRUE;
+ * %true;
  *
- * Returns: TRUE if the Huffman table was correctly parsed.
+ * Returns: true if the Huffman table was correctly parsed.
  */
-boolean  jpeg_parse_huffman_table   (JpegHuffmanTables *huf_tables,
-                                     const uint8 * data,
+bool  jpeg_parse_huffman_table   (JpegHuffmanTables *huf_tables,
+                                     const uint8_t * data,
                                      size_t size,
-                                     uint32 offset);
+                                     uint32_t offset);
 
 /**
  * jpeg_parse_restart_interval:
@@ -382,12 +385,12 @@ boolean  jpeg_parse_huffman_table   (JpegHuffmanTables *huf_tables,
  * @size: The size of @data
  * @offset: The offset in bytes from which to start parsing @data
  *
- * Returns: TRUE if the restart interval value was correctly parsed.
+ * Returns: true if the restart interval value was correctly parsed.
  */
-boolean  jpeg_parse_restart_interval (uint32 * interval,
-                                      const uint8 * data,
+bool  jpeg_parse_restart_interval (uint32_t * interval,
+                                      const uint8_t * data,
                                       size_t size,
-                                      uint32 offset);
+                                      uint32_t offset);
 
 /**
  * jpeg_get_default_huffman_tables:

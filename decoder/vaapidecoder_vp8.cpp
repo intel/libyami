@@ -31,12 +31,12 @@
 
 // the following parameter apply to Intra-Predicted Macroblocks,
 // $11.2 $11.4: key frame default probs
-static const uint8 keyFrameYModeProbs[4] = { 145, 156, 163, 128 };
-static const uint8 keyFrameUVModeProbs[3] = { 142, 114, 183 };
+static const uint8_t keyFrameYModeProbs[4] = { 145, 156, 163, 128 };
+static const uint8_t keyFrameUVModeProbs[3] = { 142, 114, 183 };
 
 // $16.1: non-key frame default probs
-static const uint8 nonKeyFrameDefaultYModeProbs[4] = { 112, 86, 140, 37 };
-static const uint8 nonKeyFrameDefaultUVModeProbs[3] = { 162, 101, 204 };
+static const uint8_t nonKeyFrameDefaultYModeProbs[4] = { 112, 86, 140, 37 };
+static const uint8_t nonKeyFrameDefaultUVModeProbs[3] = { 162, 101, 204 };
 
 bool VaapiDecoderVP8::replacePicture(VaapiPictureVP8 * &pic1,
                                      VaapiPictureVP8 * pic2)
@@ -211,7 +211,7 @@ bool VaapiDecoderVP8::fillSliceParam(VaapiSliceVP8 * slice)
     VaapiBufObject *sliceParamObj = slice->m_param;
     VASliceParameterBufferVP8 *sliceParam =
         (VASliceParameterBufferVP8 *) sliceParamObj->map();
-    int32 lastPartitionSize, i;
+    int32_t lastPartitionSize, i;
 
 
     if (m_frameHdr.key_frame == VP8_KEY_FRAME)
@@ -262,7 +262,7 @@ bool VaapiDecoderVP8::fillSliceParam(VaapiSliceVP8 * slice)
 
 bool VaapiDecoderVP8::fillPictureParam(VaapiPictureVP8 * picture)
 {
-    int32 i, n;
+    int32_t i, n;
     VaapiBufObject *picParamObj = picture->m_picParam;
 
     VAPictureParameterBufferVP8 *picParam =
@@ -395,13 +395,13 @@ bool VaapiDecoderVP8::ensureQuantMatrix(VaapiPictureVP8 * pic)
 {
     Vp8Segmentation *seg = &m_frameHdr.multi_frame_data->segmentation;
     VAIQMatrixBufferVP8 *iqMatrix;
-    int32 baseQI, i;
+    int32_t baseQI, i;
 
     iqMatrix = (VAIQMatrixBufferVP8 *) pic->m_iqMatrix->map();
 
     for (i = 0; i < 4; i++) {
-        int32 tempIndex;
-        const int32 MAX_QI_INDEX = 127;
+        int32_t tempIndex;
+        const int32_t MAX_QI_INDEX = 127;
         if (seg->segmentation_enabled) {
             baseQI = seg->quantizer_update_value[i];
             if (!seg->segment_feature_mode) // 0 means delta update
@@ -454,7 +454,7 @@ bool VaapiDecoderVP8::ensureQuantMatrix(VaapiPictureVP8 * pic)
 bool VaapiDecoderVP8::ensureProbabilityTable(VaapiPictureVP8 * pic)
 {
     VAProbabilityDataBufferVP8 *probTable;
-    int32 i;
+    int32_t i;
 
     // XXX, create/render VAProbabilityDataBufferVP8 in base class
     probTable = (VAProbabilityDataBufferVP8 *) pic->m_probTable->map();
@@ -632,7 +632,7 @@ Decode_Status VaapiDecoderVP8::decodePicture()
 VaapiDecoderVP8::VaapiDecoderVP8(const char *mimeType)
 :  VaapiDecoderBase(mimeType)
 {
-    int32 i;
+    int32_t i;
 
     m_currentPicture = NULL;
     m_altRefPicture = NULL;

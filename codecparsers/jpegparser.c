@@ -27,20 +27,20 @@
 
 #define READ_UINT8(reader, val) {                           \
     if (!byte_reader_get_uint8 ((reader), &(val))) {        \
-      LOG_WARNING ("failed to read uint8");                 \
+      LOG_WARNING ("failed to read uint8_t");                 \
       goto failed;                                          \
     }                                                       \
   }
 
 #define READ_UINT16(reader, val)  {                         \
     if (!byte_reader_get_uint16_be ((reader), &(val))) {    \
-      LOG_WARNING ("failed to read uint16");                \
+      LOG_WARNING ("failed to read uint16_t");                \
       goto failed;                                          \
     }                                                       \
   }
 
 #define READ_BYTES(reader, buf, length)  {                  \
-    const uint8 *vals;                                      \
+    const uint8_t *vals;                                      \
     if (!byte_reader_get_data (reader, length, &vals)) {    \
       LOG_WARNING ("failed to read bytes, size:%d", length); \
       goto failed;                                          \
@@ -58,7 +58,7 @@
 
 /* Table used to address an 8x8 matrix in zig-zag order */
 /* *INDENT-OFF* */
-static const uint8 zigzag_index[64] = {
+static const uint8_t zigzag_index[64] = {
   0,   1,  8, 16,  9,  2,  3, 10,
   17, 24, 32, 25, 18, 11,  4,  5,
   12, 19, 26, 33, 40, 48, 41, 34,
@@ -72,7 +72,7 @@ static const uint8 zigzag_index[64] = {
 
 /* Table K.1 - Luminance quantization table */
 /* *INDENT-OFF* */
-static const uint8 default_luminance_quant_table[64] = {
+static const uint8_t default_luminance_quant_table[64] = {
   16,  11,  10,  16,  24,  40,  51,  61,
   12,  12,  14,  19,  26,  58,  60,  55,
   14,  13,  16,  24,  40,  57,  69,  56,
@@ -86,7 +86,7 @@ static const uint8 default_luminance_quant_table[64] = {
 
 /* Table K.2 - Chrominance quantization table */
 /* *INDENT-OFF* */
-static const uint8 default_chrominance_quant_table[64] = {
+static const uint8_t default_chrominance_quant_table[64] = {
   17,  18,  24,  47,  99,  99,  99,  99,
   18,  21,  26,  66,  99,  99,  99,  99,
   24,  26,  56,  99,  99,  99,  99,  99,
@@ -101,8 +101,8 @@ static const uint8 default_chrominance_quant_table[64] = {
 typedef struct _JpegHuffmanTableEntry JpegHuffmanTableEntry;
 struct _JpegHuffmanTableEntry
 {
-  uint8 value;                 /* category */
-  uint8 length;                /* code length in bits */
+  uint8_t value;                 /* category */
+  uint8_t length;                /* code length in bits */
 };
 
 /* Table K.3 - Table for luminance DC coefficient differences */
@@ -183,31 +183,31 @@ static const JpegHuffmanTableEntry default_chrominance_ac_table[] = {
 };
 /* *INDENT-ON* */
 
-static inline boolean
-jpeg_parse_to_next_marker (ByteReader * br, uint8 * marker)
+static inline bool
+jpeg_parse_to_next_marker (ByteReader * br, uint8_t * marker)
 {
-  int32 ofs;
+  int32_t ofs;
 
   ofs = jpeg_scan_for_marker_code (br->data, br->size, br->byte);
   if (ofs < 0)
-    return FALSE;
+    return false;
 
   if (marker)
     *marker = br->data[ofs + 1];
   byte_reader_skip_unchecked (br, ofs - br->byte);
-  return TRUE;
+  return true;
 }
 
-int32
-jpeg_scan_for_marker_code (const uint8 * data, size_t size, uint32 offset)
+int32_t
+jpeg_scan_for_marker_code (const uint8_t * data, size_t size, uint32_t offset)
 {
-  uint32 i;
+  uint32_t i;
 
   RETURN_VAL_IF_FAIL (data != NULL, -1);
 
   i = offset + 1;
   while (i < size) {
-    const uint8 v = data[i];
+    const uint8_t v = data[i];
     if (v < 0xc0)
       i += 2;
     else if (v < 0xff && data[i - 1] == 0xff)
@@ -218,35 +218,35 @@ jpeg_scan_for_marker_code (const uint8 * data, size_t size, uint32 offset)
   return -1;
 }
 
-boolean
+bool
 jpeg_parse_frame_hdr (JpegFrameHdr * frame_hdr,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   ByteReader br;
-  uint16 length;
-  uint8 val;
-  uint32 i;
+  uint16_t length;
+  uint8_t val;
+  uint32_t i;
 
-  RETURN_VAL_IF_FAIL (frame_hdr != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (data != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (size > offset, FALSE);
+  RETURN_VAL_IF_FAIL (frame_hdr != NULL, false);
+  RETURN_VAL_IF_FAIL (data != NULL, false);
+  RETURN_VAL_IF_FAIL (size > offset, false);
 
   size -= offset;
   byte_reader_init (&br, &data[offset], size);
-  RETURN_VAL_IF_FAIL (size >= 8, FALSE);
+  RETURN_VAL_IF_FAIL (size >= 8, false);
 
   U_READ_UINT16 (&br, length);  /* Lf */
-  RETURN_VAL_IF_FAIL (size >= length, FALSE);
+  RETURN_VAL_IF_FAIL (size >= length, false);
 
   U_READ_UINT8 (&br, frame_hdr->sample_precision);
   U_READ_UINT16 (&br, frame_hdr->height);
   U_READ_UINT16 (&br, frame_hdr->width);
   U_READ_UINT8 (&br, frame_hdr->num_components);
   RETURN_VAL_IF_FAIL (frame_hdr->num_components <=
-      JPEG_MAX_SCAN_COMPONENTS, FALSE);
+      JPEG_MAX_SCAN_COMPONENTS, false);
 
   length -= 8;
-  RETURN_VAL_IF_FAIL (length >= 3 * frame_hdr->num_components, FALSE);
+  RETURN_VAL_IF_FAIL (length >= 3 * frame_hdr->num_components, false);
   for (i = 0; i < frame_hdr->num_components; i++) {
     U_READ_UINT8 (&br, frame_hdr->components[i].identifier);
     U_READ_UINT8 (&br, val);
@@ -255,82 +255,82 @@ jpeg_parse_frame_hdr (JpegFrameHdr * frame_hdr,
     U_READ_UINT8 (&br, frame_hdr->components[i].quant_table_selector);
     RETURN_VAL_IF_FAIL ((frame_hdr->components[i].horizontal_factor <= 4 &&
             frame_hdr->components[i].vertical_factor <= 4 &&
-            frame_hdr->components[i].quant_table_selector < 4), FALSE);
+            frame_hdr->components[i].quant_table_selector < 4), false);
     length -= 3;
   }
 
   assert (length == 0);
-  return TRUE;
+  return true;
 }
 
-boolean
+bool
 jpeg_parse_scan_hdr (JpegScanHdr * scan_hdr,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   ByteReader br;
-  uint16 length;
-  uint8 val;
-  uint32 i;
+  uint16_t length;
+  uint8_t val;
+  uint32_t i;
 
-  RETURN_VAL_IF_FAIL (scan_hdr != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (data != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (size > offset, FALSE);
+  RETURN_VAL_IF_FAIL (scan_hdr != NULL, false);
+  RETURN_VAL_IF_FAIL (data != NULL, false);
+  RETURN_VAL_IF_FAIL (size > offset, false);
 
   size -= offset;
   byte_reader_init (&br, &data[offset], size);
-  RETURN_VAL_IF_FAIL (size >= 3, FALSE);
+  RETURN_VAL_IF_FAIL (size >= 3, false);
 
   U_READ_UINT16 (&br, length);  /* Ls */
-  RETURN_VAL_IF_FAIL (size >= length, FALSE);
+  RETURN_VAL_IF_FAIL (size >= length, false);
 
   U_READ_UINT8 (&br, scan_hdr->num_components);
   RETURN_VAL_IF_FAIL (scan_hdr->num_components <=
-      JPEG_MAX_SCAN_COMPONENTS, FALSE);
+      JPEG_MAX_SCAN_COMPONENTS, false);
 
   length -= 3;
-  RETURN_VAL_IF_FAIL (length >= 2 * scan_hdr->num_components, FALSE);
+  RETURN_VAL_IF_FAIL (length >= 2 * scan_hdr->num_components, false);
   for (i = 0; i < scan_hdr->num_components; i++) {
     U_READ_UINT8 (&br, scan_hdr->components[i].component_selector);
     U_READ_UINT8 (&br, val);
     scan_hdr->components[i].dc_selector = (val >> 4) & 0x0F;
     scan_hdr->components[i].ac_selector = val & 0x0F;
     RETURN_VAL_IF_FAIL ((scan_hdr->components[i].dc_selector < 4 &&
-            scan_hdr->components[i].ac_selector < 4), FALSE);
+            scan_hdr->components[i].ac_selector < 4), false);
     length -= 2;
   }
 
   /* FIXME: Ss, Se, Ah, Al */
   assert (length == 3);
-  return TRUE;
+  return true;
 }
 
-boolean
+bool
 jpeg_parse_huffman_table (JpegHuffmanTables * huf_tables,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   ByteReader br;
   JpegHuffmanTable *huf_table;
-  uint16 length;
-  uint8 val, table_class, table_index;
-  uint32 value_count;
-  uint32 i;
+  uint16_t length;
+  uint8_t val, table_class, table_index;
+  uint32_t value_count;
+  uint32_t i;
 
-  RETURN_VAL_IF_FAIL (huf_tables != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (data != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (size > offset, FALSE);
+  RETURN_VAL_IF_FAIL (huf_tables != NULL, false);
+  RETURN_VAL_IF_FAIL (data != NULL, false);
+  RETURN_VAL_IF_FAIL (size > offset, false);
 
   size -= offset;
   byte_reader_init (&br, &data[offset], size);
-  RETURN_VAL_IF_FAIL (size >= 2, FALSE);
+  RETURN_VAL_IF_FAIL (size >= 2, false);
 
   U_READ_UINT16 (&br, length);  /* Lh */
-  RETURN_VAL_IF_FAIL (size >= length, FALSE);
+  RETURN_VAL_IF_FAIL (size >= length, false);
 
   while (byte_reader_get_remaining (&br)) {
     U_READ_UINT8 (&br, val);
     table_class = ((val >> 4) & 0x0F);
     table_index = (val & 0x0F);
-    RETURN_VAL_IF_FAIL (table_index < JPEG_MAX_SCAN_COMPONENTS, FALSE);
+    RETURN_VAL_IF_FAIL (table_index < JPEG_MAX_SCAN_COMPONENTS, false);
     if (table_class == 0) {
       huf_table = &huf_tables->dc_tables[table_index];
     } else {
@@ -341,45 +341,45 @@ jpeg_parse_huffman_table (JpegHuffmanTables * huf_tables,
     for (i = 0; i < 16; i++)
       value_count += huf_table->huf_bits[i];
     READ_BYTES (&br, huf_table->huf_values, value_count);
-    huf_table->valid = TRUE;
+    huf_table->valid = true;
   }
-  return TRUE;
+  return true;
 
 failed:
-  return FALSE;
+  return false;
 }
 
-boolean
+bool
 jpeg_parse_quant_table (JpegQuantTables * quant_tables,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   ByteReader br;
   JpegQuantTable *quant_table;
-  uint16 length;
-  uint8 val, table_index;
-  uint32 i;
+  uint16_t length;
+  uint8_t val, table_index;
+  uint32_t i;
 
-  RETURN_VAL_IF_FAIL (quant_tables != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (data != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (size > offset, FALSE);
+  RETURN_VAL_IF_FAIL (quant_tables != NULL, false);
+  RETURN_VAL_IF_FAIL (data != NULL, false);
+  RETURN_VAL_IF_FAIL (size > offset, false);
 
   size -= offset;
   byte_reader_init (&br, &data[offset], size);
-  RETURN_VAL_IF_FAIL (size >= 2, FALSE);
+  RETURN_VAL_IF_FAIL (size >= 2, false);
 
   U_READ_UINT16 (&br, length);  /* Lq */
-  RETURN_VAL_IF_FAIL (size >= length, FALSE);
+  RETURN_VAL_IF_FAIL (size >= length, false);
 
   while (byte_reader_get_remaining (&br)) {
     U_READ_UINT8 (&br, val);
     table_index = (val & 0x0f);
-    RETURN_VAL_IF_FAIL (table_index < JPEG_MAX_SCAN_COMPONENTS, FALSE);
+    RETURN_VAL_IF_FAIL (table_index < JPEG_MAX_SCAN_COMPONENTS, false);
     quant_table = &quant_tables->quant_tables[table_index];
     quant_table->quant_precision = ((val >> 4) & 0x0f);
 
     RETURN_VAL_IF_FAIL (byte_reader_get_remaining (&br) >=
         JPEG_MAX_QUANT_ELEMENTS * (1 + ! !quant_table->quant_precision),
-        FALSE);
+        false);
     for (i = 0; i < JPEG_MAX_QUANT_ELEMENTS; i++) {
       if (!quant_table->quant_precision) {      /* 8-bit values */
         U_READ_UINT8 (&br, val);
@@ -388,32 +388,32 @@ jpeg_parse_quant_table (JpegQuantTables * quant_tables,
         U_READ_UINT16 (&br, quant_table->quant_table[i]);
       }
     }
-    quant_table->valid = TRUE;
+    quant_table->valid = true;
   }
-  return TRUE;
+  return true;
 }
 
-boolean
-jpeg_parse_restart_interval (uint32 * interval,
-    const uint8 * data, size_t size, uint32 offset)
+bool
+jpeg_parse_restart_interval (uint32_t * interval,
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   ByteReader br;
-  uint16 length, val;
+  uint16_t length, val;
 
-  RETURN_VAL_IF_FAIL (interval != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (data != NULL, FALSE);
-  RETURN_VAL_IF_FAIL (size > offset, FALSE);
+  RETURN_VAL_IF_FAIL (interval != NULL, false);
+  RETURN_VAL_IF_FAIL (data != NULL, false);
+  RETURN_VAL_IF_FAIL (size > offset, false);
 
   size -= offset;
   byte_reader_init (&br, &data[offset], size);
-  RETURN_VAL_IF_FAIL (size >= 4, FALSE);
+  RETURN_VAL_IF_FAIL (size >= 4, false);
 
   U_READ_UINT16 (&br, length);  /* Lr */
-  RETURN_VAL_IF_FAIL (size >= length, FALSE);
+  RETURN_VAL_IF_FAIL (size >= length, false);
 
   U_READ_UINT16 (&br, val);
   *interval = val;
-  return TRUE;
+  return true;
 }
 
 static int
@@ -423,16 +423,16 @@ compare_huffman_table_entry (const void *a, const void *b)
   const JpegHuffmanTableEntry *const e2 = *(JpegHuffmanTableEntry **) b;
 
   if (e1->length == e2->length)
-    return (int32) e1->value - (int32) e2->value;
-  return (int32) e1->length - (int32) e2->length;
+    return (int32_t) e1->value - (int32_t) e2->value;
+  return (int32_t) e1->length - (int32_t) e2->length;
 }
 
 static void
 build_huffman_table (JpegHuffmanTable * huf_table,
-    const JpegHuffmanTableEntry * entries, uint32 num_entries)
+    const JpegHuffmanTableEntry * entries, uint32_t num_entries)
 {
   const JpegHuffmanTableEntry *sorted_entries[256];
-  uint32 i, j, n;
+  uint32_t i, j, n;
 
   assert (num_entries <= N_ELEMENTS (sorted_entries));
 
@@ -458,7 +458,7 @@ build_huffman_table (JpegHuffmanTable * huf_table,
     huf_table->huf_bits[j] = 0;
   for (; i < N_ELEMENTS (huf_table->huf_values); i++)
     huf_table->huf_values[i] = 0;
-  huf_table->valid = TRUE;
+  huf_table->valid = true;
 }
 
 void
@@ -484,14 +484,14 @@ jpeg_get_default_huffman_tables (JpegHuffmanTables * huf_tables)
 }
 
 static void
-build_quant_table (JpegQuantTable * quant_table, const uint8 values[64])
+build_quant_table (JpegQuantTable * quant_table, const uint8_t values[64])
 {
-  uint32 i;
+  uint32_t i;
 
   for (i = 0; i < 64; i++)
     quant_table->quant_table[i] = values[zigzag_index[i]];
   quant_table->quant_precision = 0;     /* Pq = 0 (8-bit precision) */
-  quant_table->valid = TRUE;
+  quant_table->valid = true;
 }
 
 void
@@ -507,18 +507,18 @@ jpeg_get_default_quantization_tables (JpegQuantTables * quant_tables)
       default_chrominance_quant_table);
 }
 
-boolean
+bool
 jpeg_parse (JpegMarkerSegment * seg,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   ByteReader br;
-  uint16 length;
+  uint16_t length;
 
-  RETURN_VAL_IF_FAIL (seg != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (seg != NULL, false);
 
   if (size <= offset) {
     LOG_DEBUG ("failed to parse from offset %u, buffer is too small", offset);
-    return FALSE;
+    return false;
   }
 
   size -= offset;
@@ -526,7 +526,7 @@ jpeg_parse (JpegMarkerSegment * seg,
 
   if (!jpeg_parse_to_next_marker (&br, &seg->marker)) {
     LOG_DEBUG ("failed to find marker code");
-    return FALSE;
+    return false;
   }
 
   byte_reader_skip_unchecked (&br, 2);
@@ -577,8 +577,8 @@ jpeg_parse (JpegMarkerSegment * seg,
       seg->size = byte_reader_get_pos (&br) - seg->offset;
       break;
   }
-  return TRUE;
+  return true;
 
 failed:
-  return FALSE;
+  return false;
 }

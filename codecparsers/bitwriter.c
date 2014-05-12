@@ -34,12 +34,12 @@
  * Cleanup function: bit_writer_clear
  */
 void
-bit_writer_init (BitWriter * bitwriter, uint32 reserved_bits)
+bit_writer_init (BitWriter * bitwriter, uint32_t reserved_bits)
 {
   bitwriter->bit_size = 0;
   bitwriter->data = NULL;
   bitwriter->bit_capacity = 0;
-  bitwriter->auto_grow = TRUE;
+  bitwriter->auto_grow = true;
   if (reserved_bits)
     _bit_writer_check_space (bitwriter, reserved_bits);
 }
@@ -55,12 +55,12 @@ bit_writer_init (BitWriter * bitwriter, uint32 reserved_bits)
  * Cleanup function: bit_writer_clear
  */
 void
-bit_writer_init_fill (BitWriter * bitwriter, uint8 * data, uint32 bits)
+bit_writer_init_fill (BitWriter * bitwriter, uint8_t * data, uint32_t bits)
 {
   bitwriter->bit_size = 0;
   bitwriter->data = data;
   bitwriter->bit_capacity = bits;
-  bitwriter->auto_grow = FALSE;
+  bitwriter->auto_grow = false;
 }
 
 /**
@@ -69,10 +69,10 @@ bit_writer_init_fill (BitWriter * bitwriter, uint8 * data, uint32 bits)
  * @free_data: flag to free #BitWriter allocated data
  *
  * Clear a #BitWriter instance and destroy allocated data inside
- * if @free_data is %TRUE.
+ * if @free_data is %true.
  */
 void
-bit_writer_clear (BitWriter * bitwriter, boolean free_data)
+bit_writer_clear (BitWriter * bitwriter, bool free_data)
 {
   if (bitwriter->auto_grow && bitwriter->data && free_data)
     free (bitwriter->data);
@@ -94,7 +94,7 @@ bit_writer_clear (BitWriter * bitwriter, boolean free_data)
  * Returns: a new #BitWriter instance
  */
 BitWriter *
-bit_writer_new (uint32 reserved_bits)
+bit_writer_new (uint32_t reserved_bits)
 {
   BitWriter *ret = (BitWriter *) malloc (sizeof (BitWriter));
 
@@ -116,7 +116,7 @@ bit_writer_new (uint32 reserved_bits)
  * Returns: a new #BitWriter instance
  */
 BitWriter *
-bit_writer_new_fill (uint8 * data, uint32 bits)
+bit_writer_new_fill (uint8_t * data, uint32_t bits)
 {
   BitWriter *ret = (BitWriter *) calloc (sizeof (BitWriter), 1);
 
@@ -131,10 +131,10 @@ bit_writer_new_fill (uint8 * data, uint32 bits)
  * @free_data:  flag to free @data which is allocated inside
  *
  * Clear a #BitWriter instance and destroy allocated data inside if
- * @free_data is %TRUE
+ * @free_data is %true
  */
 void
-bit_writer_free (BitWriter * writer, boolean free_data)
+bit_writer_free (BitWriter * writer, bool free_data)
 {
   if (writer == NULL)
     return;
@@ -166,7 +166,7 @@ bit_writer_get_size (BitWriter * bitwriter)
  *
  * Returns: @data pointer
  */
-uint8 *
+uint8_t *
 bit_writer_get_data (BitWriter * bitwriter)
 {
   return _bit_writer_get_data_inline (bitwriter);
@@ -179,10 +179,10 @@ bit_writer_get_data (BitWriter * bitwriter)
  *
  * Set the new postion of data end which should be the new size of @data.
  *
- * Returns: %TRUE if successful, %FALSE otherwise
+ * Returns: %true if successful, %false otherwise
  */
-boolean
-bit_writer_set_pos (BitWriter * bitwriter, uint32 pos)
+bool
+bit_writer_set_pos (BitWriter * bitwriter, uint32_t pos)
 {
   return _bit_writer_set_pos_inline (bitwriter, pos);
 }
@@ -190,12 +190,12 @@ bit_writer_set_pos (BitWriter * bitwriter, uint32 pos)
 /**
  * bit_writer_put_bits_uint8:
  * @bitwriter: a #BitWriter instance
- * @value: value of #uint8 to write
+ * @value: value of #uint8_t to write
  * @nbits: number of bits to write
  *
  * Write @nbits bits of @value to #BitWriter.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
 
 /**
@@ -206,18 +206,18 @@ bit_writer_set_pos (BitWriter * bitwriter, uint32 pos)
  *
  * Write @nbits bits of @value to #BitWriter.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
 
 /**
  * bit_writer_put_bits_uint32:
  * @bitwriter: a #BitWriter instance
- * @value: value of #uint32 to write
+ * @value: value of #uint32_t to write
  * @nbits: number of bits to write
  *
  * Write @nbits bits of @value to #BitWriter.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
 
 /**
@@ -228,12 +228,12 @@ bit_writer_set_pos (BitWriter * bitwriter, uint32 pos)
  *
  * Write @nbits bits of @value to #BitWriter.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
 
 #define BIT_WRITER_WRITE_BITS(bits) \
-boolean \
-bit_writer_put_bits_uint##bits (BitWriter *bitwriter, uint##bits value, uint32 nbits) \
+bool \
+bit_writer_put_bits_uint##bits (BitWriter *bitwriter, uint##bits##_t value, uint32_t nbits) \
 { \
   return _bit_writer_put_bits_uint##bits##_inline (bitwriter, value, nbits); \
 }
@@ -251,10 +251,10 @@ BIT_WRITER_WRITE_BITS (64)
  *
  * Write @nbytes bytes of @data to #BitWriter.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
-    boolean
-bit_writer_put_bytes (BitWriter * bitwriter, const uint8 * data, uint32 nbytes)
+    bool
+bit_writer_put_bytes (BitWriter * bitwriter, const uint8_t * data, uint32_t nbytes)
 {
   return _bit_writer_put_bytes_inline (bitwriter, data, nbytes);
 }
@@ -267,10 +267,10 @@ bit_writer_put_bytes (BitWriter * bitwriter, const uint8 * data, uint32 nbytes)
  * Write trailing bit to align last byte of @data. @trailing_bit can
  * only be 1 or 0.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
-boolean
-bit_writer_align_bytes (BitWriter * bitwriter, uint8 trailing_bit)
+bool
+bit_writer_align_bytes (BitWriter * bitwriter, uint8_t trailing_bit)
 {
   return _bit_writer_align_bytes_inline (bitwriter, trailing_bit);
 }

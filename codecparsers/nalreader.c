@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include "nalreader.h"
 
-static boolean nal_reader_read (NalReader * reader, uint32 nbits);
+static bool nal_reader_read (NalReader * reader, uint32_t nbits);
 
 /**
  * SECTION:nalreader
@@ -46,7 +46,7 @@ static boolean nal_reader_read (NalReader * reader, uint32 nbits);
  * Since: 0.10.22
  */
 NalReader *
-nal_reader_new (const uint8 * data, uint32 size)
+nal_reader_new (const uint8_t * data, uint32_t size)
 {
   NalReader *ret = (NalReader*) malloc (sizeof(NalReader));
   if (!ret)
@@ -90,7 +90,7 @@ nal_reader_free (NalReader * reader)
  * Since: 0.10.22
  */
 void
-nal_reader_init (NalReader * reader, const uint8 * data, uint32 size)
+nal_reader_init (NalReader * reader, const uint8_t * data, uint32_t size)
 {
   RETURN_IF_FAIL (reader != NULL);
 
@@ -112,21 +112,21 @@ nal_reader_init (NalReader * reader, const uint8 * data, uint32 size)
  *
  * Skips @nbits bits of the #NalReader instance.
  *
- * Returns: %TRUE if @nbits bits could be skipped, %FALSE otherwise.
+ * Returns: %true if @nbits bits could be skipped, %false otherwise.
  * 
  * Since: 0.10.22
  */
-boolean
-nal_reader_skip (NalReader * reader, uint32 nbits)
+bool
+nal_reader_skip (NalReader * reader, uint32_t nbits)
 {
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (reader != NULL, false);
 
   if (!nal_reader_read (reader, nbits))
-    return FALSE;
+    return false;
 
   reader->bits_in_cache -= nbits;
 
-  return TRUE;
+  return true;
 }
 
 /**
@@ -135,25 +135,25 @@ nal_reader_skip (NalReader * reader, uint32 nbits)
  *
  * Skips until the next byte.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
-boolean
+bool
 nal_reader_skip_to_byte (NalReader * reader)
 {
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (reader != NULL, false);
 
   if (reader->bits_in_cache == 0) {
     if ((reader->size - reader->byte) > 0)
       reader->byte++;
     else
-      return FALSE;
+      return false;
   }
 
   reader->bits_in_cache = 0;
 
-  return TRUE;
+  return true;
 }
 
 /**
@@ -165,7 +165,7 @@ nal_reader_skip_to_byte (NalReader * reader)
  * Returns: The current position in bits
  *
  */
-uint32
+uint32_t
 nal_reader_get_pos (const NalReader * reader)
 {
   return reader->byte * 8 - reader->bits_in_cache;
@@ -180,7 +180,7 @@ nal_reader_get_pos (const NalReader * reader)
  * Returns: The remaining number of bits.
  *
  */
-uint32
+uint32_t
 nal_reader_get_remaining (const NalReader * reader)
 {
   return (reader->size - reader->byte) * 8 + reader->bits_in_cache;
@@ -195,7 +195,7 @@ nal_reader_get_remaining (const NalReader * reader)
  * Returns: The sum of epb.
  *
  */
-uint32
+uint32_t
 nal_reader_get_epb_count (const NalReader * reader)
 {
   return reader->n_epb;
@@ -209,7 +209,7 @@ nal_reader_get_epb_count (const NalReader * reader)
  *
  * Read @nbits bits into @val and update the current position.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
@@ -217,12 +217,12 @@ nal_reader_get_epb_count (const NalReader * reader)
 /**
  * nal_reader_get_bits_uint16:
  * @reader: a #NalReader instance
- * @val: Pointer to a #uint16 to store the result
+ * @val: Pointer to a #uint16_t to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val and update the current position.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
@@ -230,12 +230,12 @@ nal_reader_get_epb_count (const NalReader * reader)
 /**
  * nal_reader_get_bits_uint32:
  * @reader: a #NalReader instance
- * @val: Pointer to a #uint32 to store the result
+ * @val: Pointer to a #uint32_t to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val and update the current position.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
@@ -243,12 +243,12 @@ nal_reader_get_epb_count (const NalReader * reader)
 /**
  * nal_reader_get_bits_uint64:
  * @reader: a #NalReader instance
- * @val: Pointer to a #uint64 to store the result
+ * @val: Pointer to a #uint64_t to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val and update the current position.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
@@ -261,7 +261,7 @@ nal_reader_get_epb_count (const NalReader * reader)
  *
  * Read @nbits bits into @val but keep the current position.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
@@ -269,12 +269,12 @@ nal_reader_get_epb_count (const NalReader * reader)
 /**
  * nal_reader_peek_bits_uint16:
  * @reader: a #NalReader instance
- * @val: Pointer to a #uint16 to store the result
+ * @val: Pointer to a #uint16_t to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val but keep the current position.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
@@ -282,12 +282,12 @@ nal_reader_get_epb_count (const NalReader * reader)
 /**
  * nal_reader_peek_bits_uint32:
  * @reader: a #NalReader instance
- * @val: Pointer to a #uint32 to store the result
+ * @val: Pointer to a #uint32_t to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val but keep the current position.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
@@ -295,31 +295,31 @@ nal_reader_get_epb_count (const NalReader * reader)
 /**
  * nal_reader_peek_bits_uint64:
  * @reader: a #NalReader instance
- * @val: Pointer to a #uint64 to store the result
+ * @val: Pointer to a #uint64_t to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val but keep the current position.
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  * 
  * Since: 0.10.22
  */
 
-static boolean
-nal_reader_read (NalReader * reader, uint32 nbits)
+static bool
+nal_reader_read (NalReader * reader, uint32_t nbits)
 {
   if (reader->byte * 8 + (nbits - reader->bits_in_cache) >
           reader->size * 8)
-    return FALSE;
+    return false;
 
   while (reader->bits_in_cache < nbits) {
-    uint8 byte;
-    boolean check_three_byte;
+    uint8_t byte;
+    bool check_three_byte;
 
-    check_three_byte = TRUE;
+    check_three_byte = true;
   next_byte:
     if (reader->byte >= reader->size)
-      return FALSE;
+      return false;
 
     byte = reader->data[reader->byte++];
 
@@ -327,7 +327,7 @@ nal_reader_read (NalReader * reader, uint32 nbits)
     if (check_three_byte && byte == 0x03 && reader->first_byte == 0x00 &&
         ((reader->cache & 0xff) == 0)) {
       /* next byte goes unconditionally to the cache, even if it's 0x03 */
-      check_three_byte = FALSE;
+      check_three_byte = false;
       reader->n_epb++;
       goto next_byte;
     }
@@ -336,21 +336,21 @@ nal_reader_read (NalReader * reader, uint32 nbits)
     reader->bits_in_cache += 8;
   }
 
-  return TRUE;
+  return true;
 }
 
 #define NAL_READER_READ_BITS(bits) \
-boolean \
-nal_reader_get_bits_uint##bits (NalReader *reader, uint##bits *val, uint32 nbits) \
+bool \
+nal_reader_get_bits_uint##bits (NalReader *reader, uint##bits##_t *val, uint32_t nbits) \
 { \
-  uint32 shift; \
+  uint32_t shift; \
   \
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE); \
-  RETURN_VAL_IF_FAIL (val != NULL, FALSE); \
-  RETURN_VAL_IF_FAIL (nbits <= bits, FALSE); \
+  RETURN_VAL_IF_FAIL (reader != NULL, false); \
+  RETURN_VAL_IF_FAIL (val != NULL, false); \
+  RETURN_VAL_IF_FAIL (nbits <= bits, false); \
   \
   if (!nal_reader_read (reader, nbits)) \
-    return FALSE; \
+    return false; \
   \
   /* bring the required bits down and truncate */ \
   shift = reader->bits_in_cache - nbits; \
@@ -359,19 +359,19 @@ nal_reader_get_bits_uint##bits (NalReader *reader, uint##bits *val, uint32 nbits
   *val |= reader->cache << (8 - shift); \
   /* mask out required bits */ \
   if (nbits < bits) \
-    *val &= ((uint##bits)1 << nbits) - 1; \
+    *val &= ((uint##bits##_t)1 << nbits) - 1; \
   \
   reader->bits_in_cache = shift; \
   \
-  return TRUE; \
+  return true; \
 } \
 \
-boolean \
-nal_reader_peek_bits_uint##bits (const NalReader *reader, uint##bits *val, uint32 nbits) \
+bool \
+nal_reader_peek_bits_uint##bits (const NalReader *reader, uint##bits##_t *val, uint32_t nbits) \
 { \
   NalReader tmp; \
   \
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE); \
+  RETURN_VAL_IF_FAIL (reader != NULL, false); \
   tmp = *reader; \
   return nal_reader_get_bits_uint##bits (&tmp, val, nbits); \
 }
@@ -384,53 +384,53 @@ NAL_READER_READ_BITS (64);
 /**
  * nal_reader_get_ue:
  * @reader: a #NalReader instance
- * @val: Pointer to a #uint32 to store the result
+ * @val: Pointer to a #uint32_t to store the result
  *
  * Reads an unsigned Exp-Golomb value into val
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
-boolean
-nal_reader_get_ue (NalReader * reader, uint32 * val)
+bool
+nal_reader_get_ue (NalReader * reader, uint32_t * val)
 {
-  uint32 i = 0;
-  uint8 bit;
-  uint32 value;
+  uint32_t i = 0;
+  uint8_t bit;
+  uint32_t value;
 
   if (!nal_reader_get_bits_uint8 (reader, &bit, 1))
-    return FALSE;
+    return false;
 
   while (bit == 0) {
     i++;
     if ((!nal_reader_get_bits_uint8 (reader, &bit, 1)))
-          return FALSE;
+          return false;
   }
 
-  RETURN_VAL_IF_FAIL (i <= 32, FALSE);
+  RETURN_VAL_IF_FAIL (i <= 32, false);
 
   if (!nal_reader_get_bits_uint32 (reader, &value, i))
-    return FALSE;
+    return false;
 
   *val = (1 << i) - 1 + value;
 
-  return TRUE;
+  return true;
 }
 
 /**
  * nal_reader_peek_ue:
  * @reader: a #NalReader instance
- * @val: Pointer to a #uint32 to store the result
+ * @val: Pointer to a #uint32_t to store the result
  *
  * Read an unsigned Exp-Golomb value into val but keep the current position
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
-boolean
-nal_reader_peek_ue (const NalReader * reader, uint32 * val)
+bool
+nal_reader_peek_ue (const NalReader * reader, uint32_t * val)
 {
   NalReader tmp;
 
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (reader != NULL, false);
 
   tmp = *reader;
   return nal_reader_get_ue (&tmp, val);
@@ -439,43 +439,43 @@ nal_reader_peek_ue (const NalReader * reader, uint32 * val)
 /**
  * nal_reader_get_se:
  * @reader: a #NalReader instance
- * @val: Pointer to a #int32 to store the result
+ * @val: Pointer to a #int32_t to store the result
  *
  * Reads a signed Exp-Golomb value into val
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
-boolean
-nal_reader_get_se (NalReader * reader, int32 * val)
+bool
+nal_reader_get_se (NalReader * reader, int32_t * val)
 {
-  uint32 value;
+  uint32_t value;
 
   if (!nal_reader_get_ue (reader, &value))
-    return FALSE;
+    return false;
 
   if (value % 2)
     *val = (value / 2) + 1;
   else
     *val = -(value / 2);
 
-  return TRUE;
+  return true;
 }
 
 /**
  * nal_reader_peek_se:
  * @reader: a #NalReader instance
- * @val: Pointer to a #int32 to store the result
+ * @val: Pointer to a #int32_t to store the result
  *
  * Read a signed Exp-Golomb value into val but keep the current position
  *
- * Returns: %TRUE if successful, %FALSE otherwise.
+ * Returns: %true if successful, %false otherwise.
  */
-boolean
-nal_reader_peek_se (const NalReader * reader, int32 * val)
+bool
+nal_reader_peek_se (const NalReader * reader, int32_t * val)
 {
   NalReader tmp;
 
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (reader != NULL, false);
 
   tmp = *reader;
   return nal_reader_get_se (&tmp, val);

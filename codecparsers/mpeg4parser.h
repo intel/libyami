@@ -25,7 +25,9 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include "basictype.h"
+#include <limits.h>
+#include <stdbool.h>
+#include <string.h>
 #include "bitreader.h"
 #include <stdint.h>
 
@@ -244,7 +246,7 @@ typedef enum {
  * 6.2.2 Visual Object Sequence and Visual Object
  */
 struct _Mpeg4VisualObjectSequence {
-  uint8 profile_and_level_indication;
+  uint8_t profile_and_level_indication;
 
   /* Computed according to:
    * Table G.1 — FLC table for profile_and_level_indication */
@@ -257,10 +259,10 @@ struct _Mpeg4VisualObjectSequence {
  * 6.2.2 Visual Object Sequence and Visual Object
  */
 struct _Mpeg4VisualObject {
-  uint8 is_identifier;
+  uint8_t is_identifier;
   /* If is_identifier */
-  uint8 verid;
-  uint8 priority;
+  uint8_t verid;
+  uint8_t priority;
 
   Mpeg4VisualObjectType type;
 };
@@ -272,14 +274,14 @@ struct _Mpeg4VisualObject {
  * 6.2.2 Visual Object Sequence and Visual Object.
  */
 struct _Mpeg4VideoSignalType {
-  uint8 type;
+  uint8_t type;
 
-  uint8 format;
-  uint8 range;
-  uint8 color_description;
-  uint8 color_primaries;
-  uint8 transfer_characteristics;
-  uint8 matrix_coefficients;
+  uint8_t format;
+  uint8_t range;
+  uint8_t color_description;
+  uint8_t color_primaries;
+  uint8_t transfer_characteristics;
+  uint8_t matrix_coefficients;
 };
 
 /**
@@ -289,33 +291,33 @@ struct _Mpeg4VideoSignalType {
  * 6.2.5.2 Video Plane with Short Header
  */
 struct _Mpeg4VideoPlaneShortHdr {
-  uint8 temporal_reference;
-  uint8 split_screen_indicator;
-  uint8 document_camera_indicator;
-  uint8 full_picture_freeze_release;
-  uint8 source_format;
-  uint8 picture_coding_type;
-  uint8 vop_quant;
-  uint8 pei;
-  uint8 psupp;
+  uint8_t temporal_reference;
+  uint8_t split_screen_indicator;
+  uint8_t document_camera_indicator;
+  uint8_t full_picture_freeze_release;
+  uint8_t source_format;
+  uint8_t picture_coding_type;
+  uint8_t vop_quant;
+  uint8_t pei;
+  uint8_t psupp;
 
   /*  Gob layer specific fields */
-  uint8 gob_header_empty;
-  uint8 gob_number;
-  uint8 gob_frame_id;
-  uint8 quant_scale;
+  uint8_t gob_header_empty;
+  uint8_t gob_number;
+  uint8_t gob_frame_id;
+  uint8_t quant_scale;
 
   /* Computed
    * If all the values are set to 0, then it is reserved
    * Table 6-25 -- Parameters Defined by source_format Field
    */
-  uint16 vop_width;
-  uint16 vop_height;
-  uint16 num_macroblocks_in_gob;
-  uint8 num_gobs_in_vop;
+  uint16_t vop_width;
+  uint16_t vop_height;
+  uint16_t num_macroblocks_in_gob;
+  uint8_t num_gobs_in_vop;
 
   /* The size in bits */
-  uint32 size;
+  uint32_t size;
 };
 
 /**
@@ -325,94 +327,94 @@ struct _Mpeg4VideoPlaneShortHdr {
  * 6.2.3 Video Object Layer
  */
 struct _Mpeg4VideoObjectLayer {
-  uint8 random_accessible_vol;
-  uint8 video_object_type_indication;
+  uint8_t random_accessible_vol;
+  uint8_t video_object_type_indication;
 
-  uint8 is_object_layer_identifier;
+  uint8_t is_object_layer_identifier;
   /* if is_object_layer_identifier */
-  uint8 verid;
-  uint8 priority;
+  uint8_t verid;
+  uint8_t priority;
 
   Mpeg4AspectRatioInfo aspect_ratio_info;
-  uint8 par_width;
-  uint8 par_height;
+  uint8_t par_width;
+  uint8_t par_height;
 
-  uint8 control_parameters;
+  uint8_t control_parameters;
   /* if control_parameters */
   Mpeg4ChromaFormat chroma_format;
-  uint8 low_delay;
-  uint8 vbv_parameters;
+  uint8_t low_delay;
+  uint8_t vbv_parameters;
   /* if vbv_parameters */
-  uint16 first_half_bitrate;
-  uint16 latter_half_bitrate;
-  uint16 first_half_vbv_buffer_size;
-  uint16 latter_half_vbv_buffer_size;
-  uint16 first_half_vbv_occupancy;
-  uint16 latter_half_vbv_occupancy;
+  uint16_t first_half_bitrate;
+  uint16_t latter_half_bitrate;
+  uint16_t first_half_vbv_buffer_size;
+  uint16_t latter_half_vbv_buffer_size;
+  uint16_t first_half_vbv_occupancy;
+  uint16_t latter_half_vbv_occupancy;
 
   /* Computed values */
-  uint32 bit_rate;
-  uint32 vbv_buffer_size;
+  uint32_t bit_rate;
+  uint32_t vbv_buffer_size;
 
   Mpeg4VideoObjectLayerShape shape;
   /* if shape == MPEG4_GRAYSCALE && verid =! 1 */
-  uint8 shape_extension;
+  uint8_t shape_extension;
 
-  uint16 vop_time_increment_resolution;
-  uint8 vop_time_increment_bits;
-  uint8 fixed_vop_rate;
+  uint16_t vop_time_increment_resolution;
+  uint8_t vop_time_increment_bits;
+  uint8_t fixed_vop_rate;
   /* if fixed_vop_rate */
-  uint16 fixed_vop_time_increment;
+  uint16_t fixed_vop_time_increment;
 
-  uint16 width;
-  uint16 height;
-  uint8 interlaced;
-  uint8 obmc_disable;
+  uint16_t width;
+  uint16_t height;
+  uint8_t interlaced;
+  uint8_t obmc_disable;
 
   Mpeg4SpriteEnable sprite_enable;
   /* if vol->sprite_enable == SPRITE_GMG or SPRITE_STATIC*/
   /* if vol->sprite_enable != MPEG4_SPRITE_GMG */
-  uint16 sprite_width;
-  uint16 sprite_height;
-  uint16 sprite_left_coordinate;
-  uint16 sprite_top_coordinate;
+  uint16_t sprite_width;
+  uint16_t sprite_height;
+  uint16_t sprite_left_coordinate;
+  uint16_t sprite_top_coordinate;
 
-  uint8 no_of_sprite_warping_points;
-  uint8 sprite_warping_accuracy;
-  uint8 sprite_brightness_change;
+  uint8_t no_of_sprite_warping_points;
+  uint8_t sprite_warping_accuracy;
+  uint8_t sprite_brightness_change;
   /* if vol->sprite_enable != MPEG4_SPRITE_GMG */
-  uint8 low_latency_sprite_enable;
+  uint8_t low_latency_sprite_enable;
 
   /* if shape != MPEG4_RECTANGULAR */
-  uint8 sadct_disable;
+  uint8_t sadct_disable;
 
-  uint8 not_8_bit;
+  uint8_t not_8_bit;
 
   /* if no_8_bit */
-  uint8 quant_precision;
-  uint8 bits_per_pixel;
+  uint8_t quant_precision;
+  uint8_t bits_per_pixel;
 
   /* if shape == GRAYSCALE */
-  uint8 no_gray_quant_update;
-  uint8 composition_method;
-  uint8 linear_composition;
+  uint8_t no_gray_quant_update;
+  uint8_t composition_method;
+  uint8_t linear_composition;
 
-  uint8 quant_type;
+  uint8_t quant_type;
   /* if quant_type */
-  uint8 load_intra_quant_mat;
-  uint8 intra_quant_mat[64];
-  uint8 load_non_intra_quant_mat;
-  uint8 non_intra_quant_mat[64];
+  uint8_t load_intra_quant_mat;
+  uint8_t intra_quant_mat[64];
+  uint8_t load_non_intra_quant_mat;
+  uint8_t non_intra_quant_mat[64];
 
-  uint8 quarter_sample;
-  uint8 complexity_estimation_disable;
-  uint8 resync_marker_disable;
-  uint8 data_partitioned;
-  uint8 reversible_vlc;
-  uint8 newpred_enable;
-  uint8 reduced_resolution_vop_enable;
-  uint8 scalability;
-  uint8 enhancement_type;
+  uint8_t quarter_sample;
+  uint8_t complexity_estimation_disable;
+  uint8_t resync_marker_disable;
+  uint8_t data_partitioned;
+  uint8_t reversible_vlc;
+  uint8_t newpred_enable;
+  uint8_t reduced_resolution_vop_enable;
+  uint8_t scalability;
+  uint8_t enhancement_type;
 
   Mpeg4VideoPlaneShortHdr short_hdr;
 };
@@ -425,8 +427,8 @@ struct _Mpeg4VideoObjectLayer {
  * 6.2.5.4 Sprite coding
  */
 struct _Mpeg4SpriteTrajectory {
-  uint16 vop_ref_points[63]; /* Defined as "du" in 6.2.5.4 */
-  uint16 sprite_ref_points[63]; /* Defined as "dv" in 6.2.5.4 */
+  uint16_t vop_ref_points[63]; /* Defined as "du" in 6.2.5.4 */
+  uint16_t sprite_ref_points[63]; /* Defined as "dv" in 6.2.5.4 */
 };
 
 /**
@@ -436,12 +438,12 @@ struct _Mpeg4SpriteTrajectory {
  * 6.2.4 Group of Video Object Plane
  */
 struct _Mpeg4GroupOfVOP {
-  uint8 hours;
-  uint8 minutes;
-  uint8 seconds;
+  uint8_t hours;
+  uint8_t minutes;
+  uint8_t seconds;
 
-  uint8 closed;
-  uint8 broken_link;
+  uint8_t closed;
+  uint8_t broken_link;
 };
 
 /**
@@ -453,50 +455,50 @@ struct _Mpeg4GroupOfVOP {
 struct _Mpeg4VideoObjectPlane {
   Mpeg4VideoObjectCodingType coding_type;
 
-  uint8  modulo_time_base;
-  uint16 time_increment;
+  uint8_t  modulo_time_base;
+  uint16_t time_increment;
 
-  uint8  coded;
+  uint8_t  coded;
   /* if newpred_enable */
-  uint16 id;
-  uint8  id_for_prediction_indication;
-  uint16 id_for_prediction;
+  uint16_t id;
+  uint8_t  id_for_prediction_indication;
+  uint16_t id_for_prediction;
 
-  uint16 width;
-  uint16 height;
-  uint16 horizontal_mc_spatial_ref;
-  uint16 vertical_mc_spatial_ref;
+  uint16_t width;
+  uint16_t height;
+  uint16_t horizontal_mc_spatial_ref;
+  uint16_t vertical_mc_spatial_ref;
 
-  uint8  rounding_type;
+  uint8_t  rounding_type;
   /*if vol->shape != MPEG4_RECTANGULAR */
-  uint8  background_composition;
-  uint8  change_conv_ratio_disable;
-  uint8  constant_alpha;
-  uint8  constant_alpha_value;
-  uint8  reduced_resolution;
+  uint8_t  background_composition;
+  uint8_t  change_conv_ratio_disable;
+  uint8_t  constant_alpha;
+  uint8_t  constant_alpha_value;
+  uint8_t  reduced_resolution;
 
-  uint8  intra_dc_vlc_thr;
+  uint8_t  intra_dc_vlc_thr;
 
 
-  uint8  top_field_first;
-  uint8  alternate_vertical_scan_flag;
+  uint8_t  top_field_first;
+  uint8_t  alternate_vertical_scan_flag;
 
-  uint16 quant;
+  uint16_t quant;
 
-  uint8  fcode_forward;
-  uint8  fcode_backward;
+  uint8_t  fcode_forward;
+  uint8_t  fcode_backward;
 
-  uint8  shape_coding_type;
-  uint8  load_backward_shape;
-  uint8  ref_select_code;
+  uint8_t  shape_coding_type;
+  uint8_t  load_backward_shape;
+  uint8_t  ref_select_code;
 
   /* Computed macroblock informations */
-  uint16 mb_height;
-  uint16 mb_width;
-  uint32 mb_num;
+  uint16_t mb_height;
+  uint16_t mb_width;
+  uint32_t mb_num;
 
   /* The size of the header */
-  uint32    size;
+  uint32_t    size;
 };
 
 /**
@@ -507,10 +509,10 @@ struct _Mpeg4VideoObjectPlane {
  * 6.2.5.2 Video Plane with Short Header
  */
 struct _Mpeg4VideoPacketHdr {
-  uint8  header_extension_code;
-  uint16 macroblock_number;
-  uint16 quant_scale;
-  uint32   size;
+  uint8_t  header_extension_code;
+  uint16_t macroblock_number;
+  uint16_t quant_scale;
+  uint32_t   size;
 };
 
 /**
@@ -526,59 +528,59 @@ struct _Mpeg4VideoPacketHdr {
  */
 struct _Mpeg4Packet
 {
-  const uint8     *data;
-  uint32             offset;
+  const uint8_t     *data;
+  uint32_t             offset;
   size_t             size;
-  uint32             marker_size;
+  uint32_t             marker_size;
 
   Mpeg4StartCode type;
 };
 
 Mpeg4ParseResult gst_h263_parse       (Mpeg4Packet * packet,
-                                       const uint8 * data, uint32 offset,
+                                       const uint8_t * data, uint32_t offset,
                                        size_t size);
 
 
 Mpeg4ParseResult gst_mpeg4_parse      (Mpeg4Packet * packet,
-                                       boolean skip_user_data,
+                                       bool skip_user_data,
                                        Mpeg4VideoObjectPlane *vop,
-                                       const uint8 * data, uint32 offset,
+                                       const uint8_t * data, uint32_t offset,
                                        size_t size);
 
 Mpeg4ParseResult
 gst_mpeg4_parse_video_object_plane       (Mpeg4VideoObjectPlane *vop,
                                           Mpeg4SpriteTrajectory *sprite_trajectory,
                                           Mpeg4VideoObjectLayer *vol,
-                                          const uint8 * data,
+                                          const uint8_t * data,
                                           size_t size);
 
 Mpeg4ParseResult
 gst_mpeg4_parse_group_of_vop             (Mpeg4GroupOfVOP *gov,
-                                          const uint8 * data, size_t size);
+                                          const uint8_t * data, size_t size);
 
 Mpeg4ParseResult
 gst_mpeg4_parse_video_object_layer       (Mpeg4VideoObjectLayer *vol,
                                           Mpeg4VisualObject *vo,
-                                          const uint8 * data, size_t size);
+                                          const uint8_t * data, size_t size);
 
 Mpeg4ParseResult
 gst_mpeg4_parse_visual_object            (Mpeg4VisualObject *vo,
                                           Mpeg4VideoSignalType *signal_type,
-                                          const uint8 * data, size_t size);
+                                          const uint8_t * data, size_t size);
 
 Mpeg4ParseResult
 gst_mpeg4_parse_visual_object_sequence   (Mpeg4VisualObjectSequence *vos,
-                                          const uint8 * data, size_t size);
+                                          const uint8_t * data, size_t size);
 Mpeg4ParseResult
 gst_mpeg4_parse_video_plane_short_header (Mpeg4VideoPlaneShortHdr * shorthdr,
-                                          const uint8 * data, size_t size);
+                                          const uint8_t * data, size_t size);
 
 Mpeg4ParseResult
 gst_mpeg4_parse_video_packet_header      (Mpeg4VideoPacketHdr * videopackethdr,
                                           Mpeg4VideoObjectLayer * vol,
                                           Mpeg4VideoObjectPlane * vop,
                                           Mpeg4SpriteTrajectory * sprite_trajectory,
-                                          const uint8 * data, size_t size);
+                                          const uint8_t * data, size_t size);
 
 #ifdef __cplusplus
 }

@@ -41,28 +41,28 @@
 
 #define READ_UINT8(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint8 (reader, &val, nbits)) { \
-    LOG_WARNING ("failed to read uint8, nbits: %d \n", nbits); \
+    LOG_WARNING ("failed to read uint8_t, nbits: %d \n", nbits); \
     goto failed; \
   } \
 }
 
 #define READ_UINT16(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint16 (reader, &val, nbits)) { \
-    LOG_WARNING ("failed to read uint16, nbits: %d \n", nbits); \
+    LOG_WARNING ("failed to read uint16_t, nbits: %d \n", nbits); \
     goto failed; \
   } \
 }
 
 #define READ_UINT32(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint32 (reader, &val, nbits)) { \
-    LOG_WARNING ("failed to read uint32, nbits: %d", nbits); \
+    LOG_WARNING ("failed to read uint32_t, nbits: %d", nbits); \
     goto failed; \
   } \
 }
 
 #define READ_UINT64(reader, val, nbits) G_STMT_START { \
   if (!bit_reader_get_bits_uint64 (reader, &val, nbits)) { \
-    LOG_WARNING ("failed to read uint64, nbits: %d", nbits); \
+    LOG_WARNING ("failed to read uint64_t, nbits: %d", nbits); \
     goto failed; \
   } \
 } 
@@ -92,17 +92,17 @@
 
 #define ARRAY_N_ELEMENT(array) (sizeof(array)/sizeof(array[0]))
 
-uint32 bit_storage_calcuate(uint32 value);
+uint32_t bit_storage_calcuate(uint32_t value);
 #define BIT_STORAGE_CALCULATE(value) bit_storage_calculate(value)
 
 typedef struct _VLCTable
 {
-  uint32 value;
-  uint32 cword;
-  uint32 cbits;
+  uint32_t value;
+  uint32_t cword;
+  uint32_t cbits;
 } VLCTable;
 
-boolean decode_vlc (BitReader * br, uint32 * res, 
-   const VLCTable * table, uint32 length);
+bool decode_vlc (BitReader * br, uint32_t * res, 
+   const VLCTable * table, uint32_t length);
 
 #endif /* __PARSER_UTILS__ */

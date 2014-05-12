@@ -161,11 +161,11 @@ typedef struct _VC1BDU               VC1BDU;
 
 struct _VC1HrdParam
 {
-  uint8 hrd_num_leaky_buckets;
-  uint8 bit_rate_exponent;
-  uint8 buffer_size_exponent;
-  uint16 hrd_rate[MAX_HRD_NUM_LEAKY_BUCKETS];
-  uint16 hrd_buffer[MAX_HRD_NUM_LEAKY_BUCKETS];
+  uint8_t hrd_num_leaky_buckets;
+  uint8_t bit_rate_exponent;
+  uint8_t buffer_size_exponent;
+  uint16_t hrd_rate[MAX_HRD_NUM_LEAKY_BUCKETS];
+  uint16_t hrd_buffer[MAX_HRD_NUM_LEAKY_BUCKETS];
 };
 
 /**
@@ -175,27 +175,27 @@ struct _VC1HrdParam
  */
 struct _VC1EntryPointHdr
 {
-  uint8 broken_link;
-  uint8 closed_entry;
-  uint8 panscan_flag;
-  uint8 refdist_flag;
-  uint8 loopfilter;
-  uint8 fastuvmc;
-  uint8 extended_mv;
-  uint8 dquant;
-  uint8 vstransform;
-  uint8 overlap;
-  uint8 quantizer;
-  uint8 coded_size_flag;
-  uint16 coded_width;
-  uint16 coded_height;
-  uint8 extended_dmv;
-  uint8 range_mapy_flag;
-  uint8 range_mapy;
-  uint8 range_mapuv_flag;
-  uint8 range_mapuv;
+  uint8_t broken_link;
+  uint8_t closed_entry;
+  uint8_t panscan_flag;
+  uint8_t refdist_flag;
+  uint8_t loopfilter;
+  uint8_t fastuvmc;
+  uint8_t extended_mv;
+  uint8_t dquant;
+  uint8_t vstransform;
+  uint8_t overlap;
+  uint8_t quantizer;
+  uint8_t coded_size_flag;
+  uint16_t coded_width;
+  uint16_t coded_height;
+  uint8_t extended_dmv;
+  uint8_t range_mapy_flag;
+  uint8_t range_mapy;
+  uint8_t range_mapuv_flag;
+  uint8_t range_mapuv;
 
-  uint8 hrd_full[MAX_HRD_NUM_LEAKY_BUCKETS];
+  uint8_t hrd_full[MAX_HRD_NUM_LEAKY_BUCKETS];
 };
 
 /**
@@ -207,44 +207,44 @@ struct _VC1AdvancedSeqHdr
 {
   VC1Level  level;
 
-  uint8  frmrtq_postproc;
-  uint8  bitrtq_postproc;
-  uint8  postprocflag;
-  uint16 max_coded_width;
-  uint16 max_coded_height;
-  uint8  pulldown;
-  uint8  interlace;
-  uint8  tfcntrflag;
-  uint8  finterpflag;
-  uint8  psf;
-  uint8  display_ext;
-  uint16 disp_horiz_size;
-  uint16 disp_vert_size;
-  uint8  aspect_ratio_flag;
-  uint8  aspect_ratio;
-  uint8  aspect_horiz_size;
-  uint8  aspect_vert_size;
-  uint8  framerate_flag;
-  uint8  framerateind;
-  uint8  frameratenr;
-  uint8  frameratedr;
-  uint16 framerateexp;
-  uint8  color_format_flag;
-  uint8  color_prim;
-  uint8  transfer_char;
-  uint8  matrix_coef;
-  uint8  hrd_param_flag;
-  uint8  colordiff_format;
+  uint8_t  frmrtq_postproc;
+  uint8_t  bitrtq_postproc;
+  uint8_t  postprocflag;
+  uint16_t max_coded_width;
+  uint16_t max_coded_height;
+  uint8_t  pulldown;
+  uint8_t  interlace;
+  uint8_t  tfcntrflag;
+  uint8_t  finterpflag;
+  uint8_t  psf;
+  uint8_t  display_ext;
+  uint16_t disp_horiz_size;
+  uint16_t disp_vert_size;
+  uint8_t  aspect_ratio_flag;
+  uint8_t  aspect_ratio;
+  uint8_t  aspect_horiz_size;
+  uint8_t  aspect_vert_size;
+  uint8_t  framerate_flag;
+  uint8_t  framerateind;
+  uint8_t  frameratenr;
+  uint8_t  frameratedr;
+  uint16_t framerateexp;
+  uint8_t  color_format_flag;
+  uint8_t  color_prim;
+  uint8_t  transfer_char;
+  uint8_t  matrix_coef;
+  uint8_t  hrd_param_flag;
+  uint8_t  colordiff_format;
 
   VC1HrdParam hrd_param;
 
   /* computed */
-  uint32 framerate; /* Around in fps, 0 if unknown*/
-  uint32 bitrate;   /* Around in kpbs, 0 if unknown*/
-  uint32 par_n;
-  uint32 par_d;
-  uint32 fps_n;
-  uint32 fps_d;
+  uint32_t framerate; /* Around in fps, 0 if unknown*/
+  uint32_t bitrate;   /* Around in kpbs, 0 if unknown*/
+  uint32_t par_n;
+  uint32_t par_d;
+  uint32_t fps_n;
+  uint32_t fps_d;
 
   /* The last parsed entry point */
   VC1EntryPointHdr entrypoint;
@@ -252,20 +252,20 @@ struct _VC1AdvancedSeqHdr
 
 struct _VC1SeqStructA
 {
-  uint32 vert_size;
-  uint32 horiz_size;
+  uint32_t vert_size;
+  uint32_t horiz_size;
 };
 
 struct _VC1SeqStructB
 {
   VC1Level  level;
 
-  uint8 cbr;
-  uint32 framerate;
+  uint8_t cbr;
+  uint32_t framerate;
 
   /* In simple and main profiles only */
-  uint32 hrd_buffer;
-  uint32 hrd_rate;
+  uint32_t hrd_buffer;
+  uint32_t hrd_rate;
 };
 
 struct _VC1SeqStructC
@@ -273,40 +273,40 @@ struct _VC1SeqStructC
   VC1Profile profile;
 
   /* Only in simple and main profiles */
-  uint8 frmrtq_postproc;
-  uint8 bitrtq_postproc;
-  uint8 res_sprite;
-  uint8 loop_filter;
-  uint8 multires;
-  uint8 fastuvmc;
-  uint8 extended_mv;
-  uint8 dquant;
-  uint8 vstransform;
-  uint8 overlap;
-  uint8 syncmarker;
-  uint8 rangered;
-  uint8 maxbframes;
-  uint8 quantizer;
-  uint8 finterpflag;
+  uint8_t frmrtq_postproc;
+  uint8_t bitrtq_postproc;
+  uint8_t res_sprite;
+  uint8_t loop_filter;
+  uint8_t multires;
+  uint8_t fastuvmc;
+  uint8_t extended_mv;
+  uint8_t dquant;
+  uint8_t vstransform;
+  uint8_t overlap;
+  uint8_t syncmarker;
+  uint8_t rangered;
+  uint8_t maxbframes;
+  uint8_t quantizer;
+  uint8_t finterpflag;
 
   /* Computed */
-  uint32 framerate; /* Around in fps, 0 if unknown*/
-  uint32 bitrate;   /* Around in kpbs, 0 if unknown*/
+  uint32_t framerate; /* Around in fps, 0 if unknown*/
+  uint32_t bitrate;   /* Around in kpbs, 0 if unknown*/
 
   /* This should be filled by user if previously known */
-  uint16 coded_width;
+  uint16_t coded_width;
   /* This should be filled by user if previously known */
-  uint16 coded_height;
+  uint16_t coded_height;
 
   /* Wmvp specific */
-  uint8 wmvp;          /* Specify if the stream is wmp or not */
+  uint8_t wmvp;          /* Specify if the stream is wmp or not */
   /* In the wmvp case, the framerate is not computed but in the bistream */
-  uint8 slice_code;
+  uint8_t slice_code;
 };
 
 struct _VC1SeqLayer
 {
-  uint32 numframes;
+  uint32_t numframes;
 
   VC1SeqStructA struct_a;
   VC1SeqStructB struct_b;
@@ -325,9 +325,9 @@ struct _VC1SeqHdr
   VC1SeqStructC struct_c;
 
   /*  calculated */
-  uint32 mb_height;
-  uint32 mb_width;
-  uint32 mb_stride;
+  uint32_t mb_height;
+  uint32_t mb_width;
+  uint32_t mb_stride;
 
   VC1AdvancedSeqHdr   advanced;
 
@@ -340,40 +340,40 @@ struct _VC1SeqHdr
  */
 struct _VC1PicSimpleMain
 {
-  uint8 frmcnt;
-  uint8 mvrange;
-  uint8 rangeredfrm;
+  uint8_t frmcnt;
+  uint8_t mvrange;
+  uint8_t rangeredfrm;
 
   /* I and P pic simple and main profiles only */
-  uint8 respic;
+  uint8_t respic;
 
   /* I and BI pic simple and main profiles only */
-  uint8 transacfrm2;
-  uint8 bf;
+  uint8_t transacfrm2;
+  uint8_t bf;
 
   /* B and P pic simple and main profiles only */
-  uint8 mvmode;
-  uint8 mvtab;
-  uint8 ttmbf;
+  uint8_t mvmode;
+  uint8_t mvtab;
+  uint8_t ttmbf;
 
   /* P pic simple and main profiles only */
-  uint8 mvmode2;
-  uint8 lumscale;
-  uint8 lumshift;
+  uint8_t mvmode2;
+  uint8_t lumscale;
+  uint8_t lumshift;
 
-  uint8 cbptab;
-  uint8 ttfrm;
+  uint8_t cbptab;
+  uint8_t ttfrm;
 
   /* B and BI picture only
    * Should be divided by #VC1_BFRACTION_BASIS
    * to get the real value. */
-  uint16 bfraction;
+  uint16_t bfraction;
 
   /* Biplane value, those fields only mention the fact
    * that the bitplane is in raw mode or not */
-  uint8 mvtypemb;
-  uint8 skipmb;
-  uint8 directmb; /* B pic main profile only */
+  uint8_t mvtypemb;
+  uint8_t skipmb;
+  uint8_t directmb; /* B pic main profile only */
 };
 
 /**
@@ -384,128 +384,128 @@ struct _VC1PicSimpleMain
 struct _VC1PicAdvanced
 {
   VC1FrameCodingMode fcm;
-  uint8  tfcntr;
+  uint8_t  tfcntr;
 
-  uint8  rptfrm;
-  uint8  tff;
-  uint8  rff;
-  uint8  ps_present;
-  uint32 ps_hoffset;
-  uint32 ps_voffset;
-  uint16 ps_width;
-  uint16 ps_height;
-  uint8  rndctrl;
-  uint8  uvsamp;
-  uint8  postproc;
+  uint8_t  rptfrm;
+  uint8_t  tff;
+  uint8_t  rff;
+  uint8_t  ps_present;
+  uint32_t ps_hoffset;
+  uint32_t ps_voffset;
+  uint16_t ps_width;
+  uint16_t ps_height;
+  uint8_t  rndctrl;
+  uint8_t  uvsamp;
+  uint8_t  postproc;
 
   /*  B and P picture specific */
-  uint8  mvrange;
-  uint8  mvmode;
-  uint8  mvtab;
-  uint8  cbptab;
-  uint8  ttmbf;
-  uint8  ttfrm;
+  uint8_t  mvrange;
+  uint8_t  mvmode;
+  uint8_t  mvtab;
+  uint8_t  cbptab;
+  uint8_t  ttmbf;
+  uint8_t  ttfrm;
 
   /* B and BI picture only
    * Should be divided by #VC1_BFRACTION_BASIS
    * to get the real value. */
-  uint16 bfraction;
+  uint16_t bfraction;
 
   /* ppic */
-  uint8  mvmode2;
-  uint8  lumscale;
-  uint8  lumshift;
+  uint8_t  mvmode2;
+  uint8_t  lumscale;
+  uint8_t  lumshift;
 
   /* bipic */
-  uint8  bf;
-  uint8  condover;
-  uint8  transacfrm2;
+  uint8_t  bf;
+  uint8_t  condover;
+  uint8_t  transacfrm2;
 
   /* Biplane value, those fields only mention the fact
    * that the bitplane is in raw mode or not */
-  uint8  acpred;
-  uint8  overflags;
-  uint8  mvtypemb;
-  uint8  skipmb;
-  uint8  directmb;
-  uint8  forwardmb; /* B pic interlace field only */
+  uint8_t  acpred;
+  uint8_t  overflags;
+  uint8_t  mvtypemb;
+  uint8_t  skipmb;
+  uint8_t  directmb;
+  uint8_t  forwardmb; /* B pic interlace field only */
 
   /* For interlaced pictures only */
-  uint8  fieldtx;
+  uint8_t  fieldtx;
 
   /* P and B pictures */
-  uint8  intcomp;
-  uint8  dmvrange;
-  uint8  mbmodetab;
-  uint8  imvtab;
-  uint8  icbptab;
-  uint8  mvbptab2;
-  uint8  mvbptab4; /* If 4mvswitch in ppic */
+  uint8_t  intcomp;
+  uint8_t  dmvrange;
+  uint8_t  mbmodetab;
+  uint8_t  imvtab;
+  uint8_t  icbptab;
+  uint8_t  mvbptab2;
+  uint8_t  mvbptab4; /* If 4mvswitch in ppic */
 
   /*  P picture */
-  uint8  mvswitch4;
+  uint8_t  mvswitch4;
 
   /* For interlaced fields only */
-  uint16 refdist;
-  uint8 fptype; /* Raw value */
+  uint16_t refdist;
+  uint8_t fptype; /* Raw value */
 
   /* P pic */
-  uint8  numref;
-  uint8  reffield;
-  uint8  lumscale2;
-  uint8  lumshift2;
-  uint8  intcompfield;
+  uint8_t  numref;
+  uint8_t  reffield;
+  uint8_t  lumscale2;
+  uint8_t  lumshift2;
+  uint8_t  intcompfield;
 
 };
 
 struct _VC1BitPlanes
 {
-  uint8  *acpred;
-  uint8  *fieldtx;
-  uint8  *overflags;
-  uint8  *mvtypemb;
-  uint8  *skipmb;
-  uint8  *directmb;
-  uint8  *forwardmb;
+  uint8_t  *acpred;
+  uint8_t  *fieldtx;
+  uint8_t  *overflags;
+  uint8_t  *mvtypemb;
+  uint8_t  *skipmb;
+  uint8_t  *directmb;
+  uint8_t  *forwardmb;
 
-  uint32 size; /* Size of the arrays */
+  uint32_t size; /* Size of the arrays */
 };
 
 struct _VC1VopDquant
 {
-  uint8 pqdiff;
-  uint8 abspq;
+  uint8_t pqdiff;
+  uint8_t abspq;
 
   /* Computed */
-  uint8 altpquant;
+  uint8_t altpquant;
 
   /*  if dqant != 2*/
-  uint8 dquantfrm;
-  uint8 dqprofile;
+  uint8_t dquantfrm;
+  uint8_t dqprofile;
 
   /* Boundary edge selection. This represents DQSBEDGE
    * if dqprofile == VC1_DQPROFILE_SINGLE_EDGE or
    * DQDBEDGE if dqprofile == VC1_DQPROFILE_DOUBLE_EDGE */
-  uint8 dqbedge;
+  uint8_t dqbedge;
 
   /* FIXME: remove */
-  uint8 unused;
+  uint8_t unused;
 
   /* if dqprofile == VC1_DQPROFILE_ALL_MBS */
-  uint8 dqbilevel;
+  uint8_t dqbilevel;
 
 };
 
 struct _VC1FrameLayer
 {
-  uint8 key;
-  uint32 framesize;
+  uint8_t key;
+  uint32_t framesize;
 
-  uint32 timestamp;
+  uint32_t timestamp;
 
   /* calculated */
-  uint32 next_framelayer_offset;
-  uint8 skiped_p_frame;
+  uint32_t next_framelayer_offset;
+  uint8_t skiped_p_frame;
 };
 
 /**
@@ -519,19 +519,19 @@ struct _VC1FrameHdr
 {
   /* common fields */
   VC1PictureType ptype;
-  uint8 interpfrm;
-  uint8 halfqp;
-  uint8 transacfrm;
-  uint8 transdctab;
-  uint8 pqindex;
-  uint8 pquantizer;
+  uint8_t interpfrm;
+  uint8_t halfqp;
+  uint8_t transacfrm;
+  uint8_t transdctab;
+  uint8_t pqindex;
+  uint8_t pquantizer;
 
   /* Computed */
-  uint8 pquant;
+  uint8_t pquant;
 
   /* Convenience fields */
-  uint8 profile;
-  uint8 dquant;
+  uint8_t profile;
+  uint8_t dquant;
 
   /*  If dquant */
   VC1VopDquant vopdquant;
@@ -542,7 +542,7 @@ struct _VC1FrameHdr
   } pic;
 
   /* Size of the picture layer in bits */
-  uint32 header_size;
+  uint32_t header_size;
 };
 
 /**
@@ -552,10 +552,10 @@ struct _VC1FrameHdr
  */
 struct _VC1SliceHdr
 {
-  uint16 slice_addr;
+  uint16_t slice_addr;
 
   /* Size of the slice layer in bits */
-  uint32 header_size;
+  uint32_t header_size;
 };
 
 /**
@@ -566,61 +566,61 @@ struct _VC1SliceHdr
 struct _VC1BDU
 {
   VC1StartCode type;
-  uint32 size;
-  uint32 sc_offset;
-  uint32 offset;
-  uint8 * data;
+  uint32_t size;
+  uint32_t sc_offset;
+  uint32_t offset;
+  uint8_t * data;
 };
 
-VC1ParserResult vc1_identify_next_bdu           (const uint8 *data,
+VC1ParserResult vc1_identify_next_bdu           (const uint8_t *data,
                                                  size_t size,
                                                  VC1BDU *bdu);
 
 
-VC1ParserResult vc1_parse_sequence_header       (const uint8 *data,
+VC1ParserResult vc1_parse_sequence_header       (const uint8_t *data,
                                                  size_t size,
                                                  VC1SeqHdr * seqhdr);
 
-VC1ParserResult vc1_parse_entry_point_header    (const  uint8 *data,
+VC1ParserResult vc1_parse_entry_point_header    (const  uint8_t *data,
                                                  size_t size,
                                                  VC1EntryPointHdr * entrypoint,
                                                  VC1SeqHdr *seqhdr);
 
-VC1ParserResult vc1_parse_sequence_layer        (const uint8 *data,
+VC1ParserResult vc1_parse_sequence_layer        (const uint8_t *data,
                                                  size_t size,
                                                  VC1SeqLayer * seqlayer);
 
 VC1ParserResult
-vc1_parse_sequence_header_struct_a              (const uint8 *data,
+vc1_parse_sequence_header_struct_a              (const uint8_t *data,
                                                  size_t size,
                                                  VC1SeqStructA *structa);
 VC1ParserResult
-vc1_parse_sequence_header_struct_b              (const uint8 *data,
+vc1_parse_sequence_header_struct_b              (const uint8_t *data,
                                                  size_t size,
                                                  VC1SeqStructB *structb);
 
 VC1ParserResult
-vc1_parse_sequence_header_struct_c              (const uint8 *data,
+vc1_parse_sequence_header_struct_c              (const uint8_t *data,
                                                  size_t size,
                                                  VC1SeqStructC *structc);
 
-VC1ParserResult vc1_parse_frame_layer           (const uint8 *data,
+VC1ParserResult vc1_parse_frame_layer           (const uint8_t *data,
                                                  size_t size,
                                                  VC1FrameLayer * framelayer);
 
-VC1ParserResult vc1_parse_frame_header          (const uint8 *data,
+VC1ParserResult vc1_parse_frame_header          (const uint8_t *data,
                                                  size_t size,
                                                  VC1FrameHdr * framehdr,
                                                  VC1SeqHdr *seqhdr,
                                                  VC1BitPlanes *bitplanes);
 
-VC1ParserResult vc1_parse_field_header          (const uint8 *data,
+VC1ParserResult vc1_parse_field_header          (const uint8_t *data,
                                                  size_t size,
                                                  VC1FrameHdr * fieldhdr,
                                                  VC1SeqHdr *seqhdr,
                                                  VC1BitPlanes *bitplanes);
 
-VC1ParserResult vc1_parse_slice_header           (const uint8 *data,
+VC1ParserResult vc1_parse_slice_header           (const uint8_t *data,
                                                   size_t size,
                                                   VC1SliceHdr *slicehdr, 
                                                   VC1SeqHdr *seqhdr);
@@ -631,7 +631,7 @@ void   vc1_bitplanes_free                       (VC1BitPlanes *bitplanes);
 
 void   vc1_bitplanes_free_1                     (VC1BitPlanes *bitplanes);
 
-boolean   vc1_bitplanes_ensure_size             (VC1BitPlanes *bitplanes,
+bool   vc1_bitplanes_ensure_size             (VC1BitPlanes *bitplanes,
                                                  VC1SeqHdr *seqhdr);
 #ifdef __cplusplus
 }

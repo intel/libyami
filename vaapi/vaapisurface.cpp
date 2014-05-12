@@ -30,10 +30,7 @@
 #include "vaapisurface.h"
 #include "log.h"
 #include "vaapiutils.h"
-
-#ifndef N_ELEMENTS
-#define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
-#endif
+#include "common_def.h"
 
 /* FIXME: find a better place for this*/
 static uint32_t vaapiChromaToVaChroma(VaapiChromaType chroma)

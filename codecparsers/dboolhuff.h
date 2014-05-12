@@ -10,8 +10,12 @@
 
 #ifndef DBOOLHUFF_H
 #define DBOOLHUFF_H
+#define G_GNUC_UNUSED
 #include <stddef.h>
-#include <basictype.h>
+#include <stdint.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <string.h>
 
 typedef size_t VP8_BD_VALUE;
 

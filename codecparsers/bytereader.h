@@ -26,7 +26,10 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include "basictype.h"
+#include <stdint.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <string.h>
 #include "log.h"
 
 #define BYTE_READER(reader) ((ByteReader *) (reader))
@@ -40,79 +43,79 @@ extern "C" {
  * A byte reader instance.
  */
 typedef struct {
-  const uint8 *data;
-  uint32 size;
+  const uint8_t *data;
+  uint32_t size;
 
-  uint32 byte;  /* Byte position */
+  uint32_t byte;  /* Byte position */
 } ByteReader;
 
-ByteReader * byte_reader_new (const uint8 *data, uint32 size);
-void byte_reader_init (ByteReader *reader, const uint8 *data, uint32 size);
+ByteReader * byte_reader_new (const uint8_t *data, uint32_t size);
+void byte_reader_init (ByteReader *reader, const uint8_t *data, uint32_t size);
 void byte_reader_free (ByteReader *reader);
 
-boolean byte_reader_set_pos (ByteReader *reader, uint32 pos);
-uint32 byte_reader_get_pos (const ByteReader *reader);
-uint32 byte_reader_get_remaining (const ByteReader *reader);
-uint32 byte_reader_get_size (const ByteReader *reader);
-boolean byte_reader_skip (ByteReader *reader, uint32 nbytes);
+bool byte_reader_set_pos (ByteReader *reader, uint32_t pos);
+uint32_t byte_reader_get_pos (const ByteReader *reader);
+uint32_t byte_reader_get_remaining (const ByteReader *reader);
+uint32_t byte_reader_get_size (const ByteReader *reader);
+bool byte_reader_skip (ByteReader *reader, uint32_t nbytes);
 
-boolean byte_reader_get_uint8 (ByteReader *reader, uint8 *val);
-boolean byte_reader_get_int8 (ByteReader *reader, int8 *val);
-boolean byte_reader_get_uint16_le (ByteReader *reader, uint16 *val);
-boolean byte_reader_get_int16_le (ByteReader *reader, int16 *val);
-boolean byte_reader_get_uint16_be (ByteReader *reader, uint16 *val);
-boolean byte_reader_get_int16_be (ByteReader *reader, int16 *val);
-boolean byte_reader_get_uint24_le (ByteReader *reader, uint32 *val);
-boolean byte_reader_get_int24_le (ByteReader *reader, int32 *val);
-boolean byte_reader_get_uint24_be (ByteReader *reader, uint32 *val);
-boolean byte_reader_get_int24_be (ByteReader *reader, int32 *val);
-boolean byte_reader_get_uint32_le (ByteReader *reader, uint32 *val);
-boolean byte_reader_get_int32_le (ByteReader *reader, int32 *val);
-boolean byte_reader_get_uint32_be (ByteReader *reader, uint32 *val);
-boolean byte_reader_get_int32_be (ByteReader *reader, int32 *val);
-boolean byte_reader_get_uint64_le (ByteReader *reader, uint64 *val);
-boolean byte_reader_get_int64_le (ByteReader *reader, int64 *val);
-boolean byte_reader_get_uint64_be (ByteReader *reader, uint64 *val);
-boolean byte_reader_get_int64_be (ByteReader *reader, int64 *val);
+bool byte_reader_get_uint8 (ByteReader *reader, uint8_t *val);
+bool byte_reader_get_int8 (ByteReader *reader, int8_t *val);
+bool byte_reader_get_uint16_le (ByteReader *reader, uint16_t *val);
+bool byte_reader_get_int16_le (ByteReader *reader, int16_t *val);
+bool byte_reader_get_uint16_be (ByteReader *reader, uint16_t *val);
+bool byte_reader_get_int16_be (ByteReader *reader, int16_t *val);
+bool byte_reader_get_uint24_le (ByteReader *reader, uint32_t *val);
+bool byte_reader_get_int24_le (ByteReader *reader, int32_t *val);
+bool byte_reader_get_uint24_be (ByteReader *reader, uint32_t *val);
+bool byte_reader_get_int24_be (ByteReader *reader, int32_t *val);
+bool byte_reader_get_uint32_le (ByteReader *reader, uint32_t *val);
+bool byte_reader_get_int32_le (ByteReader *reader, int32_t *val);
+bool byte_reader_get_uint32_be (ByteReader *reader, uint32_t *val);
+bool byte_reader_get_int32_be (ByteReader *reader, int32_t *val);
+bool byte_reader_get_uint64_le (ByteReader *reader, uint64_t *val);
+bool byte_reader_get_int64_le (ByteReader *reader, int64_t *val);
+bool byte_reader_get_uint64_be (ByteReader *reader, uint64_t *val);
+bool byte_reader_get_int64_be (ByteReader *reader, int64_t *val);
 
-boolean byte_reader_peek_uint8 (const ByteReader *reader, uint8 *val);
-boolean byte_reader_peek_int8 (const ByteReader *reader, int8 *val);
-boolean byte_reader_peek_uint16_le (const ByteReader *reader, uint16 *val);
-boolean byte_reader_peek_int16_le (const ByteReader *reader, int16 *val);
-boolean byte_reader_peek_uint16_be (const ByteReader *reader, uint16 *val);
-boolean byte_reader_peek_int16_be (const ByteReader *reader, int16 *val);
-boolean byte_reader_peek_uint24_le (const ByteReader *reader, uint32 *val);
-boolean byte_reader_peek_int24_le (const ByteReader *reader, int32 *val);
-boolean byte_reader_peek_uint24_be (const ByteReader *reader, uint32 *val);
-boolean byte_reader_peek_int24_be (const ByteReader *reader, int32 *val);
-boolean byte_reader_peek_uint32_le (const ByteReader *reader, uint32 *val);
-boolean byte_reader_peek_int32_le (const ByteReader *reader, int32 *val);
-boolean byte_reader_peek_uint32_be (const ByteReader *reader, uint32 *val);
-boolean byte_reader_peek_int32_be (const ByteReader *reader, int32 *val);
-boolean byte_reader_peek_uint64_le (const ByteReader *reader, uint64 *val);
-boolean byte_reader_peek_int64_le (const ByteReader *reader, int64 *val);
-boolean byte_reader_peek_uint64_be (const ByteReader *reader, uint64 *val);
-boolean byte_reader_peek_int64_be (const ByteReader *reader, int64 *val);
+bool byte_reader_peek_uint8 (const ByteReader *reader, uint8_t *val);
+bool byte_reader_peek_int8 (const ByteReader *reader, int8_t *val);
+bool byte_reader_peek_uint16_le (const ByteReader *reader, uint16_t *val);
+bool byte_reader_peek_int16_le (const ByteReader *reader, int16_t *val);
+bool byte_reader_peek_uint16_be (const ByteReader *reader, uint16_t *val);
+bool byte_reader_peek_int16_be (const ByteReader *reader, int16_t *val);
+bool byte_reader_peek_uint24_le (const ByteReader *reader, uint32_t *val);
+bool byte_reader_peek_int24_le (const ByteReader *reader, int32_t *val);
+bool byte_reader_peek_uint24_be (const ByteReader *reader, uint32_t *val);
+bool byte_reader_peek_int24_be (const ByteReader *reader, int32_t *val);
+bool byte_reader_peek_uint32_le (const ByteReader *reader, uint32_t *val);
+bool byte_reader_peek_int32_le (const ByteReader *reader, int32_t *val);
+bool byte_reader_peek_uint32_be (const ByteReader *reader, uint32_t *val);
+bool byte_reader_peek_int32_be (const ByteReader *reader, int32_t *val);
+bool byte_reader_peek_uint64_le (const ByteReader *reader, uint64_t *val);
+bool byte_reader_peek_int64_le (const ByteReader *reader, int64_t *val);
+bool byte_reader_peek_uint64_be (const ByteReader *reader, uint64_t *val);
+bool byte_reader_peek_int64_be (const ByteReader *reader, int64_t *val);
 
-boolean byte_reader_get_float32_le (ByteReader *reader, float *val);
-boolean byte_reader_get_float32_be (ByteReader *reader, float *val);
-boolean byte_reader_get_float64_le (ByteReader *reader, double *val);
-boolean byte_reader_get_float64_be (ByteReader *reader, double *val);
+bool byte_reader_get_float32_le (ByteReader *reader, float *val);
+bool byte_reader_get_float32_be (ByteReader *reader, float *val);
+bool byte_reader_get_float64_le (ByteReader *reader, double *val);
+bool byte_reader_get_float64_be (ByteReader *reader, double *val);
 
-boolean byte_reader_peek_float32_le (const ByteReader *reader, float *val);
-boolean byte_reader_peek_float32_be (const ByteReader *reader, float *val);
-boolean byte_reader_peek_float64_le (const ByteReader *reader, double *val);
-boolean byte_reader_peek_float64_be (const ByteReader *reader, double *val);
+bool byte_reader_peek_float32_le (const ByteReader *reader, float *val);
+bool byte_reader_peek_float32_be (const ByteReader *reader, float *val);
+bool byte_reader_peek_float64_le (const ByteReader *reader, double *val);
+bool byte_reader_peek_float64_be (const ByteReader *reader, double *val);
 
-boolean byte_reader_get_data  (ByteReader * reader, uint32 size, const uint8 ** val);
-boolean byte_reader_peek_data (const ByteReader * reader, uint32 size, const uint8 ** val);
+bool byte_reader_get_data  (ByteReader * reader, uint32_t size, const uint8_t ** val);
+bool byte_reader_peek_data (const ByteReader * reader, uint32_t size, const uint8_t ** val);
 
 #define byte_reader_skip_string(reader) \
     byte_reader_skip_string_utf8(reader)
 
-boolean byte_reader_skip_string_utf8  (ByteReader * reader);
-boolean byte_reader_skip_string_utf16 (ByteReader * reader);
-boolean byte_reader_skip_string_utf32 (ByteReader * reader);
+bool byte_reader_skip_string_utf8  (ByteReader * reader);
+bool byte_reader_skip_string_utf16 (ByteReader * reader);
+bool byte_reader_skip_string_utf32 (ByteReader * reader);
 
 #define byte_reader_get_string(reader,str) \
     byte_reader_get_string_utf8(reader,str)
@@ -120,14 +123,14 @@ boolean byte_reader_skip_string_utf32 (ByteReader * reader);
 #define byte_reader_peek_string(reader,str) \
     byte_reader_peek_string_utf8(reader,str)
 
-boolean byte_reader_get_string_utf8   (ByteReader * reader, const char ** str);
-boolean byte_reader_peek_string_utf8  (const ByteReader * reader, const char ** str);
+bool byte_reader_get_string_utf8   (ByteReader * reader, const char ** str);
+bool byte_reader_peek_string_utf8  (const ByteReader * reader, const char ** str);
 
-uint32  byte_reader_masked_scan_uint32 (const ByteReader * reader,
-                                             uint32  mask,
-                                             uint32  pattern,
-                                             uint32  offset,
-                                             uint32  size);
+uint32_t  byte_reader_masked_scan_uint32 (const ByteReader * reader,
+                                             uint32_t  mask,
+                                             uint32_t  pattern,
+                                             uint32_t  offset,
+                                             uint32_t  size);
 
 /**
  * BYTE_READER_INIT:
@@ -145,14 +148,14 @@ uint32  byte_reader_masked_scan_uint32 (const ByteReader * reader,
 
 /* unchecked variants */
 static inline void
-byte_reader_skip_unchecked (ByteReader * reader, uint32 nbytes)
+byte_reader_skip_unchecked (ByteReader * reader, uint32_t nbytes)
 {
   reader->byte += nbytes;
 }
 
 /* read byte from memory address and store in big/little endian */
 #define READ_DATA(__data, __idx, __size, __shift) \
-    (((uint##__size) (((const uint8 *) (__data))[__idx])) << (__shift))
+    (((uint##__size##_t) (((const uint8_t *) (__data))[__idx])) << (__shift))
 
 #define READ_UINT8_BE(data)	(READ_DATA (data, 0,  8,  0))
 #define READ_UINT8_LE(data)	(READ_DATA (data, 0,  8,  0))
@@ -199,11 +202,11 @@ byte_reader_skip_unchecked (ByteReader * reader, uint32 nbytes)
 				 READ_DATA (data, 1, 64,  8) | \
 				 READ_DATA (data, 0, 64,  0))
 
-static inline float read_float_be(const uint8 *data)
+static inline float read_float_be(const uint8_t *data)
 {
   union
   {
-    uint32 i;
+    uint32_t i;
     float f;
   } u;
 
@@ -211,11 +214,11 @@ static inline float read_float_be(const uint8 *data)
   return u.f;
 }
 
-static inline float read_float_le(const uint8 *data)
+static inline float read_float_le(const uint8_t *data)
 {
   union
   {
-    uint32 i;
+    uint32_t i;
     float f;
   } u;
 
@@ -223,11 +226,11 @@ static inline float read_float_le(const uint8 *data)
   return u.f;
 }
 
-static inline double read_double_be(const uint8 *data)
+static inline double read_double_be(const uint8_t *data)
 {
   union
   {
-    uint64 i;
+    uint64_t i;
     double d;
   } u;
 
@@ -235,11 +238,11 @@ static inline double read_double_be(const uint8 *data)
   return u.d;
 }
 
-static inline double read_double_le(const uint8 *data)
+static inline double read_double_le(const uint8_t *data)
 {
   union
   {
-    uint64 i;
+    uint64_t i;
     double d;
   } u;
 
@@ -269,32 +272,32 @@ byte_reader_get_##lower##_unchecked (ByteReader * reader) \
   return val; \
 }
 
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(8,uint8,uint8,UINT8_LE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(8,int8,int8,UINT8_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(8,uint8_t,uint8,UINT8_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(8,int8_t,int8,UINT8_LE,/* */)
 
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(16,uint16,uint16_le,UINT16_LE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(16,uint16,uint16_be,UINT16_BE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(16,int16,int16_le,UINT16_LE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(16,int16,int16_be,UINT16_BE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(16,uint16_t,uint16_le,UINT16_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(16,uint16_t,uint16_be,UINT16_BE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(16,int16_t,int16_le,UINT16_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(16,int16_t,int16_be,UINT16_BE,/* */)
 
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,uint32,uint32_le,UINT32_LE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,uint32,uint32_be,UINT32_BE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,int32,int32_le,UINT32_LE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,int32,int32_be,UINT32_BE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,uint32_t,uint32_le,UINT32_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,uint32_t,uint32_be,UINT32_BE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,int32_t,int32_le,UINT32_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,int32_t,int32_be,UINT32_BE,/* */)
 
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(24,uint32,uint24_le,UINT24_LE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(24,uint32,uint24_be,UINT24_BE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(24,uint32_t,uint24_le,UINT24_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(24,uint32_t,uint24_be,UINT24_BE,/* */)
 
 /* fix up the sign for 24-bit signed ints stored in 32-bit signed ints */
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(24,int32,int24_le,UINT24_LE,
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(24,int32_t,int24_le,UINT24_LE,
     if (val & 0x00800000) val |= 0xff000000;)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(24,int32,int24_be,UINT24_BE,
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(24,int32_t,int24_be,UINT24_BE,
     if (val & 0x00800000) val |= 0xff000000;)
 
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,uint64,uint64_le,UINT64_LE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,uint64,uint64_be,UINT64_BE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,int64,int64_le,UINT64_LE,/* */)
-BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,int64,int64_be,UINT64_BE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,uint64_t,uint64_le,UINT64_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,uint64_t,uint64_be,UINT64_BE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,int64_t,int64_le,UINT64_LE,/* */)
+BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,int64_t,int64_be,UINT64_BE,/* */)
 
 BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,float,float32_le,FLOAT_LE,/* */)
 BYTE_READER_GET_PEEK_BITS_UNCHECKED(32,float,float32_be,FLOAT_BE,/* */)
@@ -303,16 +306,16 @@ BYTE_READER_GET_PEEK_BITS_UNCHECKED(64,double,float64_be,DOUBLE_BE,/* */)
 
 #undef GET_PEEK_BITS_UNCHECKED
 
-static inline const uint8 *
+static inline const uint8_t *
 byte_reader_peek_data_unchecked (const ByteReader * reader)
 {
-  return (const uint8 *) (reader->data + reader->byte);
+  return (const uint8_t *) (reader->data + reader->byte);
 }
 
-static inline const uint8 *
-byte_reader_get_data_unchecked (ByteReader * reader, uint32 size)
+static inline const uint8_t *
+byte_reader_get_data_unchecked (ByteReader * reader, uint32_t size)
 {
-  const uint8 *data;
+  const uint8_t *data;
 
   data = byte_reader_peek_data_unchecked (reader);
   byte_reader_skip_unchecked (reader, size);
@@ -320,19 +323,19 @@ byte_reader_get_data_unchecked (ByteReader * reader, uint32 size)
 }
 
 /* Unchecked variants that should not be used */
-static inline uint32
+static inline uint32_t
 byte_reader_get_pos_unchecked (const ByteReader * reader)
 {
   return reader->byte;
 }
 
-static inline uint32
+static inline uint32_t
 byte_reader_get_remaining_unchecked (const ByteReader * reader)
 {
   return reader->size - reader->byte;
 }
 
-static inline uint32
+static inline uint32_t
 byte_reader_get_size_unchecked (const ByteReader * reader)
 {
   return reader->size;
@@ -340,7 +343,7 @@ byte_reader_get_size_unchecked (const ByteReader * reader)
 
 /* inlined variants (do not use directly) */
 
-static inline uint32
+static inline uint32_t
 byte_reader_get_remaining_inline (const ByteReader * reader)
 {
   RETURN_VAL_IF_FAIL (reader != NULL, 0);
@@ -348,7 +351,7 @@ byte_reader_get_remaining_inline (const ByteReader * reader)
   return byte_reader_get_remaining_unchecked (reader);
 }
 
-static inline uint32
+static inline uint32_t
 byte_reader_get_size_inline (const ByteReader * reader)
 {
   RETURN_VAL_IF_FAIL (reader != NULL, 0);
@@ -358,54 +361,54 @@ byte_reader_get_size_inline (const ByteReader * reader)
 
 #define BYTE_READER_GET_PEEK_BITS_INLINE(bits,type,name) \
 \
-static inline boolean \
+static inline bool \
 byte_reader_peek_##name##_inline (const ByteReader * reader, type * val) \
 { \
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE); \
-  RETURN_VAL_IF_FAIL (val != NULL, FALSE); \
+  RETURN_VAL_IF_FAIL (reader != NULL, false); \
+  RETURN_VAL_IF_FAIL (val != NULL, false); \
   \
   if (byte_reader_get_remaining_unchecked (reader) < (bits / 8)) \
-    return FALSE; \
+    return false; \
 \
   *val = byte_reader_peek_##name##_unchecked (reader); \
-  return TRUE; \
+  return true; \
 } \
 \
-static inline boolean \
+static inline bool \
 byte_reader_get_##name##_inline (ByteReader * reader, type * val) \
 { \
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE); \
-  RETURN_VAL_IF_FAIL (val != NULL, FALSE); \
+  RETURN_VAL_IF_FAIL (reader != NULL, false); \
+  RETURN_VAL_IF_FAIL (val != NULL, false); \
   \
   if (byte_reader_get_remaining_unchecked (reader) < (bits / 8)) \
-    return FALSE; \
+    return false; \
 \
   *val = byte_reader_get_##name##_unchecked (reader); \
-  return TRUE; \
+  return true; \
 }
 
-BYTE_READER_GET_PEEK_BITS_INLINE(8,uint8,uint8)
-BYTE_READER_GET_PEEK_BITS_INLINE(8,int8,int8)
+BYTE_READER_GET_PEEK_BITS_INLINE(8,uint8_t,uint8)
+BYTE_READER_GET_PEEK_BITS_INLINE(8,int8_t,int8)
 
-BYTE_READER_GET_PEEK_BITS_INLINE(16,uint16,uint16_le)
-BYTE_READER_GET_PEEK_BITS_INLINE(16,uint16,uint16_be)
-BYTE_READER_GET_PEEK_BITS_INLINE(16,int16,int16_le)
-BYTE_READER_GET_PEEK_BITS_INLINE(16,int16,int16_be)
+BYTE_READER_GET_PEEK_BITS_INLINE(16,uint16_t,uint16_le)
+BYTE_READER_GET_PEEK_BITS_INLINE(16,uint16_t,uint16_be)
+BYTE_READER_GET_PEEK_BITS_INLINE(16,int16_t,int16_le)
+BYTE_READER_GET_PEEK_BITS_INLINE(16,int16_t,int16_be)
 
-BYTE_READER_GET_PEEK_BITS_INLINE(32,uint32,uint32_le)
-BYTE_READER_GET_PEEK_BITS_INLINE(32,uint32,uint32_be)
-BYTE_READER_GET_PEEK_BITS_INLINE(32,int32,int32_le)
-BYTE_READER_GET_PEEK_BITS_INLINE(32,int32,int32_be)
+BYTE_READER_GET_PEEK_BITS_INLINE(32,uint32_t,uint32_le)
+BYTE_READER_GET_PEEK_BITS_INLINE(32,uint32_t,uint32_be)
+BYTE_READER_GET_PEEK_BITS_INLINE(32,int32_t,int32_le)
+BYTE_READER_GET_PEEK_BITS_INLINE(32,int32_t,int32_be)
 
-BYTE_READER_GET_PEEK_BITS_INLINE(24,uint32,uint24_le)
-BYTE_READER_GET_PEEK_BITS_INLINE(24,uint32,uint24_be)
-BYTE_READER_GET_PEEK_BITS_INLINE(24,int32,int24_le)
-BYTE_READER_GET_PEEK_BITS_INLINE(24,int32,int24_be)
+BYTE_READER_GET_PEEK_BITS_INLINE(24,uint32_t,uint24_le)
+BYTE_READER_GET_PEEK_BITS_INLINE(24,uint32_t,uint24_be)
+BYTE_READER_GET_PEEK_BITS_INLINE(24,int32_t,int24_le)
+BYTE_READER_GET_PEEK_BITS_INLINE(24,int32_t,int24_be)
 
-BYTE_READER_GET_PEEK_BITS_INLINE(64,uint64,uint64_le)
-BYTE_READER_GET_PEEK_BITS_INLINE(64,uint64,uint64_be)
-BYTE_READER_GET_PEEK_BITS_INLINE(64,int64,int64_le)
-BYTE_READER_GET_PEEK_BITS_INLINE(64,int64,int64_be)
+BYTE_READER_GET_PEEK_BITS_INLINE(64,uint64_t,uint64_le)
+BYTE_READER_GET_PEEK_BITS_INLINE(64,uint64_t,uint64_be)
+BYTE_READER_GET_PEEK_BITS_INLINE(64,int64_t,int64_le)
+BYTE_READER_GET_PEEK_BITS_INLINE(64,int64_t,int64_be)
 
 BYTE_READER_GET_PEEK_BITS_INLINE(32,float,float32_le)
 BYTE_READER_GET_PEEK_BITS_INLINE(32,float,float32_be)
@@ -518,31 +521,31 @@ BYTE_READER_GET_PEEK_BITS_INLINE(64,double,float64_be)
 
 #endif /* BYTE_READER_DISABLE_INLINES */
 
-static inline boolean
-byte_reader_get_data_inline (ByteReader * reader, uint32 size, const uint8 ** val)
+static inline bool
+byte_reader_get_data_inline (ByteReader * reader, uint32_t size, const uint8_t ** val)
 {
-  RETURN_VAL_IF_FAIL (reader != NULL && val != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (reader != NULL && val != NULL, false);
 
   if (size > reader->size || byte_reader_get_remaining_inline (reader) < size)
-    return FALSE;
+    return false;
 
   *val = byte_reader_get_data_unchecked (reader, size);
-  return TRUE;
+  return true;
 }
 
-static inline boolean
-byte_reader_peek_data_inline (const ByteReader * reader, uint32 size, const uint8 ** val)
+static inline bool
+byte_reader_peek_data_inline (const ByteReader * reader, uint32_t size, const uint8_t ** val)
 {
-  RETURN_VAL_IF_FAIL (reader != NULL && val != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (reader != NULL && val != NULL, false);
 
   if (size > reader->size || byte_reader_get_remaining_inline (reader) < size)
-    return FALSE;
+    return false;
 
   *val = byte_reader_peek_data_unchecked (reader);
-  return TRUE;
+  return true;
 }
 
-static inline uint32
+static inline uint32_t
 byte_reader_get_pos_inline (const ByteReader * reader)
 {
   RETURN_VAL_IF_FAIL (reader != NULL, 0);
@@ -550,16 +553,16 @@ byte_reader_get_pos_inline (const ByteReader * reader)
   return byte_reader_get_pos_unchecked (reader);
 }
 
-static inline boolean
-byte_reader_skip_inline (ByteReader * reader, uint32 nbytes)
+static inline bool
+byte_reader_skip_inline (ByteReader * reader, uint32_t nbytes)
 {
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (reader != NULL, false);
 
   if (byte_reader_get_remaining_unchecked (reader) < nbytes)
-    return FALSE;
+    return false;
 
   reader->byte += nbytes;
-  return TRUE;
+  return true;
 }
 
 #ifndef BYTE_READER_DISABLE_INLINES

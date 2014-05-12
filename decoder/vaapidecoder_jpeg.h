@@ -49,14 +49,14 @@ class VaapiDecoderJpeg:public VaapiDecoderBase {
     virtual Decode_Status decode(VideoDecodeBuffer * buf);
 
   private:
-    Decode_Status parseFrameHeader(uint8 * buf, uint32 bufSize);
-    Decode_Status parseHuffmanTable(uint8 * buf, uint32 bufSize);
-    Decode_Status parseQuantTable(uint8 * buf, uint32 bufSize);
-    Decode_Status parseRestartInterval(uint8 * buf, uint32 bufSize);
-    Decode_Status parseScanHeader(JpegScanHdr * scanHdr, int8 * buf,
-                                  uint32 bufSize);
-    Decode_Status fillSliceParam(JpegScanHdr * scanHdr, uint8 * scanData,
-                                 uint32 scanDataSize);
+    Decode_Status parseFrameHeader(uint8_t * buf, uint32_t bufSize);
+    Decode_Status parseHuffmanTable(uint8_t * buf, uint32_t bufSize);
+    Decode_Status parseQuantTable(uint8_t * buf, uint32_t bufSize);
+    Decode_Status parseRestartInterval(uint8_t * buf, uint32_t bufSize);
+    Decode_Status parseScanHeader(JpegScanHdr * scanHdr, int8_t * buf,
+                                  uint32_t bufSize);
+    Decode_Status fillSliceParam(JpegScanHdr * scanHdr, uint8_t * scanData,
+                                 uint32_t scanDataSize);
     Decode_Status fillPictureParam();
     Decode_Status fillQuantizationTable();
     Decode_Status fillHuffmanTable();
@@ -66,24 +66,24 @@ class VaapiDecoderJpeg:public VaapiDecoderBase {
 
   private:
     VaapiProfile m_profile;
-    uint32 m_width;
-    uint32 m_height;
+    uint32_t m_width;
+    uint32_t m_height;
     VaapiPicture *m_picture;
     JpegFrameHdr m_frameHdr;
     JpegHuffmanTables m_hufTables;
     JpegQuantTables m_quantTables;
-    boolean m_hasContext;
-    boolean m_hasHufTable;
-    boolean m_hasQuantTable;
-    uint32 m_mcuRestart;
+    bool m_hasContext;
+    bool m_hasHufTable;
+    bool m_hasQuantTable;
+    uint32_t m_mcuRestart;
 };
 
 typedef struct _JpegScanSegment {
-    uint32 m_headerOffset;
-    uint32 m_headerSize;
-    uint32 m_dataOffset;
-    uint32 m_dataSize;
-    uint32 m_isValid;
+    uint32_t m_headerOffset;
+    uint32_t m_headerSize;
+    uint32_t m_dataOffset;
+    uint32_t m_dataSize;
+    uint32_t m_isValid;
 } JpegScanSegment;
 
 #endif                          /* VAAPI_DECODER_Jpeg_H */

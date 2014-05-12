@@ -29,7 +29,7 @@
 
 #include "vaapipicture.h"
 #include "log.h"
-#include "common/vaapiutils.h"
+#include "vaapi/vaapiutils.h"
 #include <assert.h>
 
 /* picture class implementation */

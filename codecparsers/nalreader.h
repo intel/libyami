@@ -21,47 +21,50 @@
 #ifndef __NAL_READER_H__
 #define __NAL_READER_H__
 
-#include "basictype.h"
+#include <stdint.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <string.h>
 #include "log.h"
 
 typedef struct _NalReader
 {
-  const uint8 *data;
-  uint32 size;
+  const uint8_t *data;
+  uint32_t size;
  
-  uint32 n_epb;              /* number of emulatio preventio bytes */
-  uint32 byte;               /* Byte position */
-  uint32 bits_in_cache;      /* bitpos in the cache of next bit */
-  uint8  first_byte;
-  uint64 cache;              /* cached bytes */
+  uint32_t n_epb;              /* number of emulatio preventio bytes */
+  uint32_t byte;               /* Byte position */
+  uint32_t bits_in_cache;      /* bitpos in the cache of next bit */
+  uint8_t  first_byte;
+  uint64_t cache;              /* cached bytes */
 } NalReader;
 
-NalReader *nal_reader_new (const uint8 *data, uint32 size);
-void nal_reader_init (NalReader * reader, const uint8 * data, uint32 size);
+NalReader *nal_reader_new (const uint8_t *data, uint32_t size);
+void nal_reader_init (NalReader * reader, const uint8_t * data, uint32_t size);
 void nal_reader_free (NalReader * reader);
 
-boolean nal_reader_skip (NalReader *reader, uint32 nbits);
-boolean nal_reader_skip_to_byte (NalReader *reader);
+bool nal_reader_skip (NalReader *reader, uint32_t nbits);
+bool nal_reader_skip_to_byte (NalReader *reader);
 
-uint32 nal_reader_get_pos (const NalReader * reader);
-uint32 nal_reader_get_remaining (const NalReader * reader);
-uint32 nal_reader_get_epb_count (const NalReader * reader);
+uint32_t nal_reader_get_pos (const NalReader * reader);
+uint32_t nal_reader_get_remaining (const NalReader * reader);
+uint32_t nal_reader_get_epb_count (const NalReader * reader);
 
-boolean nal_reader_get_bits_uint8 (NalReader *reader, uint8 *val, uint32 nbits);
-boolean nal_reader_get_bits_uint16 (NalReader *reader, uint16 *val, uint32 nbits);
-boolean nal_reader_get_bits_uint32 (NalReader *reader, uint32 *val, uint32 nbits);
-boolean nal_reader_get_bits_uint64 (NalReader *reader, uint64 *val, uint32 nbits);
+bool nal_reader_get_bits_uint8 (NalReader *reader, uint8_t *val, uint32_t nbits);
+bool nal_reader_get_bits_uint16 (NalReader *reader, uint16_t *val, uint32_t nbits);
+bool nal_reader_get_bits_uint32 (NalReader *reader, uint32_t *val, uint32_t nbits);
+bool nal_reader_get_bits_uint64 (NalReader *reader, uint64_t *val, uint32_t nbits);
 
-boolean nal_reader_peek_bits_uint8 (const NalReader *reader, uint8 *val, uint32 nbits);
-boolean nal_reader_peek_bits_uint16 (const NalReader *reader, uint16 *val, uint32 nbits);
-boolean nal_reader_peek_bits_uint32 (const NalReader *reader, uint32 *val, uint32 nbits);
-boolean nal_reader_peek_bits_uint64 (const NalReader *reader, uint64 *val, uint32 nbits);
+bool nal_reader_peek_bits_uint8 (const NalReader *reader, uint8_t *val, uint32_t nbits);
+bool nal_reader_peek_bits_uint16 (const NalReader *reader, uint16_t *val, uint32_t nbits);
+bool nal_reader_peek_bits_uint32 (const NalReader *reader, uint32_t *val, uint32_t nbits);
+bool nal_reader_peek_bits_uint64 (const NalReader *reader, uint64_t *val, uint32_t nbits);
 
-boolean nal_reader_get_ue (NalReader *reader, uint32 *val);
-boolean nal_reader_peek_ue (const NalReader *reader, uint32 *val);
+bool nal_reader_get_ue (NalReader *reader, uint32_t *val);
+bool nal_reader_peek_ue (const NalReader *reader, uint32_t *val);
 
-boolean nal_reader_get_se (NalReader *reader, int32 *val);
-boolean nal_reader_peek_se (const NalReader *reader, int32 *val);
+bool nal_reader_get_se (NalReader *reader, int32_t *val);
+bool nal_reader_peek_se (const NalReader *reader, int32_t *val);
 
 /**
  * NAL_READER_INIT:

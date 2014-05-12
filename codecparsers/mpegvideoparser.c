@@ -44,7 +44,7 @@
 #define MARKER_BIT 0x1
 
 /* default intra quant matrix, in zig-zag order */
-static const uint8 default_intra_quantizer_matrix[64] = {
+static const uint8_t default_intra_quantizer_matrix[64] = {
   8,
   16, 16,
   19, 16, 19,
@@ -62,7 +62,7 @@ static const uint8 default_intra_quantizer_matrix[64] = {
   83
 };
 
-static const uint8 mpeg_zigzag_8x8[64] = {
+static const uint8_t mpeg_zigzag_8x8[64] = {
   0, 1, 8, 16, 9, 2, 3, 10,
   17, 24, 32, 25, 18, 11, 4, 5,
   12, 19, 26, 33, 40, 48, 41, 34,
@@ -73,12 +73,12 @@ static const uint8 mpeg_zigzag_8x8[64] = {
   53, 60, 61, 54, 47, 55, 62, 63
 };
 
-static boolean initialized = FALSE;
+static bool initialized = false;
 
-static inline boolean
+static inline bool
 find_start_code (BitReader * b)
 {
-  uint32 bits;
+  uint32_t bits;
 
   /* 0 bits until byte aligned */
   while (b->bit != 0) {
@@ -88,22 +88,22 @@ find_start_code (BitReader * b)
   /* 0 bytes until startcode */
   while (bit_reader_peek_bits_uint32 (b, &bits, 32)) {
     if (bits >> 8 == 0x1) {
-      return TRUE;
-    } else if (bit_reader_skip (b, 8) == FALSE)
+      return true;
+    } else if (bit_reader_skip (b, 8) == false)
       break;
   }
 
-  return FALSE;
+  return false;
 
 failed:
-  return FALSE;
+  return false;
 }
 
 /* Set the Pixel Aspect Ratio in our hdr from a ASR code in the data */
 static void
-set_par_from_asr_mpeg1 (MpegVideoSequenceHdr * seqhdr, uint8 asr_code)
+set_par_from_asr_mpeg1 (MpegVideoSequenceHdr * seqhdr, uint8_t asr_code)
 {
-  int32 ratios[16][2] = {
+  int32_t ratios[16][2] = {
     {0, 0},                     /* 0, Invalid */
     {1, 1},                     /* 1, 1.0 */
     {10000, 6735},              /* 2, 0.6735 */
@@ -128,9 +128,9 @@ set_par_from_asr_mpeg1 (MpegVideoSequenceHdr * seqhdr, uint8 asr_code)
 }
 
 static void
-set_fps_from_code (MpegVideoSequenceHdr * seqhdr, uint8 fps_code)
+set_fps_from_code (MpegVideoSequenceHdr * seqhdr, uint8_t fps_code)
 {
-  const int32 framerates[][2] = {
+  const int32_t framerates[][2] = {
     {30, 1}, {24000, 1001}, {24, 1}, {25, 1},
     {30000, 1001}, {30, 1}, {50, 1}, {60000, 1001},
     {60, 1}, {30, 1}
@@ -149,13 +149,13 @@ set_fps_from_code (MpegVideoSequenceHdr * seqhdr, uint8 fps_code)
 }
 
 /* @size and @offset are wrt current reader position */
-static inline uint32
-scan_for_start_codes (const ByteReader * reader, uint32 offset, uint32 size)
+static inline uint32_t
+scan_for_start_codes (const ByteReader * reader, uint32_t offset, uint32_t size)
 {
-  const uint8 *data;
-  uint32 i = 0;
+  const uint8_t *data;
+  uint32_t i = 0;
 
-  RETURN_VAL_IF_FAIL ((uint64) offset + size <= reader->size - reader->byte,
+  RETURN_VAL_IF_FAIL ((uint64_t) offset + size <= reader->size - reader->byte,
       -1);
 
   /* we can't find the pattern with less than 4 bytes */
@@ -194,22 +194,22 @@ scan_for_start_codes (const ByteReader * reader, uint32 offset, uint32 size)
  * Parses the MPEG 1/2 video bitstream contained in @data , and returns the
  * detect packets as a list of #MpegVideoTypeOffsetSize.
  *
- * Returns: TRUE if a packet start code was found
+ * Returns: true if a packet start code was found
  */
-boolean
+bool
 mpeg_video_parse (MpegVideoPacket * packet,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
-  int32 off;
+  int32_t off;
   ByteReader br;
 
   if (!initialized) {
-    initialized = TRUE;
+    initialized = true;
   }
 
   if (size <= offset) {
     LOG_DEBUG ("Can't parse from offset %d, buffer is to small", offset);
-    return FALSE;
+    return false;
   }
 
   size -= offset;
@@ -219,13 +219,13 @@ mpeg_video_parse (MpegVideoPacket * packet,
 
   if (off < 0) {
     LOG_DEBUG ("No start code prefix in this buffer");
-    return FALSE;
+    return false;
   }
 
-  if (byte_reader_skip (&br, off + 3) == FALSE)
+  if (byte_reader_skip (&br, off + 3) == false)
     goto failed;
 
-  if (byte_reader_get_uint8 (&br, &packet->type) == FALSE)
+  if (byte_reader_get_uint8 (&br, &packet->type) == false)
     goto failed;
 
   packet->data = data;
@@ -239,12 +239,12 @@ mpeg_video_parse (MpegVideoPacket * packet,
   if (off > 0)
     packet->size = off;
 
-  return TRUE;
+  return true;
 
 failed:
   {
     LOG_WARNING ("Failed to parse");
-    return FALSE;
+    return false;
   }
 }
 
@@ -257,22 +257,22 @@ failed:
  *
  * Parses the @seqhdr Mpeg Video Sequence Header structure members from @data
  *
- * Returns: %TRUE if the seqhdr could be parsed correctly, %FALSE otherwize.
+ * Returns: %true if the seqhdr could be parsed correctly, %false otherwize.
  */
-boolean
+bool
 mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   BitReader br;
-  uint8 bits;
-  uint8 load_intra_flag, load_non_intra_flag;
+  uint8_t bits;
+  uint8_t load_intra_flag, load_non_intra_flag;
 
-  RETURN_VAL_IF_FAIL (seqhdr != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (seqhdr != NULL, false);
 
   size -= offset;
 
   if (size < 4)
-    return FALSE;
+    return false;
 
   bit_reader_init (&br, &data[offset], size);
 
@@ -310,7 +310,7 @@ mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
   /* load_intra_quantiser_matrix */
   READ_UINT8 (&br, load_intra_flag, 1);
   if (load_intra_flag) {
-    int32 i;
+    int32_t i;
     for (i = 0; i < 64; i++)
       READ_UINT8 (&br, seqhdr->intra_quantizer_matrix[i], 8);
   } else
@@ -319,7 +319,7 @@ mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
   /* non intra quantizer matrix */
   READ_UINT8 (&br, load_non_intra_flag, 1);
   if (load_non_intra_flag) {
-    int32 i;
+    int32_t i;
     for (i = 0; i < 64; i++)
       READ_UINT8 (&br, seqhdr->non_intra_quantizer_matrix[i], 8);
   } else
@@ -331,7 +331,7 @@ mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
   LOG_INFO ("par: %d/%d", seqhdr->par_w, seqhdr->par_h);
   LOG_INFO ("bitrate: %d", seqhdr->bitrate);
 
-  return TRUE;
+  return true;
 
   /* ERRORS */
 failed:
@@ -339,7 +339,7 @@ failed:
     LOG_WARNING ("Failed to parse sequence header");
     /* clear out stuff */
     memset (seqhdr, 0, sizeof (*seqhdr));
-    return FALSE;
+    return false;
   }
 }
 
@@ -352,21 +352,21 @@ failed:
  *
  * Parses the @seqext Mpeg Video Sequence Extension structure members from @data
  *
- * Returns: %TRUE if the seqext could be parsed correctly, %FALSE otherwize.
+ * Returns: %true if the seqext could be parsed correctly, %false otherwize.
  */
-boolean
+bool
 mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (seqext != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (seqext != NULL, false);
 
   size -= offset;
 
   if (size < 6) {
     LOG_DEBUG ("not enough bytes to parse the extension");
-    return FALSE;
+    return false;
   }
 
   bit_reader_init (&br, &data[offset], size);
@@ -374,7 +374,7 @@ mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_SEQUENCE) {
     LOG_DEBUG ("Not parsing a sequence extension");
-    return FALSE;
+    return false;
   }
 
   /* skip profile and level escape bit */
@@ -406,23 +406,23 @@ mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
   seqext->fps_n_ext = bit_reader_get_bits_uint8_unchecked (&br, 2);
   seqext->fps_d_ext = bit_reader_get_bits_uint8_unchecked (&br, 2);
 
-  return TRUE;
+  return true;
 }
 
-boolean
+bool
 mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
-    * seqdisplayext, const uint8 * data, size_t size, uint32 offset)
+    * seqdisplayext, const uint8_t * data, size_t size, uint32_t offset)
 {
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (seqdisplayext != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (seqdisplayext != NULL, false);
   if (offset > size)
-    return FALSE;
+    return false;
 
   size -= offset;
   if (size < 5) {
     LOG_DEBUG ("not enough bytes to parse the extension");
-    return FALSE;
+    return false;
   }
 
   bit_reader_init (&br, &data[offset], size);
@@ -430,7 +430,7 @@ mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_SEQUENCE_DISPLAY) {
     LOG_DEBUG ("Not parsing a sequence display extension");
-    return FALSE;
+    return false;
   }
 
   seqdisplayext->video_format =
@@ -449,7 +449,7 @@ mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
 
   if (bit_reader_get_remaining (&br) < 29) {
     LOG_DEBUG ("Not enough remaining bytes to parse the extension");
-    return FALSE;
+    return false;
   }
 
   seqdisplayext->display_horizontal_size =
@@ -459,16 +459,16 @@ mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
   seqdisplayext->display_vertical_size =
       bit_reader_get_bits_uint16_unchecked (&br, 14);
 
-  return TRUE;
+  return true;
 }
 
-boolean
+bool
 mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr * seqhdr,
     MpegVideoSequenceExt * seqext,
     MpegVideoSequenceDisplayExt * displayext)
 {
-  uint32 w;
-  uint32 h;
+  uint32_t w;
+  uint32_t h;
 
   if (seqext) {
     seqhdr->fps_n = seqhdr->fps_n * (seqext->fps_n_ext + 1);
@@ -510,7 +510,7 @@ mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr * seqhdr,
       break;
   }
 
-  return TRUE;
+  return true;
 }
 
 /**
@@ -523,23 +523,23 @@ mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr * seqhdr,
  * Parses the @quant Mpeg Video Quant Matrix Extension structure members from
  * @data
  *
- * Returns: %TRUE if the quant matrix extension could be parsed correctly,
- * %FALSE otherwize.
+ * Returns: %true if the quant matrix extension could be parsed correctly,
+ * %false otherwize.
  */
-boolean
+bool
 mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
-  uint8 i;
+  uint8_t i;
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (quant != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (quant != NULL, false);
 
   size -= offset;
 
   if (size < 1) {
     LOG_DEBUG ("not enough bytes to parse the extension");
-    return FALSE;
+    return false;
   }
 
   bit_reader_init (&br, &data[offset], size);
@@ -547,7 +547,7 @@ mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_QUANT_MATRIX) {
     LOG_DEBUG ("Not parsing a quant matrix extension");
-    return FALSE;
+    return false;
   }
 
   READ_UINT8 (&br, quant->load_intra_quantiser_matrix, 1);
@@ -578,11 +578,11 @@ mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
     }
   }
 
-  return TRUE;
+  return true;
 
 failed:
   LOG_WARNING ("error parsing \"Quant Matrix Extension\"");
-  return FALSE;
+  return false;
 }
 
 /**
@@ -594,28 +594,28 @@ failed:
  *
  * Parse the @ext Mpeg Video Picture Extension structure members from @data
  *
- * Returns: %TRUE if the picture extension could be parsed correctly,
- * %FALSE otherwize.
+ * Returns: %true if the picture extension could be parsed correctly,
+ * %false otherwize.
  */
-boolean
+bool
 mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (ext != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (ext != NULL, false);
 
   size -= offset;
 
   if (size < 4)
-    return FALSE;
+    return false;
 
   bit_reader_init (&br, &data[offset], size);
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_PICTURE) {
     LOG_DEBUG ("Not parsing a picture extension");
-    return FALSE;
+    return false;
   }
 
   /* f_code */
@@ -678,11 +678,11 @@ mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
     READ_UINT8 (&br, ext->sub_carrier_phase, 8);
   }
 
-  return TRUE;
+  return true;
 
 failed:
   LOG_WARNING ("error parsing \"Picture Coding Extension\"");
-  return FALSE;
+  return false;
 
 }
 
@@ -695,12 +695,12 @@ failed:
  *
  * Parsers the @hdr Mpeg Video Picture Header structure members from @data
  *
- * Returns: %TRUE if the picture sequence could be parsed correctly, %FALSE
+ * Returns: %true if the picture sequence could be parsed correctly, %false
  * otherwize.
  */
-boolean
+bool
 mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
-    const uint8 * data, size_t size, uint32 offset)
+    const uint8_t * data, size_t size, uint32_t offset)
 {
   BitReader br;
 
@@ -717,7 +717,7 @@ mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
 
 
   /* frame type */
-  if (!bit_reader_get_bits_uint8 (&br, (uint8 *) & hdr->pic_type, 3))
+  if (!bit_reader_get_bits_uint8 (&br, (uint8_t *) & hdr->pic_type, 3))
     goto failed;
 
 
@@ -750,12 +750,12 @@ mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
     hdr->f_code[1][0] = hdr->f_code[1][1] = 0;
   }
 
-  return TRUE;
+  return true;
 
 failed:
   {
     LOG_WARNING ("Failed to parse picture header");
-    return FALSE;
+    return false;
   }
 }
 
@@ -768,20 +768,20 @@ failed:
  *
  * Parses the @gop Mpeg Video Group of Picture structure members from @data
  *
- * Returns: %TRUE if the gop could be parsed correctly, %FALSE otherwize.
+ * Returns: %true if the gop could be parsed correctly, %false otherwize.
  */
-boolean
-mpeg_video_parse_gop (MpegVideoGop * gop, const uint8 * data,
-    size_t size, uint32 offset)
+bool
+mpeg_video_parse_gop (MpegVideoGop * gop, const uint8_t * data,
+    size_t size, uint32_t offset)
 {
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (gop != NULL, FALSE);
+  RETURN_VAL_IF_FAIL (gop != NULL, false);
 
   size -= offset;
 
   if (size < 4)
-    return FALSE;
+    return false;
 
   bit_reader_init (&br, &data[offset], size);
 
@@ -793,7 +793,7 @@ mpeg_video_parse_gop (MpegVideoGop * gop, const uint8 * data,
 
   /* skip unused bit */
   if (!bit_reader_skip (&br, 1))
-    return FALSE;
+    return false;
 
   READ_UINT8 (&br, gop->second, 6);
 
@@ -803,11 +803,11 @@ mpeg_video_parse_gop (MpegVideoGop * gop, const uint8 * data,
 
   READ_UINT8 (&br, gop->broken_link, 1);
 
-  return TRUE;
+  return true;
 
 failed:
   LOG_WARNING ("error parsing \"GOP\"");
-  return FALSE;
+  return false;
 }
 
 /**
@@ -824,10 +824,10 @@ failed:
  * Since: 1.2
  */
 void
-mpeg_video_quant_matrix_get_raster_from_zigzag (uint8 out_quant[64],
-    const uint8 quant[64])
+mpeg_video_quant_matrix_get_raster_from_zigzag (uint8_t out_quant[64],
+    const uint8_t quant[64])
 {
-  uint32 i;
+  uint32_t i;
 
   RETURN_IF_FAIL (out_quant != quant);
 
@@ -849,10 +849,10 @@ mpeg_video_quant_matrix_get_raster_from_zigzag (uint8 out_quant[64],
  * Since: 1.2
  */
 void
-mpeg_video_quant_matrix_get_zigzag_from_raster (uint8 out_quant[64],
-    const uint8 quant[64])
+mpeg_video_quant_matrix_get_zigzag_from_raster (uint8_t out_quant[64],
+    const uint8_t quant[64])
 {
-  uint32 i;
+  uint32_t i;
 
   RETURN_IF_FAIL (out_quant != quant);
 

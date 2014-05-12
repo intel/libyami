@@ -30,7 +30,11 @@
 extern "C" {
 #endif /* __cplusplus */
 
-#include "basictype.h"
+#include <stdint.h>
+#include <limits.h>
+#include <stdbool.h>
+#include <string.h>
+
 /**
  * MpegVideoPacketTypeCode:
  * @MPEG_VIDEO_PACKET_PICTURE: Picture packet starting code
@@ -63,8 +67,8 @@ typedef enum {
  *
  * Checks whether a packet type code is a slice.
  *
- * Returns: %TRUE if the packet type code corresponds to a slice,
- * else %FALSE.
+ * Returns: %true if the packet type code corresponds to a slice,
+ * else %false.
  */
 #define MPEG_VIDEO_PACKET_IS_SLICE(typecode) ((typecode) >= MPEG_VIDEO_PACKET_SLICE_MIN && \
 						  (typecode) <= MPEG_VIDEO_PACKET_SLICE_MAX)
@@ -188,7 +192,7 @@ typedef struct _MpegVideoPacket          MpegVideoPacket;
  * @fps_d: Calculated Framerate denominator
  * @bitrate_value: Value of the bitrate as is in the stream (400bps unit)
  * @bitrate: the real bitrate of the Mpeg video stream in bits per second, 0 if VBR stream
- * @constrained_parameters_flag: %TRUE if this stream uses contrained parameters.
+ * @constrained_parameters_flag: %true if this stream uses contrained parameters.
  * @intra_quantizer_matrix: intra-quantization table, in zigzag scan order
  * @non_intra_quantizer_matrix: non-intra quantization table, in zigzag scan order
  *
@@ -196,34 +200,34 @@ typedef struct _MpegVideoPacket          MpegVideoPacket;
  */
 struct _MpegVideoSequenceHdr
 {
-  uint16 width, height;
-  uint8  aspect_ratio_info;
-  uint8  frame_rate_code;
-  uint32 bitrate_value;
-  uint16 vbv_buffer_size_value;
+  uint16_t width, height;
+  uint8_t  aspect_ratio_info;
+  uint8_t  frame_rate_code;
+  uint32_t bitrate_value;
+  uint16_t vbv_buffer_size_value;
 
-  uint8  constrained_parameters_flag;
+  uint8_t  constrained_parameters_flag;
 
-  uint8  intra_quantizer_matrix[64];
-  uint8  non_intra_quantizer_matrix[64];
+  uint8_t  intra_quantizer_matrix[64];
+  uint8_t  non_intra_quantizer_matrix[64];
 
   /* Calculated values */
-  uint32   par_w, par_h;
-  uint32   fps_n, fps_d;
-  uint32   bitrate;
+  uint32_t   par_w, par_h;
+  uint32_t   fps_n, fps_d;
+  uint32_t   bitrate;
 };
 
 /**
  * MpegVideoSequenceExt:
  * @profile: mpeg2 decoder profile
  * @level: mpeg2 decoder level
- * @progressive: %TRUE if the frames are progressive %FALSE otherwise
+ * @progressive: %true if the frames are progressive %false otherwise
  * @chroma_format: indicates the chrominance format
  * @horiz_size_ext: Horizontal size
  * @vert_size_ext: Vertical size
  * @bitrate_ext: The bitrate
  * @vbv_buffer_size_extension: VBV vuffer size
- * @low_delay: %TRUE if the sequence doesn't contain any B-pictures, %FALSE
+ * @low_delay: %true if the sequence doesn't contain any B-pictures, %false
  * otherwise
  * @fps_n_ext: Framerate nominator code
  * @fps_d_ext: Framerate denominator code
@@ -233,19 +237,19 @@ struct _MpegVideoSequenceHdr
 struct _MpegVideoSequenceExt
 {
   /* mpeg2 decoder profile */
-  uint8 profile;
+  uint8_t profile;
   /* mpeg2 decoder level */
-  uint8 level;
+  uint8_t level;
 
-  uint8 progressive;
-  uint8 chroma_format;
+  uint8_t progressive;
+  uint8_t chroma_format;
 
-  uint8 horiz_size_ext, vert_size_ext;
+  uint8_t horiz_size_ext, vert_size_ext;
 
-  uint16 bitrate_ext;
-  uint8 vbv_buffer_size_extension;
-  uint8 low_delay;
-  uint8 fps_n_ext, fps_d_ext;
+  uint16_t bitrate_ext;
+  uint8_t vbv_buffer_size_extension;
+  uint8_t low_delay;
+  uint8_t fps_n_ext, fps_d_ext;
 
 };
 
@@ -256,16 +260,16 @@ struct _MpegVideoSequenceExt
  */
 struct _MpegVideoSequenceDisplayExt
 {
-  uint8 video_format;
-  uint8 colour_description_flag;
+  uint8_t video_format;
+  uint8_t colour_description_flag;
 
   /* if colour_description_flag: */
-    uint8 colour_primaries;
-    uint8 transfer_characteristics;
-    uint8 matrix_coefficients;
+    uint8_t colour_primaries;
+    uint8_t transfer_characteristics;
+    uint8_t matrix_coefficients;
 
-  uint16 display_horizontal_size;
-  uint16 display_vertical_size;
+  uint16_t display_horizontal_size;
+  uint16_t display_vertical_size;
 };
 
 /**
@@ -285,14 +289,14 @@ struct _MpegVideoSequenceDisplayExt
  */
 struct _MpegVideoQuantMatrixExt
 {
- uint8 load_intra_quantiser_matrix;
- uint8 intra_quantiser_matrix[64];
- uint8 load_non_intra_quantiser_matrix;
- uint8 non_intra_quantiser_matrix[64];
- uint8 load_chroma_intra_quantiser_matrix;
- uint8 chroma_intra_quantiser_matrix[64];
- uint8 load_chroma_non_intra_quantiser_matrix;
- uint8 chroma_non_intra_quantiser_matrix[64];
+ uint8_t load_intra_quantiser_matrix;
+ uint8_t intra_quantiser_matrix[64];
+ uint8_t load_non_intra_quantiser_matrix;
+ uint8_t non_intra_quantiser_matrix[64];
+ uint8_t load_chroma_intra_quantiser_matrix;
+ uint8_t chroma_intra_quantiser_matrix[64];
+ uint8_t load_chroma_non_intra_quantiser_matrix;
+ uint8_t chroma_non_intra_quantiser_matrix[64];
 };
 
 /**
@@ -309,12 +313,12 @@ struct _MpegVideoQuantMatrixExt
  */
 struct _MpegVideoPictureHdr
 {
-  uint16 tsn;
-  uint8 pic_type;
+  uint16_t tsn;
+  uint8_t pic_type;
 
-  uint8 full_pel_forward_vector, full_pel_backward_vector;
+  uint8_t full_pel_forward_vector, full_pel_backward_vector;
 
-  uint8 f_code[2][2];
+  uint8_t f_code[2][2];
 };
 
 /**
@@ -329,31 +333,31 @@ struct _MpegVideoPictureHdr
  * @alternate_scan: Alternate Scan
  * @repeat_first_field: Repeat First Field
  * @chroma_420_type: Chroma 420 Type
- * @progressive_frame: %TRUE if the frame is progressive %FALSE otherwize
+ * @progressive_frame: %true if the frame is progressive %false otherwize
  *
  * The Mpeg2 Video Picture Extension structure.
  */
 struct _MpegVideoPictureExt
 {
-  uint8 f_code[2][2];
+  uint8_t f_code[2][2];
 
-  uint8 intra_dc_precision;
-  uint8 picture_structure;
-  uint8 top_field_first;
-  uint8 frame_pred_frame_dct;
-  uint8 concealment_motion_vectors;
-  uint8 q_scale_type;
-  uint8 intra_vlc_format;
-  uint8 alternate_scan;
-  uint8 repeat_first_field;
-  uint8 chroma_420_type;
-  uint8 progressive_frame;
-  uint8 composite_display;
-  uint8 v_axis;
-  uint8 field_sequence;
-  uint8 sub_carrier;
-  uint8 burst_amplitude;
-  uint8 sub_carrier_phase;
+  uint8_t intra_dc_precision;
+  uint8_t picture_structure;
+  uint8_t top_field_first;
+  uint8_t frame_pred_frame_dct;
+  uint8_t concealment_motion_vectors;
+  uint8_t q_scale_type;
+  uint8_t intra_vlc_format;
+  uint8_t alternate_scan;
+  uint8_t repeat_first_field;
+  uint8_t chroma_420_type;
+  uint8_t progressive_frame;
+  uint8_t composite_display;
+  uint8_t v_axis;
+  uint8_t field_sequence;
+  uint8_t sub_carrier;
+  uint8_t burst_amplitude;
+  uint8_t sub_carrier_phase;
 };
 
 /**
@@ -370,12 +374,12 @@ struct _MpegVideoPictureExt
  */
 struct _MpegVideoGop
 {
-  uint8 drop_frame_flag;
+  uint8_t drop_frame_flag;
 
-  uint8 hour, minute, second, frame;
+  uint8_t hour, minute, second, frame;
 
-  uint8 closed_gop;
-  uint8 broken_link;
+  uint8_t closed_gop;
+  uint8_t broken_link;
 };
 
 /**
@@ -390,47 +394,47 @@ struct _MpegVideoGop
  */
 struct _MpegVideoPacket
 {
-  const uint8 *data;
-  uint8 type;
-  uint32  offset;
-  int32   size;
+  const uint8_t *data;
+  uint8_t type;
+  uint32_t  offset;
+  int32_t   size;
 };
 
-boolean gst_mpeg_video_parse                         (MpegVideoPacket * packet,
-                                                       const uint8 * data, size_t size, uint32 offset);
+bool gst_mpeg_video_parse                         (MpegVideoPacket * packet,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
 
-boolean gst_mpeg_video_parse_sequence_header         (MpegVideoSequenceHdr * params,
-                                                       const uint8 * data, size_t size, uint32 offset);
+bool gst_mpeg_video_parse_sequence_header         (MpegVideoSequenceHdr * params,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
 
 /* seqext and displayext may be NULL if not received */
-boolean gst_mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr *hdr,
+bool gst_mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr *hdr,
    MpegVideoSequenceExt *seqext, MpegVideoSequenceDisplayExt *displayext);
 
-boolean gst_mpeg_video_parse_picture_header          (MpegVideoPictureHdr* hdr,
-                                                       const uint8 * data, size_t size, uint32 offset);
+bool gst_mpeg_video_parse_picture_header          (MpegVideoPictureHdr* hdr,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
 
-boolean gst_mpeg_video_parse_picture_extension       (MpegVideoPictureExt *ext,
-                                                       const uint8 * data, size_t size, uint32 offset);
+bool gst_mpeg_video_parse_picture_extension       (MpegVideoPictureExt *ext,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
 
-boolean gst_mpeg_video_parse_gop                     (MpegVideoGop * gop,
-                                                       const uint8 * data, size_t size, uint32 offset);
+bool gst_mpeg_video_parse_gop                     (MpegVideoGop * gop,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
 
-boolean gst_mpeg_video_parse_sequence_extension      (MpegVideoSequenceExt * seqext,
-                                                       const uint8 * data, size_t size, uint32 offset);
+bool gst_mpeg_video_parse_sequence_extension      (MpegVideoSequenceExt * seqext,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
 
-boolean gst_mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt * seqdisplayext,
-                                                       const uint8 * data, size_t size, uint32 offset);
+bool gst_mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt * seqdisplayext,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
 
-boolean gst_mpeg_video_parse_quant_matrix_extension  (MpegVideoQuantMatrixExt * quant,
-                                                       const uint8 * data, size_t size, uint32 offset);
+bool gst_mpeg_video_parse_quant_matrix_extension  (MpegVideoQuantMatrixExt * quant,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
 
-void gst_mpeg_video_quant_matrix_get_raster_from_zigzag (uint8 out_quant[64],
-                                                             const uint8 quant[64]);
+void gst_mpeg_video_quant_matrix_get_raster_from_zigzag (uint8_t out_quant[64],
+                                                             const uint8_t quant[64]);
 
-void gst_mpeg_video_quant_matrix_get_zigzag_from_raster (uint8 out_quant[64],
+void gst_mpeg_video_quant_matrix_get_zigzag_from_raster (uint8_t out_quant[64],
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-                                                            const uint8 quant[64]);
+                                                            const uint8_t quant[64]);
 #endif

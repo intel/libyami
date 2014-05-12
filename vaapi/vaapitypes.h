@@ -26,6 +26,7 @@
 #ifndef vaapitypes_h
 #define vaapitypes_h
 #include <stdint.h>
+#include <common_def.h>
 
 typedef struct _VaapiPoint {
     uint32_t x;
@@ -102,5 +103,6 @@ typedef enum {
     VAAPI_PICTURE_TYPE_SP,              // Switching Predicted
     VAAPI_PICTURE_TYPE_BI,              // BI type (VC-1)
 } VaapiPictureType;
+
 
 #endif                          /* vaapitypes_h */

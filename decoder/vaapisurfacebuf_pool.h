@@ -27,7 +27,7 @@
 #ifndef vaapisurfacebuf_pool_h
 #define vaapisurfacebuf_pool_h
 
-#include "common/vaapisurface.h"
+#include "vaapi/vaapisurface.h"
 #include "interface/VideoDecoderDefs.h"
 #include <pthread.h>
 #include <semaphore.h>
