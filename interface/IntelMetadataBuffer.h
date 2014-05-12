@@ -23,6 +23,7 @@
 #define _INTEL_METADATA_BUFFER_H_
 
 #include <stdint.h>
+#include <limits.h>
 
 #define STRING_TO_FOURCC(format) ((uint32_t)(((format)[0])|((format)[1]<<8)|((format)[2]<<16)|((format)[3]<<24)))
 

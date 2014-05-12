@@ -1,12 +1,24 @@
-#ifndef __COMMON_LOG_H__
-#define __COMMON_LOG_H__
+/*
+ * Copyright (C) 2013 Intel Coperation.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <assert.h>
-#include <va/va.h>
+#ifndef __LOG_H__
+#define __LOG_H__
 
 #ifdef ANDROID
 #include <utils/Log.h>
@@ -18,26 +30,26 @@
 #include <stdio.h>
 #ifndef ERROR
 #define ERROR(format, ...)   do { \
-   fprintf(stderr, "libyami error(%s, %d): " format "\n", __func__, __LINE__, ##__VA_ARGS__);\
+   fprintf(stderr, "yami error(%s, %d): " format "\n", __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifdef __ENABLE_DEBUG__
 #ifndef INFO
 #define INFO(format, ...)   do { \
-   fprintf(stderr, "libyami info(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
+   fprintf(stderr, "yami info(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifndef WARNING
 #define WARNING(format, ...)   do { \
-   fprintf(stderr, "libyami warning(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
+   fprintf(stderr, "yami warning(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifndef DEBUG
 #define DEBUG(format, ...)   do { \
-   fprintf(stderr, "libyami debug(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
+   fprintf(stderr, "yami debug(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
@@ -66,21 +78,4 @@
 
 #endif                          //__ANDROID
 
-#ifndef RETURN_IF_FAIL
-#define RETURN_IF_FAIL(condition, val) \
-do{ \
-  if (!(condition)) \
-     return (val);  \
-}while(0)
-#endif
-
-static inline bool checkVaapiStatus(VAStatus status, const char *msg)
-{
-    if (status != VA_STATUS_SUCCESS) {
-        ERROR("%s: %s", msg, vaErrorStr(status));
-        return false;
-    }
-    return true;
-}
-
-#endif
+#endif                          //__LOG_H__

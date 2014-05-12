@@ -26,7 +26,7 @@
 /*it's expensive, disable it by default*/
 #define DISABLE_SCOPED_LOGGER
 #ifndef DISABLE_SCOPED_LOGGER
-#include "log.h"
+#include "common/log.h"
 
 class ScopedLogger {
   public:

@@ -54,4 +54,13 @@ uint32_t fromVaapiRotation(uint32_t value);
 
 uint32_t toVaapiRotation(uint32_t value);
 
+static inline bool checkVaapiStatus(VAStatus status, const char *msg)
+{
+    if (status != VA_STATUS_SUCCESS) {
+        ERROR("%s: %s", msg, vaErrorStr(status));
+        return true;
+    }
+    return false;
+}
+
 #endif                          /* vaapiutils_h */

@@ -1,7 +1,16 @@
+libyami_common_source_c = \
+        vaapibuffer.cpp \
+        vaapiimage.cpp \
+        vaapisurface.cpp\
+        vaapiutils.cpp \
+	$(NULL)
+
 libyami_common_source_h = \
-        log.h \
-		scopedlogger.h \
-		common_def.h \
+        vaapibuffer.h \
+        vaapiimage.h \
+        vaapisurface.h \
+        vaapiutils.h \
+        vaapitypes.h \
 	$(NULL)
 
 libyami_common_ldflags = \

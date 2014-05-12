@@ -28,8 +28,8 @@
 #endif
 
 #include "vaapipicture.h"
-#include "log.h"
-#include "common/vaapiutils.h"
+#include "common/log.h"
+#include "vaapi/vaapiutils.h"
 #include <assert.h>
 
 /* picture class implementation */

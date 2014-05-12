@@ -22,9 +22,9 @@
 #ifndef vaapicodedbuffer_h
 #define vaapicodedbuffer_h
 
-#include "vaapibuffer.h"
-#include "vaapiptrs.h"
-#include "vaapitypes.h"
+#include "vaapi/vaapibuffer.h"
+#include "vaapi/vaapiptrs.h"
+#include "vaapi/vaapitypes.h"
 #include <stdlib.h>
 
 

@@ -25,7 +25,7 @@
 #define vaapiencoder_h264_h
 
 #include "vaapiencoder_base.h"
-#include "vaapiptrs.h"
+#include "vaapi/vaapiptrs.h"
 #include <list>
 #include <tr1/memory>
 #include <va/va_enc_h264.h>

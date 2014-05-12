@@ -23,10 +23,10 @@
 #include "config.h"
 #endif
 #include "vaapiencpicture.h"
-
-#include "log.h"
-#include "vaapibuffer.h"
-#include "vaapisurface.h"
+#include "vaapi/vaapibuffer.h"
+#include "common/log.h"
+#include "vaapi/vaapisurface.h"
+#include "vaapi/vaapiutils.h"
 #include <stdlib.h>
 
 

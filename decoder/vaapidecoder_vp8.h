@@ -88,19 +88,19 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     VaapiPictureVP8 *m_altRefPicture;
     VaapiPictureVP8 *m_pictures[VP8_MAX_PICTURE_COUNT];
 
-    uint32 m_hasContext:1;
+    uint32_t m_hasContext:1;
 
     // resolution of current frame, VP8 may change frame resolution starting with a key frame
-    uint32 m_frameWidth;
-    uint32 m_frameHeight;
-    const uint8 *m_buffer;
-    uint32 m_frameSize;
+    uint32_t m_frameWidth;
+    uint32_t m_frameHeight;
+    const uint8_t *m_buffer;
+    uint32_t m_frameSize;
     Vp8FrameHdr m_frameHdr;
     Vp8MultiFrameData m_lastFrameContext;
     Vp8MultiFrameData m_currFrameContext;
-    uint8 m_yModeProbs[4];
-    uint8 m_uvModeProbs[3];
-    uint32 m_sizeChanged:1;
+    uint8_t m_yModeProbs[4];
+    uint8_t m_uvModeProbs[3];
+    uint32_t m_sizeChanged:1;
 
 #if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
     bool m_isFirstFrame;

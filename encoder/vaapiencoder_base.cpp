@@ -25,10 +25,11 @@
 #include "config.h"
 #endif
 #include "vaapiencoder_base.h"
-
-#include "basictype.h"
+#include "common/common_def.h"
 #include "scopedlogger.h"
 #include "vaapicodedbuffer.h"
+#include "vaapi/vaapiutils.h"
+#include <assert.h>
 
 VaapiEncoderBase::VaapiEncoderBase():
     m_xDisplay(NULL),

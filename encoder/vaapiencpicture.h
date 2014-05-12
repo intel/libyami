@@ -23,10 +23,10 @@
 #ifndef vaapiencpicture_h
 #define vaapiencpicture_h
 
-#include "vaapibuffer.h"
-#include "vaapiptrs.h"
-#include "vaapisurface.h"
-#include "vaapitypes.h"
+#include "vaapi/vaapibuffer.h"
+#include "vaapi/vaapiptrs.h"
+#include "vaapi/vaapisurface.h"
+#include "vaapi/vaapitypes.h"
 #include <string.h>
 #include <va/va.h>
 #include <vector>

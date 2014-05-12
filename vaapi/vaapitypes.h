@@ -26,6 +26,7 @@
 #ifndef vaapitypes_h
 #define vaapitypes_h
 #include <stdint.h>
+#include <limits.h>
 
 typedef struct _VaapiPoint {
     uint32_t x;

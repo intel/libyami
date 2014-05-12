@@ -26,6 +26,9 @@
 #endif
 
 #include "vaapidecoder_h264.h"
+#include <assert.h>
+#include <malloc.h>
+#include <stdlib.h>
 
 /* Defined to 1 if strict ordering of DPB is needed. Only useful for debug */
 #define USE_STRICT_DPB_ORDERING 0

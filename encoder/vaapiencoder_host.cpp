@@ -23,7 +23,7 @@
 #include "config.h"
 #endif
 
-#include "basictype.h"
+#include "common/common_def.h"
 #include "common/log.h"
 #include "interface/VideoEncoderHost.h"
 #include "vaapiencoder_h264.h"

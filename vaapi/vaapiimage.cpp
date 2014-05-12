@@ -27,9 +27,9 @@
 #include "config.h"
 #endif
 
-#include "vaapiimage.h"
-#include "log.h"
-#include "vaapiutils.h"
+#include "vaapi/vaapiimage.h"
+#include "common/log.h"
+#include "vaapi/vaapiutils.h"
 #include <stdlib.h>
 
 const VAImageFormat *VaapiImage::getVaFormat(VaapiImageFormat format)

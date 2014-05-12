@@ -27,13 +27,11 @@
 #include "config.h"
 #endif
 
-#include "vaapisurface.h"
-#include "log.h"
-#include "vaapiutils.h"
-
-#ifndef N_ELEMENTS
-#define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
-#endif
+#include <stdint.h>
+#include <limits.h>
+#include "vaapi/vaapisurface.h"
+#include "common/log.h"
+#include "vaapi/vaapiutils.h"
 
 /* FIXME: find a better place for this*/
 static uint32_t vaapiChromaToVaChroma(VaapiChromaType chroma)

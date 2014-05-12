@@ -23,10 +23,8 @@ libcodecparser_source_h = \
         vp8parser.h \
         jpegparser.h \
         parserutils.h \
-        basictype.h \
         nalreader.h \
         bitwriter.h \
-        log.h \
 	$(NULL)
 
 libcodecparser_source_h_priv = \

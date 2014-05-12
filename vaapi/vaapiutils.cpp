@@ -28,9 +28,9 @@
 #include "config.h"
 #endif
 
-#include "vaapiutils.h"
-#include "log.h"
-#include "vaapisurface.h"
+#include "vaapi/vaapiutils.h"
+#include "common/log.h"
+#include "vaapi/vaapisurface.h"
 #include <stdarg.h>
 #include <stdio.h>
 
