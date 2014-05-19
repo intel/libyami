@@ -57,7 +57,7 @@ VaapiDecoderBase::~VaapiDecoderBase()
     INFO("base: deconstruct()");
     stop();
     free(m_videoFormatInfo.mimeType);
-    free(m_videoFormatInfo.ctxSurfaces);
+    delete[] m_videoFormatInfo.ctxSurfaces;
 }
 
 Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
