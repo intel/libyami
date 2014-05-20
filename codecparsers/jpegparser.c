@@ -541,13 +541,6 @@ jpeg_parse (JpegMarkerSegment * seg,
       seg->size = 0;
       break;
 
-    case (JPEG_MARKER_SOF_MIN + 0):        /* Lf */
-    case (JPEG_MARKER_SOF_MIN + 1):        /* Lf */
-    case (JPEG_MARKER_SOF_MIN + 2):        /* Lf */
-    case (JPEG_MARKER_SOF_MIN + 3):        /* Lf */
-    case (JPEG_MARKER_SOF_MIN + 9):        /* Lf */
-    case (JPEG_MARKER_SOF_MIN + 10):       /* Lf */
-    case (JPEG_MARKER_SOF_MIN + 11):       /* Lf */
     case JPEG_MARKER_SOS:  /* Ls */
     case JPEG_MARKER_DQT:  /* Lq */
     case JPEG_MARKER_DHT:  /* Lh */
@@ -561,6 +554,11 @@ jpeg_parse (JpegMarkerSegment * seg,
       break;
 
     default:
+      /* Lf */
+      if (seg->marker >= JPEG_MARKER_SOF_MIN &&
+          seg->marker <= JPEG_MARKER_SOF_MIN + 11)
+        goto variable_size_segment;
+
       /* Application data segment length (Lp) */
       if (seg->marker >= JPEG_MARKER_APP_MIN &&
           seg->marker <= JPEG_MARKER_APP_MAX)

@@ -76,6 +76,7 @@ class VaapiDecoderJpeg:public VaapiDecoderBase {
     boolean m_hasHufTable;
     boolean m_hasQuantTable;
     uint32 m_mcuRestart;
+    DISALLOW_COPY_AND_ASSIGN(VaapiDecoderJpeg);
 };
 
 typedef struct _JpegScanSegment {

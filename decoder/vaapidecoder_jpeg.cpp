@@ -454,7 +454,7 @@ Decode_Status VaapiDecoderJpeg::decodePictureEnd()
 
 Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
 {
-    Decode_Status status;
+    Decode_Status status = DECODE_SUCCESS;
     JpegMarkerSegment seg;
     JpegScanSegment scanSeg;
     boolean appendEcs;
