@@ -1,7 +1,7 @@
 /*
- *  scopedlogger.h - scoped logger useful to thread block issue
+ *  vaapiencoder_host.cpp - create specific type of video encoder
  *
- *  Copyright (C) 2014 Intel Corporation
+ *  Copyright (C) 2013-2014 Intel Corporation
  *    Author: Xu Guangxin <guangxin.xu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
@@ -19,34 +19,30 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-
-#ifndef scopedlogger_h
-#define scopedlogger_h
-
-/*it's expensive, disable it by default*/
-#define DISABLE_SCOPED_LOGGER
-#ifndef DISABLE_SCOPED_LOGGER
-#include "log.h"
-
-class ScopedLogger {
-  public:
-    ScopedLogger(const char *str)
-    {
-        m_str = str;
-        INFO("+%s", m_str);
-    }
-    ~ScopedLogger()
-    {
-        INFO("-%s", m_str);
-    }
-
-  private:
-    const char *m_str;
-};
-
-#define FUNC_ENTER() ScopedLogger __func_loggger__(__func__)
-#else
-#define FUNC_ENTER()
+#ifdef HAVE_CONFIG_H
+#include "config.h"
 #endif
+#include "common/log.h"
+#include "interface/VideoEncoderHost.h"
+#include "vaapiencoder_h264.h"
+#include <string.h>
 
-#endif  //scopedlogger_h
+IVideoEncoder* createVideoEncoder(const char* mimeType) {
+    if (mimeType == NULL) {
+        ERROR("NULL mime type.");
+        return NULL;
+    }
+    if (strcasecmp(mimeType, "video/avc") == 0 ||
+            strcasecmp(mimeType, "video/h264") == 0) {
+        DEBUG("Create H264 encoder ");
+        IVideoEncoder *p = new VaapiEncoderH264();
+        return (IVideoEncoder *)p;
+    } else {
+        ERROR("Unsupported mime type: %s", mimeType);
+    }
+    return NULL;
+}
+
+void releaseVideoEncoder(IVideoEncoder* p) {
+    delete p;
+}

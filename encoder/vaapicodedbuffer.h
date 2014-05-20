@@ -1,5 +1,5 @@
 /*
- *  scopedlogger.h - scoped logger useful to thread block issue
+ *  vaapicodedbuffer.h - codedbuffer wrapper for va
  *
  *  Copyright (C) 2014 Intel Corporation
  *    Author: Xu Guangxin <guangxin.xu@intel.com>
@@ -19,34 +19,31 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+#ifndef vaapicodedbuffer_h
+#define vaapicodedbuffer_h
 
-#ifndef scopedlogger_h
-#define scopedlogger_h
+#include "vaapibuffer.h"
+#include "vaapiptrs.h"
+#include "vaapitypes.h"
+#include <stdlib.h>
 
-/*it's expensive, disable it by default*/
-#define DISABLE_SCOPED_LOGGER
-#ifndef DISABLE_SCOPED_LOGGER
-#include "log.h"
 
-class ScopedLogger {
-  public:
-    ScopedLogger(const char *str)
-    {
-        m_str = str;
-        INFO("+%s", m_str);
+class VaapiCodedBuffer
+{
+public:
+    static CodedBufferPtr create(VADisplay, VAContextID, uint32_t bufSize);
+    ~VaapiCodedBuffer() {}
+    uint32_t size();
+    VABufferID getID() const {
+        return m_buf->getID();
     }
-    ~ScopedLogger()
-    {
-        INFO("-%s", m_str);
-    }
+    bool copyInto(void* data);
 
-  private:
-    const char *m_str;
+private:
+    VaapiCodedBuffer(const BufObjectPtr& buf):m_buf(buf), m_segments(NULL) {}
+    bool map();
+    BufObjectPtr m_buf;
+    VACodedBufferSegment* m_segments;
 };
 
-#define FUNC_ENTER() ScopedLogger __func_loggger__(__func__)
-#else
-#define FUNC_ENTER()
-#endif
-
-#endif  //scopedlogger_h
+#endif //vaapicodedbuffer_h
