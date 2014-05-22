@@ -141,6 +141,7 @@ class VaapiDPBManager {
     /* marking pic after slice decoded */
     bool execRefPicMarking(VaapiPictureH264 * pic, bool * hasMMCO5);
   private:
+    bool outputImmediateBFrame();
     /* prepare reference list before decoding slice */
     void initPictureRefLists(VaapiPictureH264 * pic);
 
@@ -186,9 +187,11 @@ class VaapiDPBManager {
     int32_t findLongTermReference(uint32_t longTermPicNum);
     void removeShortReference(VaapiPictureH264 * picture);
     void removeDPBIndex(uint32_t idx);
+    void debugDPBStatus();
 
   public:
     VaapiDecPicBufLayer * DPBLayer;
+    VaapiFrameStore *m_prevFrameStore; // in case a non-ref B frame to be rendered immediate after decoding, but wait for the completion of the frame (both top and bottom field is ready)
 };
 
 class VaapiDecoderH264:public VaapiDecoderBase {

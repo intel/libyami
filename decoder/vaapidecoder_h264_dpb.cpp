@@ -227,6 +227,7 @@ uint32_t getMaxDecFrameBuffering(H264SPS * sps, uint32_t views)
 }
 
 VaapiDPBManager::VaapiDPBManager(uint32_t DPBSize)
+:  m_prevFrameStore(NULL)
 {
     DPBLayer = (VaapiDecPicBufLayer *) malloc(sizeof(VaapiDecPicBufLayer));
     if (!DPBLayer) {
@@ -312,8 +313,34 @@ void VaapiDPBManager::clearDPB()
 
 void VaapiDPBManager::flushDPB()
 {
+    outputImmediateBFrame();
     while (bumpDPB());
     clearDPB();
+}
+
+void VaapiDPBManager::debugDPBStatus()
+{
+    int i, j;
+    VaapiFrameStore *frameStore;
+
+    for (i = 0; i < DPBLayer->DPBCount; i++) {
+        frameStore = DPBLayer->DPB[i];
+        if (frameStore->m_numBuffers == 2)
+            DEBUG
+                ("index: %d, m_outputNeeded: %d, POC (%d, %d), isReference: %d, surface ID: 0x%x",
+                 i, frameStore->m_outputNeeded,
+                 frameStore->m_buffers[0]->m_POC,
+                 frameStore->m_buffers[1]->m_POC,
+                 frameStore->hasReference(),
+                 frameStore->m_buffers[0]->m_surfaceID);
+        else
+            DEBUG
+                ("index: %d, m_outputNeeded: %d, POC: %d, , isReference: %d, surface ID: 0x%x",
+                 i, frameStore->m_outputNeeded,
+                 frameStore->m_buffers[0]->m_POC,
+                 frameStore->hasReference(),
+                 frameStore->m_buffers[0]->m_surfaceID);
+    }
 }
 
 bool VaapiDPBManager::addDPB(VaapiFrameStore * &newFrameStore,
@@ -321,6 +348,11 @@ bool VaapiDPBManager::addDPB(VaapiFrameStore * &newFrameStore,
 {
     uint32_t i, j;
     VaapiFrameStore *frameStore;
+
+#ifdef __ENABLE_DEBUG__
+    debugDPBStatus();
+#endif
+    outputImmediateBFrame();
 
     // Remove all unused pictures
     if (!VAAPI_H264_PICTURE_IS_IDR(pic)) {
@@ -362,10 +394,15 @@ bool VaapiDPBManager::addDPB(VaapiFrameStore * &newFrameStore,
                         && frameStore->m_buffers[j]->m_POC < pic->m_POC;
             }
             if (!foundPicture) {
-                bool ret = outputDPB(NULL, pic);
-                delete newFrameStore;
-                newFrameStore = NULL;
-                pic = NULL;
+                bool ret = true;
+                if (newFrameStore->hasFrame()) {
+                    ret = outputDPB(newFrameStore, pic);
+                    delete newFrameStore;
+                    newFrameStore = NULL;
+                    pic = NULL;
+                } else {
+                    m_prevFrameStore = newFrameStore;   // wait for a complete frame to render
+                }
                 return ret;
             }
             if (!bumpDPB())
@@ -391,6 +428,28 @@ void VaapiDPBManager::resetDPB(H264SPS * sps)
     }
     memset((void *) DPBLayer, 0, sizeof(VaapiDecPicBufLayer));
     DPBLayer->DPBSize = getMaxDecFrameBuffering(sps, 1);
+}
+
+/*
+    for a non-ref B filed, it outputs directly without adding to DPB.
+    however, the other field is required before rendering.
+    so we postpone this frame output to the timing when another new frame comes.
+    another potential solution is to extend dpb size by one, which can also help SVC/MVC case
+*/
+bool VaapiDPBManager::outputImmediateBFrame()
+{
+    int i;
+    int ret = true;
+
+    if (m_prevFrameStore) {
+        for (i = 0; i < m_prevFrameStore->m_numBuffers; i++) {
+            ret &= outputDPB(m_prevFrameStore, m_prevFrameStore->m_buffers[i]);
+        }
+        delete m_prevFrameStore;
+        m_prevFrameStore = NULL;
+    }
+
+    return ret;
 }
 
 /* initialize reference list */
