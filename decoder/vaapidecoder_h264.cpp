@@ -235,8 +235,8 @@ VaapiPictureH264::VaapiPictureH264(VADisplay display,
 :  VaapiPicture(display, context, surfBufPool, structure)
 {
     m_pps = NULL;
-    m_fieldPoc[0] = 0;
-    m_fieldPoc[1] = 0;
+    m_fieldPoc[0] = INT32_MAX;
+    m_fieldPoc[1] = INT32_MAX;
     m_frameNum = 0;
     m_frameNumWrap = 0;
     m_longTermFrameIdx = 0;
@@ -268,16 +268,11 @@ VaapiPictureH264 *VaapiPictureH264::newField()
 {
     VaapiPictureH264 *field = NULL;
 
-    field = new VaapiPictureH264(m_display, m_context, NULL, 0);
+    field = new VaapiPictureH264(m_display, m_context, NULL, VAAPI_PICTURE_STRUCTURE_NULL);
     if (!field)
         return NULL;
 
-    field->attachSurfaceBuf(m_surfBufPool,
-                            m_surfBuf,
-                            VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD);
-
-    field->m_fieldPoc[0] = m_fieldPoc[0];
-    field->m_fieldPoc[1] = m_fieldPoc[1];
+    field->attachSurfaceBuf(m_surfBufPool, m_surfBuf);
     field->m_frameNum = m_frameNum;
 
     return field;
@@ -299,27 +294,57 @@ VaapiFrameStore::~VaapiFrameStore()
         delete m_buffers[i];
 }
 
-void
+bool
  VaapiFrameStore::addPicture(VaapiPictureH264 * pic)
 {
     uint8_t field;
     VaapiPictureH264 *const firstField = m_buffers[0];
-    VaapiPictureH264 *secondField = pic;
 
-    assert(m_numBuffers == 1);
-    assert(pic->m_structure != VAAPI_PICTURE_STRUCTURE_FRAME);
+    RETURN_VAL_IF_FAIL(m_numBuffers == 1, false);
+    RETURN_VAL_IF_FAIL(pic->m_structure != VAAPI_PICTURE_STRUCTURE_FRAME, false);
+
+    m_buffers[m_numBuffers++] = pic;
+    if (pic->m_outputFlag) {
+        pic->m_outputNeeded = true;
+        m_outputNeeded++;
+    }
     m_structure = VAAPI_PICTURE_STRUCTURE_FRAME;
 
     field = pic->m_structure == VAAPI_PICTURE_STRUCTURE_TOP_FIELD ? 0 : 1;
 
-    assert(firstField->m_fieldPoc[field] != INT32_MAX);
-    firstField->m_fieldPoc[field] = secondField->m_fieldPoc[field];
+    RETURN_VAL_IF_FAIL(firstField->m_fieldPoc[field] == INT32_MAX, false);
+    firstField->m_fieldPoc[field] = pic->m_fieldPoc[field];
 
-    assert(pic->m_fieldPoc[!field] != INT32_MAX);
-    secondField->m_fieldPoc[!field] = firstField->m_fieldPoc[!field];
+    RETURN_VAL_IF_FAIL(pic->m_fieldPoc[!field] == INT32_MAX, false);
+    pic->m_fieldPoc[!field] = firstField->m_fieldPoc[!field];
+    return true;
+}
 
-    m_buffers[1] = secondField;
-    m_numBuffers = m_numBuffers + 1;
+bool VaapiFrameStore::splitFields()
+{
+    VaapiPictureH264 *const firstField = m_buffers[0];
+    VaapiPictureH264 *secondField;
+
+    RETURN_VAL_IF_FAIL(m_numBuffers == 1, false);
+
+    firstField->m_picStructure = VAAPI_PICTURE_STRUCTURE_TOP_FIELD;
+    firstField->m_flags |= VAAPI_PICTURE_FLAG_INTERLACED;
+
+    secondField = firstField->newField();
+    if (!secondField)
+        return false;
+
+    m_buffers[m_numBuffers++] = secondField;
+
+    secondField->m_frameNum = firstField->m_frameNum;
+    secondField->m_fieldPoc[0] = firstField->m_fieldPoc[0];
+    secondField->m_fieldPoc[1] = firstField->m_fieldPoc[1];
+    secondField->m_outputFlag = firstField->m_outputFlag;
+    if (secondField->m_outputFlag) {
+        secondField->m_outputNeeded = true;
+        m_outputNeeded++;
+    }
+    return true;
 }
 
 bool VaapiFrameStore::hasFrame()
@@ -1159,14 +1184,20 @@ bool VaapiDecoderH264::markingPicture(VaapiPictureH264 * pic)
 
 bool VaapiDecoderH264::storeDecodedPicture(VaapiPictureH264 * pic)
 {
+    int ret = true;
+
     VaapiFrameStore *frameStore;
     // Check if picture is the second field and the first field is still in DPB
     if (m_prevFrame && !m_prevFrame->hasFrame()) {
         RETURN_VAL_IF_FAIL(m_prevFrame->m_numBuffers == 1, false);
+        RETURN_VAL_IF_FAIL(!VAAPI_PICTURE_IS_FRAME(m_currentPicture),
+                           false);
+        RETURN_VAL_IF_FAIL(!VAAPI_PICTURE_IS_FIRST_FIELD(m_currentPicture),
+                           false);
 
-        m_prevFrame->addPicture(m_currentPicture);
+        ret = m_prevFrame->addPicture(m_currentPicture);
         m_currentPicture = NULL;
-        return true;
+        return ret;
     }
     // Create new frame store, and split fields if necessary
     frameStore = new VaapiFrameStore(pic);
@@ -1174,6 +1205,10 @@ bool VaapiDecoderH264::storeDecodedPicture(VaapiPictureH264 * pic)
         return false;
 
     m_prevFrame = frameStore;
+    if (!m_progressiveSequence && frameStore->hasFrame()) {
+        if (!frameStore->splitFields())
+            return false;
+    }
 
     if (m_prevFrame && m_prevFrame->hasFrame())
         m_currentPicture = NULL;
@@ -1181,7 +1216,7 @@ bool VaapiDecoderH264::storeDecodedPicture(VaapiPictureH264 * pic)
     if (!m_DPBManager->addDPB(m_prevFrame, pic))
         return false;
 
-    return true;
+    return ret;
 }
 
 Decode_Status VaapiDecoderH264::decodeCurrentPicture()
@@ -1207,6 +1242,8 @@ Decode_Status VaapiDecoderH264::decodeCurrentPicture()
     return DECODE_SUCCESS;
 
   error:
+    WARNING("decodeCurrentPicture error");
+    /* XXX: fix for cases where first field failed to be decoded */
     delete m_currentPicture;
     m_currentPicture = NULL;
     return DECODE_FAIL;
@@ -1237,9 +1274,8 @@ Decode_Status
     } else {
         /*accquire one surface from m_bufPool in base decoder  */
         picture = new VaapiPictureH264(m_VADisplay,
-                                       m_VAContext,
-                                       m_bufPool,
-                                       VAAPI_PICTURE_STRUCTURE_FRAME);
+                                       m_VAContext, m_bufPool,
+                                       VAAPI_PICTURE_STRUCTURE_NULL);
 
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);
 
@@ -1612,7 +1648,7 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
         if (status == DECODE_SUCCESS) {
             status = decodeNalu(&nalu);
         } else {
-            ERROR("parser nalu uncheck failed code =%ld", status);
+            ERROR("parser nalu uncheck failed code =%d", status);
         }
 
     } while (status == DECODE_SUCCESS);

@@ -81,6 +81,7 @@ typedef enum {
      !VAAPI_PICTURE_IS_FIRST_FIELD(picture))
 
 typedef enum {
+    VAAPI_PICTURE_STRUCTURE_NULL = 0,
     VAAPI_PICTURE_STRUCTURE_TOP_FIELD = 1 << 0,
     VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD = 1 << 1,
     VAAPI_PICTURE_STRUCTURE_FRAME =
@@ -118,8 +119,7 @@ class VaapiPicture {
     ~VaapiPicture();
 
     void attachSurfaceBuf(VaapiSurfaceBufferPool * surfBufPool,
-                          VideoSurfaceBuffer *surfBuf,
-                          VaapiPictureStructure structure);
+                          VideoSurfaceBuffer * surfBuf);
 
     void addSlice(VaapiSlice * slice);
     VaapiSlice *getLastSlice();

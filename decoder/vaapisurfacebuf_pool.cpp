@@ -559,7 +559,7 @@ void VaapiSurfaceBufferPool::debugSurfaceStatus()
     uint32_t i;
 
     DEBUG_
-        ("libyami: current surface status[index, surface ID: free?, (RENDERING, DPB, DECODING)]\n");
+        ("libyami: current surface status[index, surface ID: free?, (DECODING (including DPB), Output Queue, RENDERING)]\n");
     for (i = 0; i < m_bufCount; i++) {
         DEBUG_("[%2d, 0x%x: %s, (%d, %d, %d)]\n", i,
                m_bufArray[i]->renderBuffer.surface,

@@ -59,7 +59,7 @@ VaapiPicture::VaapiPicture(VADisplay display,
     }
 
     if (m_surfBuf)
-       m_surfaceID = m_surfBuf->renderBuffer.surface;
+        m_surfaceID = m_surfBuf->renderBuffer.surface;
 }
 
 VaapiPicture::~VaapiPicture()
@@ -102,20 +102,18 @@ VaapiPicture::~VaapiPicture()
 }
 
 void VaapiPicture::attachSurfaceBuf(VaapiSurfaceBufferPool * surfBufPool,
-                                    VideoSurfaceBuffer *surfBuf,
-                                    VaapiPictureStructure structure)
+                                    VideoSurfaceBuffer * surfBuf)
 {
     if (m_surfBuf && m_surfBufPool) {
-       m_surfBufPool->recycleBuffer(m_surfBuf, false);
-       m_surfaceID = 0;
+        m_surfBufPool->recycleBuffer(m_surfBuf, false);
+        m_surfaceID = 0;
     }
 
-    m_surfBufPool  = surfBufPool;
-    m_surfBuf      = surfBuf;
-    m_picStructure = structure;
+    m_surfBufPool = surfBufPool;
+    m_surfBuf = surfBuf;
 
     if (m_surfBuf)
-       m_surfaceID = m_surfBuf->renderBuffer.surface;
+        m_surfaceID = m_surfBuf->renderBuffer.surface;
 }
 
 
