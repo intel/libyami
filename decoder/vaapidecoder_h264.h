@@ -192,7 +192,7 @@ class VaapiDPBManager {
 
 class VaapiDecoderH264:public VaapiDecoderBase {
   public:
-    VaapiDecoderH264(const char *mimeType);
+    VaapiDecoderH264();
     virtual ~ VaapiDecoderH264();
     virtual Decode_Status start(VideoConfigBuffer * buffer);
     virtual Decode_Status reset(VideoConfigBuffer * buffer);

@@ -42,7 +42,7 @@ typedef unsigned int Display;
 
 class VaapiDecoderBase:public IVideoDecoder {
   public:
-    VaapiDecoderBase(const char *mimeType);
+    VaapiDecoderBase();
     virtual ~ VaapiDecoderBase();
 
     virtual Decode_Status start(VideoConfigBuffer * buffer);

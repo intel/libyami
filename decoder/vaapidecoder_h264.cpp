@@ -1438,8 +1438,7 @@ void VaapiDecoderH264::updateFrameInfo()
     }
 }
 
-VaapiDecoderH264::VaapiDecoderH264(const char *mimeType)
-:VaapiDecoderBase(mimeType)
+VaapiDecoderH264::VaapiDecoderH264()
 {
     m_currentPicture = NULL;
     m_DPBManager = NULL;

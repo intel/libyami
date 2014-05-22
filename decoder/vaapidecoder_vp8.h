@@ -60,7 +60,7 @@ class VaapiPictureVP8:public VaapiPicture {
 
 class VaapiDecoderVP8:public VaapiDecoderBase {
   public:
-    VaapiDecoderVP8(const char *mimeType);
+    VaapiDecoderVP8();
     virtual ~ VaapiDecoderVP8();
     virtual Decode_Status start(VideoConfigBuffer * buffer);
     virtual Decode_Status reset(VideoConfigBuffer * buffer);

@@ -104,8 +104,7 @@ VaapiSliceJpeg::~VaapiSliceJpeg()
     delete m_param;
 }
 
-VaapiDecoderJpeg::VaapiDecoderJpeg(const char *mimeType)
-:VaapiDecoderBase(mimeType)
+VaapiDecoderJpeg::VaapiDecoderJpeg()
 {
     m_profile = VAAPI_PROFILE_JPEG_BASELINE;
     m_width = 0;

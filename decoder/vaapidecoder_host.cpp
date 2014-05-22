@@ -28,60 +28,35 @@
 #include "vaapidecoder_h264.h"
 #include "vaapidecoder_vp8.h"
 #include "vaapidecoder_jpeg.h"
+#include "vaapi_host.h"
 #include <string.h>
+
+DEFINE_CLASS_FACTORY(Decoder)
+static const DecoderEntry g_decoderEntries[] = {
+    DEFINE_DECODER_ENTRY("video/avc", H264),
+    DEFINE_DECODER_ENTRY("video/h264", H264),
+    DEFINE_DECODER_ENTRY("video/jpeg", Jpeg),
+    DEFINE_DECODER_ENTRY("video/x-vnd.on2.vp8", VP8)
+};
 
 IVideoDecoder *createVideoDecoder(const char *mimeType)
 {
-    if (mimeType == NULL) {
+    if (!mimeType) {
         ERROR("NULL mime type.");
         return NULL;
     }
     INFO("mimeType: %s\n", mimeType);
-/*
-    if (strcasecmp(mimeType, "video/wmv") == 0 ||
-        strcasecmp(mimeType, "video/vc1") == 0) {
-        VideoDecoderWMV *p = new VideoDecoderWMV(mimeType);
-        return (IVideoDecoder *)p;
-    } else */ if (strcasecmp(mimeType, "video/avc") == 0 ||
-                  strcasecmp(mimeType, "video/h264") == 0) {
-        DEBUG("Create H264 decoder ");
-        IVideoDecoder *p = new VaapiDecoderH264(mimeType);
-        return (IVideoDecoder *) p;
-    } else if (strcasecmp(mimeType, "image/jpeg") == 0) {
-        DEBUG("Create JPEG decoder ");
-        IVideoDecoder *p = new VaapiDecoderJpeg(mimeType);
-        return (IVideoDecoder *) p;
-#if 0
-    } else if (strcasecmp(mimeType, "video/mp4v-es") == 0 ||
-               strcasecmp(mimeType, "video/mpeg4") == 0 ||
-               strcasecmp(mimeType, "video/h263") == 0 ||
-               strcasecmp(mimeType, "video/3gpp") == 0) {
-        VideoDecoderMPEG4 *p = new VideoDecoderMPEG4(mimeType);
-        return (IVideoDecoder *) p;
-    } else if (strcasecmp(mimeType, "video/pavc") == 0) {
-        VideoDecoderAVC *p = new VideoDecoderPAVC(mimeType);
-        return (IVideoDecoder *) p;
-    } else if (strcasecmp(mimeType, "video/avc-secure") == 0) {
-        VideoDecoderAVC *p = new VideoDecoderAVCSecure(mimeType);
-        return (IVideoDecoder *) p;
-#endif
-    } else if (strcasecmp(mimeType, "video/x-vnd.on2.vp8") == 0) {
-        DEBUG("Create VP8 decoder ");
-        IVideoDecoder *p = new VaapiDecoderVP8(mimeType);
-        return (IVideoDecoder *) p;
-    } else {
-        ERROR("Unsupported mime type: %s", mimeType);
+    for (int i = 0; i < N_ELEMENTS(g_decoderEntries); i++) {
+        const DecoderEntry *e = g_decoderEntries + i;
+        if (strcasecmp(e->mime, mimeType) == 0)
+            return e->create();
     }
+    ERROR("Failed to create %s", mimeType);
     return NULL;
 }
 
 void releaseVideoDecoder(IVideoDecoder * p)
 {
-    if (p) {
-        const VideoFormatInfo *info = p->getFormatInfo();
-        if (info && info->mimeType) {
-            DEBUG("Deleting decoder for %s", info->mimeType);
-        }
-    }
     delete p;
 }
+
