@@ -25,19 +25,35 @@
 
 #include "common/log.h"
 #include "interface/VideoDecoderHost.h"
+#if __BUILD_H264_DECODER__
 #include "vaapidecoder_h264.h"
+#endif
+#if __BUILD_VP8_DECODER__
 #include "vaapidecoder_vp8.h"
+#endif
+#if __BUILD_JPEG_DECODER__
 #include "vaapidecoder_jpeg.h"
+#endif
 #include "vaapi_host.h"
 #include <string.h>
 
 DEFINE_CLASS_FACTORY(Decoder)
 static const DecoderEntry g_decoderEntries[] = {
+#if __BUILD_H264_DECODER__
     DEFINE_DECODER_ENTRY("video/avc", H264),
     DEFINE_DECODER_ENTRY("video/h264", H264),
-    DEFINE_DECODER_ENTRY("video/jpeg", Jpeg),
+#endif
+#if __BUILD_JPEG_DECODER__
+    DEFINE_DECODER_ENTRY("image/jpeg", Jpeg),
+#endif
+#if __BUILD_VP8_DECODER__
     DEFINE_DECODER_ENTRY("video/x-vnd.on2.vp8", VP8)
+#endif
 };
+
+#ifndef N_ELEMENTS
+#define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
+#endif
 
 IVideoDecoder *createVideoDecoder(const char *mimeType)
 {

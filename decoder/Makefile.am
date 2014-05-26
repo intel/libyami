@@ -6,13 +6,22 @@ INCLUDES = -I$(top_srcdir) \
 libyami_decoder_source_c = \
         vaapipicture.cpp \
         vaapidecoder_base.cpp \
-        vaapidecoder_h264.cpp \
-        vaapidecoder_h264_dpb.cpp \
-        vaapidecoder_vp8.cpp \
-        vaapidecoder_jpeg.cpp \
         vaapidecoder_host.cpp \
         vaapisurfacebuf_pool.cpp \
 	$(NULL)
+
+if BUILD_H264_DECODER
+        libyami_decoder_source_c += vaapidecoder_h264.cpp
+        libyami_decoder_source_c += vaapidecoder_h264_dpb.cpp
+endif
+
+if BUILD_VP8_DECODER
+        libyami_decoder_source_c += vaapidecoder_vp8.cpp
+endif
+
+if BUILD_JPEG_DECODER
+        libyami_decoder_source_c += vaapidecoder_jpeg.cpp
+endif
 
 libyami_decoder_source_h = \
         ../interface/VideoDecoderDefs.h      \
@@ -23,11 +32,20 @@ libyami_decoder_source_h = \
 libyami_decoder_source_h_priv = \
         vaapipicture.h    \
         vaapidecoder_base.h \
-        vaapidecoder_h264.h \
-        vaapidecoder_vp8.h \
-        vaapidecoder_jpeg.h \
         vaapisurfacebuf_pool.h \
 	$(NULL)
+
+if BUILD_H264_DECODER
+        libyami_decoder_source_h_priv += vaapidecoder_h264.h
+endif
+
+if BUILD_VP8_DECODER
+        libyami_decoder_source_h_priv += vaapidecoder_vp8.h
+endif
+
+if BUILD_JPEG_DECODER
+        libyami_decoder_source_h_priv += vaapidecoder_jpeg.h
+endif
 
 libyami_decoder_la_LIBADD = \
 		$(top_builddir)/common/libyami_common.la \

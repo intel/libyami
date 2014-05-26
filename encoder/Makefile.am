@@ -7,9 +7,12 @@ libyami_encoder_source_c = \
         vaapicodedbuffer.cpp \
         vaapiencpicture.cpp \
         vaapiencoder_base.cpp \
-        vaapiencoder_h264.cpp \
         vaapiencoder_host.cpp \
 	$(NULL)
+
+if BUILD_H264_ENCODER
+        libyami_encoder_source_c += vaapiencoder_h264.cpp
+endif
 
 libyami_encoder_source_h = \
         ../interface/VideoEncoderDef.h      \
@@ -21,8 +24,11 @@ libyami_encoder_source_h_priv = \
         vaapicodedbuffer.h \
         vaapiencpicture.h \
         vaapiencoder_base.h \
-        vaapiencoder_h264.h \
 	$(NULL)
+
+if BUILD_H264_ENCODER
+        libyami_encoder_source_h_priv += vaapiencoder_h264.h
+endif
 
 libyami_encoder_la_LIBADD = \
 		$(top_builddir)/common/libyami_common.la \

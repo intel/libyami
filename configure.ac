@@ -29,6 +29,42 @@ if test "$enable_baytrail" = "yes"; then
 AC_DEFINE([__PLATFORM_BYT__], [1], [Defined to 1 if --enable-baytrail="yes" ])
 fi
 
+dnl vp8 decoder
+AC_ARG_ENABLE(vp8dec,
+    [AC_HELP_STRING([--enable-vp8dec], [build with vp8 decoder support @<:@default=no@:>@])],
+    [], [enable_vp8dec="yes"])
+if test "$enable_vp8dec" = "yes"; then
+AC_DEFINE([__BUILD_VP8_DECODER__], [1], [Defined to 1 if --enable-vp8dec="yes" ])
+fi
+AM_CONDITIONAL(BUILD_VP8_DECODER, test "x$enable_vp8dec" = "xyes")
+
+dnl jpeg decoder
+AC_ARG_ENABLE(jpegdec,
+    [AC_HELP_STRING([--enable-jpegdec], [build with jpeg decoder support @<:@default=no@:>@])],
+    [], [enable_jpegdec="yes"])
+if test "$enable_jpegdec" = "yes"; then
+AC_DEFINE([__BUILD_JPEG_DECODER__], [1], [Defined to 1 if --enable-jpegdec="yes" ])
+fi
+AM_CONDITIONAL(BUILD_JPEG_DECODER, test "x$enable_jpegdec" = "xyes")
+
+dnl h264 decoder
+AC_ARG_ENABLE(h264dec,
+    [AC_HELP_STRING([--enable-h264dec], [build with h264 decoder support @<:@default=no@:>@])],
+    [], [enable_h264dec="yes"])
+if test "$enable_h264dec" = "yes"; then
+AC_DEFINE([__BUILD_H264_DECODER__], [1], [Defined to 1 if --enable-h264dec="yes" ])
+fi
+AM_CONDITIONAL(BUILD_H264_DECODER, test "x$enable_h264dec" = "xyes")
+
+dnl h264 encoder
+AC_ARG_ENABLE(h264enc,
+    [AC_HELP_STRING([--enable-h264enc], [build with h264 encoder support @<:@default=no@:>@])],
+    [], [enable_h264enc="yes"])
+if test "$enable_h264enc" = "yes"; then
+AC_DEFINE([__BUILD_H264_ENCODER__], [1], [Defined to 1 if --enable-h264enc="yes" ])
+fi
+AM_CONDITIONAL(BUILD_H264_ENCODER, test "x$enable_h264enc" = "xyes")
+
 # Checks for programs.
 AC_DISABLE_STATIC
 AC_PROG_CXX
