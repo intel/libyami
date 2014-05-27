@@ -1291,7 +1291,9 @@ Decode_Status
                                        VAAPI_PICTURE_STRUCTURE_NULL);
 
         /*FIXME: attach a correct surface to picutre*/
-        SurfacePtr s;
+        SurfacePtr s = createSurface();
+        if (!s)
+            return DECODE_FAIL;
         VaapiDecPictureH264::PicturePtr pic(new VaapiDecPictureH264(m_VADisplay, m_VAContext, s, 0));
         /* test code */
 

@@ -25,6 +25,7 @@
 
 #include "common/log.h"
 #include "interface/VideoDecoderInterface.h"
+#include "vaapiptrs.h"
 #include "vaapisurfacebuf_pool.h"
 #include <pthread.h>
 #include <va/va.h>
@@ -71,6 +72,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status setupVA(uint32_t numSurface, VAProfile profile);
     Decode_Status terminateVA(void);
     Decode_Status updateReference(void);
+    SurfacePtr createSurface();
 
     Display *m_display;
     VADisplay m_VADisplay;

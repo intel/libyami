@@ -459,3 +459,33 @@ Decode_Status VaapiDecoderBase::flagNativeBuffer(void *pBuffer)
 void VaapiDecoderBase::releaseLock()
 {
 }
+
+struct SurfaceRecycler
+{
+    SurfaceRecycler(VaapiSurfaceBufferPool* pool, VideoSurfaceBuffer* surfBuf)
+        :m_pool(pool), m_surfBuf(surfBuf)
+    {
+    }
+
+    void operator()(VaapiSurface* surface)
+    {
+        if (m_pool && m_surfBuf)
+            m_pool->recycleBuffer(m_surfBuf, false);
+    }
+
+private:
+    VideoSurfaceBuffer      *m_surfBuf;
+    VaapiSurfaceBufferPool  *m_pool;
+};
+
+SurfacePtr VaapiDecoderBase::createSurface()
+{
+    SurfacePtr surface;
+    if (m_bufPool) {
+        VideoSurfaceBuffer* surfBuf = m_bufPool->acquireFreeBufferWithWait();
+        if (surfBuf) {
+            surface = VaapiSurface::create(surfBuf->renderBuffer.surface, SurfaceRecycler(m_bufPool, surfBuf));
+        }
+    }
+    return surface;
+}

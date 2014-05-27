@@ -90,9 +90,8 @@ SurfacePtr VaapiSurface::create(VADisplay display,
             break;
         }
     }
-    surface.reset(new
-                  VaapiSurface(display, id, chromaType, width, height,
-                               externalBufHandle));
+    surface.reset(new VaapiSurface(display, id, chromaType,
+                                    width, height,externalBufHandle));
     return surface;
 }
 
@@ -104,6 +103,13 @@ VaapiSurface::VaapiSurface(VADisplay display,
 :m_display(display), m_chromaType(chromaType), m_width(width),
 m_height(height),m_externalBufHandle(externalBufHandle), m_ID(id),
 m_derivedImage(NULL)
+{
+
+}
+
+VaapiSurface::VaapiSurface(VASurfaceID id)
+:m_display(NULL), m_chromaType(VAAPI_CHROMA_TYPE_YUV420), m_width(0),m_height(0),
+    m_externalBufHandle(0), m_ID(id),m_derivedImage(NULL)
 {
 
 }
