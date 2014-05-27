@@ -8,6 +8,7 @@ libyami_decoder_source_c = \
         vaapidecoder_base.cpp \
         vaapidecoder_host.cpp \
         vaapisurfacebuf_pool.cpp \
+        vaapidecpicture.cpp \
 	$(NULL)
 
 if BUILD_H264_DECODER
@@ -33,6 +34,7 @@ libyami_decoder_source_h_priv = \
         vaapipicture.h    \
         vaapidecoder_base.h \
         vaapisurfacebuf_pool.h \
+        vaapidecpicture.h \
 	$(NULL)
 
 if BUILD_H264_DECODER

@@ -27,6 +27,7 @@
 #include "codecparsers/h264parser.h"
 #include "vaapidecoder_base.h"
 #include "vaapipicture.h"
+#include "vaapidecpicture.h"
 
 #define TOP_FIELD    0
 #define BOTTOM_FIELD 1
@@ -57,6 +58,68 @@ enum {
     ((VAAPI_PICTURE_FLAGS((picture)) &                \
       VAAPI_PICTURE_FLAGS_REFERENCE) ==                     \
      VAAPI_PICTURE_FLAG_LONG_TERM_REFERENCE)
+
+//FIXME:move this to .cpp
+class VaapiDecPictureH264:public VaapiDecPicture
+{
+public:
+    typedef std::tr1::shared_ptr<VaapiDecPictureH264> PicturePtr;
+    typedef std::tr1::shared_ptr<H264SliceHdr> SliceHeaderPtr;
+    friend class VaapiDPBManager;
+    friend class VaapiDecoderH264;
+
+    virtual ~VaapiDecPictureH264() {}
+
+private:
+    //make this public after we move this to cpp.
+    VaapiDecPictureH264(VADisplay display, VAContextID context, const SurfacePtr& surface, int64_t timeStamp):
+        VaapiDecPicture(display, context, surface, timeStamp),
+        m_pps(NULL),
+        m_structure(0),
+        m_frameNum(0),
+        m_frameNumWrap(0),
+        m_longTermFrameIdx(0),
+        m_picNum(0),
+        m_longTermPicNum(0),
+        m_outputFlag(0),
+        m_outputNeeded(0)
+    {
+    }
+
+
+
+    bool newSlice(VASliceParameterBufferH264* sliceParam, const void* sliceData, uint32_t sliceSize, const SliceHeaderPtr& header)
+    {
+        if (VaapiDecPicture::newSlice(sliceParam, sliceData, sliceSize))
+            return false;
+        m_headers.push_back(header);
+        return true;
+    }
+
+    H264SliceHdr* getLastSliceHeader()
+    {
+        if (m_headers.empty())
+            return NULL;
+        return m_headers.back().get();
+    }
+    //public end
+
+
+    H264PPS * m_pps;
+    uint32_t m_structure;
+    int32_t m_fieldPoc[2];
+    int32_t m_frameNum;
+    int32_t m_frameNumWrap;
+    int32_t m_longTermFrameIdx;
+    int32_t m_picNum;
+    int32_t m_longTermPicNum;
+    uint32_t m_outputFlag;
+    uint32_t m_outputNeeded;
+    PicturePtr *m_otherField;
+
+    //FIXME: do we really need a list, or just last header?
+    std::list<SliceHeaderPtr> m_headers;
+};
 
 class VaapiSliceH264:public VaapiSlice {
   public:
@@ -197,6 +260,7 @@ class VaapiDPBManager {
 
 class VaapiDecoderH264:public VaapiDecoderBase {
   public:
+    typedef VaapiDecPictureH264::PicturePtr PicturePtr;
     VaapiDecoderH264();
     virtual ~ VaapiDecoderH264();
     virtual Decode_Status start(VideoConfigBuffer * buffer);

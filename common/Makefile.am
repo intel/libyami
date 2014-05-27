@@ -1,4 +1,5 @@
 libyami_common_source_c = \
+        vaapipic.cpp \
         vaapibuffer.cpp \
         vaapiimage.cpp \
         vaapisurface.cpp\
@@ -6,6 +7,7 @@ libyami_common_source_c = \
 	$(NULL)
 
 libyami_common_source_h = \
+        vaapipic.h \
         vaapibuffer.h \
         vaapiimage.h \
         vaapisurface.h \

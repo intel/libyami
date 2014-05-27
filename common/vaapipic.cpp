@@ -1,0 +1,83 @@
+/*
+ *  vaapipic.c - base picture for va decoder and encoder
+ *
+ *  Copyright (C) 2014 Intel Corporation
+ *    Author: Xu Guangxin <guangxin.xu@intel.com>
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public License
+ *  as published by the Free Software Foundation; either version 2.1
+ *  of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free
+ *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ *  Boston, MA 02110-1301 USA
+ */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+#include "vaapipic.h"
+
+#include "log.h"
+#include "vaapibuffer.h"
+#include "vaapisurface.h"
+//FIXME:change VaapiPic to VaapiPicture after we remove decoder/vaapipicutre.h
+
+VaapiPic::VaapiPic(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp)
+    :m_display(display),
+     m_context(context),
+     m_surface(surface),
+     m_timeStamp(timeStamp),
+     m_type(VAAPI_PICTURE_TYPE_NONE)
+{
+
+}
+
+bool VaapiPic::render()
+{
+    if (m_surface->getID() == VA_INVALID_SURFACE) {
+        ERROR("bug: no surface to encode");
+        return false;
+    }
+
+    VAStatus status;
+    status = vaBeginPicture(m_display, m_context, m_surface->getID());
+    if (!checkVaapiStatus (status, "vaBeginPicture()"))
+        return false;
+
+    bool ret = doRender();
+
+    status = vaEndPicture(m_display, m_context);
+    if (!checkVaapiStatus (status, "vaEndPicture()"))
+        return false;
+    return ret;
+}
+
+bool VaapiPic::render(const BufObjectPtr& buffer)
+{
+    VAStatus status = VA_STATUS_SUCCESS;
+    VABufferID bufferID = VA_INVALID_ID;
+
+    if (!buffer)
+        return false;
+
+    if (buffer->isMapped())
+        buffer->unmap();
+
+    bufferID = buffer->getID();
+    if (bufferID == VA_INVALID_ID)
+        return false;
+
+    status = vaRenderPicture(m_display, m_context, &bufferID, 1);
+    if (!checkVaapiStatus(status, "vaRenderPicture failed"))
+        return false;
+
+    buffer.reset(); // silently work  arouond for psb
+    return true;
+}

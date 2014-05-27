@@ -30,6 +30,11 @@
 #include "vaapidecoder_h264.h"
 #include "codecparsers/bytereader.h"
 
+#include "vaapiptrs.h"
+
+typedef VaapiDecoderH264::PicturePtr PicturePtr;
+
+
 #define MACROBLOCK_SIZE 16
 #define MACROBLOCK_ALIGN (2 * MACROBLOCK_SIZE)
 #define MB_ALIGN(arg) (((arg) + (MACROBLOCK_ALIGN - 1)) & (~(MACROBLOCK_ALIGN - 1)) )
@@ -1284,6 +1289,11 @@ Decode_Status
         picture = new VaapiPictureH264(m_VADisplay,
                                        m_VAContext, m_bufPool,
                                        VAAPI_PICTURE_STRUCTURE_NULL);
+
+        /*FIXME: attach a correct surface to picutre*/
+        SurfacePtr s;
+        VaapiDecPictureH264::PicturePtr pic(new VaapiDecPictureH264(m_VADisplay, m_VAContext, s, 0));
+        /* test code */
 
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);
 
