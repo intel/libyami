@@ -75,7 +75,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status setupVA(uint32_t numSurface, VAProfile profile);
     Decode_Status terminateVA(void);
     Decode_Status updateReference(void);
-    Decode_Status outputPicture(PicturePtr& picture);
+    Decode_Status outputPicture(PicturePtr& picture, int poc = 0);
     SurfacePtr createSurface();
 
     Display *m_display;

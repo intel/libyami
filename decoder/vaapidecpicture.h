@@ -19,11 +19,10 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-
 #ifndef vaapidecpicture_h
 #define vaapidecpicture_h
 
-#include "vaapipic.h"
+#include "vaapipicture.h"
 
 class VaapiDecSlice
 {
@@ -35,7 +34,7 @@ private:
     BufObjectPtr m_data;
 };
 
-class VaapiDecPicture : public VaapiPic
+class VaapiDecPicture : public VaapiPicture
 {
 public:
     typedef std::tr1::shared_ptr<VaapiDecSlice> DecSlicePtr;
@@ -63,21 +62,20 @@ public:
 
     bool decode();
 
-protected:
-    virtual bool doRender();
-
 private:
+    virtual bool doRender();
+    bool render(const DecSlicePtr& slice);
+
+    template <typename P, typename O>
+    friend bool render(P picture, std::vector<O>& objects);
+
+
     BufObjectPtr m_picture;
     BufObjectPtr m_iqMatrix;
     BufObjectPtr m_bitPlane;
     BufObjectPtr m_hufTable;
     BufObjectPtr m_probTable;
     std::vector<DecSlicePtr> m_slices;
-
-    bool render(const DecSlicePtr& slice);
-
-    template <typename P, typename O>
-    friend bool render(P picture, std::vector<O>& objects);
 };
 
 template<class T>
@@ -115,6 +113,7 @@ bool VaapiDecPicture::newSlice(T*& sliceParam, const void* sliceData, uint32_t s
 {
     BufObjectPtr d = createBufferObject(VASliceDataBufferType, sliceSize, sliceData, NULL);
     BufObjectPtr p = createBufferObject(VASliceParameterBufferType, sliceParam);
+
     VaapiDecPicture::DecSlicePtr slice;
     if (d && p) {
         slice.reset(new VaapiDecSlice(p, d));
@@ -125,4 +124,5 @@ bool VaapiDecPicture::newSlice(T*& sliceParam, const void* sliceData, uint32_t s
     m_slices.push_back(slice);
     return slice;
 }
-#endif //vaapidecpicture_h
+
+#endif //#ifndef vaapidecpicture_h

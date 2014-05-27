@@ -25,6 +25,7 @@
 
 #include "vaapibuffer.h"
 #include "vaapiptrs.h"
+#include "vaapipicturetypes.h"
 #include "vaapisurface.h"
 #include "vaapitypes.h"
 #include <string.h>

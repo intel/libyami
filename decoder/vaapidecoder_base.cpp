@@ -506,9 +506,9 @@ SurfacePtr VaapiDecoderBase::createSurface()
     return surface;
 }
 
-Decode_Status VaapiDecoderBase::outputPicture(PicturePtr& picture)
+Decode_Status VaapiDecoderBase::outputPicture(PicturePtr& picture, int poc)
 {
-    if (!m_bufPool->outputSurface(picture->getSurfaceID(), picture->m_timeStamp))
+    if (!m_bufPool->outputSurface(picture->getSurfaceID(), picture->m_timeStamp, poc))
         return DECODE_FAIL;
 
     return DECODE_SUCCESS;

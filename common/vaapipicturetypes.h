@@ -1,5 +1,5 @@
 /*
- *  vaapipicture.h - objects for va decode
+ *  vaapipicturetypes.h - picutre type define for vaapi
  *
  *  Copyright (C) 2010-2011 Splitted-Desktop Systems
  *    Author: Gwenole Beauchesne <gwenole.beauchesne@splitted-desktop.com>
@@ -23,15 +23,8 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef vaapipicture_h
-#define vaapipicture_h
-
-#include "common/vaapibuffer.h"
-#include "vaapisurfacebuf_pool.h"
-#include <list>
-#include <vector>
-
-using namespace std;
+#ifndef vaapipicturetypes_h
+#define vaapipicturetypes_h
 
 typedef enum {
     VAAPI_PICTURE_FLAG_SKIPPED = (1 << 0),
@@ -102,54 +95,17 @@ typedef enum {
          VAAPI_S3D_STRUCTURE_SIDE_BY_SIDE)
 } VaapiPictureStructure;
 
-class VaapiSlice {
-  public:
-    VaapiBufObject * m_param;
-    VaapiBufObject *m_data;
-};
 
-class VaapiPicture {
-  private:
-    DISALLOW_COPY_AND_ASSIGN(VaapiPicture);
-  public:
-    VaapiPicture(VADisplay display,
-                 VAContextID context,
-                 VaapiSurfaceBufferPool * surfBufPool,
-                 VaapiPictureStructure structure);
-    ~VaapiPicture();
 
-    void attachSurfaceBuf(VaapiSurfaceBufferPool * surfBufPool,
-                          VideoSurfaceBuffer * surfBuf);
+typedef enum {
+    VAAPI_PICTURE_TYPE_NONE = 0,        // Undefined
+    VAAPI_PICTURE_TYPE_I,               // Intra
+    VAAPI_PICTURE_TYPE_P,               // Predicted
+    VAAPI_PICTURE_TYPE_B,               // Bi-directional predicted
+    VAAPI_PICTURE_TYPE_S,               // S(GMC)-VOP (MPEG-4)
+    VAAPI_PICTURE_TYPE_SI,              // Switching Intra
+    VAAPI_PICTURE_TYPE_SP,              // Switching Predicted
+    VAAPI_PICTURE_TYPE_BI,              // BI type (VC-1)
+} VaapiPictureType;
 
-    void addSlice(VaapiSlice * slice);
-    VaapiSlice *getLastSlice();
-    bool decodePicture();
-
-    /* combine both decoding and rendering in one class,
-     * the uncompressed data can't be deleted before rendering
-     */
-    bool output();
-
-  public:
-    uint64_t m_timeStamp;
-    int32_t  m_POC;
-    uint32_t m_flags;
-    VaapiPictureStructure m_picStructure;
-    VaapiPictureType m_type;
-    VaapiBufObject *m_picParam;
-    VaapiBufObject *m_iqMatrix;
-    VaapiBufObject *m_bitPlane;
-    VaapiBufObject *m_hufTable;
-    VaapiBufObject *m_probTable;
-    VASurfaceID m_surfaceID;
-    VADisplay m_display;
-    VAContextID m_context;
-    VideoSurfaceBuffer *m_surfBuf;
-    VaapiSurfaceBufferPool *m_surfBufPool;
-
-  private:
-    bool renderVaBuffer(VaapiBufObject * &buffer, const char *bufferInfo);
-    vector < VaapiSlice * >m_sliceArray;
-};
-
-#endif
+#endif //vaapipicturetypes_h

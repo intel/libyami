@@ -27,6 +27,11 @@
 
 #include "vaapidecoder_h264.h"
 
+typedef VaapiDecPictureH264::PicturePtr PicturePtr;
+typedef VaapiDecPictureH264::PictureWeakPtr PictureWeakPtr;
+typedef VaapiDecPictureH264::SliceHeaderPtr SliceHeaderPtr;
+
+
 /* Defined to 1 if strict ordering of DPB is needed. Only useful for debug */
 #define USE_STRICT_DPB_ORDERING 0
 
@@ -56,68 +61,69 @@ static uint32_t roundLog2(uint32_t value)
 
 static int comparePicturePicNumDec(const void *a, const void *b)
 {
-    const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
-    const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
+    const VaapiDecPictureH264 *const picA = *(VaapiDecPictureH264 **) a;
+    const VaapiDecPictureH264 *const picB = *(VaapiDecPictureH264 **) b;
 
     return picB->m_picNum - picA->m_picNum;
 }
 
 static int comparePictureLongTermPicNumInc(const void *a, const void *b)
 {
-    const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
-    const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
+    const VaapiDecPictureH264 *const picA = *(VaapiDecPictureH264 **) a;
+    const VaapiDecPictureH264 *const picB = *(VaapiDecPictureH264 **) b;
 
     return picA->m_longTermPicNum - picB->m_longTermPicNum;
 }
 
 static int comparePicturePOCDec(const void *a, const void *b)
 {
-    const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
-    const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
+    const VaapiDecPictureH264 *const picA = *(VaapiDecPictureH264 **) a;
+    const VaapiDecPictureH264 *const picB = *(VaapiDecPictureH264 **) b;
 
     return picB->m_POC - picA->m_POC;
 }
 
 static int comparePicturePOCInc(const void *a, const void *b)
 {
-    const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
-    const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
+    const VaapiDecPictureH264 *const picA = *(VaapiDecPictureH264 **) a;
+    const VaapiDecPictureH264 *const picB = *(VaapiDecPictureH264 **) b;
 
     return picA->m_POC - picB->m_POC;
 }
 
 static int comparePictureFrameNumWrapDec(const void *a, const void *b)
 {
-    const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
-    const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
+    const VaapiDecPictureH264 *const picA = *(VaapiDecPictureH264 **) a;
+    const VaapiDecPictureH264 *const picB = *(VaapiDecPictureH264 **) b;
 
     return picB->m_frameNumWrap - picA->m_frameNumWrap;
 }
 
 static int comparePictureLongTermFrameIdxInc(const void *a, const void *b)
 {
-    const VaapiPictureH264 *const picA = *(VaapiPictureH264 **) a;
-    const VaapiPictureH264 *const picB = *(VaapiPictureH264 **) b;
+    const VaapiDecPictureH264 *const picA = *(VaapiDecPictureH264 **) a;
+    const VaapiDecPictureH264 *const picB = *(VaapiDecPictureH264 **) b;
 
     return picA->m_longTermFrameIdx - picB->m_longTermFrameIdx;
 }
 
 static void
-setH264PictureReference(VaapiPictureH264 * picture,
+setH264PictureReference(VaapiDecPictureH264* picture,
                         uint32_t referenceFlags, bool otherField)
 {
     VAAPI_PICTURE_FLAG_UNSET(picture, VAAPI_PICTURE_FLAGS_REFERENCE);
     VAAPI_PICTURE_FLAG_SET(picture, referenceFlags);
 
-    if (!otherField || !(picture = picture->m_otherField))
-        return;
-
-    VAAPI_PICTURE_FLAG_UNSET(picture, VAAPI_PICTURE_FLAGS_REFERENCE);
-    VAAPI_PICTURE_FLAG_SET(picture, referenceFlags);
+    PicturePtr strong;
+    if (!otherField || !(strong = picture->m_otherField.lock()))
+        return ;
+    VaapiDecPictureH264* other = strong.get();
+    VAAPI_PICTURE_FLAG_UNSET(other, VAAPI_PICTURE_FLAGS_REFERENCE);
+    VAAPI_PICTURE_FLAG_SET(other, referenceFlags);
 }
 
 static int32_t
-getPicNumX(VaapiPictureH264 * picture, H264RefPicMarking * refPicMarking)
+getPicNumX(const PicturePtr& picture, H264RefPicMarking * refPicMarking)
 {
     int32_t picNum;
 
@@ -226,65 +232,59 @@ uint32_t getMaxDecFrameBuffering(H264SPS * sps, uint32_t views)
     return MAX(1, maxDecFrameBuffering);
 }
 
-VaapiDPBManager::VaapiDPBManager(uint32_t DPBSize)
-:  m_prevFrameStore(NULL)
+VaapiDPBManager::VaapiDPBManager(VaapiDecoderH264* decoder, uint32_t DPBSize)
+    :m_decoder(decoder)
 {
-    DPBLayer = (VaapiDecPicBufLayer *) malloc(sizeof(VaapiDecPicBufLayer));
-    if (!DPBLayer) {
-        ERROR("No system memory avaliable when malloc");
-        return;
-    }
-
-    memset((void *) DPBLayer, 0, sizeof(VaapiDecPicBufLayer));
-    DPBLayer->DPBSize = DPBSize;
+    DPBLayer.reset(new VaapiDecPicBufLayer(DPBSize));
 }
 
 VaapiDPBManager::~VaapiDPBManager()
 {
-    if (DPBLayer) {
-        free(DPBLayer);
-    }
 }
 
-bool VaapiDPBManager::outputDPB(VaapiFrameStore * frameStore,
-                                VaapiPictureH264 * picture)
+bool VaapiDPBManager::outputDPB(const VaapiFrameStore::Ptr &frameStore,
+                                const PicturePtr& picture)
 {
     picture->m_outputNeeded = false;
 
+    PicturePtr frame;
     if (frameStore) {
         if (--frameStore->m_outputNeeded > 0)
             return true;
-        picture = frameStore->m_buffers[0];
+        frame = frameStore->m_buffers[0];
     }
 
-    DEBUG("DPB: output picture(Addr:%p, Poc:%d)", picture, picture->m_POC);
+    DEBUG("DPB: output picture(Addr:%p, Poc:%d)", picture.get(), picture->m_POC);
 
+//FIXME:
+#if 0
     if (!frameStore)
         picture->m_surfBuf->status &= ~SURFACE_DECODING;
-
-    return picture->output();
+#endif
+    return m_decoder->outputPicture(frame) == DECODE_SUCCESS;
 }
 
-void VaapiDPBManager::evictDPB(VaapiPictureH264 * pic, uint32_t idx)
+void VaapiDPBManager::evictDPB(uint32_t idx)
 {
-    VaapiFrameStore *const frameStore = DPBLayer->DPB[idx];
+    const VaapiFrameStore::Ptr&  frameStore = DPBLayer->DPB[idx];
     if (!frameStore->m_outputNeeded && !frameStore->hasReference())
         removeDPBIndex(idx);
 }
 
 bool VaapiDPBManager::bumpDPB()
 {
-    VaapiPictureH264 *foundPicture = NULL;
+    PicturePtr foundPicture;
     uint32_t i, j, frameIndex;
     bool success;
 
     for (i = 0; i < DPBLayer->DPBCount; i++) {
-        VaapiFrameStore *const frameStore = DPBLayer->DPB[i];
+        const VaapiFrameStore::Ptr& frameStore = DPBLayer->DPB[i];
+
         if (!frameStore->m_outputNeeded)
             continue;
 
         for (j = 0; j < frameStore->m_numBuffers; j++) {
-            VaapiPictureH264 *const picture = frameStore->m_buffers[j];
+            const PicturePtr& picture = frameStore->m_buffers[j];
             if (!picture->m_outputNeeded)
                 continue;
             if (!foundPicture || foundPicture->m_POC > picture->m_POC)
@@ -295,7 +295,8 @@ bool VaapiDPBManager::bumpDPB()
         return false;
 
     success = outputDPB(DPBLayer->DPB[frameIndex], foundPicture);
-    evictDPB(foundPicture, frameIndex);
+
+    evictDPB(frameIndex);
     return success;
 }
 
@@ -304,8 +305,7 @@ void VaapiDPBManager::clearDPB()
     uint32_t i;
     if (DPBLayer) {
         for (i = 0; i < DPBLayer->DPBCount; i++) {
-            delete DPBLayer->DPB[i];
-            DPBLayer->DPB[i] = NULL;
+            DPBLayer->DPB[i].reset();
         }
         DPBLayer->DPBCount = 0;
     }
@@ -326,7 +326,7 @@ void VaapiDPBManager::drainDPB()
 void VaapiDPBManager::debugDPBStatus()
 {
     int i, j;
-    VaapiFrameStore *frameStore;
+    VaapiFrameStore::Ptr frameStore;
 
     for (i = 0; i < DPBLayer->DPBCount; i++) {
         frameStore = DPBLayer->DPB[i];
@@ -337,22 +337,22 @@ void VaapiDPBManager::debugDPBStatus()
                  frameStore->m_buffers[0]->m_POC,
                  frameStore->m_buffers[1]->m_POC,
                  frameStore->hasReference(),
-                 frameStore->m_buffers[0]->m_surfaceID);
+                 frameStore->m_buffers[0]->getSurfaceID());
         else
             DEBUG
                 ("index: %d, m_outputNeeded: %d, POC: %d, , isReference: %d, surface ID: 0x%x",
                  i, frameStore->m_outputNeeded,
                  frameStore->m_buffers[0]->m_POC,
                  frameStore->hasReference(),
-                 frameStore->m_buffers[0]->m_surfaceID);
+                 frameStore->m_buffers[0]->getSurfaceID());
     }
 }
 
-bool VaapiDPBManager::addDPB(VaapiFrameStore * &newFrameStore,
-                             VaapiPictureH264 * pic)
+bool VaapiDPBManager::addDPB(const VaapiFrameStore::Ptr& newFrameStore,
+                             const PicturePtr& pic)
 {
     uint32_t i, j;
-    VaapiFrameStore *frameStore;
+    VaapiFrameStore::Ptr frameStore;
 
 #ifdef __ENABLE_DEBUG__
     debugDPBStatus();
@@ -402,9 +402,6 @@ bool VaapiDPBManager::addDPB(VaapiFrameStore * &newFrameStore,
                 bool ret = true;
                 if (newFrameStore->hasFrame()) {
                     ret = outputDPB(newFrameStore, pic);
-                    delete newFrameStore;
-                    newFrameStore = NULL;
-                    pic = NULL;
                 } else {
                     m_prevFrameStore = newFrameStore;   // wait for a complete frame to render
                 }
@@ -424,15 +421,9 @@ bool VaapiDPBManager::addDPB(VaapiFrameStore * &newFrameStore,
 
 void VaapiDPBManager::resetDPB(H264SPS * sps)
 {
-    uint32_t i;
-    for (i = 0; i < 16; i++) {
-        if (DPBLayer->DPB[i]) {
-            delete DPBLayer->DPB[i];
-            DPBLayer->DPB[i] = NULL;
-        }
-    }
-    memset((void *) DPBLayer, 0, sizeof(VaapiDecPicBufLayer));
-    DPBLayer->DPBSize = getMaxDecFrameBuffering(sps, 1);
+    m_prevFrameStore.reset();
+    uint32_t size = getMaxDecFrameBuffering(sps, 1);
+    DPBLayer.reset(new VaapiDecPicBufLayer(size));
 }
 
 /*
@@ -446,20 +437,19 @@ bool VaapiDPBManager::outputImmediateBFrame()
     int i;
     int ret = true;
 
-    if (m_prevFrameStore) {
+    if (m_prevFrameStore.get()) {
         for (i = 0; i < m_prevFrameStore->m_numBuffers; i++) {
             ret &= outputDPB(m_prevFrameStore, m_prevFrameStore->m_buffers[i]);
         }
-        delete m_prevFrameStore;
-        m_prevFrameStore = NULL;
+        m_prevFrameStore.reset();
     }
 
     return ret;
 }
 
 /* initialize reference list */
-void VaapiDPBManager::initPictureRefs(VaapiPictureH264 * pic,
-                                      H264SliceHdr * sliceHdr,
+void VaapiDPBManager::initPictureRefs(const PicturePtr& pic,
+                                      const SliceHeaderPtr& sliceHdr,
                                       int32_t frameNum)
 {
     uint32_t i, numRefs;
@@ -505,7 +495,7 @@ void VaapiDPBManager::initPictureRefs(VaapiPictureH264 * pic,
     }
 }
 
-bool VaapiDPBManager::execRefPicMarking(VaapiPictureH264 * pic,
+bool VaapiDPBManager::execRefPicMarking(const PicturePtr& pic,
                                         bool * hasMMCO5)
 {
     *hasMMCO5 = false;
@@ -515,13 +505,11 @@ bool VaapiDPBManager::execRefPicMarking(VaapiPictureH264 * pic,
     }
 
     if (!VAAPI_H264_PICTURE_IS_IDR(pic)) {
-        VaapiSliceH264 *const slice =
-            (VaapiSliceH264 *) pic->getLastSlice();
+        H264SliceHdr* header = pic->getLastSliceHeader();
         H264DecRefPicMarking *const decRefPicMarking =
-            &slice->m_sliceHdr.dec_ref_pic_marking;
+            &header->dec_ref_pic_marking;
         if (decRefPicMarking->adaptive_ref_pic_marking_mode_flag) {
-            if (!execRefPicMarkingAdaptive
-                (pic, decRefPicMarking, hasMMCO5))
+            if (!execRefPicMarkingAdaptive(pic, decRefPicMarking, hasMMCO5))
                 return false;
         } else {
             if (!execRefPicMarkingSlidingWindow(pic))
@@ -535,11 +523,11 @@ bool VaapiDPBManager::execRefPicMarking(VaapiPictureH264 * pic,
 
 /* private functions */
 
-void VaapiDPBManager::initPictureRefLists(VaapiPictureH264 * pic)
+void VaapiDPBManager::initPictureRefLists(const PicturePtr& pic)
 {
     uint32_t i, j, shortRefCount, longRefCount;
-    VaapiFrameStore *frameStore;
-    VaapiPictureH264 *picture;
+    VaapiFrameStore::Ptr frameStore;
+    VaapiDecPictureH264 *picture;
 
     shortRefCount = 0;
     longRefCount = 0;
@@ -548,7 +536,7 @@ void VaapiDPBManager::initPictureRefLists(VaapiPictureH264 * pic)
             frameStore = DPBLayer->DPB[i];
             if (!frameStore->hasFrame())
                 continue;
-            picture = frameStore->m_buffers[0];
+            picture = frameStore->m_buffers[0].get();
             if (VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(picture))
                 DPBLayer->shortRef[shortRefCount++] = picture;
             else if (VAAPI_H264_PICTURE_IS_LONG_TERM_REFERENCE(picture))
@@ -560,7 +548,7 @@ void VaapiDPBManager::initPictureRefLists(VaapiPictureH264 * pic)
         for (i = 0; i < DPBLayer->DPBCount; i++) {
             frameStore = DPBLayer->DPB[i];
             for (j = 0; j < frameStore->m_numBuffers; j++) {
-                picture = frameStore->m_buffers[j];
+                picture = frameStore->m_buffers[j].get();
                 if (VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(picture))
                     DPBLayer->shortRef[shortRefCount++] = picture;
                 else if (VAAPI_H264_PICTURE_IS_LONG_TERM_REFERENCE
@@ -582,10 +570,10 @@ void VaapiDPBManager::initPictureRefLists(VaapiPictureH264 * pic)
 
 }
 
-void VaapiDPBManager::initPictureRefsPSlice(VaapiPictureH264 * pic,
-                                            H264SliceHdr * sliceHdr)
+void VaapiDPBManager::initPictureRefsPSlice(const PicturePtr& pic,
+                                            const SliceHeaderPtr& sliceHdr)
 {
-    VaapiPictureH264 **refList;
+    VaapiDecPictureH264 **refList;
     uint32_t i;
 
     if (pic->m_structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
@@ -607,9 +595,9 @@ void VaapiDPBManager::initPictureRefsPSlice(VaapiPictureH264 * pic,
         }
     } else {
         /* 8.2.4.2.2 - P and SP slices in fields */
-        VaapiPictureH264 *shortRef[32];
+        VaapiDecPictureH264 *shortRef[32];
         uint32_t shortRefCount = 0;
-        VaapiPictureH264 *longRef[32];
+        VaapiDecPictureH264 *longRef[32];
         uint32_t longRefCount = 0;
 
         if (DPBLayer->shortRefCount > 0) {
@@ -634,10 +622,10 @@ void VaapiDPBManager::initPictureRefsPSlice(VaapiPictureH264 * pic,
 
 }
 
-void VaapiDPBManager::initPictureRefsBSlice(VaapiPictureH264 * picture,
-                                            H264SliceHdr * sliceHdr)
+void VaapiDPBManager::initPictureRefsBSlice(const PicturePtr& picture,
+                                            const SliceHeaderPtr& sliceHdr)
 {
-    VaapiPictureH264 **refList;
+    VaapiDecPictureH264 **refList;
     uint32_t i, n;
 
     if (picture->m_structure == VAAPI_PICTURE_STRUCTURE_FRAME) {
@@ -702,11 +690,11 @@ void VaapiDPBManager::initPictureRefsBSlice(VaapiPictureH264 * picture,
         }
     } else {
         /* 8.2.4.2.4 - B slices in fields */
-        VaapiPictureH264 *shortRef0[32];
+        VaapiDecPictureH264 *shortRef0[32];
         uint32_t shortRef0Count = 0;
-        VaapiPictureH264 *shortRef1[32];
+        VaapiDecPictureH264 *shortRef1[32];
         uint32_t shortRef1Count = 0;
-        VaapiPictureH264 *longRef[32];
+        VaapiDecPictureH264 *longRef[32];
         uint32_t longRefCount = 0;
 
         /* refFrameList0ShortTerm */
@@ -773,20 +761,20 @@ void VaapiDPBManager::initPictureRefsBSlice(VaapiPictureH264 * picture,
         memcmp(DPBLayer->refPicList0, DPBLayer->refPicList1,
                DPBLayer->refPicList0Count *
                sizeof(DPBLayer->refPicList0[0])) == 0) {
-        VaapiPictureH264 *const tmp = DPBLayer->refPicList1[0];
+        VaapiDecPictureH264 *const tmp = DPBLayer->refPicList1[0];
         DPBLayer->refPicList1[0] = DPBLayer->refPicList1[1];
         DPBLayer->refPicList1[1] = tmp;
     }
 }
 
-void VaapiDPBManager::initPictureRefsFields(VaapiPictureH264 * picture,
-                                            VaapiPictureH264 *
+void VaapiDPBManager::initPictureRefsFields(const PicturePtr& picture,
+                                            VaapiDecPictureH264 *
                                             refPicList[32],
                                             uint32_t * refPicListCount,
-                                            VaapiPictureH264 *
+                                            VaapiDecPictureH264 *
                                             shortRef[32],
                                             uint32_t shortRefCount,
-                                            VaapiPictureH264 *
+                                            VaapiDecPictureH264 *
                                             longRef[32],
                                             uint32_t longRefCount)
 {
@@ -801,9 +789,9 @@ void VaapiDPBManager::initPictureRefsFields(VaapiPictureH264 * picture,
 
 void VaapiDPBManager::
 initPictureRefsFields1(uint32_t pictureStructure,
-                       VaapiPictureH264 * refPicList[32],
+                       VaapiDecPictureH264 * refPicList[32],
                        uint32_t * refPicListCount,
-                       VaapiPictureH264 * refList[32],
+                       VaapiDecPictureH264 * refList[32],
                        uint32_t refListCount)
 {
     uint32_t i, j, n;
@@ -833,8 +821,8 @@ initPictureRefsFields1(uint32_t pictureStructure,
     *refPicListCount = n;
 }
 
-void VaapiDPBManager::initPictureRefsPicNum(VaapiPictureH264 * picture,
-                                            H264SliceHdr * sliceHdr,
+void VaapiDPBManager::initPictureRefsPicNum(const PicturePtr& picture,
+                                            const SliceHeaderPtr& sliceHdr,
                                             int32_t frameNum)
 {
     H264PPS *const pps = sliceHdr->pps;
@@ -843,7 +831,7 @@ void VaapiDPBManager::initPictureRefsPicNum(VaapiPictureH264 * picture,
     uint32_t i;
 
     for (i = 0; i < DPBLayer->shortRefCount; i++) {
-        VaapiPictureH264 *const pic = DPBLayer->shortRef[i];
+        VaapiDecPictureH264 *const pic = DPBLayer->shortRef[i];
 
         // (8-27)
         if (pic->m_frameNum > frameNum)
@@ -863,7 +851,7 @@ void VaapiDPBManager::initPictureRefsPicNum(VaapiPictureH264 * picture,
     }
 
     for (i = 0; i < DPBLayer->longRefCount; i++) {
-        VaapiPictureH264 *const pic = DPBLayer->longRef[i];
+        VaapiDecPictureH264 *const pic = DPBLayer->longRef[i];
 
         // (8-29, 8-32, 8-33)
         if (picture->m_structure == VAAPI_PICTURE_STRUCTURE_FRAME)
@@ -877,9 +865,8 @@ void VaapiDPBManager::initPictureRefsPicNum(VaapiPictureH264 * picture,
     }
 }
 
-void VaapiDPBManager::execPictureRefsModification(VaapiPictureH264 *
-                                                  picture,
-                                                  H264SliceHdr * sliceHdr)
+void VaapiDPBManager::execPictureRefsModification(const PicturePtr& picture,
+                                                  const SliceHeaderPtr& sliceHdr)
 {
     /* refPicList0 */
     if (!H264_IS_I_SLICE(sliceHdr) && !H264_IS_SI_SLICE(sliceHdr) &&
@@ -892,16 +879,14 @@ void VaapiDPBManager::execPictureRefsModification(VaapiPictureH264 *
         execPictureRefsModification1(picture, sliceHdr, 1);
 }
 
-void VaapiDPBManager::execPictureRefsModification1(VaapiPictureH264 *
-                                                   picture,
-                                                   H264SliceHdr *
-                                                   sliceHdr, uint32_t list)
+void VaapiDPBManager::execPictureRefsModification1(const PicturePtr& picture,
+                                                   const SliceHeaderPtr&sliceHdr, uint32_t list)
 {
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
     H264RefPicListModification *refPicListModification;
     uint32_t numRefPicListModifications;
-    VaapiPictureH264 **refList;
+    VaapiDecPictureH264 **refList;
     uint32_t *refListCountPtr, refListCount, refListIdx = 0;
     uint32_t i, j, n, numRefs;
     int32_t foundRefIdx;
@@ -1013,10 +998,8 @@ void VaapiDPBManager::execPictureRefsModification1(VaapiPictureH264 *
 }
 
 
-bool VaapiDPBManager::execRefPicMarkingAdaptive(VaapiPictureH264 *
-                                                picture,
-                                                H264DecRefPicMarking *
-                                                decRefPicMarking,
+bool VaapiDPBManager::execRefPicMarkingAdaptive(const PicturePtr& picture,
+                                                H264DecRefPicMarking *decRefPicMarking,
                                                 bool * hasMMCO5)
 {
     uint32_t i;
@@ -1033,15 +1016,13 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive(VaapiPictureH264 *
     return true;
 }
 
-bool VaapiDPBManager::execRefPicMarkingAdaptive1(VaapiPictureH264 *
-                                                 picture,
-                                                 H264RefPicMarking *
-                                                 refPicMarking,
+bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
+                                                 H264RefPicMarking *refPicMarking,
                                                  uint32_t MMCO)
 {
     uint32_t picNumX, i;
     int32_t longTermFrameIdx;
-    VaapiPictureH264 *refPicture;
+    VaapiDecPictureH264 *refPicture;
     int32_t foundIdx = 0;
 
     switch (MMCO) {
@@ -1139,7 +1120,7 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(VaapiPictureH264 *
         {
             picture->m_longTermFrameIdx =
                 refPicMarking->long_term_frame_idx;
-            setH264PictureReference(picture,
+            setH264PictureReference(picture.get(),
                                     VAAPI_PICTURE_FLAG_LONG_TERM_REFERENCE,
                                     false);
         }
@@ -1151,12 +1132,11 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(VaapiPictureH264 *
     return true;
 }
 
-bool VaapiDPBManager::execRefPicMarkingSlidingWindow(VaapiPictureH264 *
-                                                     picture)
+bool VaapiDPBManager::execRefPicMarkingSlidingWindow(const PicturePtr& picture)
 {
     H264PPS *const pps = picture->m_pps;
     H264SPS *const sps = pps->sequence;
-    VaapiPictureH264 *refPicture;
+    VaapiDecPictureH264 *refPicture;
     uint32_t i, m, maxNumRefFrames;
 
     if (!VAAPI_PICTURE_IS_FIRST_FIELD(picture))
@@ -1175,7 +1155,7 @@ bool VaapiDPBManager::execRefPicMarkingSlidingWindow(VaapiPictureH264 *
         return false;
 
     for (m = 0, i = 1; i < DPBLayer->shortRefCount; i++) {
-        VaapiPictureH264 *const pic = DPBLayer->shortRef[i];
+        VaapiDecPictureH264 *const pic = DPBLayer->shortRef[i];
         if (pic->m_frameNumWrap < DPBLayer->shortRef[m]->m_frameNumWrap)
             m = i;
     }
@@ -1186,11 +1166,15 @@ bool VaapiDPBManager::execRefPicMarkingSlidingWindow(VaapiPictureH264 *
 
     /* Both fields need to be marked as "unused for reference", so
        remove the other field from the shortRef[] list as well */
-    if (!VAAPI_PICTURE_IS_FRAME(picture) && refPicture->m_otherField) {
-        for (i = 0; i < DPBLayer->shortRefCount; i++) {
-            if (DPBLayer->shortRef[i] == refPicture->m_otherField) {
-                ARRAY_REMOVE_INDEX(DPBLayer->shortRef, i);
-                break;
+    if (!VAAPI_PICTURE_IS_FRAME(picture)) {
+        PicturePtr strong = refPicture->m_otherField.lock();
+        VaapiDecPictureH264* other = strong.get();
+        if (other) {
+            for (i = 0; i < DPBLayer->shortRefCount; i++) {
+                if (DPBLayer->shortRef[i] == other) {
+                    ARRAY_REMOVE_INDEX(DPBLayer->shortRef, i);
+                    break;
+                }
             }
         }
     }
@@ -1224,16 +1208,18 @@ int32_t VaapiDPBManager::findLongTermReference(uint32_t longTermPicNum)
     return -1;
 }
 
-void VaapiDPBManager::removeShortReference(VaapiPictureH264 * picture)
+void VaapiDPBManager::removeShortReference(const PicturePtr& picture)
 {
-    VaapiPictureH264 *refPicture;
+    VaapiDecPictureH264 *refPicture;
     uint32_t i;
     uint32_t frameNum = picture->m_frameNum;
 
+    PicturePtr strong = picture->m_otherField.lock();
+    VaapiDecPictureH264* other = strong.get();
     for (i = 0; i < DPBLayer->shortRefCount; ++i) {
         if (DPBLayer->shortRef[i]->m_frameNum == frameNum) {
             refPicture = DPBLayer->shortRef[i];
-            if (refPicture != picture->m_otherField) {
+            if (refPicture != other) {
                 setH264PictureReference(refPicture, 0, false);
                 ARRAY_REMOVE_INDEX(DPBLayer->shortRef, i);
             }
@@ -1247,8 +1233,7 @@ void VaapiDPBManager::removeDPBIndex(uint32_t index)
     uint32_t i, numFrames = --DPBLayer->DPBCount;
 
     /* delete the frame store */
-    delete DPBLayer->DPB[index];
-    DPBLayer->DPB[index] = NULL;
+    DPBLayer->DPB[index].reset();
 
     if (USE_STRICT_DPB_ORDERING) {
         for (i = index; i < numFrames; i++)
@@ -1256,6 +1241,6 @@ void VaapiDPBManager::removeDPBIndex(uint32_t index)
     } else if (index != numFrames)
         DPBLayer->DPB[index] = DPBLayer->DPB[numFrames];
 
-    DPBLayer->DPB[numFrames] = NULL;
+    DPBLayer->DPB[numFrames].reset();
 
 }

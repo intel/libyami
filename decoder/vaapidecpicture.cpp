@@ -29,13 +29,13 @@
 
 VaapiDecPicture::VaapiDecPicture(VADisplay display, VAContextID context,
                                  const SurfacePtr& surface, int64_t timeStamp)
-    :VaapiPic(display, context, surface, timeStamp)
+    :VaapiPicture(display, context, surface, timeStamp)
 {
 }
 
 bool VaapiDecPicture::decode()
 {
-    return VaapiPic::render();
+    return VaapiPicture::render();
 }
 
 bool VaapiDecPicture::doRender()

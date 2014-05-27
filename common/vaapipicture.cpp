@@ -1,5 +1,5 @@
 /*
- *  vaapipic.c - base picture for va decoder and encoder
+ *  vaapipicture.c - base picture for va decoder and encoder
  *
  *  Copyright (C) 2014 Intel Corporation
  *    Author: Xu Guangxin <guangxin.xu@intel.com>
@@ -19,17 +19,18 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-#include "vaapipic.h"
+#include "vaapipicture.h"
 
 #include "log.h"
 #include "vaapibuffer.h"
 #include "vaapisurface.h"
-//FIXME:change VaapiPic to VaapiPicture after we remove decoder/vaapipicutre.h
 
-VaapiPic::VaapiPic(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp)
+
+VaapiPicture::VaapiPicture(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp)
     :m_display(display),
      m_context(context),
      m_surface(surface),
@@ -39,7 +40,7 @@ VaapiPic::VaapiPic(VADisplay display, VAContextID context,const SurfacePtr& surf
 
 }
 
-bool VaapiPic::render()
+bool VaapiPicture::render()
 {
     if (m_surface->getID() == VA_INVALID_SURFACE) {
         ERROR("bug: no surface to encode");
@@ -59,7 +60,7 @@ bool VaapiPic::render()
     return ret;
 }
 
-bool VaapiPic::render(const BufObjectPtr& buffer)
+bool VaapiPicture::render(const BufObjectPtr& buffer)
 {
     VAStatus status = VA_STATUS_SUCCESS;
     VABufferID bufferID = VA_INVALID_ID;

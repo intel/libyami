@@ -20,24 +20,23 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef vaapipic_h
-#define vaapipic_h
+#ifndef vaapipicture_h
+#define vaapipicture_h
 
 #include "vaapibuffer.h"
 #include "vaapiptrs.h"
+#include "vaapipicturetypes.h"
 #include "vaapisurface.h"
 #include "vaapitypes.h"
 #include <string.h>
 #include <va/va.h>
 #include <vector>
 
-//fixme: change name to VaapiPicture when we decoder/vaapipicture.h removed
-
-class VaapiPic
+class VaapiPicture
 {
 public:
-    VaapiPic(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp);
-    virtual ~VaapiPic() {};
+    VaapiPicture(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp);
+    virtual ~VaapiPicture() {};
 
     VASurfaceID getSurfaceID() const {
         return m_surface->getID();
@@ -60,7 +59,7 @@ protected:
     inline BufObjectPtr createBufferObject(VABufferType bufType,
                                            uint32_t size,const void *data, void **mapped_data);
 
-private:
+protected:
     VADisplay              m_display;
     VAContextID            m_context;
 
@@ -68,7 +67,7 @@ private:
 };
 
 template<class T>
-BufObjectPtr VaapiPic::createBufferObject(VABufferType  bufType, T*& bufPtr)
+BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr)
 {
     BufObjectPtr  p = createBufferObject(bufType, sizeof(T), NULL, (void**)&bufPtr);
     if (p)
@@ -76,14 +75,14 @@ BufObjectPtr VaapiPic::createBufferObject(VABufferType  bufType, T*& bufPtr)
     return p;
 }
 
-BufObjectPtr VaapiPic::createBufferObject(VABufferType bufType,
+BufObjectPtr VaapiPicture::createBufferObject(VABufferType bufType,
                                           uint32_t size,const void *data, void **mapped_data)
 {
     return VaapiBufObject::create(m_display, m_context, bufType, size, data, mapped_data);
 }
 
 template<class T>
-bool VaapiPic::editMember(BufObjectPtr& member , VABufferType bufType, T*& bufPtr)
+bool VaapiPicture::editMember(BufObjectPtr& member , VABufferType bufType, T*& bufPtr)
 {
     /* already set*/
     if (member)
@@ -93,7 +92,7 @@ bool VaapiPic::editMember(BufObjectPtr& member , VABufferType bufType, T*& bufPt
 }
 
 #define RENDER_OBJECT(mem) \
-do { if (mem && !VaapiPic::render(mem)) { ERROR("render " #mem " failed"); return false;} } while(0)
+do { if (mem && !VaapiPicture::render(mem)) { ERROR("render " #mem " failed"); return false;} } while(0)
 
 
 template <class P, class O>
@@ -106,4 +105,4 @@ bool render(P picture, std::vector<O>& objects)
     return true;
 }
 
-#endif //vaapipic_h
+#endif //vaapipicture_h

@@ -1,5 +1,5 @@
 /*
- *  vaapidecoder_h264.cpp - h264 decoder 
+ *  vaapidecoder_h264.cpp - h264 decoder
  *
  *  Copyright (C) 2011-2014 Intel Corporation
  *    Author: Gwenole Beauchesne <gwenole.beauchesne@intel.com>
@@ -33,6 +33,7 @@
 #include "vaapiptrs.h"
 
 typedef VaapiDecoderH264::PicturePtr PicturePtr;
+typedef VaapiDecPictureH264::SliceHeaderPtr SliceHeaderPtr;
 
 
 #define MACROBLOCK_SIZE 16
@@ -107,8 +108,9 @@ static VaapiChromaType getH264ChromaType(H264SPS * sps)
     return chromaType;
 }
 
+
 static inline uint32_t
-getSliceDataBitOffset(H264SliceHdr * sliceHdr, H264NalUnit * nalu)
+getSliceDataBitOffset(SliceHeaderPtr sliceHdr, H264NalUnit * nalu)
 {
     uint32_t epbCount;
     epbCount = sliceHdr->n_emulation_prevention_bytes;
@@ -187,124 +189,23 @@ scanForStartCode(const uint8_t * data,
     return -1;
 }
 
-VaapiSliceH264::VaapiSliceH264(VADisplay display,
-                               VAContextID ctx,
-                               uint8_t * sliceData, uint32_t sliceSize)
-{
-    VASliceParameterBufferH264 *paramBuf;
-
-    if (!display || !ctx) {
-        ERROR("VA display or context not initialized yet");
-        return;
-    }
-
-    /* new h264 slice data buffer */
-    m_data = new VaapiBufObject(display,
-                                ctx,
-                                VASliceDataBufferType,
-                                sliceData, sliceSize);
-
-    /* new h264 slice parameter buffer */
-    m_param = new VaapiBufObject(display,
-                                 ctx,
-                                 VASliceParameterBufferType,
-                                 NULL, sizeof(VASliceParameterBufferH264));
-
-    paramBuf = (VASliceParameterBufferH264 *) m_param->map();
-
-    paramBuf->slice_data_size = sliceSize;
-    paramBuf->slice_data_offset = 0;
-    paramBuf->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
-    m_param->unmap();
-
-    memset((void *) &m_sliceHdr, 0, sizeof(m_sliceHdr));
-
-}
-
-VaapiSliceH264::~VaapiSliceH264()
-{
-    if (m_data) {
-        delete m_data;
-        m_data = NULL;
-    }
-
-    if (m_param) {
-        delete m_param;
-        m_param = NULL;
-    }
-}
-
-VaapiPictureH264::VaapiPictureH264(VADisplay display,
-                                   VAContextID context,
-                                   VaapiSurfaceBufferPool * surfBufPool,
-                                   VaapiPictureStructure structure)
-:  VaapiPicture(display, context, surfBufPool, structure)
-{
-    m_pps = NULL;
-    m_fieldPoc[0] = INT_MAX;
-    m_fieldPoc[1] = INT_MAX;
-    m_frameNum = 0;
-    m_frameNumWrap = 0;
-    m_longTermFrameIdx = 0;
-    m_picNum = 0;
-    m_longTermPicNum = 0;
-    m_outputFlag = 0;
-    m_outputNeeded = 0;
-    m_otherField = NULL;
-
-    /* new h264 slice parameter buffer */
-    m_picParam = new VaapiBufObject(display,
-                                    context,
-                                    VAPictureParameterBufferType,
-                                    NULL,
-                                    sizeof(VAPictureParameterBufferH264));
-    if (!m_picParam)
-        ERROR("create h264 picture parameter buffer object failed");
-
-    m_iqMatrix = new VaapiBufObject(display,
-                                    context,
-                                    VAIQMatrixBufferType,
-                                    NULL, sizeof(VAIQMatrixBufferH264));
-    if (!m_iqMatrix)
-        ERROR("create h264 iq matrix buffer object failed");
-
-}
-
-VaapiPictureH264 *VaapiPictureH264::newField()
-{
-    VaapiPictureH264 *field = NULL;
-
-    field = new VaapiPictureH264(m_display, m_context, NULL, VAAPI_PICTURE_STRUCTURE_NULL);
-    if (!field)
-        return NULL;
-
-    field->attachSurfaceBuf(m_surfBufPool, m_surfBuf);
-    field->m_frameNum = m_frameNum;
-
-    return field;
-}
-
-VaapiFrameStore::VaapiFrameStore(VaapiPictureH264 * pic)
+VaapiFrameStore::VaapiFrameStore(const PicturePtr& pic)
 {
     m_structure = pic->m_structure;
     m_buffers[0] = pic;
-    m_buffers[1] = NULL;
     m_numBuffers = 1;
     m_outputNeeded = pic->m_outputNeeded;
 }
 
 VaapiFrameStore::~VaapiFrameStore()
 {
-    uint32_t i;
-    for (i = 0; i < m_numBuffers; i++)
-        delete m_buffers[i];
 }
 
 bool
- VaapiFrameStore::addPicture(VaapiPictureH264 * pic)
+ VaapiFrameStore::addPicture(const PicturePtr& pic)
 {
     uint8_t field;
-    VaapiPictureH264 *const firstField = m_buffers[0];
+    const PicturePtr& firstField = m_buffers[0];
 
     RETURN_VAL_IF_FAIL(m_numBuffers == 1, false);
     RETURN_VAL_IF_FAIL(pic->m_structure != VAAPI_PICTURE_STRUCTURE_FRAME, false);
@@ -328,8 +229,9 @@ bool
 
 bool VaapiFrameStore::splitFields()
 {
-    VaapiPictureH264 *const firstField = m_buffers[0];
-    VaapiPictureH264 *secondField;
+    // XXX, optimize for sp initial/destroy
+    const PicturePtr& firstField = m_buffers[0];
+    PicturePtr  secondField;
 
     RETURN_VAL_IF_FAIL(m_numBuffers == 1, false);
 
@@ -337,7 +239,7 @@ bool VaapiFrameStore::splitFields()
     firstField->m_flags |= VAAPI_PICTURE_FLAG_INTERLACED;
 
     secondField = firstField->newField();
-    if (!secondField)
+    if (!secondField.get())
         return false;
 
     secondField->m_picStructure = VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD;
@@ -368,9 +270,9 @@ bool VaapiFrameStore::hasReference()
     uint32_t i;
 
     for (i = 0; i < m_numBuffers; i++) {
-        if (!m_buffers[i])
+        if (!m_buffers[i].get())
             continue;
-        if (VAAPI_PICTURE_IS_REFERENCE(m_buffers[i]))
+        if (VAAPI_PICTURE_IS_REFERENCE(m_buffers[i].get()))
             return true;
     }
     return false;
@@ -438,8 +340,7 @@ Decode_Status VaapiDecoderH264::decodeSequenceEnd()
     DEBUG("H264: decode sequence-end");
 
     status = decodeCurrentPicture();
-    delete m_currentPicture;
-    m_currentPicture = NULL;
+    m_currentPicture.reset();
 
     if (m_DPBManager)
         m_DPBManager->drainDPB();
@@ -447,8 +348,8 @@ Decode_Status VaapiDecoderH264::decodeSequenceEnd()
     return status;
 }
 
-void VaapiDecoderH264::initPicturePOC0(VaapiPictureH264 * picture,
-                                       H264SliceHdr * sliceHdr)
+void VaapiDecoderH264::initPicturePOC0(const PicturePtr& picture,
+                                       const SliceHeaderPtr& sliceHdr)
 {
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
@@ -499,8 +400,8 @@ void VaapiDecoderH264::initPicturePOC0(VaapiPictureH264 * picture,
     }
 }
 
-void VaapiDecoderH264::initPicturePOC1(VaapiPictureH264 * picture,
-                                       H264SliceHdr * sliceHdr)
+void VaapiDecoderH264::initPicturePOC1(const PicturePtr& picture,
+                                       const SliceHeaderPtr& sliceHdr)
 {
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
@@ -573,8 +474,8 @@ void VaapiDecoderH264::initPicturePOC1(VaapiPictureH264 * picture,
     }
 }
 
-void VaapiDecoderH264::initPicturePOC2(VaapiPictureH264 * picture,
-                                       H264SliceHdr * sliceHdr)
+void VaapiDecoderH264::initPicturePOC2(const PicturePtr& picture,
+                                       const SliceHeaderPtr& sliceHdr)
 {
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
@@ -610,8 +511,8 @@ void VaapiDecoderH264::initPicturePOC2(VaapiPictureH264 * picture,
 }
 
 /* 8.2.1 - Decoding process for picture order count */
-void VaapiDecoderH264::initPicturePOC(VaapiPictureH264 * picture,
-                                      H264SliceHdr * sliceHdr)
+void VaapiDecoderH264::initPicturePOC(const PicturePtr& picture,
+                                      const SliceHeaderPtr& sliceHdr)
 {
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
@@ -641,8 +542,8 @@ void VaapiDecoderH264::initPicturePOC(VaapiPictureH264 * picture,
 
 }
 
-bool VaapiDecoderH264::initPicture(VaapiPictureH264 * picture,
-                                   H264SliceHdr * sliceHdr,
+bool VaapiDecoderH264::initPicture(const PicturePtr& picture,
+                                   const SliceHeaderPtr& sliceHdr,
                                    H264NalUnit * nalu)
 {
     H264SPS *const sps = sliceHdr->pps->sequence;
@@ -659,7 +560,7 @@ bool VaapiDecoderH264::initPicture(VaapiPictureH264 * picture,
         DEBUG("H264: IDR frame detected");
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_IDR);
         m_DPBManager->flushDPB();
-        m_prevFrame = NULL;
+        m_prevFrame.reset();
     }
 
     /* Initialize slice type */
@@ -726,10 +627,10 @@ void VaapiDecoderH264::vaapiInitPicture(VAPictureH264 * pic)
 }
 
 void VaapiDecoderH264::vaapiFillPicture(VAPictureH264 * pic,
-                                        VaapiPictureH264 * picture,
+                                        const VaapiDecPictureH264* const picture,
                                         uint32_t pictureStructure)
 {
-    pic->picture_id = picture->m_surfaceID;
+    pic->picture_id = picture->getSurfaceID();
     pic->flags = 0;
 
     if (VAAPI_H264_PICTURE_IS_LONG_TERM_REFERENCE(picture)) {
@@ -762,27 +663,28 @@ void VaapiDecoderH264::vaapiFillPicture(VAPictureH264 * pic,
     }
 }
 
-bool VaapiDecoderH264::fillPicture(VaapiPictureH264 * picture,
-                                   H264SliceHdr * sliceHdr,
+bool VaapiDecoderH264::fillPicture(const PicturePtr& picture,
+                                   const SliceHeaderPtr& sliceHdr,
                                    H264NalUnit * nalu)
 {
     uint32_t i, n;
     H264PPS *const pps = picture->m_pps;
     H264SPS *const sps = pps->sequence;
-    VaapiDecPicBufLayer *DPBLayer = m_DPBManager->DPBLayer;
-    VaapiBufObject *picParamObj = picture->m_picParam;
+    const VaapiDecPicBufLayer::Ptr& DPBLayer = m_DPBManager->DPBLayer;
 
-    VAPictureParameterBufferH264 *picParam =
-        (VAPictureParameterBufferH264 *) picParamObj->map();
+    VAPictureParameterBufferH264 *picParam;
+
+    if (!picture->editPicture(picParam))
+        return false;
 
     /* Fill in VAPictureParameterBufferH264 */
-    vaapiFillPicture(&picParam->CurrPic, picture, 0);
+    vaapiFillPicture(&picParam->CurrPic, picture.get(), 0);
 
     for (i = 0, n = 0; i < DPBLayer->DPBCount; i++) {
-        VaapiFrameStore *const frameStore = DPBLayer->DPB[i];
+        const VaapiFrameStore::Ptr& frameStore = DPBLayer->DPB[i];
         if (frameStore && frameStore->hasReference())
             vaapiFillPicture(&picParam->ReferenceFrames[n++],
-                             frameStore->m_buffers[0],
+                             frameStore->m_buffers[0].get(),
                              frameStore->m_structure);
     }
 
@@ -838,13 +740,12 @@ bool VaapiDecoderH264::fillPicture(VaapiPictureH264 * picture,
     COPY_BFM(pic_fields, pps, pic_order_present_flag);
     COPY_BFM(pic_fields, pps, deblocking_filter_control_present_flag);
     COPY_BFM(pic_fields, pps, redundant_pic_cnt_present_flag);
-    picParamObj->unmap();
 
     return true;
 }
 
 /* fill slice parameter buffers functions*/
-bool VaapiDecoderH264::ensureQuantMatrix(VaapiPictureH264 * pic)
+bool VaapiDecoderH264::ensureQuantMatrix(const PicturePtr& pic)
 {
     H264PPS *const pps = pic->m_pps;
     H264SPS *const sps = pps->sequence;
@@ -855,27 +756,22 @@ bool VaapiDecoderH264::ensureQuantMatrix(VaapiPictureH264 * pic)
     if (sps->chroma_format_idc == 3)
         return false;
 
-    iqMatrix = (VAIQMatrixBufferH264 *) pic->m_iqMatrix->map();
+    if (!pic->editIqMatrix(iqMatrix))
+        return false;
 
     fillIqMatrix4x4(iqMatrix, pps);
     fillIqMatrix8x8(iqMatrix, pps);
-    pic->m_iqMatrix->unmap();
     return true;
 }
 
-bool VaapiDecoderH264::fillPredWeightTable(VaapiSliceH264 * slice)
+bool VaapiDecoderH264::fillPredWeightTable(VASliceParameterBufferH264 *sliceParam,
+                                                 const SliceHeaderPtr& sliceHdr)
 {
     int32_t i, j;
     uint32_t numWeightTables = 0;
-    H264SliceHdr *const sliceHdr = &slice->m_sliceHdr;
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
     H264PredWeightTable *const w = &sliceHdr->pred_weight_table;
-
-    VaapiBufObject *sliceParamObj = slice->m_param;
-
-    VASliceParameterBufferH264 *sliceParam =
-        (VASliceParameterBufferH264 *) sliceParamObj->map();
 
     if (pps->weighted_pred_flag &&
         (H264_IS_P_SLICE(sliceHdr) || H264_IS_SP_SLICE(sliceHdr)))
@@ -893,7 +789,7 @@ bool VaapiDecoderH264::fillPredWeightTable(VaapiSliceH264 * slice)
     sliceParam->chroma_weight_l1_flag = 0;
 
     if (numWeightTables < 1)
-        goto out;
+        return true;
 
     sliceParam->luma_weight_l0_flag = 1;
     for (i = 0; i <= sliceParam->num_ref_idx_l0_active_minus1; i++) {
@@ -914,7 +810,7 @@ bool VaapiDecoderH264::fillPredWeightTable(VaapiSliceH264 * slice)
     }
 
     if (numWeightTables < 2)
-        goto out;
+        return true;
 
     sliceParam->luma_weight_l1_flag = 1;
     for (i = 0; i <= sliceParam->num_ref_idx_l1_active_minus1; i++) {
@@ -933,20 +829,14 @@ bool VaapiDecoderH264::fillPredWeightTable(VaapiSliceH264 * slice)
             }
         }
     }
-
-  out:
-    sliceParamObj->unmap();
     return true;
 }
 
-bool VaapiDecoderH264::fillRefPicList(VaapiSliceH264 * slice)
+bool VaapiDecoderH264::fillRefPicList(VASliceParameterBufferH264 * sliceParam,
+                                        const SliceHeaderPtr& sliceHdr)
 {
     uint32_t i, numRefLists = 0;
-    VaapiDecPicBufLayer *DPBLayer = m_DPBManager->DPBLayer;
-    H264SliceHdr *const sliceHdr = &slice->m_sliceHdr;
-    VaapiBufObject *sliceParamObj = slice->m_param;
-    VASliceParameterBufferH264 *sliceParam =
-        (VASliceParameterBufferH264 *) sliceParamObj->map();
+    VaapiDecPicBufLayer::Ptr& DPBLayer = m_DPBManager->DPBLayer;
 
     sliceParam->num_ref_idx_l0_active_minus1 = 0;
     sliceParam->num_ref_idx_l1_active_minus1 = 0;
@@ -959,7 +849,7 @@ bool VaapiDecoderH264::fillRefPicList(VaapiSliceH264 * slice)
         numRefLists = 1;
 
     if (numRefLists < 1)
-        goto out;
+        return true;
 
     sliceParam->num_ref_idx_l0_active_minus1 =
         sliceHdr->num_ref_idx_l0_active_minus1;
@@ -972,7 +862,7 @@ bool VaapiDecoderH264::fillRefPicList(VaapiSliceH264 * slice)
         vaapiInitPicture(&sliceParam->RefPicList0[i]);
 
     if (numRefLists < 2)
-        goto out;
+        return true;
 
     sliceParam->num_ref_idx_l1_active_minus1 =
         sliceHdr->num_ref_idx_l1_active_minus1;
@@ -984,19 +874,13 @@ bool VaapiDecoderH264::fillRefPicList(VaapiSliceH264 * slice)
     for (; i <= sliceParam->num_ref_idx_l1_active_minus1; i++)
         vaapiInitPicture(&sliceParam->RefPicList1[i]);
 
-  out:
-    sliceParamObj->unmap();
     return true;
 }
 
-bool VaapiDecoderH264::fillSlice(VaapiSliceH264 * slice,
+bool VaapiDecoderH264::fillSlice(VASliceParameterBufferH264 * sliceParam,
+                                 const SliceHeaderPtr& sliceHdr,
                                  H264NalUnit * nalu)
 {
-    H264SliceHdr *const sliceHdr = &slice->m_sliceHdr;
-    VaapiBufObject *sliceParamObj = slice->m_param;
-    VASliceParameterBufferH264 *sliceParam =
-        (VASliceParameterBufferH264 *) sliceParamObj->map();
-
     /* Fill in VASliceParameterBufferH264 */
     sliceParam->slice_data_bit_offset =
         getSliceDataBitOffset(sliceHdr, nalu);
@@ -1012,11 +896,9 @@ bool VaapiDecoderH264::fillSlice(VaapiSliceH264 * slice,
         sliceHdr->slice_alpha_c0_offset_div2;
     sliceParam->slice_beta_offset_div2 = sliceHdr->slice_beta_offset_div2;
 
-    sliceParamObj->unmap();
-
-    if (!fillRefPicList(slice))
+    if (!fillRefPicList(sliceParam, sliceHdr))
         return false;
-    if (!fillPredWeightTable(slice))
+    if (!fillPredWeightTable(sliceParam, sliceHdr))
         return false;
     return true;
 }
@@ -1035,7 +917,7 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
 
     if (!m_DPBManager) {
         DPBSize = getMaxDecFrameBuffering(sps, 1);
-        m_DPBManager = new VaapiDPBManager(DPBSize);
+        m_DPBManager.reset(new VaapiDPBManager(this, DPBSize));
     }
 
     VideoConfigBuffer *config = &m_configBuffer;
@@ -1108,20 +990,18 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
 }
 
 bool VaapiDecoderH264::isNewPicture(H264NalUnit * nalu,
-                                    H264SliceHdr * sliceHdr)
+                                    const SliceHeaderPtr& sliceHdr)
 {
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
-    VaapiSliceH264 *slice;
     H264SliceHdr *prevSliceHdr;
 
     if (!m_currentPicture)
         return true;
 
-    slice = (VaapiSliceH264 *) (m_currentPicture->getLastSlice());
-    if (!slice)
-        return false;
-    prevSliceHdr = &slice->m_sliceHdr;
+    prevSliceHdr = m_currentPicture->getLastSliceHeader();
+    if (!prevSliceHdr)
+        return true;
 
 #define CHECK_EXPR(expr, field_name) do {              \
         if (!(expr)) {                                 \
@@ -1179,7 +1059,7 @@ bool VaapiDecoderH264::isNewPicture(H264NalUnit * nalu,
     return false;
 }
 
-bool VaapiDecoderH264::markingPicture(VaapiPictureH264 * pic)
+bool VaapiDecoderH264::markingPicture(const PicturePtr& pic)
 {
     if (!m_DPBManager->execRefPicMarking(pic, &m_prevPicHasMMCO5))
         return false;
@@ -1187,7 +1067,7 @@ bool VaapiDecoderH264::markingPicture(VaapiPictureH264 * pic)
     if (m_prevPicHasMMCO5) {
         m_frameNum = 0;
         m_frameNumOffset = 0;
-        m_prevFrame = NULL;
+        m_prevFrame.reset();
     }
 
     m_prevPicStructure = pic->m_structure;
@@ -1195,11 +1075,11 @@ bool VaapiDecoderH264::markingPicture(VaapiPictureH264 * pic)
     return true;
 }
 
-bool VaapiDecoderH264::storeDecodedPicture(VaapiPictureH264 * pic)
+bool VaapiDecoderH264::storeDecodedPicture(const PicturePtr pic)
 {
     int ret = true;
 
-    VaapiFrameStore *frameStore;
+    VaapiFrameStore::Ptr frameStore;
     // Check if picture is the second field and the first field is still in DPB
     if (m_prevFrame && !m_prevFrame->hasFrame()) {
         RETURN_VAL_IF_FAIL(m_prevFrame->m_numBuffers == 1, false);
@@ -1209,13 +1089,11 @@ bool VaapiDecoderH264::storeDecodedPicture(VaapiPictureH264 * pic)
                            false);
 
         ret = m_prevFrame->addPicture(m_currentPicture);
-        m_currentPicture = NULL;
+        m_currentPicture.reset();
         return ret;
     }
     // Create new frame store, and split fields if necessary
-    frameStore = new VaapiFrameStore(pic);
-    if (!frameStore)
-        return false;
+    frameStore.reset(new VaapiFrameStore(pic));
 
     m_prevFrame = frameStore;
     if (!m_progressiveSequence && frameStore->hasFrame()) {
@@ -1224,7 +1102,7 @@ bool VaapiDecoderH264::storeDecodedPicture(VaapiPictureH264 * pic)
     }
 
     if (m_prevFrame && m_prevFrame->hasFrame())
-        m_currentPicture = NULL;
+        m_currentPicture.reset();
 
     if (!m_DPBManager->addDPB(m_prevFrame, pic))
         return false;
@@ -1246,7 +1124,7 @@ Decode_Status VaapiDecoderH264::decodeCurrentPicture()
     if (!markingPicture(m_currentPicture))
         goto error;
 
-    if (!m_currentPicture->decodePicture())
+    if (!m_currentPicture->decode())
         goto error;
 
     if (!storeDecodedPicture(m_currentPicture))
@@ -1254,19 +1132,18 @@ Decode_Status VaapiDecoderH264::decodeCurrentPicture()
 
     return DECODE_SUCCESS;
 
-  error:
+error:
     WARNING("decodeCurrentPicture error");
     /* XXX: fix for cases where first field failed to be decoded */
-    delete m_currentPicture;
-    m_currentPicture = NULL;
+    m_currentPicture.reset();
     return DECODE_FAIL;
 }
 
 Decode_Status
     VaapiDecoderH264::decodePicture(H264NalUnit * nalu,
-                                    H264SliceHdr * sliceHdr)
+                                    const SliceHeaderPtr& sliceHdr)
 {
-    VaapiPictureH264 *picture;
+    PicturePtr picture;
     Decode_Status status;
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
@@ -1280,21 +1157,15 @@ Decode_Status
         picture = m_currentPicture->newField();
         if (!picture) {
             ERROR("failed to allocate field picture");
-            m_currentPicture = NULL;
+            m_currentPicture.reset();
             return DECODE_FAIL;
         }
 
     } else {
-        /*accquire one surface from m_bufPool in base decoder  */
-        picture = new VaapiPictureH264(m_VADisplay,
-                                       m_VAContext, m_bufPool,
-                                       VAAPI_PICTURE_STRUCTURE_NULL);
-
-        /*FIXME: attach a correct surface to picutre*/
         SurfacePtr s = createSurface();
         if (!s)
             return DECODE_FAIL;
-        VaapiDecPictureH264::PicturePtr pic(new VaapiDecPictureH264(m_VADisplay, m_VAContext, s, 0));
+        picture.reset(new VaapiDecPictureH264(m_VADisplay, m_VAContext, s, 0));
         /* test code */
 
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);
@@ -1321,53 +1192,39 @@ Decode_Status
 Decode_Status VaapiDecoderH264::decodeSlice(H264NalUnit * nalu)
 {
     Decode_Status status;
-    VaapiPictureH264 *picture;
-    VaapiSliceH264 *slice = NULL;
-    H264SliceHdr *sliceHdr;
-    H264SliceHdr tmpSliceHdr;
+    VaapiDecPictureH264 *picture;
     H264ParserResult result;
 
+    SliceHeaderPtr sliceHdr(new H264SliceHdr);
+
     /* parser the slice header info */
-    memset((void *) &tmpSliceHdr, 0, sizeof(tmpSliceHdr));
+    memset(sliceHdr.get(), 0, sizeof(H264SliceHdr));
     result = h264_parser_parse_slice_hdr(&m_parser, nalu,
-                                         &tmpSliceHdr, true, true);
+                                         sliceHdr.get(), true, true);
     if (result != H264_PARSER_OK) {
         status = getStatus(result);
-        goto error;
+        return status;
     }
 
     /* check info and reset VA resource if necessary */
-    status = ensureContext(tmpSliceHdr.pps);
+    status = ensureContext(sliceHdr->pps);
     if (status != DECODE_SUCCESS)
         return status;
-
-    /* construct slice and parsing slice header */
-    slice = new VaapiSliceH264(m_VADisplay,
-                               m_VAContext,
-                               nalu->data + nalu->offset, nalu->size);
-    sliceHdr = &(slice->m_sliceHdr);
-
-    memcpy((void *) sliceHdr, (void *) &tmpSliceHdr, sizeof(*sliceHdr));
 
     if (isNewPicture(nalu, sliceHdr)) {
         status = decodePicture(nalu, sliceHdr);
         if (status != DECODE_SUCCESS)
-            goto error;
+            return status;
     }
 
-    if (!fillSlice(slice, nalu)) {
-        status = DECODE_FAIL;
-        goto error;
-    }
+    VASliceParameterBufferH264 *sliceParam;
+    if (!m_currentPicture->newSlice(sliceParam, nalu->data+nalu->offset, nalu->size, sliceHdr))
+        return DECODE_MEMORY_FAIL;
 
-    m_currentPicture->addSlice((VaapiSlice *) slice);
+    if (!fillSlice(sliceParam, sliceHdr, nalu))
+        return DECODE_FAIL;
 
     return DECODE_SUCCESS;
-
-  error:
-    if (slice)
-        delete slice;
-    return status;
 }
 
 Decode_Status VaapiDecoderH264::decodeNalu(H264NalUnit * nalu)
@@ -1494,16 +1351,19 @@ void VaapiDecoderH264::updateFrameInfo()
     }
 }
 
+
+Decode_Status VaapiDecoderH264::outputPicture(PicturePtr& picture)
+{
+    VaapiDecoderBase::PicturePtr base = std::tr1::static_pointer_cast<VaapiDecPicture>(picture);
+    return VaapiDecoderBase::outputPicture(base, picture->m_POC) == DECODE_SUCCESS;
+}
+
 VaapiDecoderH264::VaapiDecoderH264()
 {
-    m_currentPicture = NULL;
-    m_DPBManager = NULL;
-
     memset((void *) &m_parser, 0, sizeof(H264NalParser));
     memset((void *) &m_lastSPS, 0, sizeof(H264SPS));
     memset((void *) &m_lastPPS, 0, sizeof(H264PPS));
 
-    m_prevFrame = NULL;
     m_frameNum = 0;
     m_prevFrameNum = 0;
     m_prevPicHasMMCO5 = false;
@@ -1511,7 +1371,6 @@ VaapiDecoderH264::VaapiDecoderH264()
     m_prevPicStructure = VAAPI_PICTURE_STRUCTURE_FRAME;
     m_frameNumOffset = 0;
 
-    m_currentPicture = NULL;
     m_mbWidth = 0;
     m_mbHeight = 0;
 
@@ -1570,7 +1429,8 @@ Decode_Status VaapiDecoderH264::reset(VideoConfigBuffer * buffer)
     if (m_DPBManager)
         m_DPBManager->clearDPB();
 
-    m_prevFrame = NULL;
+    m_prevFrame.reset();
+    m_currentPicture.reset();
     return VaapiDecoderBase::reset(buffer);
 }
 
@@ -1578,11 +1438,13 @@ void VaapiDecoderH264::stop(void)
 {
     DEBUG("H264: stop()");
     flush();
+    //release all pictures before we release surface pool
+    m_prevFrame.reset();
+    m_currentPicture.reset();
+
     VaapiDecoderBase::stop();
 
-    delete m_DPBManager;
-
-    m_DPBManager = NULL;
+    m_DPBManager.reset();
 }
 
 void VaapiDecoderH264::flush(void)
