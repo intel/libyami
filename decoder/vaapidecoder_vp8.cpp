@@ -446,22 +446,13 @@ void VaapiDecoderVP8::updateReferencePictures()
 
 bool VaapiDecoderVP8::allocNewPicture()
 {
-    int i;
+    m_currentPicture = createPicture(m_currentPTS);
 
-    /* Create new picture */
-
-    /*accquire one surface from m_bufPool in base decoder  */
-
-    SurfacePtr surface = createSurface();
-    if (!surface) {
-        ERROR("create surface failed");
+    if (!m_currentPicture)
         return false;
-    }
-    PicturePtr picture(new VaapiDecPicture(m_VADisplay, m_VAContext, surface, m_currentPTS));
 
-    m_currentPicture = picture;
-    DEBUG ("i: %d, alloc new picture: %p with surface ID: %x",
-         i, m_currentPicture.get(), m_currentPicture->getSurfaceID());
+    DEBUG ("alloc new picture: %p with surface ID: %x",
+         m_currentPicture.get(), m_currentPicture->getSurfaceID());
 
     return true;
 }

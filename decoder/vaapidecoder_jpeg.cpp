@@ -327,14 +327,10 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
     }
 
     if (!m_picture) {
-        SurfacePtr surface = createSurface();
-        if (!surface) {
-            ERROR("create surface failed");
-            return false;
-        }
+        m_picture = createPicture(m_currentPTS);
 
-        // XXX, add picture structure back, move it to base decdoer
-        m_picture.reset(new VaapiDecPicture(m_VADisplay, m_VAContext, surface, m_currentPTS));
+        if (!m_picture)
+            return false;
     }
 
     if (!m_picture) {

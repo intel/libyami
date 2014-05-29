@@ -34,6 +34,8 @@
 
 #define ANDROID_DISPLAY_HANDLE 0x18C34078
 
+typedef VaapiDecoderBase::PicturePtr PicturePtr;
+
 VaapiDecoderBase::VaapiDecoderBase()
 :m_display(NULL),
 m_VADisplay(NULL),
@@ -56,6 +58,20 @@ VaapiDecoderBase::~VaapiDecoderBase()
     INFO("base: deconstruct()");
     stop();
     delete[] m_videoFormatInfo.ctxSurfaces;
+}
+
+PicturePtr VaapiDecoderBase::createPicture(int64_t timeStamp /* , VaapiPictureStructure structure = VAAPI_PICTURE_STRUCTURE_FRAME */)
+{
+    PicturePtr picture;
+    /*accquire one surface from m_bufPool in base decoder  */
+    SurfacePtr surface = createSurface();
+    if (!surface) {
+        ERROR("create surface failed");
+        return picture;
+    }
+
+    picture.reset(new VaapiDecPicture(m_VADisplay, m_VAContext, surface, timeStamp));
+    return picture;
 }
 
 Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)

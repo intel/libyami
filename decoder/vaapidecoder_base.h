@@ -48,6 +48,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     VaapiDecoderBase();
     virtual ~ VaapiDecoderBase();
 
+    virtual PicturePtr createPicture(int64_t timeStamp /* , VaapiPictureStructure structure = VAAPI_PICTURE_STRUCTURE_FRAME */);
     virtual Decode_Status start(VideoConfigBuffer * buffer);
     virtual Decode_Status reset(VideoConfigBuffer * buffer);
     virtual void stop(void);
