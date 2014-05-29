@@ -24,22 +24,13 @@
 #ifndef VAAPI_DECODER_Jpeg_H
 #define VAAPI_DECODER_Jpeg_H
 
-#include "vaapipicture.h"
+#include "vaapidecpicture.h"
 #include "vaapidecoder_base.h"
 #include "codecparsers/jpegparser.h"
 
-class VaapiSliceJpeg:public VaapiSlice {
-  public:
-    VaapiSliceJpeg(VADisplay display,
-                   VAContextID ctx,
-                   uint8_t * sliceData, uint32_t sliceSize);
-
-    ~VaapiSliceJpeg();
-    // JpegScanHdr slice_hdr;
-};
-
 class VaapiDecoderJpeg:public VaapiDecoderBase {
   public:
+    typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
     VaapiDecoderJpeg();
     virtual ~ VaapiDecoderJpeg();
     virtual Decode_Status start(VideoConfigBuffer * buffer);
@@ -68,7 +59,7 @@ class VaapiDecoderJpeg:public VaapiDecoderBase {
     VaapiProfile m_profile;
     uint32_t m_width;
     uint32_t m_height;
-    VaapiPicture *m_picture;
+    PicturePtr m_picture;
     JpegFrameHdr m_frameHdr;
     JpegHuffmanTables m_hufTables;
     JpegQuantTables m_quantTables;

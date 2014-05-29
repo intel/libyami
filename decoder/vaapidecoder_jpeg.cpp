@@ -66,51 +66,11 @@ static uint32_t getMaxVerticalSamples(JpegFrameHdr * frameHdr)
     return maxFactor;
 }
 
-VaapiSliceJpeg::VaapiSliceJpeg(VADisplay display,
-                               VAContextID ctx,
-                               uint8_t * sliceData, uint32_t sliceSize)
-{
-    VASliceParameterBufferJPEGBaseline *paramBuf;
-
-    if (!display || !ctx) {
-        ERROR("VA display or context not initialized yet");
-        return;
-    }
-
-    /* new JPEG slice data buffer */
-    m_data = new VaapiBufObject(display,
-                                ctx,
-                                VASliceDataBufferType,
-                                sliceData, sliceSize);
-
-    /* new JPEG slice parameter buffer */
-    m_param = new VaapiBufObject(display,
-                                 ctx,
-                                 VASliceParameterBufferType,
-                                 NULL,
-                                 sizeof
-                                 (VASliceParameterBufferJPEGBaseline));
-
-    paramBuf = (VASliceParameterBufferJPEGBaseline *) m_param->map();
-
-    paramBuf->slice_data_size = sliceSize;
-    paramBuf->slice_data_offset = 0;
-    paramBuf->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
-    m_param->unmap();
-}
-
-VaapiSliceJpeg::~VaapiSliceJpeg()
-{
-    delete m_data;
-    delete m_param;
-}
-
 VaapiDecoderJpeg::VaapiDecoderJpeg()
 {
     m_profile = VAAPI_PROFILE_JPEG_BASELINE;
     m_width = 0;
     m_height = 0;
-    m_picture = NULL;
     m_hasHufTable = FALSE;
     m_hasQuantTable = FALSE;
     m_hasContext = FALSE;
@@ -122,7 +82,6 @@ VaapiDecoderJpeg::VaapiDecoderJpeg()
 
 VaapiDecoderJpeg::~VaapiDecoderJpeg()
 {
-    delete m_picture;
 }
 
 Decode_Status
@@ -184,23 +143,13 @@ Decode_Status
 
 Decode_Status VaapiDecoderJpeg::fillPictureParam()
 {
-    VAPictureParameterBufferJPEGBaseline *vaPicParam;
+    VAPictureParameterBufferJPEGBaseline *vaPicParam = NULL;
     VaapiBufObject *object;
     uint32_t i;
 
-    if (!m_picture->m_picParam)
-        m_picture->m_picParam = new VaapiBufObject(m_VADisplay,
-                                                   m_VAContext,
-                                                   VAPictureParameterBufferType,
-                                                   NULL,
-                                                   sizeof
-                                                   (VAPictureParameterBufferJPEGBaseline));
-    assert(m_picture->m_picParam);
-    object = m_picture->m_picParam;
+    if (!m_picture->editPicture(vaPicParam))
+        return DECODE_FAIL;
 
-    vaPicParam = (VAPictureParameterBufferJPEGBaseline *) object->map();
-
-    memset(vaPicParam, 0, sizeof(VAPictureParameterBufferJPEGBaseline));
     vaPicParam->picture_width = m_frameHdr.width;
     vaPicParam->picture_height = m_frameHdr.height;
     vaPicParam->num_components = m_frameHdr.num_components;
@@ -221,7 +170,6 @@ Decode_Status VaapiDecoderJpeg::fillPictureParam()
             m_frameHdr.components[i].quant_table_selector;
     }
 
-    object->unmap();
     return DECODE_SUCCESS;
 }
 
@@ -229,20 +177,15 @@ Decode_Status
     VaapiDecoderJpeg::fillSliceParam(JpegScanHdr * scanHdr,
                                      uint8_t * scanData, uint32_t scanDataSize)
 {
-    VASliceParameterBufferJPEGBaseline *sliceParam;
-    VaapiSliceJpeg *slice;
-    VaapiBufObject *object;
+
+    VASliceParameterBufferJPEGBaseline *sliceParam = NULL;
     uint32_t totalHSamples, totalVSamples;
     uint32_t i;
 
     assert(scanHdr);
-    slice = new VaapiSliceJpeg(m_VADisplay,
-                               m_VAContext, scanData, scanDataSize);
-    assert(slice);
-    m_picture->addSlice(slice);
-    object = slice->m_param;
+    if (!(m_picture->newSlice(sliceParam, scanData, scanDataSize)))
+        return DECODE_FAIL;
 
-    sliceParam = (VASliceParameterBufferJPEGBaseline *) object->map();
     sliceParam->num_components = scanHdr->num_components;
     for (i = 0; i < scanHdr->num_components; i++) {
         sliceParam->components[i].component_selector =
@@ -278,30 +221,20 @@ Decode_Status
                                             1) / (totalVSamples * 8));
     }
 
-    object->unmap();
     return DECODE_SUCCESS;
 }
 
 Decode_Status VaapiDecoderJpeg::fillQuantizationTable()
 {
-    VAIQMatrixBufferJPEGBaseline *vaIqMatrix;
+    VAIQMatrixBufferJPEGBaseline *vaIqMatrix = NULL;
     VaapiBufObject *object;
     uint32_t i, j, numTables;
 
     if (!m_hasQuantTable)
         jpeg_get_default_quantization_tables(&m_quantTables);
 
-    if (!m_picture->m_iqMatrix)
-        m_picture->m_iqMatrix = new VaapiBufObject(m_VADisplay,
-                                                   m_VAContext,
-                                                   VAIQMatrixBufferType,
-                                                   NULL,
-                                                   sizeof
-                                                   (VAIQMatrixBufferJPEGBaseline));
-
-    assert(m_picture->m_iqMatrix);
-    object = m_picture->m_iqMatrix;
-    vaIqMatrix = (VAIQMatrixBufferJPEGBaseline *) object->map();
+    if (!(m_picture->editIqMatrix(vaIqMatrix)))
+        return DECODE_FAIL;
 
     numTables = MIN(N_ELEMENTS(vaIqMatrix->quantiser_table),
                     JPEG_MAX_QUANT_ELEMENTS);
@@ -320,13 +253,12 @@ Decode_Status VaapiDecoderJpeg::fillQuantizationTable()
         quantTable->valid = FALSE;
     }
 
-    object->unmap();
     return DECODE_SUCCESS;
 }
 
 Decode_Status VaapiDecoderJpeg::fillHuffmanTable()
 {
-    VAHuffmanTableBufferJPEGBaseline *vaHuffmanTable;
+    VAHuffmanTableBufferJPEGBaseline *vaHuffmanTable = NULL;
     JpegHuffmanTables *const hufTables = &m_hufTables;
     VaapiBufObject *object;
     uint32_t i, numTables;
@@ -334,17 +266,8 @@ Decode_Status VaapiDecoderJpeg::fillHuffmanTable()
     if (!m_hasHufTable)
         jpeg_get_default_huffman_tables(&m_hufTables);
 
-    if (!m_picture->m_hufTable)
-        m_picture->m_hufTable = new VaapiBufObject(m_VADisplay,
-                                                   m_VAContext,
-                                                   VAHuffmanTableBufferType,
-                                                   NULL,
-                                                   sizeof
-                                                   (VAHuffmanTableBufferJPEGBaseline));
-
-    assert(m_picture->m_hufTable);
-    object = m_picture->m_hufTable;
-    vaHuffmanTable = (VAHuffmanTableBufferJPEGBaseline *) object->map();
+    if (!(m_picture->editHufTable(vaHuffmanTable)))
+        return DECODE_FAIL;
 
     numTables = MIN(N_ELEMENTS(vaHuffmanTable->huffman_table),
                     JPEG_MAX_SCAN_COMPONENTS);
@@ -370,7 +293,7 @@ Decode_Status VaapiDecoderJpeg::fillHuffmanTable()
         memset(vaHuffmanTable->huffman_table[i].pad,
                0, sizeof(vaHuffmanTable->huffman_table[i].pad));
     }
-    object->unmap();
+
     return DECODE_SUCCESS;
 }
 
@@ -403,11 +326,16 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
         return DECODE_FORMAT_CHANGE;
     }
 
-    if (!m_picture)
-        m_picture = new VaapiPicture(m_VADisplay,
-                                     m_VAContext,
-                                     m_bufPool,
-                                     VAAPI_PICTURE_STRUCTURE_FRAME);
+    if (!m_picture) {
+        SurfacePtr surface = createSurface();
+        if (!surface) {
+            ERROR("create surface failed");
+            return false;
+        }
+
+        // XXX, add picture structure back, move it to base decdoer
+        m_picture.reset(new VaapiDecPicture(m_VADisplay, m_VAContext, surface, m_currentPTS));
+    }
 
     if (!m_picture) {
         ERROR("failed to allocate picture");
@@ -445,9 +373,9 @@ Decode_Status VaapiDecoderJpeg::decodePictureEnd()
 
     m_picture->m_timeStamp = m_currentPTS;
 
-    if (!m_picture->decodePicture())
+    if (!m_picture->decode())
         status = DECODE_FAIL;
-    else if (!m_picture->output())
+    else if (!outputPicture(m_picture))
         status = DECODE_FAIL;
 
     return status;
@@ -626,8 +554,7 @@ Decode_Status VaapiDecoderJpeg::reset(VideoConfigBuffer * buffer)
     DEBUG("Jpeg: reset()");
 
     if (m_picture) {
-        delete m_picture;
-        m_picture = NULL;
+        m_picture.reset();
     }
 
     return VaapiDecoderBase::reset(buffer);
