@@ -427,10 +427,12 @@ Decode_Status VaapiDecoderH264::decodeSequenceEnd()
     DEBUG("H264: decode sequence-end");
 
     status = decodeCurrentPicture();
+    delete m_currentPicture;
+    m_currentPicture = NULL;
     if (status != DECODE_SUCCESS)
         return status;
 
-    m_DPBManager->flushDPB();
+    m_DPBManager->drainDPB();
     return DECODE_SUCCESS;
 }
 
@@ -1548,7 +1550,7 @@ Decode_Status VaapiDecoderH264::reset(VideoConfigBuffer * buffer)
 {
     DEBUG("H264: reset()");
     if (m_DPBManager)
-        m_DPBManager->flushDPB();
+        m_DPBManager->clearDPB();
 
     m_prevFrame = NULL;
     return VaapiDecoderBase::reset(buffer);
@@ -1666,8 +1668,14 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
 
 const VideoRenderBuffer *VaapiDecoderH264::getOutput(bool draining)
 {
-    INFO("VaapiDecoderH264: getOutput()");
+    INFO("VaapiDecoderH264: getOutput(), draining: %d", draining);
     VideoSurfaceBuffer *surfBuf = NULL;
+#ifdef __ENABLE_DEBUG__
+    static int renderPictureCount = 0;
+#endif
+    if (draining) {
+        flushOutport();
+    }
 
     if (m_bufPool)
         surfBuf = m_bufPool->getOutputByMinPOC();
@@ -1675,5 +1683,17 @@ const VideoRenderBuffer *VaapiDecoderH264::getOutput(bool draining)
     if (!surfBuf)
         return NULL;
 
+#ifdef __ENABLE_DEBUG__
+    renderPictureCount++;
+    DEBUG("renderPictureCount: %d", renderPictureCount);
+#endif
     return &(surfBuf->renderBuffer);
 }
+
+void VaapiDecoderH264::flushOutport(void)
+{
+    // decodeSequenceEnd() drains dpb automatically
+    if (decodeSequenceEnd() != DECODE_SUCCESS)
+        ERROR("fail to decode current picture upon EOS");
+}
+

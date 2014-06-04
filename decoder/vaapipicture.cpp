@@ -155,6 +155,9 @@ bool VaapiPicture::decodePicture()
     VAStatus status;
     uint32_t i;
     vector < VaapiSlice * >::iterator iter;
+#if __ENABLE_DEBUG__
+    static int decodedPictureCount = 0;
+#endif
 
     DEBUG("VaapiPicture::decodePicture 0x%08x", m_surfaceID);
 
@@ -214,6 +217,11 @@ bool VaapiPicture::decodePicture()
     status = vaEndPicture(m_display, m_context);
     if (!checkVaapiStatus(status, "vaEndPicture()"))
         return false;
+
+#if __ENABLE_DEBUG__
+    decodedPictureCount++;
+    DEBUG("decodedPictureCount: %d", decodedPictureCount);
+#endif
     return true;
 }
 

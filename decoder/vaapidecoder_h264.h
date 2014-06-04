@@ -132,7 +132,8 @@ class VaapiDPBManager {
     void evictDPB(VaapiPictureH264 * pic, uint32_t i);
     bool bumpDPB();
     void clearDPB();
-    void flushDPB();
+    void drainDPB();
+    void flushDPB(); // it is drainDPB + clearDPB
     bool addDPB(VaapiFrameStore * &newFrameStore, VaapiPictureH264 * pic);
     void resetDPB(H264SPS * sps);
     /* initialize and reorder reference list */
@@ -204,6 +205,7 @@ class VaapiDecoderH264:public VaapiDecoderBase {
     virtual void flush(void);
     virtual Decode_Status decode(VideoDecodeBuffer * buf);
     virtual const VideoRenderBuffer *getOutput(bool draining = false);
+    virtual void flushOutport(void);
 
   public:
     VaapiFrameStore * m_prevFrame;

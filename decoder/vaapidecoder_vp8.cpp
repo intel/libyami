@@ -519,21 +519,21 @@ void VaapiDecoderVP8::updateReferencePictures()
         replacePicture(m_lastPicture, picture);
 
     if (m_goldenRefPicture)
-        DEBUG("m_goldenRefPicture: %p, m_surfaceID: %x",
+        DEBUG("m_goldenRefPicture: %p, m_surfaceID: 0x%x",
               m_goldenRefPicture, m_goldenRefPicture->m_surfaceID);
     if (m_altRefPicture)
-        DEBUG("m_altRefPicture: %p, m_surfaceID: %x", m_altRefPicture,
+        DEBUG("m_altRefPicture: %p, m_surfaceID: 0x%x", m_altRefPicture,
               m_altRefPicture->m_surfaceID);
     if (m_lastPicture)
-        DEBUG("m_lastPicture: %p, m_surfaceID: %x", m_lastPicture,
+        DEBUG("m_lastPicture: %p, m_surfaceID: 0x%x", m_lastPicture,
               m_lastPicture->m_surfaceID);
     if (m_currentPicture)
-        DEBUG("m_currentPicture: %p, m_surfaceID: %x", m_currentPicture,
+        DEBUG("m_currentPicture: %p, m_surfaceID: 0x%x", m_currentPicture,
               m_currentPicture->m_surfaceID);
     int i;
     for (i = 0; i < VP8_MAX_PICTURE_COUNT; i++) {
         if (m_pictures[i])
-            DEBUG("m_pictures[%d]: %p, m_surfaceID: %x", i, m_pictures[i],
+            DEBUG("m_pictures[%d]: %p, m_surfaceID: 0x%x", i, m_pictures[i],
                   m_pictures[i]->m_surfaceID);
     }
 

@@ -316,7 +316,7 @@ bool VaapiSurfaceBufferPool::setReferenceInfo(VideoSurfaceBuffer * buf,
 bool VaapiSurfaceBufferPool::outputBuffer(VideoSurfaceBuffer * buf,
                                           uint64_t timeStamp, uint32_t poc)
 {
-    DEBUG("Pool: set surface(ID:%8x, poc:%x) to be rendered",
+    DEBUG("Pool: set surface(ID:0x%x, poc:%d) to be rendered",
           buf->renderBuffer.surface, poc);
 
     uint32_t i = 0;
@@ -440,7 +440,7 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinTimeStamp()
         buf->status &= (~SURFACE_TO_RENDER);
         buf->status |= SURFACE_RENDERING;
 
-        DEBUG("Pool: found %x to display with MIN pts = %d",
+        DEBUG("Pool: found 0x%x to display with MIN pts = %d",
               buf->renderBuffer.surface, pts);
     }
 
@@ -474,7 +474,7 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinPOC()
         buf->status &= (~SURFACE_TO_RENDER);
         buf->status |= SURFACE_RENDERING;
 
-        DEBUG("Pool: found %x to display with MIN poc = %x",
+        DEBUG("Pool: found 0x%x to display with MIN poc = %d",
               buf->renderBuffer.surface, poc);
     }
 

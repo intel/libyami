@@ -313,9 +313,14 @@ void VaapiDPBManager::clearDPB()
 
 void VaapiDPBManager::flushDPB()
 {
-    outputImmediateBFrame();
-    while (bumpDPB());
+    drainDPB(); // it's safe for internal reset: IDR, picture-marking etc.
     clearDPB();
+}
+
+void VaapiDPBManager::drainDPB()
+{
+    outputImmediateBFrame();
+    while (bumpDPB()) ;
 }
 
 void VaapiDPBManager::debugDPBStatus()
