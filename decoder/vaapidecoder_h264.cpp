@@ -429,11 +429,11 @@ Decode_Status VaapiDecoderH264::decodeSequenceEnd()
     status = decodeCurrentPicture();
     delete m_currentPicture;
     m_currentPicture = NULL;
-    if (status != DECODE_SUCCESS)
-        return status;
 
-    m_DPBManager->drainDPB();
-    return DECODE_SUCCESS;
+    if (m_DPBManager)
+        m_DPBManager->drainDPB();
+
+    return status;
 }
 
 void VaapiDecoderH264::initPicturePOC0(VaapiPictureH264 * picture,
