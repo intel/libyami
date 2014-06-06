@@ -25,7 +25,7 @@
 
 #include "codecparsers/vp8parser.h"
 #include "vaapidecoder_base.h"
-#include "vaapipicture.h"
+#include "vaapidecpicture.h"
 #include "va/va_dec_vp8.h"
 
 #if __PLATFORM_BYT__
@@ -41,25 +41,9 @@ enum {
     VP8_MAX_PICTURE_COUNT = 5,  // gold_ref, alt_ref, last_ref, previous (m_currentPicture, optional), and the newly allocated one
 };
 
-class VaapiSliceVP8:public VaapiSlice {
-  public:
-    VaapiSliceVP8(VADisplay display,
-                  VAContextID ctx,
-                  const uint8_t * sliceData, uint32_t sliceSize);
-
-    ~VaapiSliceVP8();
-};
-
-class VaapiPictureVP8:public VaapiPicture {
-  public:
-    VaapiPictureVP8(VADisplay display,
-                    VAContextID context,
-                    VaapiSurfaceBufferPool * surfBufPool,
-                    VaapiPictureStructure structure);
-};
-
 class VaapiDecoderVP8:public VaapiDecoderBase {
   public:
+    typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
     VaapiDecoderVP8();
     virtual ~ VaapiDecoderVP8();
     virtual Decode_Status start(VideoConfigBuffer * buffer);
@@ -70,23 +54,21 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
 
   private:
     bool allocNewPicture();
-    bool fillPictureParam(VaapiPictureVP8 * picture);
+    bool fillPictureParam(const PicturePtr& picture);
     /* fill Quant matrix parameters */
-    bool ensureQuantMatrix(VaapiPictureVP8 * pic);
-    bool ensureProbabilityTable(VaapiPictureVP8 * pic);
-    bool fillSliceParam(VaapiSliceVP8 * slice);
+    bool ensureQuantMatrix(const PicturePtr& pic);
+    bool ensureProbabilityTable(const PicturePtr& pic);
+    bool fillSliceParam(VASliceParameterBufferVP8* sliceParam);
     /* check the context reset senerios */
     Decode_Status ensureContext();
     /* decoding functions */
     Decode_Status decodePicture();
-    bool replacePicture(VaapiPictureVP8 * &pic1, VaapiPictureVP8 * pic2);
     void updateReferencePictures();
   private:
-    VaapiPictureVP8 * m_currentPicture;
-    VaapiPictureVP8 *m_lastPicture;
-    VaapiPictureVP8 *m_goldenRefPicture;
-    VaapiPictureVP8 *m_altRefPicture;
-    VaapiPictureVP8 *m_pictures[VP8_MAX_PICTURE_COUNT];
+    PicturePtr m_currentPicture;
+    PicturePtr m_lastPicture;
+    PicturePtr m_goldenRefPicture;
+    PicturePtr m_altRefPicture;
 
     uint32_t m_hasContext:1;
 

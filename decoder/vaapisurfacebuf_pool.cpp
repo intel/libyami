@@ -341,7 +341,7 @@ bool VaapiSurfaceBufferPool::outputBuffer(VideoSurfaceBuffer * buf,
 
 // XXX, add a output queue. then no SURFACE_TO_RENDER is required, no getOutputByMinTimeStamp/getOutputByMinPOC is required
 bool VaapiSurfaceBufferPool::outputSurface(VASurfaceID surface,
-                                          uint64_t timeStamp, uint32_t poc)
+                                          uint64_t timeStamp, int32_t poc)
 {
     DEBUG("Pool: set surface(ID:%8x, timestamp:%lld, poc: %d) to be rendered",
         surface, timeStamp, poc);
