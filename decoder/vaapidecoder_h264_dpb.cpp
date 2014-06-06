@@ -909,6 +909,12 @@ void VaapiDPBManager::execPictureRefsModification1(const PicturePtr& picture,
     }
     refListCount = *refListCountPtr;
 
+    //FIXME: without this we will crash in MR3_TANDBERG_B.264
+    //shold review this after we fix it
+    for (int j = refListCount; j < numRefs; j++)
+        refList[j] = NULL;
+    //end
+
     if (picture->m_structure != VAAPI_PICTURE_STRUCTURE_FRAME) {
         maxPicNum = 1 << (sps->log2_max_frame_num_minus4 + 5);  // 2 * maxFrameNum
         currPicNum = 2 * sliceHdr->frame_num + 1;   // 2 * frame_num + 1
