@@ -68,7 +68,7 @@ class VaapiSurface {
     ~VaapiSurface();
 
     VaapiChromaType getChromaType(void);
-    uint32_t getID(void);
+    VASurfaceID getID(void) const;
     uint32_t getWidth(void);
     uint32_t getHeight(void);
     uint32_t getExtBufHandle();

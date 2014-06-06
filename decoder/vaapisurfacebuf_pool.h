@@ -46,7 +46,7 @@
  * <pre>
  * 1. the surface status is described by 3 bitwise flag: | SURFACE_RENDERING | SURFACE_TO_RENDER | SURFACE_DECODING |
  *      SURFACE_DECODING is set when the buffer is used for decoding, usually set when decoder create a new #VaapiPicture.
- *      SURFACE_DECODING is cleared when decoder doesn't use the buffer any more, usually when decoder delete the corresponding #VaapiPicture. 
+ *      SURFACE_DECODING is cleared when decoder doesn't use the buffer any more, usually when decoder delete the corresponding #VaapiPicture.
  *      SURFACE_TO_RENDER is set when #VaapiPicture is ready to output (VaapiPicture::output() is called).
  *      SURFACE_TO_RENDER is cleared when VASurface is sent to client for rendering (VaapiDecoderBase::getOutput())
  *      SURFACE_RENDERING is set when VASurface is sent to client for rendering (VaapiDecoderBase::getOutput())
@@ -89,6 +89,10 @@ class VaapiSurfaceBufferPool {
     /// \brief mark one buffer is using by client for rendering
     bool outputBuffer(VideoSurfaceBuffer * buf,
                       uint64_t timeStamp, int32_t poc);
+    /// \brief mark one surface is using by client for rendering
+    bool outputSurface(VASurfaceID surface,
+                      uint64_t timeStamp, int32_t poc = 0);
+
     /// \brief set the reference related flag for a buffer/surface.
     /// it is required for h264 dpb to evict one buffer after it is not used as reference anymore (marked by VaapiDPBManager::execRefPicMarkingSlidingWindow())
     bool setReferenceInfo(VideoSurfaceBuffer * buf,

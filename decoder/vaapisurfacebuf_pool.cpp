@@ -339,6 +339,33 @@ bool VaapiSurfaceBufferPool::outputBuffer(VideoSurfaceBuffer * buf,
     return true;
 }
 
+// XXX, add a output queue. then no SURFACE_TO_RENDER is required, no getOutputByMinTimeStamp/getOutputByMinPOC is required
+bool VaapiSurfaceBufferPool::outputSurface(VASurfaceID surface,
+                                          uint64_t timeStamp, uint32_t poc)
+{
+    DEBUG("Pool: set surface(ID:%8x, timestamp:%lld, poc: %d) to be rendered",
+        surface, timeStamp, poc);
+
+    uint32_t i = 0;
+    pthread_mutex_lock(&m_lock);
+    for (i = 0; i < m_bufCount; i++) {
+        if (m_bufArray[i]->renderBuffer.surface == surface) {
+            m_bufArray[i]->pictureOrder = poc;
+            m_bufArray[i]->renderBuffer.timeStamp = timeStamp;
+            m_bufArray[i]->status |= SURFACE_TO_RENDER;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&m_lock);
+
+    if (i == m_bufCount) {
+        ERROR("Pool: outputSurface, Error surface ID: %x", surface);
+        return false;
+    }
+
+    return true;
+}
+
 bool VaapiSurfaceBufferPool::recycleBuffer(VideoSurfaceBuffer * buf,
                                            bool isFromRender)
 {

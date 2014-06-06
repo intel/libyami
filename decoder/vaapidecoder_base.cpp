@@ -489,3 +489,11 @@ SurfacePtr VaapiDecoderBase::createSurface()
     }
     return surface;
 }
+
+Decode_Status VaapiDecoderBase::outputPicture(PicturePtr& picture)
+{
+    if (!m_bufPool->outputSurface(picture->getSurfaceID(), picture->m_timeStamp))
+        return DECODE_FAIL;
+
+    return DECODE_SUCCESS;
+}

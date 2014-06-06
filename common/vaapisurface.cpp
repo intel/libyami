@@ -183,7 +183,7 @@ VaapiChromaType VaapiSurface::getChromaType(void)
     return m_chromaType;
 }
 
-VASurfaceID VaapiSurface::getID(void)
+VASurfaceID VaapiSurface::getID(void) const
 {
     return m_ID;
 }

@@ -35,6 +35,7 @@
 #else
 typedef unsigned int Display;
 #endif
+#include "vaapidecpicture.h"
 
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
@@ -43,6 +44,7 @@ typedef unsigned int Display;
 
 class VaapiDecoderBase:public IVideoDecoder {
   public:
+    typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
     VaapiDecoderBase();
     virtual ~ VaapiDecoderBase();
 
@@ -72,6 +74,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status setupVA(uint32_t numSurface, VAProfile profile);
     Decode_Status terminateVA(void);
     Decode_Status updateReference(void);
+    Decode_Status outputPicture(PicturePtr& picture);
     SurfacePtr createSurface();
 
     Display *m_display;

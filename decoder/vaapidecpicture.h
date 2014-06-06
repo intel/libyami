@@ -20,6 +20,9 @@
  *  Boston, MA 02110-1301 USA
  */
 
+#ifndef vaapidecpicture_h
+#define vaapidecpicture_h
+
 #include "vaapipic.h"
 
 class VaapiDecSlice
@@ -122,3 +125,4 @@ bool VaapiDecPicture::newSlice(T*& sliceParam, const void* sliceData, uint32_t s
     m_slices.push_back(slice);
     return slice;
 }
+#endif //vaapidecpicture_h

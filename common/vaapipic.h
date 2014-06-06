@@ -37,7 +37,11 @@ class VaapiPic
 {
 public:
     VaapiPic(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp);
-    virtual ~VaapiPic() {}
+    virtual ~VaapiPic() {};
+
+    VASurfaceID getSurfaceID() const {
+        return m_surface->getID();
+    }
 
     VaapiPictureType        m_type;
     int64_t                 m_timeStamp;
