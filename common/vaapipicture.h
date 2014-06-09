@@ -39,9 +39,8 @@ public:
     VaapiPicture(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp);
     virtual ~VaapiPicture() {};
 
-    VASurfaceID getSurfaceID() const {
-        return m_surface->getID();
-    }
+    inline VASurfaceID getSurfaceID() const;
+    inline bool sync();
 
     VaapiPictureType        m_type;
     int64_t                 m_timeStamp;
@@ -60,6 +59,7 @@ protected:
     bool editObject(BufObjectPtr& object , VABufferType, T*& bufPtr);
     bool addObject(std::vector<std::pair<BufObjectPtr, BufObjectPtr> >& objects,
                    const BufObjectPtr& param, const BufObjectPtr& data);
+    bool addObject(std::vector<BufObjectPtr>& objects, const BufObjectPtr& object);
 
     template<class T>
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
@@ -98,8 +98,7 @@ bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& b
 }
 
 #define RENDER_OBJECT(obj) \
-do { if (obj && !VaapiPicture::render(obj)) { ERROR("render " #obj " failed"); return false;} } while(0)
-
+do { if (!VaapiPicture::render(obj)) { ERROR("render " #obj " failed"); return false;} } while(0)
 
 template <class O>
 bool VaapiPicture::render(std::vector<O>& objects)
@@ -113,4 +112,16 @@ bool VaapiPicture::render(std::vector<O>& objects)
     return ret;
 }
 
+
+VASurfaceID VaapiPicture::getSurfaceID() const {
+    return m_surface->getID();
+}
+
+bool VaapiPicture::sync()
+{
+    return m_surface->sync();
+}
+
+
 #endif //vaapipicture_h
+

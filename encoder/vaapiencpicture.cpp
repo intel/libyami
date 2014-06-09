@@ -25,161 +25,45 @@
 #include "vaapiencpicture.h"
 
 #include "log.h"
-#include "vaapibuffer.h"
-#include "vaapisurface.h"
-#include <stdlib.h>
 
-
-using std::vector;
-using std::tr1::shared_ptr;
-typedef VaapiEncPicture::PackedHeaderPtr PackedHeaderPtr;
-
-class VaapiEncPackedHeader
+VaapiEncPicture::VaapiEncPicture(VADisplay display, VAContextID context,
+                                 const SurfacePtr & surface,
+                                 int64_t timeStamp)
+:VaapiPicture(display, context, surface, timeStamp)
 {
-    friend class VaapiEncPicture;
-public:
-    static PackedHeaderPtr create(VADisplay, VAContextID, VAEncPackedHeaderType, const void* header, uint32_t headerBitSize);
-private:
-    VaapiEncPackedHeader(const BufObjectPtr& param, const BufObjectPtr& data);
-    BufObjectPtr m_param;
-    BufObjectPtr m_data;
-};
-
-PackedHeaderPtr VaapiEncPackedHeader::create(VADisplay display, VAContextID context, VAEncPackedHeaderType headerType, const void* header, uint32_t headerBitSize)
-{
-    PackedHeaderPtr h;
-
-    VAEncPackedHeaderParameterBuffer packedHeader;
-    packedHeader.type = headerType;
-    packedHeader.bit_length = headerBitSize;
-    packedHeader.has_emulation_bytes = 0;
-
-    BufObjectPtr param = VaapiBufObject::create(display, context, VAEncPackedHeaderParameterBufferType, sizeof(packedHeader), &packedHeader);
-    BufObjectPtr data = VaapiBufObject::create(display, context, VAEncPackedHeaderDataBufferType, (headerBitSize + 7)/8, header);
-    if (param && data)
-        h.reset(new VaapiEncPackedHeader(param, data));
-    return h;
-}
-
-VaapiEncPackedHeader::VaapiEncPackedHeader(const BufObjectPtr& param, const BufObjectPtr& data):
-    m_param(param),
-    m_data(data)
-{
-}
-
-VaapiEncPicture::VaapiEncPicture(VADisplay display, VAContextID context, const SurfacePtr& surface, int64_t timeStamp)
-    :m_display(display),
-     m_context(context),
-     m_surface(surface),
-     m_timeStamp(timeStamp),
-     m_type(VAAPI_PICTURE_TYPE_NONE)
-{
-}
-
-bool VaapiEncPicture::encode(const BufObjectPtr& object)
-{
-    if (!object) {
-        ERROR("bug: no object to encode");
-        return false;
-    }
-
-    if (object->isMapped())
-        object->unmap();
-
-    VAStatus status;
-    VABufferID id = object->getID();
-    status = vaRenderPicture(m_display, m_context, &id, 1);
-    if (!checkVaapiStatus (status, "vaRenderPicture()"))
-        return false;
-    return true;
-}
-
-bool VaapiEncPicture::sync()
-{
-    m_surface->sync();
-}
-
-bool VaapiEncPicture::encode(const PackedHeaderPtr& header)
-{
-    if (!header) {
-        ERROR("bug: no packed header to encode");
-        return false;
-    }
-    if (!encode(header->m_param))
-        return false;
-    if (!encode(header->m_data))
-        return false;
-    return true;
-}
-
-template<class T>
-bool VaapiEncPicture::encode(vector< shared_ptr<T> >& v)
-{
-    for (typename vector< shared_ptr<T> >::iterator it = v.begin(); it != v.end(); ++it) {
-        if (!encode(*it))
-            return false;
-    }
-    return true;
-}
-
-bool VaapiEncPicture::doEncode()
-{
-    if (m_sequence && !encode(m_sequence)) {
-        ERROR("render sequence failed");
-        return false;
-    }
-    if (!encode(m_packedHeaders)) {
-        ERROR("render packed headers failed");
-        return false;
-    }
-    if (!encode(m_miscParams)) {
-        ERROR("render misc failed");
-        return false;
-    }
-    if (!encode(m_picture)) {
-        ERROR("render picture header failed");
-        return false;
-    }
-    if (!encode(m_slices)) {
-        ERROR("render slices failed");
-        return false;
-    }
-    return true;
 }
 
 bool VaapiEncPicture::encode()
 {
-    if (m_surface->getID() == VA_INVALID_SURFACE) {
-        ERROR("bug: no surface to encode");
-        return false;
-    }
-
-    VAStatus status;
-    status = vaBeginPicture(m_display, m_context, m_surface->getID());
-    if (!checkVaapiStatus (status, "vaBeginPicture()"))
-        return false;
-
-    bool ret = doEncode();
-
-    status = vaEndPicture(m_display, m_context);
-    if (!checkVaapiStatus (status, "vaEndPicture()"))
-        return false;
-    return ret;
+    return render();
 }
 
-bool VaapiEncPicture::addPackedHeader(VAEncPackedHeaderType packedHeaderType, const void* data, uint32_t dataBitSize)
+bool VaapiEncPicture::doRender()
 {
-    PackedHeaderPtr header = VaapiEncPackedHeader::create(m_display, m_context, packedHeaderType, data,dataBitSize);
-    if (!header)
-        return false;
-    m_packedHeaders.push_back(header);
+    RENDER_OBJECT(m_sequence);
+    RENDER_OBJECT(m_packedHeaders);
+    RENDER_OBJECT(m_miscParams);
+    RENDER_OBJECT(m_picture);
+    RENDER_OBJECT(m_slices);
     return true;
 }
 
-BufObjectPtr VaapiEncPicture::createBufferObject(VABufferType  bufType, int size, void** bufPtr)
+bool VaapiEncPicture::
+addPackedHeader(VAEncPackedHeaderType packedHeaderType, const void *header,
+                uint32_t headerBitSize)
 {
-    BufObjectPtr obj =  VaapiBufObject::create(m_display,m_context,bufType,size, NULL, bufPtr);
-    if (obj)
-        memset(*bufPtr, 0, size);
-    return obj;
+    VAEncPackedHeaderParameterBuffer *packedHeader;
+    BufObjectPtr param =
+        createBufferObject(VAEncPackedHeaderParameterBufferType,
+                           packedHeader);
+    BufObjectPtr data =
+        createBufferObject(VAEncPackedHeaderDataBufferType,
+                           (headerBitSize + 7) / 8, header, NULL);
+    bool ret = addObject(m_packedHeaders, param, data);
+    if (ret) {
+        packedHeader->type = packedHeaderType;
+        packedHeader->bit_length = headerBitSize;
+        packedHeader->has_emulation_bytes = 0;
+    }
+    return ret;
 }

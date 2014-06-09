@@ -35,7 +35,7 @@ VaapiDecPicture::VaapiDecPicture(VADisplay display, VAContextID context,
 
 bool VaapiDecPicture::decode()
 {
-    return VaapiPicture::render();
+    return render();
 }
 
 bool VaapiDecPicture::doRender()
@@ -45,10 +45,7 @@ bool VaapiDecPicture::doRender()
     RENDER_OBJECT(m_iqMatrix);
     RENDER_OBJECT(m_bitPlane);
     RENDER_OBJECT(m_hufTable);
-    if (!render(m_slices)) {
-        ERROR("render m_slices failed");
-        return false;
-    }
+    RENDER_OBJECT(m_slices);
     return true;
 }
 

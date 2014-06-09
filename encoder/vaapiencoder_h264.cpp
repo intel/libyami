@@ -987,7 +987,6 @@ add_error:
 
 bool VaapiEncoderH264::addPackedPictureHeader(const PicturePtr& picture, const VAEncPictureParameterBufferH264* const picParam)
 {
-    VaapiEncPackedHeader *packed_pic;
     BitWriter bs;
     uint32_t dataBitSize;
     uint8_t *data;
