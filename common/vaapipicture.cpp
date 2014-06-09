@@ -60,7 +60,7 @@ bool VaapiPicture::render()
     return ret;
 }
 
-bool VaapiPicture::render(const BufObjectPtr& buffer)
+bool VaapiPicture::render(BufObjectPtr& buffer)
 {
     VAStatus status = VA_STATUS_SUCCESS;
     VABufferID bufferID = VA_INVALID_ID;
@@ -80,5 +80,19 @@ bool VaapiPicture::render(const BufObjectPtr& buffer)
         return false;
 
     buffer.reset(); // silently work  arouond for psb
+    return true;
+}
+
+bool VaapiPicture::render(std::pair<BufObjectPtr, BufObjectPtr>& paramAndData)
+{
+    return render(paramAndData.first) && render(paramAndData.second);
+}
+
+bool VaapiPicture::addObject(std::vector<std::pair<BufObjectPtr, BufObjectPtr> >& objects,
+                             const BufObjectPtr& param, const BufObjectPtr& data)
+{
+    if (!param || !data)
+        return false;
+    objects.push_back(std::make_pair(param, data));
     return true;
 }

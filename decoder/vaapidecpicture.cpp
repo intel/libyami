@@ -45,17 +45,10 @@ bool VaapiDecPicture::doRender()
     RENDER_OBJECT(m_iqMatrix);
     RENDER_OBJECT(m_bitPlane);
     RENDER_OBJECT(m_hufTable);
-    if (!::render(this, m_slices)) {
+    if (!render(m_slices)) {
         ERROR("render m_slices failed");
         return false;
     }
     return true;
 }
 
-typedef VaapiDecPicture::DecSlicePtr DecSlicePtr;
-bool VaapiDecPicture::render(const DecSlicePtr& slice)
-{
-    RENDER_OBJECT(slice->m_param);
-    RENDER_OBJECT(slice->m_data);
-    return true;
-}

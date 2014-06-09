@@ -24,20 +24,9 @@
 
 #include "vaapipicture.h"
 
-class VaapiDecSlice
-{
-    friend class VaapiDecPicture;
-private:
-    VaapiDecSlice(const BufObjectPtr& param, const BufObjectPtr& data)
-        :m_param(param), m_data(data) {}
-    BufObjectPtr m_param;
-    BufObjectPtr m_data;
-};
-
 class VaapiDecPicture : public VaapiPicture
 {
 public:
-    typedef std::tr1::shared_ptr<VaapiDecSlice> DecSlicePtr;
     VaapiDecPicture(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp);
     virtual ~VaapiDecPicture() {};
 
@@ -64,65 +53,58 @@ public:
 
 private:
     virtual bool doRender();
-    bool render(const DecSlicePtr& slice);
-
-    template <typename P, typename O>
-    friend bool render(P picture, std::vector<O>& objects);
-
 
     BufObjectPtr m_picture;
     BufObjectPtr m_iqMatrix;
     BufObjectPtr m_bitPlane;
     BufObjectPtr m_hufTable;
     BufObjectPtr m_probTable;
-    std::vector<DecSlicePtr> m_slices;
+    std::vector<std::pair<BufObjectPtr, BufObjectPtr> > m_slices;
 };
 
 template<class T>
 bool VaapiDecPicture::editPicture(T*& picParam)
 {
-    return editMember(m_picture, VAPictureParameterBufferType, picParam);
+    return editObject(m_picture, VAPictureParameterBufferType, picParam);
 }
 
 template <class T>
 bool VaapiDecPicture::editIqMatrix(T*& matrix)
 {
-    return editMember(m_iqMatrix, VAIQMatrixBufferType, matrix);
+    return editObject(m_iqMatrix, VAIQMatrixBufferType, matrix);
 }
 
 template <class T>
 bool VaapiDecPicture::editBitPlane(T*& plane)
 {
-    return editMember(m_bitPlane, VABitPlaneBufferType, plane);
+    return editObject(m_bitPlane, VABitPlaneBufferType, plane);
 }
 
 template <class T>
 bool VaapiDecPicture::editHufTable(T*& hufTable)
 {
-    return editMember(m_hufTable, VAHuffmanTableBufferType, hufTable);
+    return editObject(m_hufTable, VAHuffmanTableBufferType, hufTable);
 }
 
 template <class T>
 bool VaapiDecPicture::editProbTable(T*& probTable)
 {
-    return editMember(m_probTable, VAProbabilityBufferType, probTable);
+    return editObject(m_probTable, VAProbabilityBufferType, probTable);
 }
 
 template <class T>
 bool VaapiDecPicture::newSlice(T*& sliceParam, const void* sliceData, uint32_t sliceSize)
 {
-    BufObjectPtr d = createBufferObject(VASliceDataBufferType, sliceSize, sliceData, NULL);
-    BufObjectPtr p = createBufferObject(VASliceParameterBufferType, sliceParam);
+    BufObjectPtr data = createBufferObject(VASliceDataBufferType, sliceSize, sliceData, NULL);
+    BufObjectPtr param = createBufferObject(VASliceParameterBufferType, sliceParam);
 
-    VaapiDecPicture::DecSlicePtr slice;
-    if (d && p) {
-        slice.reset(new VaapiDecSlice(p, d));
+    bool ret = addObject(m_slices, param, data);
+    if (ret) {
         sliceParam->slice_data_size = sliceSize;
         sliceParam->slice_data_offset = 0;
         sliceParam->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
     }
-    m_slices.push_back(slice);
-    return slice;
+    return ret;
 }
 
 #endif //#ifndef vaapidecpicture_h

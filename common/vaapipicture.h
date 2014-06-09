@@ -31,6 +31,7 @@
 #include <string.h>
 #include <va/va.h>
 #include <vector>
+#include <utility>
 
 class VaapiPicture
 {
@@ -49,21 +50,26 @@ protected:
     virtual bool doRender() = 0;
 
     bool render();
-    bool render(const BufObjectPtr& buffer);
+    bool render(BufObjectPtr& buffer);
+    bool render(std::pair<BufObjectPtr, BufObjectPtr>& paramAndData);
+
+    template <class O>
+    bool render(std::vector<O>& objects);
+
     template<class T>
-    bool editMember(BufObjectPtr& member , VABufferType, T*& bufPtr);
+    bool editObject(BufObjectPtr& object , VABufferType, T*& bufPtr);
+    bool addObject(std::vector<std::pair<BufObjectPtr, BufObjectPtr> >& objects,
+                   const BufObjectPtr& param, const BufObjectPtr& data);
 
     template<class T>
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
-
     inline BufObjectPtr createBufferObject(VABufferType bufType,
                                            uint32_t size,const void *data, void **mapped_data);
 
 protected:
     VADisplay              m_display;
     VAContextID            m_context;
-
-    SurfacePtr           m_surface;
+    SurfacePtr             m_surface;
 };
 
 template<class T>
@@ -82,27 +88,29 @@ BufObjectPtr VaapiPicture::createBufferObject(VABufferType bufType,
 }
 
 template<class T>
-bool VaapiPicture::editMember(BufObjectPtr& member , VABufferType bufType, T*& bufPtr)
+bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& bufPtr)
 {
-    /* already set*/
-    if (member)
+    /* already set? It's only one time offer*/
+    if (object)
         return false;
-    member = createBufferObject(bufType, bufPtr);
-    return member != NULL;
+    object = createBufferObject(bufType, bufPtr);
+    return object != NULL;
 }
 
-#define RENDER_OBJECT(mem) \
-do { if (mem && !VaapiPicture::render(mem)) { ERROR("render " #mem " failed"); return false;} } while(0)
+#define RENDER_OBJECT(obj) \
+do { if (obj && !VaapiPicture::render(obj)) { ERROR("render " #obj " failed"); return false;} } while(0)
 
 
-template <class P, class O>
-bool render(P picture, std::vector<O>& objects)
+template <class O>
+bool VaapiPicture::render(std::vector<O>& objects)
 {
-    for (int i = 0; i < objects.size(); i++) {
-        if (!picture->render(objects[i]))
-            return false;
-    }
-    return true;
+    bool ret = true;
+
+    for (int i = 0; i < objects.size(); i++)
+        ret &= render(objects[i]);
+
+    objects.clear(); // slient work around for psb drv to delete VABuffer
+    return ret;
 }
 
 #endif //vaapipicture_h
