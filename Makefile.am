@@ -10,3 +10,6 @@ DISTCLEANFILES = \
 	Makefile.in missing
 
 SUBDIRS = codecparsers common decoder encoder pkgconfig
+if ENABLE_DOCS
+	SUBDIRS += doc
+endif

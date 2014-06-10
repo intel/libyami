@@ -85,6 +85,19 @@ AC_DEFINE([__BUILD_H264_ENCODER__], [1], [Defined to 1 if --enable-h264enc="yes"
 fi
 AM_CONDITIONAL(BUILD_H264_ENCODER, test "x$enable_h264enc" = "xyes")
 
+# dnl Doxygen
+AC_ARG_ENABLE(docs,
+              [AC_HELP_STRING([--enable-docs], [build with doxygen support @<:@default=no@:>@])],
+    [], [enable_docs="yes"])
+if test "$enable_docs" = "yes"; then
+    AC_CHECK_TOOL([DOXYGEN], [doxygen], [no])
+    if test "$DOXYGEN" = "no"; then
+       enable_docs="no"
+    fi
+fi
+AM_CONDITIONAL(ENABLE_DOCS, test "$enable_docs" = "yes")
+
+
 # Checks for programs.
 AC_DISABLE_STATIC
 AC_PROG_CXX
@@ -131,6 +144,7 @@ AC_CONFIG_FILES([Makefile
                  common/Makefile
                  decoder/Makefile
                  encoder/Makefile
+                 doc/Makefile
                  pkgconfig/Makefile])
 
 AC_OUTPUT([
