@@ -192,6 +192,8 @@ struct VideoFormatInfo {
 
 // TODO: categorize the follow errors as fatal and non-fatal.
 typedef enum {
+    RENDER_INVALID_PARAMETER = -21,
+    RENDER_FAIL = -20,
     DECODE_NOT_STARTED = -10,
     DECODE_NEED_RESTART = -9,
     DECODE_NO_CONFIG = -8,
@@ -207,6 +209,8 @@ typedef enum {
     DECODE_FORMAT_CHANGE = 2,
     DECODE_FRAME_DROPPED = 3,
     DECODE_MULTIPLE_FRAME = 4,
+    RENDER_SUCCESS = 20,
+    RENDER_NO_AVAILABLE_FRAME = 21,
 } VIDEO_DECODE_STATUS;
 
 typedef int32_t Decode_Status;
