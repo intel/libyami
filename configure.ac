@@ -97,7 +97,6 @@ if test "$enable_docs" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_DOCS, test "$enable_docs" = "yes")
 
-
 # Checks for programs.
 AC_DISABLE_STATIC
 AC_PROG_CXX
