@@ -1039,10 +1039,10 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(VaapiPictureH264 *
                                                  refPicMarking,
                                                  uint32_t MMCO)
 {
-    uint32_t picNumX, longTermFrameIdx;
+    uint32_t picNumX, i;
+    int32_t longTermFrameIdx;
     VaapiPictureH264 *refPicture;
     int32_t foundIdx = 0;
-    uint32_t i;
 
     switch (MMCO) {
     case 1:
