@@ -334,6 +334,11 @@ bool VaapiFrameStore::splitFields()
     if (!secondField)
         return false;
 
+    secondField->m_picStructure = VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD;
+    secondField->m_flags |= VAAPI_PICTURE_FLAG_INTERLACED ;
+    secondField->m_flags |= VAAPI_PICTURE_FLAGS(firstField) & VAAPI_PICTURE_FLAGS_REFERENCE;
+    secondField->m_POC = firstField->m_POC;
+
     m_buffers[m_numBuffers++] = secondField;
 
     secondField->m_frameNum = firstField->m_frameNum;
