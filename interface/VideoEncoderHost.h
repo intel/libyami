@@ -23,8 +23,16 @@
 #define VIDEO_ENCODER_HOST_H_
 
 #include "VideoEncoderInterface.h"
+/** \file VideoEncoderHost.h
+*/
 
+/** \fn IVideoEncoder *createVideoEncoder(const char *mimeType)
+ * \brief create encoder basing on given mimetype
+*/
 IVideoEncoder *createVideoEncoder(const char *mimeType);
+/** \fn void releaseVideoEncoder(IVideoEncoder *p)
+ * \brief destroy encoder
+*/
 void releaseVideoEncoder(IVideoEncoder * p);
 
 #endif                          /* VIDEO_ENCODER_HOST_H_ */

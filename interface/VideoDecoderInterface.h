@@ -29,6 +29,7 @@
 /**
  * \class IVideoDecoder
  * \brief Abstract video decoding interface of libyami
+ *
  * it is the interface with client
  */
 class IVideoDecoder {
@@ -86,9 +87,12 @@ public:
     */
     virtual const VideoFormatInfo* getFormatInfo(void) = 0;
     /** \brief client recycles buffer back to libyami after the buffer has been rendered.
+    *
+    * <pre>
     * it is used by current omx client in async rendering mode.
     * if rendering target is passed in getOutput(), then yami can does the rendering directly; this function becomes unnecessary.
     * however, this API is still useful when we export video frame directly for EGLImage (dma_buf).
+    * </pre>
     */
     virtual void renderDone(VideoRenderBuffer* buffer) = 0;
 
