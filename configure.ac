@@ -1,12 +1,32 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.68])
-AC_INIT([libyami], [0.2.0], [xiaowei.a.li@intel.com])
+
+## it is interface version for libtool, only change it if you are sure to do so
+m4_define([libyami_lt_current], 0)
+m4_define([libyami_lt_revision], 2)
+m4_define([libyami_lt_age], 0)
+m4_define([libyami_lt_version], [libyami_lt_current.libyami_lt_revision.libyami_lt_age])
+
+# package version (lib name suffix), usually sync with git tag
+m4_define([libyami_major_version], 0)
+m4_define([libyami_minor_version], 0)
+m4_define([libyami_micro_version], 2)
+m4_define([libyami_version],
+                    [libva_major_version.libva_minor_version.libva_micro_version])
+
+AC_INIT([libyami], [libyami_version], [halley.zhao@intel.com])
 AC_CONFIG_SRCDIR([common/vaapitypes.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([aux])
 AM_INIT_AUTOMAKE([foreign])
+
+LIBYAMI_LT_VERSION="libyami_lt_current:libyami_lt_revision:libyami_lt_age"
+LIBYAMI_LT_LDFLAGS="-version-info $LIBYAMI_LT_VERSION"
+# "-release" option should be avoid, that create lib name like libyami-1.s0.xxx
+AC_SUBST(LIBYAMI_LT_VERSION)
+AC_SUBST(LIBYAMI_LT_LDFLAGS)
 
 AC_ARG_ENABLE(debug,
     [AC_HELP_STRING([--enable-debug],[build with extra debug])],

@@ -15,7 +15,7 @@ libyami_common_source_h = \
 	$(NULL)
 
 libyami_common_ldflags = \
-	-version-info 0:2:0  \
+        $(LIBYAMI_LT_LDFLAGS) \
         $(LIBVA_LIBS) \
         $(LIBVA_DRM_LIBS) \
 	$(NULL)

@@ -36,7 +36,7 @@ libcodecparser_source_h_priv = \
 EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
 
 libcodecparser_ldflags = \
-	-version-info 0:2:0  \
+    $(LIBYAMI_LT_LDFLAGS) \
 	$(NULL)
 
 libcodecparser_cppflags = \

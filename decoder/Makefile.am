@@ -52,7 +52,7 @@ libyami_decoder_la_LIBADD = \
 		$(top_builddir)/codecparsers/libcodecparser.la
 
 libyami_decoder_ldflags = \
-	-version-info 0:2:0  \
+        $(LIBYAMI_LT_LDFLAGS) \
         $(LIBVA_LIBS)        \
         $(LIBVA_X11_LIBS)    \
         -ldl                 \
