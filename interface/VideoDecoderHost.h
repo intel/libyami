@@ -24,8 +24,14 @@
 #define VIDEO_DECODER_HOST_H_
 
 #include "VideoDecoderInterface.h"
+/** \file VideoDecoderHost.h
+*/
 
+/** \fn IVideoDecoder *createVideoDecoder(const char *mimeType)
+* \brief create a decoder basing on given mimetype
+*/
 IVideoDecoder *createVideoDecoder(const char *mimeType);
+/// \brief destroy the decoder
 void releaseVideoDecoder(IVideoDecoder * p);
 
 #endif                          /* VIDEO_DECODER_HOST_H_ */
