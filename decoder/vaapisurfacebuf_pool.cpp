@@ -314,7 +314,7 @@ bool VaapiSurfaceBufferPool::setReferenceInfo(VideoSurfaceBuffer * buf,
 }
 
 bool VaapiSurfaceBufferPool::outputBuffer(VideoSurfaceBuffer * buf,
-                                          uint64_t timeStamp, uint32_t poc)
+                                          uint64_t timeStamp, int32_t poc)
 {
     DEBUG("Pool: set surface(ID:0x%x, poc:%d) to be rendered",
           buf->renderBuffer.surface, poc);
@@ -452,7 +452,7 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinTimeStamp()
 VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinPOC()
 {
     uint32_t i;
-    uint32_t poc = INVALID_POC;
+    int32_t poc = INVALID_POC;
     VideoSurfaceBuffer *buf = NULL;
 
     pthread_mutex_lock(&m_lock);
@@ -464,7 +464,7 @@ VideoSurfaceBuffer *VaapiSurfaceBufferPool::getOutputByMinPOC()
             m_bufArray[i]->pictureOrder == INVALID_POC)
             continue;
 
-        if ((uint64_t) (m_bufArray[i]->pictureOrder) < poc) {
+        if (m_bufArray[i]->pictureOrder < poc) {
             poc = m_bufArray[i]->pictureOrder;
             buf = m_bufArray[i];
         }

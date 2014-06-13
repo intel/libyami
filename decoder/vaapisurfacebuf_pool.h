@@ -27,6 +27,7 @@
 #ifndef vaapisurfacebuf_pool_h
 #define vaapisurfacebuf_pool_h
 
+#include "basictype.h"
 #include "common/vaapisurface.h"
 #include "interface/VideoDecoderDefs.h"
 #include <pthread.h>
@@ -34,7 +35,7 @@
 #include <deque>
 
 #define INVALID_PTS ((uint64_t)-1)
-#define INVALID_POC ((uint32_t)-1)
+#define INVALID_POC INT32_MAX
 #define MAXIMUM_POC  0x7FFFFFFF
 #define MINIMUM_POC  0x80000000
 
@@ -58,7 +59,7 @@ class VaapiSurfaceBufferPool {
     VideoSurfaceBuffer *getBufferByIndex(uint32_t index);
     VaapiSurface *getVaapiSurface(VideoSurfaceBuffer * buf);
     bool outputBuffer(VideoSurfaceBuffer * buf,
-                      uint64_t timeStamp, uint32_t poc);
+                      uint64_t timeStamp, int32_t poc);
     bool setReferenceInfo(VideoSurfaceBuffer * buf,
                           bool referenceFrame, bool asReference);
 
