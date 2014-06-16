@@ -26,6 +26,7 @@
 #include "config.h"
 #endif
 
+#include <assert.h>
 #include "vaapidecoder_h264.h"
 #include "codecparsers/bytereader.h"
 
@@ -101,7 +102,7 @@ static VaapiChromaType getH264ChromaType(H264SPS * sps)
     return chromaType;
 }
 
-static inline uint32
+static inline uint32_t
 getSliceDataBitOffset(H264SliceHdr * sliceHdr, H264NalUnit * nalu)
 {
     uint32_t epbCount;
@@ -235,8 +236,8 @@ VaapiPictureH264::VaapiPictureH264(VADisplay display,
 :  VaapiPicture(display, context, surfBufPool, structure)
 {
     m_pps = NULL;
-    m_fieldPoc[0] = INT32_MAX;
-    m_fieldPoc[1] = INT32_MAX;
+    m_fieldPoc[0] = INT_MAX;
+    m_fieldPoc[1] = INT_MAX;
     m_frameNum = 0;
     m_frameNumWrap = 0;
     m_longTermFrameIdx = 0;
@@ -312,10 +313,10 @@ bool
 
     field = pic->m_structure == VAAPI_PICTURE_STRUCTURE_TOP_FIELD ? 0 : 1;
 
-    RETURN_VAL_IF_FAIL(firstField->m_fieldPoc[field] == INT32_MAX, false);
+    RETURN_VAL_IF_FAIL(firstField->m_fieldPoc[field] == INT_MAX, false);
     firstField->m_fieldPoc[field] = pic->m_fieldPoc[field];
 
-    RETURN_VAL_IF_FAIL(pic->m_fieldPoc[!field] == INT32_MAX, false);
+    RETURN_VAL_IF_FAIL(pic->m_fieldPoc[!field] == INT_MAX, false);
     pic->m_fieldPoc[!field] = firstField->m_fieldPoc[!field];
     return true;
 }

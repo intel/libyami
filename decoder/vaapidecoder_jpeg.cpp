@@ -30,6 +30,7 @@
 #include "config.h"
 #endif
 
+#include <assert.h>
 #include "vaapidecoder_jpeg.h"
 #include "codecparsers/bytereader.h"
 
@@ -43,9 +44,9 @@ static VAProfile convertToVaProfile(VaapiProfile profile)
     }
 }
 
-static uint32 getMaxHorizontalSamples(JpegFrameHdr * frameHdr)
+static uint32_t getMaxHorizontalSamples(JpegFrameHdr * frameHdr)
 {
-    uint32 i, maxFactor = 0;
+    uint32_t i, maxFactor = 0;
 
     for (i = 0; i < frameHdr->num_components; i++) {
         if (frameHdr->components[i].horizontal_factor > maxFactor)
@@ -54,9 +55,9 @@ static uint32 getMaxHorizontalSamples(JpegFrameHdr * frameHdr)
     return maxFactor;
 }
 
-static uint32 getMaxVerticalSamples(JpegFrameHdr * frameHdr)
+static uint32_t getMaxVerticalSamples(JpegFrameHdr * frameHdr)
 {
-    uint32 i, maxFactor = 0;
+    uint32_t i, maxFactor = 0;
 
     for (i = 0; i < frameHdr->num_components; i++) {
         if (frameHdr->components[i].vertical_factor > maxFactor)
@@ -125,7 +126,7 @@ VaapiDecoderJpeg::~VaapiDecoderJpeg()
 }
 
 Decode_Status
-    VaapiDecoderJpeg::parseFrameHeader(uint8 * buf, uint32 bufSize)
+    VaapiDecoderJpeg::parseFrameHeader(uint8_t * buf, uint32_t bufSize)
 {
     memset(&m_frameHdr, 0, sizeof(m_frameHdr));
     if (!jpeg_parse_frame_hdr(&m_frameHdr, buf, bufSize, 0)) {
@@ -136,7 +137,7 @@ Decode_Status
 }
 
 Decode_Status
-    VaapiDecoderJpeg::parseHuffmanTable(uint8 * buf, uint32 bufSize)
+    VaapiDecoderJpeg::parseHuffmanTable(uint8_t * buf, uint32_t bufSize)
 {
     if (!jpeg_parse_huffman_table(&m_hufTables, buf, bufSize, 0)) {
         DEBUG("failed to parse Huffman table");
@@ -148,7 +149,7 @@ Decode_Status
 }
 
 Decode_Status
-    VaapiDecoderJpeg::parseQuantTable(uint8 * buf, uint32 bufSize)
+    VaapiDecoderJpeg::parseQuantTable(uint8_t * buf, uint32_t bufSize)
 {
     if (!jpeg_parse_quant_table(&m_quantTables, buf, bufSize, 0)) {
         DEBUG("failed to parse quantization table");
@@ -159,7 +160,7 @@ Decode_Status
 }
 
 Decode_Status
-    VaapiDecoderJpeg::parseRestartInterval(uint8 * buf, uint32 bufSize)
+    VaapiDecoderJpeg::parseRestartInterval(uint8_t * buf, uint32_t bufSize)
 {
     if (!jpeg_parse_restart_interval(&m_mcuRestart, buf, bufSize, 0)) {
         DEBUG("failed to parse restart interval");
@@ -170,8 +171,8 @@ Decode_Status
 }
 
 Decode_Status
-    VaapiDecoderJpeg::parseScanHeader(JpegScanHdr * scanHdr, int8 * buf,
-                                      uint32 bufSize)
+    VaapiDecoderJpeg::parseScanHeader(JpegScanHdr * scanHdr, int8_t * buf,
+                                      uint32_t bufSize)
 {
     if (!jpeg_parse_scan_hdr(scanHdr, buf, bufSize, 0)) {
         DEBUG("failed to parse restart interval");
@@ -185,7 +186,7 @@ Decode_Status VaapiDecoderJpeg::fillPictureParam()
 {
     VAPictureParameterBufferJPEGBaseline *vaPicParam;
     VaapiBufObject *object;
-    uint32 i;
+    uint32_t i;
 
     if (!m_picture->m_picParam)
         m_picture->m_picParam = new VaapiBufObject(m_VADisplay,
@@ -226,13 +227,13 @@ Decode_Status VaapiDecoderJpeg::fillPictureParam()
 
 Decode_Status
     VaapiDecoderJpeg::fillSliceParam(JpegScanHdr * scanHdr,
-                                     uint8 * scanData, uint32 scanDataSize)
+                                     uint8_t * scanData, uint32_t scanDataSize)
 {
     VASliceParameterBufferJPEGBaseline *sliceParam;
     VaapiSliceJpeg *slice;
     VaapiBufObject *object;
-    uint32 totalHSamples, totalVSamples;
-    uint32 i;
+    uint32_t totalHSamples, totalVSamples;
+    uint32_t i;
 
     assert(scanHdr);
     slice = new VaapiSliceJpeg(m_VADisplay,
@@ -285,7 +286,7 @@ Decode_Status VaapiDecoderJpeg::fillQuantizationTable()
 {
     VAIQMatrixBufferJPEGBaseline *vaIqMatrix;
     VaapiBufObject *object;
-    uint32 i, j, numTables;
+    uint32_t i, j, numTables;
 
     if (!m_hasQuantTable)
         jpeg_get_default_quantization_tables(&m_quantTables);
@@ -328,7 +329,7 @@ Decode_Status VaapiDecoderJpeg::fillHuffmanTable()
     VAHuffmanTableBufferJPEGBaseline *vaHuffmanTable;
     JpegHuffmanTables *const hufTables = &m_hufTables;
     VaapiBufObject *object;
-    uint32 i, numTables;
+    uint32_t i, numTables;
 
     if (!m_hasHufTable)
         jpeg_get_default_huffman_tables(&m_hufTables);
@@ -457,10 +458,10 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
     Decode_Status status = DECODE_SUCCESS;
     JpegMarkerSegment seg;
     JpegScanSegment scanSeg;
-    boolean appendEcs;
-    uint8 *buf;
-    uint32 bufSize;
-    uint32 ofs;
+    BOOL appendEcs;
+    uint8_t *buf;
+    uint32_t bufSize;
+    uint32_t ofs;
 
     m_currentPTS = buffer->timeStamp;
     buf = buffer->data;

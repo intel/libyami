@@ -10,8 +10,10 @@
 
 #ifndef DBOOLHUFF_H
 #define DBOOLHUFF_H
+#define G_GNUC_UNUSED
 #include <stddef.h>
-#include <basictype.h>
+#include <stdint.h>
+#include "common/common_def.h"
 
 typedef size_t VP8_BD_VALUE;
 
@@ -109,10 +111,10 @@ static int vp8dx_decode_bool(BOOL_DECODER *br, int probability) {
     return bit;
 }
 
-static G_GNUC_UNUSED int vp8_decode_value(BOOL_DECODER *br, int bits)
+static G_GNUC_UNUSED int32_t vp8_decode_value(BOOL_DECODER *br, int32_t bits)
 {
-    int z = 0;
-    int bit;
+    int32_t z = 0;
+    int32_t bit;
 
     for (bit = bits - 1; bit >= 0; bit--)
     {

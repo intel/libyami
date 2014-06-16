@@ -23,7 +23,8 @@
 #include "config.h"
 #endif
 
-#include "basictype.h"
+#include <stdint.h>
+#include "common/common_def.h"
 #include "common/log.h"
 #include "interface/VideoEncoderHost.h"
 #if __BUILD_H264_ENCODER__

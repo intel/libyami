@@ -22,6 +22,7 @@
 
 #define BYTE_READER_DISABLE_INLINES
 #include <stdlib.h>
+#include "common/common_def.h"
 #include "bytereader.h"
 
 /**
@@ -52,7 +53,7 @@
  * Since: 0.10.22
  */
 ByteReader *
-byte_reader_new (const uint8 * data, uint32 size)
+byte_reader_new (const uint8_t * data, uint32_t size)
 {
   ByteReader *ret =  (ByteReader*) malloc (sizeof(ByteReader));
   if (!ret)
@@ -94,7 +95,7 @@ byte_reader_free (ByteReader * reader)
  * Since: 0.10.22
  */
 void
-byte_reader_init (ByteReader * reader, const uint8 * data, uint32 size)
+byte_reader_init (ByteReader * reader, const uint8_t * data, uint32_t size)
 {
   RETURN_IF_FAIL (reader != NULL);
 
@@ -115,8 +116,8 @@ byte_reader_init (ByteReader * reader, const uint8 * data, uint32 size)
  * 
  * Since: 0.10.22
  */
-boolean
-byte_reader_set_pos (ByteReader * reader, uint32 pos)
+BOOL
+byte_reader_set_pos (ByteReader * reader, uint32_t pos)
 {
   RETURN_VAL_IF_FAIL (reader != NULL, FALSE);
 
@@ -138,7 +139,7 @@ byte_reader_set_pos (ByteReader * reader, uint32 pos)
  * 
  * Since: 0.10.22
  */
-uint32
+uint32_t
 byte_reader_get_pos (const ByteReader * reader)
 {
   return byte_reader_get_pos_inline (reader);
@@ -154,7 +155,7 @@ byte_reader_get_pos (const ByteReader * reader)
  * 
  * Since: 0.10.22
  */
-uint32
+uint32_t
 byte_reader_get_remaining (const ByteReader * reader)
 {
   return byte_reader_get_remaining_inline (reader);
@@ -170,7 +171,7 @@ byte_reader_get_remaining (const ByteReader * reader)
  * 
  * Since: 0.10.26
  */
-uint32
+uint32_t
 byte_reader_get_size (const ByteReader * reader)
 {
   return byte_reader_get_size_inline (reader);
@@ -190,8 +191,8 @@ byte_reader_get_size (const ByteReader * reader)
  * 
  * Since: 0.10.22
  */
-boolean
-byte_reader_skip (ByteReader * reader, uint32 nbytes)
+BOOL
+byte_reader_skip (ByteReader * reader, uint32_t nbytes)
 {
   return byte_reader_skip_inline (reader, nbytes);
 }
@@ -199,7 +200,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint8:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint8 to store the result
+ * @val: (out): Pointer to a #uint8_t to store the result
  *
  * Read an unsigned 8 bit integer into @val and update the current position.
  *
@@ -223,7 +224,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint8:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint8 to store the result
+ * @val: (out): Pointer to a #uint8_t to store the result
  *
  * Read an unsigned 8 bit integer into @val but keep the current position.
  *
@@ -247,7 +248,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint16_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint16 to store the result
+ * @val: (out): Pointer to a #uint16_t to store the result
  *
  * Read an unsigned 16 bit little endian integer into @val
  * and update the current position.
@@ -260,7 +261,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_int16_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int16 to store the result
+ * @val: (out): Pointer to a #int16_t to store the result
  *
  * Read a signed 16 bit little endian integer into @val
  * and update the current position.
@@ -273,7 +274,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint16_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint16 to store the result
+ * @val: (out): Pointer to a #uint16_t to store the result
  *
  * Read an unsigned 16 bit little endian integer into @val
  * but keep the current position.
@@ -286,7 +287,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_int16_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int16 to store the result
+ * @val: (out): Pointer to a #int16_t to store the result
  *
  * Read a signed 16 bit little endian integer into @val
  * but keep the current position.
@@ -299,7 +300,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint16_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint16 to store the result
+ * @val: (out): Pointer to a #uint16_t to store the result
  *
  * Read an unsigned 16 bit big endian integer into @val
  * and update the current position.
@@ -312,7 +313,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_int16_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int16 to store the result
+ * @val: (out): Pointer to a #int16_t to store the result
  *
  * Read a signed 16 bit big endian integer into @val
  * and update the current position.
@@ -325,7 +326,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint16_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint16 to store the result
+ * @val: (out): Pointer to a #uint16_t to store the result
  *
  * Read an unsigned 16 bit big endian integer into @val
  * but keep the current position.
@@ -338,7 +339,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_int16_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int16 to store the result
+ * @val: (out): Pointer to a #int16_t to store the result
  *
  * Read a signed 16 bit big endian integer into @val
  * but keep the current position.
@@ -351,7 +352,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint24_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint32 to store the result
+ * @val: (out): Pointer to a #uint32_t to store the result
  *
  * Read an unsigned 24 bit little endian integer into @val
  * and update the current position.
@@ -364,7 +365,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_int24_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int32 to store the result
+ * @val: (out): Pointer to a #int32_t to store the result
  *
  * Read a signed 24 bit little endian integer into @val
  * and update the current position.
@@ -377,7 +378,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint24_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint32 to store the result
+ * @val: (out): Pointer to a #uint32_t to store the result
  *
  * Read an unsigned 24 bit little endian integer into @val
  * but keep the current position.
@@ -390,7 +391,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_int24_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int32 to store the result
+ * @val: (out): Pointer to a #int32_t to store the result
  *
  * Read a signed 24 bit little endian integer into @val
  * but keep the current position.
@@ -403,7 +404,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint24_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint32 to store the result
+ * @val: (out): Pointer to a #uint32_t to store the result
  *
  * Read an unsigned 24 bit big endian integer into @val
  * and update the current position.
@@ -416,7 +417,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_int24_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int32 to store the result
+ * @val: (out): Pointer to a #int32_t to store the result
  *
  * Read a signed 24 bit big endian integer into @val
  * and update the current position.
@@ -429,7 +430,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint24_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint32 to store the result
+ * @val: (out): Pointer to a #uint32_t to store the result
  *
  * Read an unsigned 24 bit big endian integer into @val
  * but keep the current position.
@@ -442,7 +443,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_int24_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int32 to store the result
+ * @val: (out): Pointer to a #int32_t to store the result
  *
  * Read a signed 24 bit big endian integer into @val
  * but keep the current position.
@@ -456,7 +457,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint32_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint32 to store the result
+ * @val: (out): Pointer to a #uint32_t to store the result
  *
  * Read an unsigned 32 bit little endian integer into @val
  * and update the current position.
@@ -469,7 +470,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_int32_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int32 to store the result
+ * @val: (out): Pointer to a #int32_t to store the result
  *
  * Read a signed 32 bit little endian integer into @val
  * and update the current position.
@@ -482,7 +483,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint32_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint32 to store the result
+ * @val: (out): Pointer to a #uint32_t to store the result
  *
  * Read an unsigned 32 bit little endian integer into @val
  * but keep the current position.
@@ -495,7 +496,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_int32_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int32 to store the result
+ * @val: (out): Pointer to a #int32_t to store the result
  *
  * Read a signed 32 bit little endian integer into @val
  * but keep the current position.
@@ -508,7 +509,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint32_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint32 to store the result
+ * @val: (out): Pointer to a #uint32_t to store the result
  *
  * Read an unsigned 32 bit big endian integer into @val
  * and update the current position.
@@ -521,7 +522,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_int32_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int32 to store the result
+ * @val: (out): Pointer to a #int32_t to store the result
  *
  * Read a signed 32 bit big endian integer into @val
  * and update the current position.
@@ -534,7 +535,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint32_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint32 to store the result
+ * @val: (out): Pointer to a #uint32_t to store the result
  *
  * Read an unsigned 32 bit big endian integer into @val
  * but keep the current position.
@@ -547,7 +548,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_int32_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int32 to store the result
+ * @val: (out): Pointer to a #int32_t to store the result
  *
  * Read a signed 32 bit big endian integer into @val
  * but keep the current position.
@@ -560,7 +561,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint64_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint64 to store the result
+ * @val: (out): Pointer to a #uint64_t to store the result
  *
  * Read an unsigned 64 bit little endian integer into @val
  * and update the current position.
@@ -573,7 +574,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_int64_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int64 to store the result
+ * @val: (out): Pointer to a #int64_t to store the result
  *
  * Read a signed 64 bit little endian integer into @val
  * and update the current position.
@@ -586,7 +587,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint64_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint64 to store the result
+ * @val: (out): Pointer to a #uint64_t to store the result
  *
  * Read an unsigned 64 bit little endian integer into @val
  * but keep the current position.
@@ -599,7 +600,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_int64_le:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int64 to store the result
+ * @val: (out): Pointer to a #int64_t to store the result
  *
  * Read a signed 64 bit little endian integer into @val
  * but keep the current position.
@@ -612,7 +613,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_uint64_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint64 to store the result
+ * @val: (out): Pointer to a #uint64_t to store the result
  *
  * Read an unsigned 64 bit big endian integer into @val
  * and update the current position.
@@ -625,7 +626,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_get_int64_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int64 to store the result
+ * @val: (out): Pointer to a #int64_t to store the result
  *
  * Read a signed 64 bit big endian integer into @val
  * and update the current position.
@@ -638,7 +639,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_uint64_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #uint64 to store the result
+ * @val: (out): Pointer to a #uint64_t to store the result
  *
  * Read an unsigned 64 bit big endian integer into @val
  * but keep the current position.
@@ -651,7 +652,7 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
 /**
  * byte_reader_peek_int64_be:
  * @reader: a #ByteReader instance
- * @val: (out): Pointer to a #int64 to store the result
+ * @val: (out): Pointer to a #int64_t to store the result
  *
  * Read a signed 64 bit big endian integer into @val
  * but keep the current position.
@@ -662,41 +663,41 @@ byte_reader_skip (ByteReader * reader, uint32 nbytes)
  */
 
 #define BYTE_READER_PEEK_GET(bits,type,name) \
-boolean \
+BOOL \
 byte_reader_get_##name (ByteReader * reader, type * val) \
 { \
   return byte_reader_get_##name##_inline (reader, val); \
 } \
 \
-boolean \
+BOOL \
 byte_reader_peek_##name (const ByteReader * reader, type * val) \
 { \
   return byte_reader_peek_##name##_inline (reader, val); \
 }
 /* *INDENT-OFF* */
 
-BYTE_READER_PEEK_GET(8,uint8,uint8)
-BYTE_READER_PEEK_GET(8,int8,int8)
+BYTE_READER_PEEK_GET(8,uint8_t,uint8)
+BYTE_READER_PEEK_GET(8,int8_t,int8)
 
-BYTE_READER_PEEK_GET(16,uint16,uint16_le)
-BYTE_READER_PEEK_GET(16,uint16,uint16_be)
-BYTE_READER_PEEK_GET(16,int16,int16_le)
-BYTE_READER_PEEK_GET(16,int16,int16_be)
+BYTE_READER_PEEK_GET(16,uint16_t,uint16_le)
+BYTE_READER_PEEK_GET(16,uint16_t,uint16_be)
+BYTE_READER_PEEK_GET(16,int16_t,int16_le)
+BYTE_READER_PEEK_GET(16,int16_t,int16_be)
 
-BYTE_READER_PEEK_GET(24,uint32,uint24_le)
-BYTE_READER_PEEK_GET(24,uint32,uint24_be)
-BYTE_READER_PEEK_GET(24,int32,int24_le)
-BYTE_READER_PEEK_GET(24,int32,int24_be)
+BYTE_READER_PEEK_GET(24,uint32_t,uint24_le)
+BYTE_READER_PEEK_GET(24,uint32_t,uint24_be)
+BYTE_READER_PEEK_GET(24,int32_t,int24_le)
+BYTE_READER_PEEK_GET(24,int32_t,int24_be)
 
-BYTE_READER_PEEK_GET(32,uint32,uint32_le)
-BYTE_READER_PEEK_GET(32,uint32,uint32_be)
-BYTE_READER_PEEK_GET(32,int32,int32_le)
-BYTE_READER_PEEK_GET(32,int32,int32_be)
+BYTE_READER_PEEK_GET(32,uint32_t,uint32_le)
+BYTE_READER_PEEK_GET(32,uint32_t,uint32_be)
+BYTE_READER_PEEK_GET(32,int32_t,int32_le)
+BYTE_READER_PEEK_GET(32,int32_t,int32_be)
 
-BYTE_READER_PEEK_GET(64,uint64,uint64_le)
-BYTE_READER_PEEK_GET(64,uint64,uint64_be)
-BYTE_READER_PEEK_GET(64,int64,int64_le)
-BYTE_READER_PEEK_GET(64,int64,int64_be)
+BYTE_READER_PEEK_GET(64,uint64_t,uint64_le)
+BYTE_READER_PEEK_GET(64,uint64_t,uint64_be)
+BYTE_READER_PEEK_GET(64,int64_t,int64_le)
+BYTE_READER_PEEK_GET(64,int64_t,int64_be)
 
 /**
  * byte_reader_get_float32_le:
@@ -814,7 +815,7 @@ BYTE_READER_PEEK_GET(64,double,float64_be)
  * @reader: a #ByteReader instance
  * @size: Size in bytes
  * @val: (out) (transfer none) (array length=size): address of a
- *     #uint8 pointer variable in which to store the result
+ *     #uint8_t pointer variable in which to store the result
  *
  * Returns a constant pointer to the current data
  * position if at least @size bytes are left and
@@ -825,9 +826,9 @@ BYTE_READER_PEEK_GET(64,double,float64_be)
  * 
  * Since: 0.10.22
  */
-boolean
-byte_reader_get_data (ByteReader * reader, uint32 size,
-    const uint8 ** val)
+BOOL
+byte_reader_get_data (ByteReader * reader, uint32_t size,
+    const uint8_t ** val)
 {
   return byte_reader_get_data_inline (reader, size, val);
 }
@@ -837,7 +838,7 @@ byte_reader_get_data (ByteReader * reader, uint32 size,
  * @reader: a #ByteReader instance
  * @size: Size in bytes
  * @val: (out) (transfer none) (array length=size): address of a
- *     #uint8 pointer variable in which to store the result
+ *     #uint8_t pointer variable in which to store the result
  *
  * Returns a constant pointer to the current data
  * position if at least @size bytes are left and
@@ -848,9 +849,9 @@ byte_reader_get_data (ByteReader * reader, uint32 size,
  * 
  * Since: 0.10.22
  */
-boolean
-byte_reader_peek_data (const ByteReader * reader, uint32 size,
-    const uint8 ** val)
+BOOL
+byte_reader_peek_data (const ByteReader * reader, uint32_t size,
+    const uint8_t ** val)
 {
   return byte_reader_peek_data_inline (reader, size, val);
 }
@@ -899,16 +900,16 @@ byte_reader_peek_data (const ByteReader * reader, uint32 size,
  *
  * Since: 0.10.24
  */
-uint32
-byte_reader_masked_scan_uint32 (const ByteReader * reader, uint32 mask,
-    uint32 pattern, uint32 offset, uint32 size)
+uint32_t
+byte_reader_masked_scan_uint32 (const ByteReader * reader, uint32_t mask,
+    uint32_t pattern, uint32_t offset, uint32_t size)
 {
-  const uint8 *data;
-  uint32 state;
-  uint32 i;
+  const uint8_t *data;
+  uint32_t state;
+  uint32_t i;
 
   RETURN_VAL_IF_FAIL (size > 0, -1);
-  RETURN_VAL_IF_FAIL ((uint64) offset + size <= reader->size - reader->byte, -1);
+  RETURN_VAL_IF_FAIL ((uint64_t) offset + size <= reader->size - reader->byte, -1);
 
   /* we can't find the pattern with less than 4 bytes */
   if (size < 4)
@@ -936,12 +937,12 @@ byte_reader_masked_scan_uint32 (const ByteReader * reader, uint32 mask,
 }
 
 #define BYTE_READER_SCAN_STRING(bits) \
-static uint32 \
+static uint32_t \
 byte_reader_scan_string_utf##bits (const ByteReader * reader) \
 { \
-  uint32 len, off, max_len; \
+  uint32_t len, off, max_len; \
   \
-  max_len = (reader->size - reader->byte) / sizeof (uint##bits); \
+  max_len = (reader->size - reader->byte) / sizeof (uint##bits##_t); \
   \
   /* need at least a single NUL terminator */ \
   if (max_len < 1) \
@@ -952,13 +953,13 @@ byte_reader_scan_string_utf##bits (const ByteReader * reader) \
   /* endianness does not matter if we are looking for a NUL terminator */ \
   while (READ_UINT##bits##_LE (&reader->data[off]) != 0) { \
     ++len; \
-    off += sizeof (uint##bits); \
+    off += sizeof (uint##bits##_t); \
     /* have we reached the end without finding a NUL terminator? */ \
     if (len == max_len) \
       return 0; \
   } \
   /* return size in bytes including the NUL terminator (hence the +1) */ \
-  return (len + 1) * sizeof (uint##bits); \
+  return (len + 1) * sizeof (uint##bits##_t); \
 }
 
 BYTE_READER_SCAN_STRING (8);
@@ -966,10 +967,10 @@ BYTE_READER_SCAN_STRING (16);
 BYTE_READER_SCAN_STRING (32);
 
 #define BYTE_READER_SKIP_STRING(bits) \
-boolean \
+BOOL \
 byte_reader_skip_string_utf##bits (ByteReader * reader) \
 { \
-  uint32 size; /* size in bytes including the terminator */ \
+  uint32_t size; /* size in bytes including the terminator */ \
   \
   RETURN_VAL_IF_FAIL (reader != NULL, FALSE); \
   \
@@ -1082,7 +1083,7 @@ BYTE_READER_SKIP_STRING (32);
  *
  * Since: 0.10.24
  */
-boolean
+BOOL
 byte_reader_peek_string_utf8 (const ByteReader * reader,
     const char ** str)
 {
@@ -1117,10 +1118,10 @@ byte_reader_peek_string_utf8 (const ByteReader * reader,
  *
  * Since: 0.10.24
  */
-boolean
+BOOL
 byte_reader_get_string_utf8 (ByteReader * reader, const char ** str)
 {
-  uint32 size;                   /* size in bytes including the terminator */
+  uint32_t size;                   /* size in bytes including the terminator */
 
   RETURN_VAL_IF_FAIL (reader != NULL, FALSE);
   RETURN_VAL_IF_FAIL (str != NULL, FALSE);

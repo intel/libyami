@@ -66,14 +66,6 @@
 
 #endif                          //__ANDROID
 
-#ifndef RETURN_IF_FAIL
-#define RETURN_IF_FAIL(condition, val) \
-do{ \
-  if (!(condition)) \
-     return (val);  \
-}while(0)
-#endif
-
 static inline bool checkVaapiStatus(VAStatus status, const char *msg)
 {
     if (status != VA_STATUS_SUCCESS) {

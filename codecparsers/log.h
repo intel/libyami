@@ -69,16 +69,4 @@
 
 #endif //__ANDROID
 
-#ifndef RETURN_IF_FAIL
-#define RETURN_IF_FAIL(condition) \
-do{ \
-  if (!(condition)) \
-     return;  \
-}while(0)
-#endif
-
-#define RETURN_VAL_IF_FAIL(condition, value) \
-    if (!(condition)) \
-      return (value);
-
 #endif //__LOG_H__

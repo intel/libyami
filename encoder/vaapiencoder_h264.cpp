@@ -24,7 +24,7 @@
 #include "config.h"
 #endif
 #include "vaapiencoder_h264.h"
-
+#include <assert.h>
 #include "bitwriter.h"
 #include "scopedlogger.h"
 #include "vaapicodedbuffer.h"
@@ -137,11 +137,11 @@ static uint8_t h264_get_profile_idc (VaapiProfile profile)
 
 }
 
-boolean
-bit_writer_put_ue(BitWriter *bitwriter, uint32 value)
+BOOL
+bit_writer_put_ue(BitWriter *bitwriter, uint32_t value)
 {
-    uint32  size_in_bits = 0;
-    uint32  tmp_value = ++value;
+    uint32_t  size_in_bits = 0;
+    uint32_t  tmp_value = ++value;
 
     while (tmp_value) {
         ++size_in_bits;
@@ -155,10 +155,10 @@ bit_writer_put_ue(BitWriter *bitwriter, uint32 value)
     return TRUE;
 }
 
-boolean
-bit_writer_put_se(BitWriter *bitwriter, int32 value)
+BOOL
+bit_writer_put_se(BitWriter *bitwriter, int32_t value)
 {
-    uint32 new_val;
+    uint32_t new_val;
 
     if (value <= 0)
         new_val = -(value<<1);
@@ -171,11 +171,11 @@ bit_writer_put_se(BitWriter *bitwriter, int32 value)
 }
 
 
-static boolean
+static BOOL
 bit_writer_write_nal_header(
     BitWriter *bitwriter,
-    uint32 nal_ref_idc,
-    uint32 nal_unit_type
+    uint32_t nal_ref_idc,
+    uint32_t nal_unit_type
 )
 {
     bit_writer_put_bits_uint32(bitwriter, 0, 1);
@@ -184,7 +184,7 @@ bit_writer_write_nal_header(
     return TRUE;
 }
 
-static boolean
+static BOOL
 bit_writer_write_trailing_bits(BitWriter *bitwriter)
 {
     bit_writer_put_bits_uint32(bitwriter, 1, 1);
@@ -192,25 +192,25 @@ bit_writer_write_trailing_bits(BitWriter *bitwriter)
     return TRUE;
 }
 
-static boolean
+static BOOL
 bit_writer_write_sps(
     BitWriter *bitwriter,
     const VAEncSequenceParameterBufferH264* const seq,
     VaapiProfile profile
 )
 {
-    uint32 constraint_set0_flag, constraint_set1_flag;
-    uint32 constraint_set2_flag, constraint_set3_flag;
-    uint32 gaps_in_frame_num_value_allowed_flag = 0; // ??
-    boolean nal_hrd_parameters_present_flag;
+    uint32_t constraint_set0_flag, constraint_set1_flag;
+    uint32_t constraint_set2_flag, constraint_set3_flag;
+    uint32_t gaps_in_frame_num_value_allowed_flag = 0; // ??
+    BOOL nal_hrd_parameters_present_flag;
 
-    uint32 b_qpprime_y_zero_transform_bypass = 0;
-    uint32 residual_color_transform_flag = 0;
-    uint32 pic_height_in_map_units =
+    uint32_t b_qpprime_y_zero_transform_bypass = 0;
+    uint32_t residual_color_transform_flag = 0;
+    uint32_t pic_height_in_map_units =
         (seq->seq_fields.bits.frame_mbs_only_flag ?
          seq->picture_height_in_mbs : seq->picture_height_in_mbs/2);
-    uint32 mb_adaptive_frame_field = !seq->seq_fields.bits.frame_mbs_only_flag;
-    uint32 i = 0;
+    uint32_t mb_adaptive_frame_field = !seq->seq_fields.bits.frame_mbs_only_flag;
+    uint32_t i = 0;
 
     constraint_set0_flag = profile == VAAPI_PROFILE_H264_BASELINE;
     constraint_set1_flag = profile <= VAAPI_PROFILE_H264_MAIN;
@@ -398,15 +398,15 @@ bit_writer_write_sps(
     return TRUE;
 }
 
-static boolean
+static BOOL
 bit_writer_write_pps(
     BitWriter *bitwriter,
     const VAEncPictureParameterBufferH264* const pic
 )
 {
-    uint32 num_slice_groups_minus1 = 0;
-    uint32 pic_init_qs_minus26 = 0;
-    uint32 redundant_pic_cnt_present_flag = 0;
+    uint32_t num_slice_groups_minus1 = 0;
+    uint32_t pic_init_qs_minus26 = 0;
+    uint32_t redundant_pic_cnt_present_flag = 0;
 
     /* pic_parameter_set_id */
     bit_writer_put_ue(bitwriter, pic->pic_parameter_set_id);
@@ -950,7 +950,7 @@ bool VaapiEncoderH264::addPackedSequenceHeader(const PicturePtr& picture,const V
 {
     BitWriter bs;
     uint32_t dataBitSize;
-    uint8 *data;
+    uint8_t *data;
 
     bit_writer_init (&bs, 128 * 8);
     bit_writer_put_bits_uint32 (&bs, 0x00000001, 32);   /* start code */

@@ -25,8 +25,9 @@
 #include "config.h"
 #endif
 #include "vaapiencoder_base.h"
-
-#include "basictype.h"
+#include <assert.h>
+#include <stdint.h>
+#include "common/common_def.h"
 #include "scopedlogger.h"
 #include "vaapicodedbuffer.h"
 

@@ -27,6 +27,7 @@
  * specifications: ISO-IEC-14496-2_2004_MPEG4_VISUAL.pdf
  */
 
+#include <string.h>
 #include "bitreader.h"
 #include "bytereader.h"
 #include "parserutils.h"
@@ -34,7 +35,7 @@
 #include "mpeg4parser.h"
 
 #define CHECK_MARKER(br) { \
-  uint8 marker;\
+  uint8_t marker;\
   if (!bit_reader_get_bits_uint8 (br, &marker, 1)) { \
     LOG_WARNING ("failed to read marker bit \n"); \
     goto failed; \
@@ -56,7 +57,7 @@
     goto failed; \
 }
 
-static const uint8 default_intra_quant_mat[64] = {
+static const uint8_t default_intra_quant_mat[64] = {
   8, 17, 18, 19, 21, 23, 25, 27,
   17, 18, 19, 21, 23, 25, 27, 28,
   20, 21, 22, 23, 24, 26, 28, 30,
@@ -67,7 +68,7 @@ static const uint8 default_intra_quant_mat[64] = {
   27, 28, 30, 32, 35, 38, 41, 45
 };
 
-static const uint8 default_non_intra_quant_mat[64] = {
+static const uint8_t default_non_intra_quant_mat[64] = {
   16, 17, 18, 19, 20, 21, 22, 23,
   17, 18, 19, 20, 21, 22, 23, 24,
   18, 19, 20, 21, 22, 23, 24, 25,
@@ -78,7 +79,7 @@ static const uint8 default_non_intra_quant_mat[64] = {
   23, 24, 25, 27, 28, 30, 31, 33,
 };
 
-static const uint8 mpeg4_zigzag_8x8[64] = {
+static const uint8_t mpeg4_zigzag_8x8[64] = {
   0, 1, 8, 16, 9, 2, 3, 10,
   17, 24, 32, 25, 18, 11, 4, 5,
   12, 19, 26, 33, 40, 48, 41, 34,
@@ -108,8 +109,8 @@ static const VLCTable mpeg4_dmv_size_vlc_table[] = {
 };
 
 static void
-mpeg4_util_par_from_info (uint8 aspect_ratio_info, uint8 * par_width,
-    uint8 * par_height)
+mpeg4_util_par_from_info (uint8_t aspect_ratio_info, uint8_t * par_width,
+    uint8_t * par_height)
 {
   switch (aspect_ratio_info) {
     case 0x02:
@@ -136,14 +137,14 @@ mpeg4_util_par_from_info (uint8 aspect_ratio_info, uint8 * par_width,
   }
 }
 
-static boolean
-parse_quant (BitReader * br, uint8 quant_mat[64],
-    const uint8 default_quant_mat[64], uint8 * load_quant_mat)
+static BOOL
+parse_quant (BitReader * br, uint8_t quant_mat[64],
+    const uint8_t default_quant_mat[64], uint8_t * load_quant_mat)
 {
   READ_UINT8 (br, *load_quant_mat, 1);
   if (*load_quant_mat) {
-    uint32 i;
-    uint8 val;
+    uint32_t i;
+    uint8_t val;
 
     val = 1;
     for (i = 0; i < 64; i++) {
@@ -172,7 +173,7 @@ invalid_quant_mat:
   goto failed;
 }
 
-static boolean
+static BOOL
 parse_signal_type (BitReader * br, Mpeg4VideoSignalType * signal_type)
 {
   READ_UINT8 (br, signal_type->type, 1);
@@ -197,11 +198,11 @@ failed:
   return FALSE;
 }
 
-static boolean
+static BOOL
 parse_sprite_trajectory (BitReader * br,
-    Mpeg4SpriteTrajectory * sprite_traj, uint32 no_of_sprite_warping_points)
+    Mpeg4SpriteTrajectory * sprite_traj, uint32_t no_of_sprite_warping_points)
 {
-  uint32 i, length;
+  uint32_t i, length;
 
   for (i = 0; i < no_of_sprite_warping_points; i++) {
 
@@ -229,10 +230,10 @@ failed:
   return FALSE;
 }
 
-static uint32
+static uint32_t
 find_psc (ByteReader * br)
 {
-  uint32 psc_pos = -1, psc;
+  uint32_t psc_pos = -1, psc;
 
   if (!byte_reader_peek_uint24_be (br, &psc))
     goto failed;
@@ -252,11 +253,11 @@ failed:
   return psc_pos;
 }
 
-static inline uint8
+static inline uint8_t
 compute_resync_marker_size (const Mpeg4VideoObjectPlane * vop,
-    uint32 * pattern, uint32 * mask)
+    uint32_t * pattern, uint32_t * mask)
 {
-  uint8 off;
+  uint8_t off;
 
   /* FIXME handle the binary only shape case */
   switch (vop->coding_type) {
@@ -331,11 +332,11 @@ compute_resync_marker_size (const Mpeg4VideoObjectPlane * vop,
  */
 static Mpeg4ParseResult
 mpeg4_next_resync (Mpeg4Packet * packet,
-    const Mpeg4VideoObjectPlane * vop, const uint8 * data, size_t size,
-    boolean first_resync_marker)
+    const Mpeg4VideoObjectPlane * vop, const uint8_t * data, size_t size,
+    BOOL first_resync_marker)
 {
-  uint32 markersize = 0, off1, off2;
-  uint32 mask = 0xff, pattern = 0xff;
+  uint32_t markersize = 0, off1, off2;
+  uint32_t mask = 0xff, pattern = 0xff;
   ByteReader br;
 
   byte_reader_init (&br, data, size);
@@ -390,14 +391,14 @@ mpeg4_next_resync (Mpeg4Packet * packet,
  * Returns: a #Mpeg4ParseResult
  */
 Mpeg4ParseResult
-mpeg4_parse (Mpeg4Packet * packet, boolean skip_user_data,
-    Mpeg4VideoObjectPlane * vop, const uint8 * data, uint32 offset,
+mpeg4_parse (Mpeg4Packet * packet, BOOL skip_user_data,
+    Mpeg4VideoObjectPlane * vop, const uint8_t * data, uint32_t offset,
     size_t size)
 {
-  int32 off1, off2;
+  int32_t off1, off2;
   ByteReader br;
   Mpeg4ParseResult resync_res;
-  static uint32 first_resync_marker = TRUE;
+  static uint32_t first_resync_marker = TRUE;
 
   byte_reader_init (&br, data, size);
 
@@ -484,9 +485,9 @@ find_end:
  */
 Mpeg4ParseResult
 h263_parse (Mpeg4Packet * packet,
-    const uint8 * data, uint32 offset, size_t size)
+    const uint8_t * data, uint32_t offset, size_t size)
 {
-  int32 off1, off2;
+  int32_t off1, off2;
   ByteReader br;
 
   byte_reader_init (&br, data + offset, size - offset);
@@ -541,9 +542,9 @@ h263_parse (Mpeg4Packet * packet,
  */
 Mpeg4ParseResult
 mpeg4_parse_visual_object_sequence (Mpeg4VisualObjectSequence * vos,
-    const uint8 * data, size_t size)
+    const uint8_t * data, size_t size)
 {
-  uint8 vos_start_code;
+  uint8_t vos_start_code;
   BitReader br = BIT_READER_INIT (data, size);
 
   RETURN_VAL_IF_FAIL (vos != NULL, MPEG4_PARSER_ERROR);
@@ -827,9 +828,9 @@ failed:
  */
 Mpeg4ParseResult
 mpeg4_parse_visual_object (Mpeg4VisualObject * vo,
-    Mpeg4VideoSignalType * signal_type, const uint8 * data, size_t size)
+    Mpeg4VideoSignalType * signal_type, const uint8_t * data, size_t size)
 {
-  uint8 vo_start_code, type;
+  uint8_t vo_start_code, type;
   BitReader br = BIT_READER_INIT (data, size);
 
   RETURN_VAL_IF_FAIL (vo != NULL, MPEG4_PARSER_ERROR);
@@ -888,12 +889,12 @@ failed:
  */
 Mpeg4ParseResult
 mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
-    Mpeg4VisualObject * vo, const uint8 * data, size_t size)
+    Mpeg4VisualObject * vo, const uint8_t * data, size_t size)
 {
-  uint8 video_object_layer_start_code;
+  uint8_t video_object_layer_start_code;
 
   /* Used for enums types */
-  uint8 tmp;
+  uint8_t tmp;
   BitReader br = BIT_READER_INIT (data, size);
 
   RETURN_VAL_IF_FAIL (vol != NULL, MPEG4_PARSER_ERROR);
@@ -941,7 +942,7 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
         &vol->par_height);
 
   } else {
-    int32 v;
+    int32_t v;
 
     READ_UINT8 (&br, vol->par_width, 8);
     v = vol->par_width;
@@ -955,7 +956,7 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
 
   READ_UINT8 (&br, vol->control_parameters, 1);
   if (vol->control_parameters) {
-    uint8 chroma_format;
+    uint8_t chroma_format;
 
     READ_UINT8 (&br, chroma_format, 2);
     vol->chroma_format = chroma_format;
@@ -1129,8 +1130,8 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
 
     READ_UINT8 (&br, vol->complexity_estimation_disable, 1);
     if (!vol->complexity_estimation_disable) {
-      uint8 estimation_method;
-      uint8 estimation_disable;
+      uint8_t estimation_method;
+      uint8_t estimation_disable;
 
       /* skip unneeded properties */
       READ_UINT8 (&br, estimation_method, 2);
@@ -1210,9 +1211,9 @@ wrong_start_code:
  */
 Mpeg4ParseResult
 mpeg4_parse_group_of_vop (Mpeg4GroupOfVOP *
-    gov, const uint8 * data, size_t size)
+    gov, const uint8_t * data, size_t size)
 {
-  uint8 gov_start_code;
+  uint8_t gov_start_code;
   BitReader br = BIT_READER_INIT (data, size);
 
   RETURN_VAL_IF_FAIL (gov != NULL, MPEG4_PARSER_ERROR);
@@ -1259,9 +1260,9 @@ wrong_start_code:
 Mpeg4ParseResult
 mpeg4_parse_video_object_plane (Mpeg4VideoObjectPlane * vop,
     Mpeg4SpriteTrajectory * sprite_trajectory,
-    Mpeg4VideoObjectLayer * vol, const uint8 * data, size_t size)
+    Mpeg4VideoObjectLayer * vol, const uint8_t * data, size_t size)
 {
-  uint8 vop_start_code, coding_type, modulo_time_base;
+  uint8_t vop_start_code, coding_type, modulo_time_base;
   BitReader br = BIT_READER_INIT (data, size);
 
   RETURN_VAL_IF_FAIL (vop != NULL, MPEG4_PARSER_ERROR);
@@ -1317,7 +1318,7 @@ mpeg4_parse_video_object_plane (Mpeg4VideoObjectPlane * vop,
     return MPEG4_PARSER_OK;
 
   if (vol->newpred_enable) {
-    uint16 nbbits =
+    uint16_t nbbits =
         vop->time_increment + 3 < 15 ? vop->time_increment + 3 : 15;
 
     READ_UINT16 (&br, vop->id, nbbits);
@@ -1477,9 +1478,9 @@ wrong_start_code:
  */
 Mpeg4ParseResult
 mpeg4_parse_video_plane_short_header (Mpeg4VideoPlaneShortHdr *
-    shorthdr, const uint8 * data, size_t size)
+    shorthdr, const uint8_t * data, size_t size)
 {
-  uint8 zero_bits;
+  uint8_t zero_bits;
 
   BitReader br = BIT_READER_INIT (data, size);
 
@@ -1594,10 +1595,10 @@ failed:
 Mpeg4ParseResult
 mpeg4_parse_video_packet_header (Mpeg4VideoPacketHdr * videopackethdr,
     Mpeg4VideoObjectLayer * vol, Mpeg4VideoObjectPlane * vop,
-    Mpeg4SpriteTrajectory * sprite_trajectory, const uint8 * data,
+    Mpeg4SpriteTrajectory * sprite_trajectory, const uint8_t * data,
     size_t size)
 {
-  uint8 markersize;
+  uint8_t markersize;
   BitReader br = BIT_READER_INIT (data, size);
 
   RETURN_VAL_IF_FAIL (videopackethdr != NULL, MPEG4_PARSER_ERROR);
@@ -1643,8 +1644,8 @@ mpeg4_parse_video_packet_header (Mpeg4VideoPacketHdr * videopackethdr,
     READ_UINT8 (&br, videopackethdr->header_extension_code, 1);
 
   if (videopackethdr->header_extension_code) {
-    uint32 timeincr = 0;
-    uint8 bit = 0, coding_type;
+    uint32_t timeincr = 0;
+    uint8_t bit = 0, coding_type;
 
     do {
       READ_UINT8 (&br, bit, 1);
@@ -1695,7 +1696,7 @@ mpeg4_parse_video_packet_header (Mpeg4VideoPacketHdr * videopackethdr,
   }
 
   if (vol->newpred_enable) {
-    uint16 nbbits =
+    uint16_t nbbits =
         vol->vop_time_increment_bits + 3 < 15 ? vop->time_increment + 3 : 15;
 
     READ_UINT16 (&br, vop->id, nbbits);

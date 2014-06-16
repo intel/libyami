@@ -36,7 +36,7 @@
 #include "log.h"
 
 /* section 13.4 of spec */
-static const uint8 vp8_token_update_probs[4][8][3][11] = {
+static const uint8_t vp8_token_update_probs[4][8][3][11] = {
   {
         {
               {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
@@ -209,7 +209,7 @@ static const uint8 vp8_token_update_probs[4][8][3][11] = {
 };
 
 /* section 17.2 of spec */
-static const uint8 vp8_mv_update_prob[2][19] = {
+static const uint8_t vp8_mv_update_prob[2][19] = {
   {
         237,
         246,
@@ -223,7 +223,7 @@ static const uint8 vp8_mv_update_prob[2][19] = {
 };
 
 /* section 13.4 of spec */
-static const uint8 default_coef_probs[4][8][3][11] = {
+static const uint8_t default_coef_probs[4][8][3][11] = {
   {
         {
               {128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128},
@@ -395,7 +395,7 @@ static const uint8 default_coef_probs[4][8][3][11] = {
 };
 
 /* section 17.2 of spec */
-static const uint8 vp8_default_mv_context[2][19] = {
+static const uint8_t vp8_default_mv_context[2][19] = {
   {
         162,
         128,
@@ -422,18 +422,18 @@ static const uint8 vp8_default_mv_context[2][19] = {
  *
  */
 static void
-vp8_bool_decoder_debug_status (BOOL_DECODER * br, const uint8 * buf_start)
+vp8_bool_decoder_debug_status (BOOL_DECODER * br, const uint8_t * buf_start)
 {
   LOG_DEBUG
       ("BOOL_DECODER: %x bytes read with %2d bits not parsed yet, code_word is:%8x, range-high is %2x\n",
-      (uint32) (br->user_buffer - buf_start), 8 + br->count,
-      (uint64) br->value, br->range);
+      (uint32_t) (br->user_buffer - buf_start), 8 + br->count,
+      (uint64_t) br->value, br->range);
   LOG_DEBUG ("user_buffer: %p, user_buffer_start: %p\n", br->user_buffer,
       buf_start);
 }
 
 
-static boolean
+static BOOL
 update_segmentation (BOOL_DECODER * bool_decoder,
     Vp8FrameHdr * frame_hdr)
 {
@@ -487,7 +487,7 @@ update_segmentation (BOOL_DECODER * bool_decoder,
   return TRUE;
 }
 
-static boolean
+static BOOL
 mb_lf_adjustments (BOOL_DECODER * bool_decoder,
     Vp8FrameHdr * frame_hdr)
 {
@@ -529,7 +529,7 @@ mb_lf_adjustments (BOOL_DECODER * bool_decoder,
   return TRUE;
 }
 
-static boolean
+static BOOL
 quant_indices_parse (BOOL_DECODER * bool_decoder,
     Vp8FrameHdr * frame_hdr)
 {
@@ -586,7 +586,7 @@ quant_indices_parse (BOOL_DECODER * bool_decoder,
   return TRUE;
 }
 
-static boolean
+static BOOL
 token_prob_update (BOOL_DECODER * bool_decoder,
     Vp8FrameHdr * frame_hdr)
 {
@@ -614,7 +614,7 @@ token_prob_update (BOOL_DECODER * bool_decoder,
   return TRUE;
 }
 
-static boolean
+static BOOL
 mv_prob_update (BOOL_DECODER * bool_decoder, Vp8FrameHdr * frame_hdr)
 {
   Vp8MvProbUpdate *mv_prob_update =
@@ -652,14 +652,14 @@ mv_prob_update (BOOL_DECODER * bool_decoder, Vp8FrameHdr * frame_hdr)
  * Returns: a #Vp8ParseResult
  */
 Vp8ParseResult
-vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8 * data,
-    uint32 offset, uint32 size)
+vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8_t * data,
+    uint32_t offset, uint32_t size)
 {
   ByteReader byte_reader;
   BOOL_DECODER bool_decoder;
   Vp8RangeDecoderStatus *state = NULL;
-  uint32 frame_tag, tmp;
-  uint16 tmp_16;
+  uint32_t frame_tag, tmp;
+  uint16_t tmp_16;
   int pos, i;
 
   if (!frame_hdr->multi_frame_data) {
@@ -725,7 +725,7 @@ vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8 * data,
   READ_N_BITS (&bool_decoder, frame_hdr->log2_nbr_of_dct_partitions, 2,
       "log2_nbr_of_dct_partitions");
   if (frame_hdr->log2_nbr_of_dct_partitions) {
-    const uint8 *part_size_ptr = data + frame_hdr->first_part_size;
+    const uint8_t *part_size_ptr = data + frame_hdr->first_part_size;
     int par_count = 1 << frame_hdr->log2_nbr_of_dct_partitions;
     int i = 0;
 
@@ -735,7 +735,7 @@ vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8 * data,
       part_size_ptr += VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME;
     /* the last partition size is not specified (see spec page 9) */
     for (i = 0; i < par_count - 1; i++) {
-      uint8 c[3];
+      uint8_t c[3];
       c[0] = *part_size_ptr;
       c[1] = *(part_size_ptr + 1);
       c[2] = *(part_size_ptr + 2);
@@ -822,7 +822,7 @@ vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8 * data,
     vp8dx_bool_decoder_fill (&bool_decoder);
 
   state->range = bool_decoder.range;
-  state->code_word = (uint8) ((bool_decoder.value) >> (VP8_BD_VALUE_SIZE - 8));
+  state->code_word = (uint8_t) ((bool_decoder.value) >> (VP8_BD_VALUE_SIZE - 8));
   state->remaining_bits = 8 + bool_decoder.count;
   state->buffer = bool_decoder.user_buffer;
 
@@ -849,7 +849,7 @@ error:
  *
  * Returns: TRUE if successful, FALSE otherwise.
  */
-boolean
+BOOL
 vp8_parse_init_default_multi_frame_data (Vp8MultiFrameData *
     multi_frame_data)
 {

@@ -28,12 +28,14 @@
  *
  */
 #include <stdlib.h>
+#include <string.h>
+#include <assert.h>
 #include "parserutils.h"
 #include "bytereader.h"
 #include "bitreader.h"
 #include "vc1parser.h"
 
-static const uint8 vc1_pquant_table[3][32] = {
+static const uint8_t vc1_pquant_table[3][32] = {
   {                             /* Implicit quantizer */
         0, 1, 2, 3, 4, 5, 6, 7, 8, 6, 7, 8, 9, 10, 11, 12,
       13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 29, 31},
@@ -45,7 +47,7 @@ static const uint8 vc1_pquant_table[3][32] = {
       14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 31}
 };
 
-static const uint8 vc1_mvmode_table[2][5] = {
+static const uint8_t vc1_mvmode_table[2][5] = {
   /* Table 47: P Picture High rate (PQUANT <= 12) MVMODE code table */
   {
         VC1_MVMODE_1MV,
@@ -62,7 +64,7 @@ static const uint8 vc1_mvmode_table[2][5] = {
       VC1_MVMODE_MIXED_MV}
 };
 
-static const uint8 vc1_mvmode2_table[2][4] = {
+static const uint8_t vc1_mvmode2_table[2][4] = {
   /* Table 50: P Picture High rate (PQUANT <= 12) MVMODE2 code table */
   {
         VC1_MVMODE_1MV,
@@ -206,7 +208,7 @@ static const VLCTable vc1_norm6_vlc_table[64] = {
 /* SMPTE 421M Table 7 */
 typedef struct
 {
-  int32 par_n, par_d;
+  int32_t par_n, par_d;
 } PAR;
 
 static PAR aspect_ratios[] = {
@@ -229,7 +231,7 @@ static PAR aspect_ratios[] = {
 };
 
 /* SMPTE 421M Table 8 */
-static const uint32 framerates_n[] = {
+static const uint32_t framerates_n[] = {
   0,
   24 * 1000,
   25 * 1000,
@@ -241,19 +243,19 @@ static const uint32 framerates_n[] = {
 };
 
 /* SMPTE 421M Table 9 */
-static const uint32 framerates_d[] = {
+static const uint32_t framerates_d[] = {
   0,
   1000,
   1001
 };
 
 
-static inline boolean
-decode_colskip (BitReader * br, uint8 * data, uint32 width, uint32 height,
-    uint32 stride, uint32 invert)
+static inline BOOL
+decode_colskip (BitReader * br, uint8_t * data, uint32_t width, uint32_t height,
+    uint32_t stride, uint32_t invert)
 {
-  uint32 x, y;
-  uint8 colskip, v;
+  uint32_t x, y;
+  uint8_t colskip, v;
 
   LOG_DEBUG ("Parsing colskip");
 
@@ -284,12 +286,12 @@ failed:
   return FALSE;
 }
 
-static inline boolean
-decode_rowskip (BitReader * br, uint8 * data, uint32 width, uint32 height,
-    uint32 stride, uint32 invert)
+static inline BOOL
+decode_rowskip (BitReader * br, uint8_t * data, uint32_t width, uint32_t height,
+    uint32_t stride, uint32_t invert)
 {
-  uint32 x, y;
-  uint8 rowskip, v;
+  uint32_t x, y;
+  uint8_t rowskip, v;
 
   LOG_DEBUG ("Parsing rowskip");
 
@@ -319,10 +321,10 @@ failed:
   return FALSE;
 }
 
-static inline int8
+static inline int8_t
 decode012 (BitReader * br)
 {
-  uint8 n;
+  uint8_t n;
 
   READ_UINT8 (br, n, 1);
 
@@ -339,7 +341,7 @@ failed:
   return -1;
 }
 
-static inline uint32
+static inline uint32_t
 calculate_nb_pan_scan_win (VC1AdvancedSeqHdr * advseqhdr, VC1PicAdvanced * pic)
 {
   if (advseqhdr->interlace && !advseqhdr->psf) {
@@ -356,11 +358,11 @@ calculate_nb_pan_scan_win (VC1AdvancedSeqHdr * advseqhdr, VC1PicAdvanced * pic)
   }
 }
 
-static boolean
-decode_refdist (BitReader * br, uint16 * value)
+static BOOL
+decode_refdist (BitReader * br, uint16_t * value)
 {
-  uint16 tmp;
-  int32 i = 2;
+  uint16_t tmp;
+  int32_t i = 2;
 
   if (!bit_reader_peek_bits_uint16 (br, &tmp, i))
     goto failed;
@@ -394,16 +396,16 @@ failed:
 }
 
 /*** bitplanes decoding ***/
-static boolean
-bitplane_decoding (BitReader * br, uint8 * data,
-    VC1SeqHdr * seqhdr, uint8 * is_raw)
+static BOOL
+bitplane_decoding (BitReader * br, uint8_t * data,
+    VC1SeqHdr * seqhdr, uint8_t * is_raw)
 {
-  const uint32 width = seqhdr->mb_width;
-  const uint32 height = seqhdr->mb_height;
-  const uint32 stride = seqhdr->mb_stride;
-  uint32 imode, invert, invert_mask;
-  uint32 x, y, v, o;
-  uint8 *pdata = data;
+  const uint32_t width = seqhdr->mb_width;
+  const uint32_t height = seqhdr->mb_height;
+  const uint32_t stride = seqhdr->mb_stride;
+  uint32_t imode, invert, invert_mask;
+  uint32_t x, y, v, o;
+  uint8_t *pdata = data;
 
   *is_raw = FALSE;
 
@@ -583,8 +585,8 @@ failed:
   return FALSE;
 }
 
-static boolean
-parse_vopdquant (BitReader * br, VC1FrameHdr * framehdr, uint8 dquant)
+static BOOL
+parse_vopdquant (BitReader * br, VC1FrameHdr * framehdr, uint8_t dquant)
 {
   VC1VopDquant *vopdquant = &framehdr->vopdquant;
 
@@ -645,8 +647,8 @@ failed:
   return FALSE;
 }
 
-static inline int32
-scan_for_start_codes (const uint8 * data, uint32 size)
+static inline int32_t
+scan_for_start_codes (const uint8_t * data, uint32_t size)
 {
   ByteReader br;
   byte_reader_init (&br, data, size);
@@ -655,11 +657,11 @@ scan_for_start_codes (const uint8 * data, uint32 size)
   return byte_reader_masked_scan_uint32 (&br, 0xffffff00, 0x00000100, 0, size);
 }
 
-static inline int32
-get_unary (BitReader * br, int32 stop, int32 len)
+static inline int32_t
+get_unary (BitReader * br, int32_t stop, int32_t len)
 {
   int i;
-  uint8 current = 0xff;
+  uint8_t current = 0xff;
 
   for (i = 0; i < len; i++) {
     current = bit_reader_get_bits_uint8_unchecked (br, 1);
@@ -671,8 +673,8 @@ get_unary (BitReader * br, int32 stop, int32 len)
 }
 
 static inline void
-calculate_framerate_bitrate (uint8 frmrtq_postproc, uint8 bitrtq_postproc,
-    uint32 * framerate, uint32 * bitrate)
+calculate_framerate_bitrate (uint8_t frmrtq_postproc, uint8_t bitrtq_postproc,
+    uint32_t * framerate, uint32_t * bitrate)
 {
   if (frmrtq_postproc == 0 && bitrtq_postproc == 31) {
     *framerate = 0;
@@ -698,7 +700,7 @@ calculate_framerate_bitrate (uint8 frmrtq_postproc, uint8 bitrtq_postproc,
 }
 
 static inline void
-calculate_mb_size (VC1SeqHdr * seqhdr, uint32 width, uint32 height)
+calculate_mb_size (VC1SeqHdr * seqhdr, uint32_t width, uint32_t height)
 {
   seqhdr->mb_width = (width + 15) >> 4;
   seqhdr->mb_height = (height + 15) >> 4;
@@ -708,7 +710,7 @@ calculate_mb_size (VC1SeqHdr * seqhdr, uint32 width, uint32 height)
 static VC1ParserResult
 parse_hrd_param_flag (BitReader * br, VC1HrdParam * hrd_param)
 {
-  uint32 i;
+  uint32_t i;
 
   LOG_DEBUG ("Parsing Hrd param flag");
 
@@ -744,7 +746,7 @@ static VC1ParserResult
 parse_sequence_header_advanced (VC1SeqHdr * seqhdr, BitReader * br)
 {
   VC1AdvancedSeqHdr *advanced = &seqhdr->advanced;
-  uint8 tmp;
+  uint8_t tmp;
 
   LOG_DEBUG ("Parsing sequence header in advanced mode");
 
@@ -862,12 +864,12 @@ failed:
 
 static VC1ParserResult
 parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
-    VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes, boolean field2)
+    VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes, BOOL field2)
 {
   VC1AdvancedSeqHdr *advhdr = &seqhdr->advanced;
   VC1PicAdvanced *pic = &framehdr->pic.advanced;
   VC1EntryPointHdr *entrypthdr = &advhdr->entrypoint;
-  uint8 mvmodeidx;
+  uint8_t mvmodeidx;
 
   LOG_DEBUG ("Parsing Frame header advanced %u", advhdr->interlace);
 
@@ -876,12 +878,12 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
   framehdr->dquant = entrypthdr->dquant;
 
   if (advhdr->interlace) {
-    int8 fcm = decode012 (br);
+    int8_t fcm = decode012 (br);
 
     if (fcm < 0)
       goto failed;
 
-    pic->fcm = (uint8) fcm;
+    pic->fcm = (uint8_t) fcm;
   } else
     pic->fcm = VC1_FRAME_PROGRESSIVE;
 
@@ -927,7 +929,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
       }
     }
   } else
-    framehdr->ptype = (uint8) get_unary (br, 0, 4);
+    framehdr->ptype = (uint8_t) get_unary (br, 0, 4);
 
   if (advhdr->tfcntrflag) {
     READ_UINT8 (br, pic->tfcntr, 8);
@@ -952,7 +954,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
     READ_UINT8 (br, pic->ps_present, 1);
 
     if (pic->ps_present) {
-      uint32 i, nb_pan_scan_win = calculate_nb_pan_scan_win (advhdr, pic);
+      uint32_t i, nb_pan_scan_win = calculate_nb_pan_scan_win (advhdr, pic);
 
       if (bit_reader_get_remaining (br) < 64 * nb_pan_scan_win)
         goto failed;
@@ -990,7 +992,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
           framehdr->ptype == VC1_PICTURE_TYPE_B) ||
       (pic->fcm == VC1_FIELD_INTERLACE && (pic->fptype > 4))) {
 
-    uint32 bfraction;
+    uint32_t bfraction;
 
     if (!decode_vlc (br, &bfraction, vc1_bfraction_vlc_table,
             ARRAY_N_ELEMENT (vc1_bfraction_vlc_table)))
@@ -1053,7 +1055,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
       if (entrypthdr->overlap && framehdr->pquant <= 8) {
         pic->condover = decode012 (br);
 
-        if (pic->condover == (uint8) - 1)
+        if (pic->condover == (uint8_t) - 1)
           goto failed;
 
         else if (pic->condover == VC1_CONDOVER_SELECT) {
@@ -1282,7 +1284,7 @@ static VC1ParserResult
 parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
     VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes)
 {
-  uint8 mvmodeidx, tmp;
+  uint8_t mvmodeidx, tmp;
   VC1PicSimpleMain *pic = &framehdr->pic.simple;
   VC1SeqStructC *structc = &seqhdr->struct_c;
 
@@ -1328,7 +1330,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
 
 
   if (framehdr->ptype == VC1_PICTURE_TYPE_B) {
-    uint32 bfraction;
+    uint32_t bfraction;
     if (!decode_vlc (br, &bfraction, vc1_bfraction_vlc_table,
             ARRAY_N_ELEMENT (vc1_bfraction_vlc_table)))
       goto failed;
@@ -1535,7 +1537,7 @@ parse_sequence_header_struct_b (BitReader * br, VC1SeqStructB * structb)
 static VC1ParserResult
 parse_sequence_header_struct_c (BitReader * br, VC1SeqStructC * structc)
 {
-  uint8 old_interlaced_mode, tmp;
+  uint8_t old_interlaced_mode, tmp;
 
   READ_UINT8 (br, tmp, 2);
   structc->profile = tmp;
@@ -1631,9 +1633,9 @@ failed:
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_identify_next_bdu (const uint8 * data, size_t size, VC1BDU * bdu)
+vc1_identify_next_bdu (const uint8_t * data, size_t size, VC1BDU * bdu)
 {
-  int32 off1, off2;
+  int32_t off1, off2;
 
   RETURN_VAL_IF_FAIL (bdu != NULL, VC1_PARSER_ERROR);
 
@@ -1652,7 +1654,7 @@ vc1_identify_next_bdu (const uint8 * data, size_t size, VC1BDU * bdu)
   bdu->sc_offset = off1;
 
   bdu->offset = off1 + 4;
-  bdu->data = (uint8 *) data;
+  bdu->data = (uint8_t *) data;
   bdu->type = (VC1StartCode) (data[bdu->offset - 1]);
 
   if (bdu->type == VC1_END_OF_SEQ) {
@@ -1688,10 +1690,10 @@ vc1_identify_next_bdu (const uint8 * data, size_t size, VC1BDU * bdu)
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_sequence_layer (const uint8 * data, size_t size,
+vc1_parse_sequence_layer (const uint8_t * data, size_t size,
     VC1SeqLayer * seqlayer)
 {
-  uint32 tmp;
+  uint32_t tmp;
   BitReader br = BIT_READER_INIT (data, size);
 
   RETURN_VAL_IF_FAIL (seqlayer != NULL, VC1_PARSER_ERROR);
@@ -1741,7 +1743,7 @@ failed:
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_sequence_header_struct_a (const uint8 * data,
+vc1_parse_sequence_header_struct_a (const uint8_t * data,
     size_t size, VC1SeqStructA * structa)
 {
   BitReader br = BIT_READER_INIT (data, size);
@@ -1762,7 +1764,7 @@ vc1_parse_sequence_header_struct_a (const uint8 * data,
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_sequence_header_struct_b (const uint8 * data,
+vc1_parse_sequence_header_struct_b (const uint8_t * data,
     size_t size, VC1SeqStructB * structb)
 {
   BitReader br = BIT_READER_INIT (data, size);
@@ -1783,7 +1785,7 @@ vc1_parse_sequence_header_struct_b (const uint8 * data,
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_sequence_header_struct_c (const uint8 * data, size_t size,
+vc1_parse_sequence_header_struct_c (const uint8_t * data, size_t size,
     VC1SeqStructC * structc)
 {
   BitReader br = BIT_READER_INIT (data, size);
@@ -1804,7 +1806,7 @@ vc1_parse_sequence_header_struct_c (const uint8 * data, size_t size,
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_sequence_header (const uint8 * data, size_t size, VC1SeqHdr * seqhdr)
+vc1_parse_sequence_header (const uint8_t * data, size_t size, VC1SeqHdr * seqhdr)
 {
   BitReader br = BIT_READER_INIT (data, size);
 
@@ -1844,11 +1846,11 @@ failed:
  * Returns: a #VC1EntryPointHdr
  */
 VC1ParserResult
-vc1_parse_entry_point_header (const uint8 * data, size_t size,
+vc1_parse_entry_point_header (const uint8_t * data, size_t size,
     VC1EntryPointHdr * entrypoint, VC1SeqHdr * seqhdr)
 {
   BitReader br;
-  uint8 i;
+  uint8_t i;
   VC1AdvancedSeqHdr *advanced = &seqhdr->advanced;
 
   RETURN_VAL_IF_FAIL (entrypoint != NULL, VC1_PARSER_ERROR);
@@ -1925,7 +1927,7 @@ failed:
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_frame_layer (const uint8 * data, size_t size,
+vc1_parse_frame_layer (const uint8_t * data, size_t size,
     VC1FrameLayer * framelayer)
 {
   BitReader br = BIT_READER_INIT (data, size);
@@ -1968,7 +1970,7 @@ vc1_parse_frame_layer (const uint8 * data, size_t size,
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_frame_header (const uint8 * data, size_t size,
+vc1_parse_frame_header (const uint8_t * data, size_t size,
     VC1FrameHdr * framehdr, VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes)
 {
   BitReader br;
@@ -1999,7 +2001,7 @@ vc1_parse_frame_header (const uint8 * data, size_t size,
  * Returns: a #VC1ParserResult
  */
 VC1ParserResult
-vc1_parse_field_header (const uint8 * data, size_t size,
+vc1_parse_field_header (const uint8_t * data, size_t size,
     VC1FrameHdr * fieldhdr, VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes)
 {
   BitReader br;
@@ -2026,13 +2028,13 @@ vc1_parse_field_header (const uint8 * data, size_t size,
  * Since: 1.2
  */
 VC1ParserResult
-vc1_parse_slice_header (const uint8 * data, size_t size,
+vc1_parse_slice_header (const uint8_t * data, size_t size,
     VC1SliceHdr * slicehdr, VC1SeqHdr * seqhdr)
 {
   BitReader br;
   VC1FrameHdr framehdr;
   VC1ParserResult result;
-  uint8 pic_header_flag;
+  uint8_t pic_header_flag;
 
   LOG_DEBUG ("Parsing slice header");
 
@@ -2114,7 +2116,7 @@ vc1_bitplanes_free_1 (VC1BitPlanes * bitplanes)
  *
  * Returns: %TRUE if everything went fine, %FALSE otherwize
  */
-boolean
+BOOL
 vc1_bitplanes_ensure_size (VC1BitPlanes * bitplanes, VC1SeqHdr * seqhdr)
 {
   RETURN_VAL_IF_FAIL (bitplanes != NULL, FALSE);
@@ -2123,28 +2125,28 @@ vc1_bitplanes_ensure_size (VC1BitPlanes * bitplanes, VC1SeqHdr * seqhdr)
   if (bitplanes->size) {
     bitplanes->size = seqhdr->mb_height * seqhdr->mb_stride;
     bitplanes->acpred =
-        realloc (bitplanes->acpred, bitplanes->size * sizeof (uint8));
+        realloc (bitplanes->acpred, bitplanes->size * sizeof (uint8_t));
     bitplanes->fieldtx =
-        realloc (bitplanes->fieldtx, bitplanes->size * sizeof (uint8));
+        realloc (bitplanes->fieldtx, bitplanes->size * sizeof (uint8_t));
     bitplanes->overflags =
-        realloc (bitplanes->overflags, bitplanes->size * sizeof (uint8));
+        realloc (bitplanes->overflags, bitplanes->size * sizeof (uint8_t));
     bitplanes->mvtypemb =
-        realloc (bitplanes->mvtypemb, bitplanes->size * sizeof (uint8));
+        realloc (bitplanes->mvtypemb, bitplanes->size * sizeof (uint8_t));
     bitplanes->skipmb =
-        realloc (bitplanes->skipmb, bitplanes->size * sizeof (uint8));
+        realloc (bitplanes->skipmb, bitplanes->size * sizeof (uint8_t));
     bitplanes->directmb =
-        realloc (bitplanes->directmb, bitplanes->size * sizeof (uint8));
+        realloc (bitplanes->directmb, bitplanes->size * sizeof (uint8_t));
     bitplanes->forwardmb =
-        realloc (bitplanes->forwardmb, bitplanes->size * sizeof (uint8));
+        realloc (bitplanes->forwardmb, bitplanes->size * sizeof (uint8_t));
   } else {
     bitplanes->size = seqhdr->mb_height * seqhdr->mb_stride;
-    bitplanes->acpred = malloc (bitplanes->size * sizeof (uint8));
-    bitplanes->fieldtx = malloc (bitplanes->size * sizeof (uint8));
-    bitplanes->overflags = malloc (bitplanes->size * sizeof (uint8));
-    bitplanes->mvtypemb = malloc (bitplanes->size * sizeof (uint8));
-    bitplanes->skipmb = malloc (bitplanes->size * sizeof (uint8));
-    bitplanes->directmb = malloc (bitplanes->size * sizeof (uint8));
-    bitplanes->forwardmb = malloc (bitplanes->size * sizeof (uint8));
+    bitplanes->acpred = malloc (bitplanes->size * sizeof (uint8_t));
+    bitplanes->fieldtx = malloc (bitplanes->size * sizeof (uint8_t));
+    bitplanes->overflags = malloc (bitplanes->size * sizeof (uint8_t));
+    bitplanes->mvtypemb = malloc (bitplanes->size * sizeof (uint8_t));
+    bitplanes->skipmb = malloc (bitplanes->size * sizeof (uint8_t));
+    bitplanes->directmb = malloc (bitplanes->size * sizeof (uint8_t));
+    bitplanes->forwardmb = malloc (bitplanes->size * sizeof (uint8_t));
   }
 
   return TRUE;

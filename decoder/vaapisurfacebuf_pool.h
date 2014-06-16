@@ -27,7 +27,9 @@
 #ifndef vaapisurfacebuf_pool_h
 #define vaapisurfacebuf_pool_h
 
-#include "basictype.h"
+#include <stdint.h>
+#include <limits.h>
+#include "common/common_def.h"
 #include "common/vaapisurface.h"
 #include "interface/VideoDecoderDefs.h"
 #include <pthread.h>
@@ -35,7 +37,7 @@
 #include <deque>
 
 #define INVALID_PTS ((uint64_t)-1)
-#define INVALID_POC INT32_MAX
+#define INVALID_POC INT_MAX
 #define MAXIMUM_POC  0x7FFFFFFF
 #define MINIMUM_POC  0x80000000
 /**

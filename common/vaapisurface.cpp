@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include <assert.h>
 #include "vaapisurface.h"
 #include "log.h"
 #include "vaapiutils.h"
