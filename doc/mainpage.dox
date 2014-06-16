@@ -1,0 +1,18 @@
+/**
+* \mainpage Entrance to the interested document
+* <pre>
+* ==== Here are API of libyami
+* == Decoder APIs
+* class IVideoDecoder
+* func createVideoDecoder()
+* func releaseVideoDecoder()
+*
+* == Encoder APIs
+* class IVideoEncoder
+* func createVideoEncoder()
+* func releaseVideoEncoder()
+*
+* ==== More information on internal implementation:
+* class VaapiSurfaceBufferPool
+* </pre>
+*/

@@ -160,6 +160,37 @@ const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
     return &(surfBuf->renderBuffer);
 }
 
+Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int drawX, int drawY, int drawWidth, int drawHeight,
+    bool draining, int frameX, int frameY, int frameWidth, int frameHeight)
+{
+    VAStatus vaStatus = VA_STATUS_SUCCESS;
+    VideoRenderBuffer *renderBuffer = getOutput(draining);
+
+    if (!renderBuffer)
+        return RENDER_NO_AVAILABLE_FRAME;
+
+    if (frameX == -1 && frameY == -1 && frameWidth == -1 && frameHeight == -1) {
+        frameX = 0;
+        frameY = 0;
+        frameWidth = m_videoFormatInfo.width;
+        frameHeight = m_videoFormatInfo.height;
+    }
+
+    if (!draw || drawX <= 0 || drawY <= 0 || drawWidth <= 0 || drawHeight <=0
+        || frameX <= 0 || frameY <= 0 || frameWidth <= 0 || frameHeight <= 0)
+        return RENDER_INVALID_PARAMETER;
+
+    vaStatus = vaPutSurface(m_VADisplay, renderBuffer->surface,
+            draw, drawX, drawY, drawWidth, drawHeight,
+            frameX, frameY, frameWidth, frameHeight,
+            NULL,0,0);
+
+    if (vaStatus != VA_STATUS_SUCCESS)
+        return RENDER_FAIL;
+
+    return RENDER_SUCCESS;
+}
+
 Decode_Status VaapiDecoderBase::signalRenderDone(void *graphicHandler)
 {
     INFO("base: signalRenderDone()");
