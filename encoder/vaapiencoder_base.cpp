@@ -36,7 +36,8 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_display(NULL),
     m_context(VA_INVALID_ID),
     m_config(VA_INVALID_ID),
-    m_entrypoint(VAEntrypointEncSlice)
+    m_entrypoint(VAEntrypointEncSlice),
+    m_externalDisplay(false)
 {
     FUNC_ENTER();
     m_videoParamCommon.rawFormat = RAW_FORMAT_NV12;
@@ -60,6 +61,15 @@ VaapiEncoderBase::~VaapiEncoderBase()
     INFO("~VaapiEncoderBase");
 }
 
+void VaapiEncoderBase::setXDisplay(Display * xdisplay)
+{
+    if (!m_externalDisplay && m_xDisplay) {
+        XCloseDisplay(m_xDisplay);
+    }
+    m_externalDisplay = true;
+    m_xDisplay = xdisplay;
+}
+
 Encode_Status VaapiEncoderBase::start(void)
 {
     FUNC_ENTER();
@@ -68,7 +78,6 @@ Encode_Status VaapiEncoderBase::start(void)
 
     return ENCODE_SUCCESS;
 }
-
 
 Encode_Status VaapiEncoderBase::stop(void)
 {
@@ -294,7 +303,8 @@ void VaapiEncoderBase::cleanupVA()
         m_display = NULL;
     }
     if (m_xDisplay) {
-        XCloseDisplay(m_xDisplay);
+        if (!m_externalDisplay)
+            XCloseDisplay(m_xDisplay);
         m_xDisplay = NULL;
     }
 }
@@ -303,14 +313,11 @@ bool VaapiEncoderBase::initVA()
 {
     FUNC_ENTER();
 
-    if (m_xDisplay)
-        return true;
-
-    //FIXME: support user provided display
-    m_xDisplay = XOpenDisplay(NULL);
+    if (!m_externalDisplay)
+        m_xDisplay = XOpenDisplay(NULL);
     if (!m_xDisplay)
     {
-        ERROR("XOpenDisplay failed.");
+        ERROR("no x display.");
         return false;
     }
 

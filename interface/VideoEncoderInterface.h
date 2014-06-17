@@ -23,6 +23,7 @@
 #define VIDEO_ENCODER_INTERFACE_H_
 
 #include "VideoEncoderDef.h"
+#include <X11/Xlib.h>
 
 /**
  * \class IVideoEncoder
@@ -32,6 +33,8 @@
 class IVideoEncoder {
   public:
     virtual ~ IVideoEncoder() {}
+    ///set external display
+    virtual void  setXDisplay(Display * xdisplay) = 0;
     /** \brief start encode, make sure you setParameters before start, else if will use default.
     */
     virtual Encode_Status start(void) = 0;

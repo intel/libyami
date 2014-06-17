@@ -49,6 +49,7 @@ public:
     VaapiEncoderBase();
     virtual ~VaapiEncoderBase();
 
+    virtual void  setXDisplay(Display * xdisplay);
     virtual Encode_Status start(void) = 0;
     virtual void flush(void) = 0;
     virtual Encode_Status stop(void) = 0;
@@ -136,6 +137,7 @@ protected:
 private:
     bool initVA();
     void cleanupVA();
+    bool m_externalDisplay;
 };
 
 #endif /* vaapiencoder_base_h */
