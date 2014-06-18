@@ -25,7 +25,6 @@ libcodecparser_source_h = \
         parserutils.h \
         nalreader.h \
         bitwriter.h \
-        log.h \
 	$(NULL)
 
 libcodecparser_source_h_priv = \

@@ -27,6 +27,7 @@
 #include "common/log.h"
 #include <string.h>
 #include <va/va_backend.h>
+#include "vaapi/vaapiutils.h"
 
 #ifdef ANDROID
 #include <va/va_android.h>

@@ -23,17 +23,17 @@
 #define __PARSER_UTILS__
 
 #include "bitreader.h"
-#include "log.h"
+#include "common/log.h"
 
 #define GET_BITS(b, num, bits) {        \
   if (!bit_reader_get_bits_uint32(b, bits, num)) \
-    LOG_ERROR ("parsed %d bits: %d", num, *(bits));\
+    ERROR ("parsed %d bits: %d", num, *(bits));\
     goto failed;                                  \
 }
 
 #define CHECK_ALLOWED(val, min, max) { \
   if (val < min || val > max) { \
-    LOG_WARNING ("value not in allowed range. value: %d, range %d-%d", \
+    WARNING ("value not in allowed range. value: %d, range %d-%d", \
                      val, min, max); \
     goto failed; \
   } \
@@ -41,28 +41,28 @@
 
 #define READ_UINT8(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint8 (reader, &val, nbits)) { \
-    LOG_WARNING ("failed to read uint8_t, nbits: %d \n", nbits); \
+    WARNING ("failed to read uint8_t, nbits: %d \n", nbits); \
     goto failed; \
   } \
 }
 
 #define READ_UINT16(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint16 (reader, &val, nbits)) { \
-    LOG_WARNING ("failed to read uint16_t, nbits: %d \n", nbits); \
+    WARNING ("failed to read uint16_t, nbits: %d \n", nbits); \
     goto failed; \
   } \
 }
 
 #define READ_UINT32(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint32 (reader, &val, nbits)) { \
-    LOG_WARNING ("failed to read uint32_t, nbits: %d", nbits); \
+    WARNING ("failed to read uint32_t, nbits: %d", nbits); \
     goto failed; \
   } \
 }
 
 #define READ_UINT64(reader, val, nbits) G_STMT_START { \
   if (!bit_reader_get_bits_uint64 (reader, &val, nbits)) { \
-    LOG_WARNING ("failed to read uint64_t, nbits: %d", nbits); \
+    WARNING ("failed to read uint64_t, nbits: %d", nbits); \
     goto failed; \
   } \
 } 
@@ -85,7 +85,7 @@
 
 #define SKIP(reader, nbits) { \
   if (!bit_reader_skip (reader, nbits)) { \
-    LOG_WARNING ("failed to skip nbits: %d", nbits); \
+    WARNING ("failed to skip nbits: %d", nbits); \
     goto failed; \
   } \
 }

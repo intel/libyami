@@ -28,6 +28,7 @@
 
 #include <stdint.h>
 #include <va/va.h>
+#include "common/log.h"
 
 void *vaapiMapBuffer(VADisplay dpy, VABufferID bufId);
 
@@ -53,5 +54,14 @@ uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
 uint32_t fromVaapiRotation(uint32_t value);
 
 uint32_t toVaapiRotation(uint32_t value);
+
+static inline bool checkVaapiStatus(VAStatus status, const char *msg)
+{
+    if (status != VA_STATUS_SUCCESS) {
+        ERROR("%s: %s", msg, vaErrorStr(status));
+        return false;
+    }
+    return true;
+}
 
 #endif                          /* vaapiutils_h */

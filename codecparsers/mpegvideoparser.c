@@ -141,7 +141,7 @@ set_fps_from_code (MpegVideoSequenceHdr * seqhdr, uint8_t fps_code)
     seqhdr->fps_n = framerates[fps_code][0];
     seqhdr->fps_d = framerates[fps_code][1];
   } else {
-    LOG_DEBUG ("unknown/invalid frame_rate_code %d", fps_code);
+    DEBUG ("unknown/invalid frame_rate_code %d", fps_code);
     /* Force a valid framerate */
     /* FIXME or should this be kept unknown ?? */
     seqhdr->fps_n = 30000;
@@ -209,7 +209,7 @@ mpeg_video_parse (MpegVideoPacket * packet,
   }
 
   if (size <= offset) {
-    LOG_DEBUG ("Can't parse from offset %d, buffer is to small", offset);
+    DEBUG ("Can't parse from offset %d, buffer is to small", offset);
     return FALSE;
   }
 
@@ -219,7 +219,7 @@ mpeg_video_parse (MpegVideoPacket * packet,
   off = scan_for_start_codes (&br, 0, size);
 
   if (off < 0) {
-    LOG_DEBUG ("No start code prefix in this buffer");
+    DEBUG ("No start code prefix in this buffer");
     return FALSE;
   }
 
@@ -244,7 +244,7 @@ mpeg_video_parse (MpegVideoPacket * packet,
 
 failed:
   {
-    LOG_WARNING ("Failed to parse");
+    WARNING ("Failed to parse");
     return FALSE;
   }
 }
@@ -327,17 +327,17 @@ mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
     memset (seqhdr->non_intra_quantizer_matrix, 16, 64);
 
   /* dump some info */
-  LOG_INFO ("width x height: %d x %d", seqhdr->width, seqhdr->height);
-  LOG_INFO ("fps: %d/%d", seqhdr->fps_n, seqhdr->fps_d);
-  LOG_INFO ("par: %d/%d", seqhdr->par_w, seqhdr->par_h);
-  LOG_INFO ("bitrate: %d", seqhdr->bitrate);
+  INFO ("width x height: %d x %d", seqhdr->width, seqhdr->height);
+  INFO ("fps: %d/%d", seqhdr->fps_n, seqhdr->fps_d);
+  INFO ("par: %d/%d", seqhdr->par_w, seqhdr->par_h);
+  INFO ("bitrate: %d", seqhdr->bitrate);
 
   return TRUE;
 
   /* ERRORS */
 failed:
   {
-    LOG_WARNING ("Failed to parse sequence header");
+    WARNING ("Failed to parse sequence header");
     /* clear out stuff */
     memset (seqhdr, 0, sizeof (*seqhdr));
     return FALSE;
@@ -366,7 +366,7 @@ mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
   size -= offset;
 
   if (size < 6) {
-    LOG_DEBUG ("not enough bytes to parse the extension");
+    DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
@@ -374,7 +374,7 @@ mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_SEQUENCE) {
-    LOG_DEBUG ("Not parsing a sequence extension");
+    DEBUG ("Not parsing a sequence extension");
     return FALSE;
   }
 
@@ -422,7 +422,7 @@ mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
 
   size -= offset;
   if (size < 5) {
-    LOG_DEBUG ("not enough bytes to parse the extension");
+    DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
@@ -430,7 +430,7 @@ mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_SEQUENCE_DISPLAY) {
-    LOG_DEBUG ("Not parsing a sequence display extension");
+    DEBUG ("Not parsing a sequence display extension");
     return FALSE;
   }
 
@@ -449,7 +449,7 @@ mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
   }
 
   if (bit_reader_get_remaining (&br) < 29) {
-    LOG_DEBUG ("Not enough remaining bytes to parse the extension");
+    DEBUG ("Not enough remaining bytes to parse the extension");
     return FALSE;
   }
 
@@ -506,7 +506,7 @@ mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr * seqhdr,
       seqhdr->par_h = 100 * w;
       break;
     default:
-      LOG_DEBUG ("unknown/invalid aspect_ratio_information %d",
+      DEBUG ("unknown/invalid aspect_ratio_information %d",
           seqhdr->aspect_ratio_info);
       break;
   }
@@ -539,7 +539,7 @@ mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
   size -= offset;
 
   if (size < 1) {
-    LOG_DEBUG ("not enough bytes to parse the extension");
+    DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
@@ -547,7 +547,7 @@ mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_QUANT_MATRIX) {
-    LOG_DEBUG ("Not parsing a quant matrix extension");
+    DEBUG ("Not parsing a quant matrix extension");
     return FALSE;
   }
 
@@ -582,7 +582,7 @@ mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
   return TRUE;
 
 failed:
-  LOG_WARNING ("error parsing \"Quant Matrix Extension\"");
+  WARNING ("error parsing \"Quant Matrix Extension\"");
   return FALSE;
 }
 
@@ -615,7 +615,7 @@ mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_PICTURE) {
-    LOG_DEBUG ("Not parsing a picture extension");
+    DEBUG ("Not parsing a picture extension");
     return FALSE;
   }
 
@@ -682,7 +682,7 @@ mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
   return TRUE;
 
 failed:
-  LOG_WARNING ("error parsing \"Picture Coding Extension\"");
+  WARNING ("error parsing \"Picture Coding Extension\"");
   return FALSE;
 
 }
@@ -755,7 +755,7 @@ mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
 
 failed:
   {
-    LOG_WARNING ("Failed to parse picture header");
+    WARNING ("Failed to parse picture header");
     return FALSE;
   }
 }
@@ -807,7 +807,7 @@ mpeg_video_parse_gop (MpegVideoGop * gop, const uint8_t * data,
   return TRUE;
 
 failed:
-  LOG_WARNING ("error parsing \"GOP\"");
+  WARNING ("error parsing \"GOP\"");
   return FALSE;
 }
 

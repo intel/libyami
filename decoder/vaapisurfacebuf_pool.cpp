@@ -30,6 +30,9 @@
 
 #include "vaapisurfacebuf_pool.h"
 #include "common/log.h"
+#include <stdlib.h>
+#include <string.h>
+#include "vaapi/vaapiutils.h"
 
 VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
                                                VideoConfigBuffer * config)

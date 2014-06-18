@@ -28,6 +28,7 @@
 #include "common/log.h"
 #include "vaapibuffer.h"
 #include "vaapisurface.h"
+#include "vaapi/vaapiutils.h"
 
 
 VaapiPicture::VaapiPicture(VADisplay display, VAContextID context,

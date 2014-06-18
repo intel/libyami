@@ -25,6 +25,8 @@
 #include "config.h"
 #endif
 
+#include <assert.h>
+#include <stdlib.h>
 #include "vaapidecoder_h264.h"
 
 typedef VaapiDecPictureH264::PicturePtr PicturePtr;

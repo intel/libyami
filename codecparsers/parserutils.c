@@ -20,7 +20,7 @@
  */
 
 #include "parserutils.h"
-#include "log.h"
+#include "common/log.h"
 
 BOOL
 decode_vlc (BitReader * br, uint32_t * res, const VLCTable * table,
@@ -47,11 +47,11 @@ decode_vlc (BitReader * br, uint32_t * res, const VLCTable * table,
     }
   }
 
-  LOG_DEBUG ("Did not find code");
+  DEBUG ("Did not find code");
 
 failed:
   {
-    LOG_WARNING ("Could not decode VLC returning");
+    WARNING ("Could not decode VLC returning");
 
     return FALSE;
   }

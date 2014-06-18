@@ -31,14 +31,14 @@
 
 #define READ_UINT8(reader, val) {                           \
     if (!byte_reader_get_uint8 ((reader), &(val))) {        \
-      LOG_WARNING ("failed to read uint8_t");                 \
+      WARNING ("failed to read uint8_t");                 \
       goto failed;                                          \
     }                                                       \
   }
 
 #define READ_UINT16(reader, val)  {                         \
     if (!byte_reader_get_uint16_be ((reader), &(val))) {    \
-      LOG_WARNING ("failed to read uint16_t");                \
+      WARNING ("failed to read uint16_t");                \
       goto failed;                                          \
     }                                                       \
   }
@@ -46,7 +46,7 @@
 #define READ_BYTES(reader, buf, length)  {                  \
     const uint8_t *vals;                                      \
     if (!byte_reader_get_data (reader, length, &vals)) {    \
-      LOG_WARNING ("failed to read bytes, size:%d", length); \
+      WARNING ("failed to read bytes, size:%d", length); \
       goto failed;                                          \
     }                                                       \
     memcpy (buf, vals, length);                             \
@@ -521,7 +521,7 @@ jpeg_parse (JpegMarkerSegment * seg,
   RETURN_VAL_IF_FAIL (seg != NULL, FALSE);
 
   if (size <= offset) {
-    LOG_DEBUG ("failed to parse from offset %u, buffer is too small", offset);
+    DEBUG ("failed to parse from offset %u, buffer is too small", offset);
     return FALSE;
   }
 
@@ -529,7 +529,7 @@ jpeg_parse (JpegMarkerSegment * seg,
   byte_reader_init (&br, &data[offset], size);
 
   if (!jpeg_parse_to_next_marker (&br, &seg->marker)) {
-    LOG_DEBUG ("failed to find marker code");
+    DEBUG ("failed to find marker code");
     return FALSE;
   }
 

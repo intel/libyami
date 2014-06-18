@@ -30,6 +30,7 @@
 #include "common/common_def.h"
 #include "scopedlogger.h"
 #include "vaapicodedbuffer.h"
+#include "vaapi/vaapiutils.h"
 
 VaapiEncoderBase::VaapiEncoderBase():
     m_xDisplay(NULL),

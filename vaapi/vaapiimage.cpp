@@ -31,6 +31,7 @@
 #include "common/log.h"
 #include "vaapiutils.h"
 #include <stdlib.h>
+#include <string.h>
 
 const VAImageFormat *VaapiImage::getVaFormat(VaapiImageFormat format)
 {

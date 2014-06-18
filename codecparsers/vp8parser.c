@@ -32,8 +32,8 @@
 #include "bytereader.h"
 #include "vp8parser.h"
 #include "dboolhuff.h"
-#include "string.h"
-#include "log.h"
+#include <string.h>
+#include "common/log.h"
 
 /* section 13.4 of spec */
 static const uint8_t vp8_token_update_probs[4][8][3][11] = {
@@ -424,11 +424,11 @@ static const uint8_t vp8_default_mv_context[2][19] = {
 static void
 vp8_bool_decoder_debug_status (BOOL_DECODER * br, const uint8_t * buf_start)
 {
-  LOG_DEBUG
+  DEBUG
       ("BOOL_DECODER: %x bytes read with %2d bits not parsed yet, code_word is:%8x, range-high is %2x\n",
       (uint32_t) (br->user_buffer - buf_start), 8 + br->count,
       (uint64_t) br->value, br->range);
-  LOG_DEBUG ("user_buffer: %p, user_buffer_start: %p\n", br->user_buffer,
+  DEBUG ("user_buffer: %p, user_buffer_start: %p\n", br->user_buffer,
       buf_start);
 }
 
@@ -603,7 +603,7 @@ token_prob_update (BOOL_DECODER * bool_decoder,
             READ_N_BITS (bool_decoder,
                 token_prob_update->coeff_prob[i][j][k][l], 8,
                 "token_prob_update");
-            LOG_DEBUG ("        coeff_prob[%d][%d][%d][%d]: %d\n", i, j, k, l,
+            DEBUG ("        coeff_prob[%d][%d][%d][%d]: %d\n", i, j, k, l,
                 token_prob_update->coeff_prob[i][j][k][l]);
           }
         }
@@ -626,7 +626,7 @@ mv_prob_update (BOOL_DECODER * bool_decoder, Vp8FrameHdr * frame_hdr)
       if (vp8dx_decode_bool (bool_decoder, vp8_mv_update_prob[i][j])) {
         READ_N_BITS (bool_decoder, x, 7, "mv_prob_update");
         mv_prob_update->prob[i][j] = x ? x << 1 : 1;
-        LOG_DEBUG ("      mv_prob_update->prob[%d][%d]: %d\n", i, j,
+        DEBUG ("      mv_prob_update->prob[%d][%d]: %d\n", i, j,
             mv_prob_update->prob[i][j]);
       }
     }
@@ -663,7 +663,7 @@ vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8_t * data,
   int pos, i;
 
   if (!frame_hdr->multi_frame_data) {
-    LOG_WARNING ("multi_frame_data should be set by the caller of vp8 parser");
+    WARNING ("multi_frame_data should be set by the caller of vp8 parser");
     goto error;
   }
   /* Uncompressed Data Chunk */
@@ -682,7 +682,7 @@ vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8_t * data,
       goto error;
     }
     if (tmp != 0x9d012a)
-      LOG_WARNING ("vp8 parser: invalid start code in frame header.");
+      WARNING ("vp8 parser: invalid start code in frame header.");
 
     if (!byte_reader_get_uint16_le (&byte_reader, &tmp_16)) {
       goto error;
@@ -834,7 +834,7 @@ vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8_t * data,
   return VP8_PARSER_OK;
 
 error:
-  LOG_WARNING ("failed in parsing VP8 frame header");
+  WARNING ("failed in parsing VP8 frame header");
   return VP8_PARSER_ERROR;
 }
 

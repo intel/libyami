@@ -28,7 +28,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "common/common_def.h"
-#include "log.h"
+#include "common/log.h"
 
 #define BYTE_READER(reader) ((ByteReader *) (reader))
 

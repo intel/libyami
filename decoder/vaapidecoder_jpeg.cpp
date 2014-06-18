@@ -31,6 +31,7 @@
 #endif
 
 #include <assert.h>
+#include <string.h>
 #include "vaapidecoder_jpeg.h"
 #include "codecparsers/bytereader.h"
 

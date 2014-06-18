@@ -25,6 +25,7 @@
 #include "config.h"
 #endif
 
+#include <string.h>
 #include "common/log.h"
 #include "vaapidecoder_vp8.h"
 #include "codecparsers/bytereader.h"

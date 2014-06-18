@@ -26,7 +26,7 @@
 
 #include "interface/VideoEncoderDef.h"
 #include "interface/VideoEncoderInterface.h"
-#include "log.h"
+#include "common/log.h"
 #include "vaapi/vaapibuffer.h"
 #include "vaapiencpicture.h"
 #include "vaapi/vaapiptrs.h"

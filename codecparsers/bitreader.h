@@ -27,7 +27,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "common/common_def.h"
-#include "log.h"
+#include "common/log.h"
 
 #define BIT_READER(reader) ((BitReader *) (reader))
 #define MIN(a, b) ((a)>(b))?(b):(a)

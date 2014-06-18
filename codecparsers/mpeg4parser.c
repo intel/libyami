@@ -37,17 +37,17 @@
 #define CHECK_MARKER(br) { \
   uint8_t marker;\
   if (!bit_reader_get_bits_uint8 (br, &marker, 1)) { \
-    LOG_WARNING ("failed to read marker bit \n"); \
+    WARNING ("failed to read marker bit \n"); \
     goto failed; \
   } else if (!marker) {\
-    LOG_WARNING ("Wrong marker bit \n"); \
+    WARNING ("Wrong marker bit \n"); \
     goto failed;\
   }\
 }
 
 #define MARKER_UNCHECKED(br) { \
   if (!bit_reader_get_bits_uint8_unchecked (br, 1)) { \
-    LOG_WARNING ("Wrong marker bit \n"); \
+    WARNING ("Wrong marker bit \n"); \
     goto failed; \
   } \
 }
@@ -165,11 +165,11 @@ parse_quant (BitReader * br, uint8_t quant_mat[64],
   return TRUE;
 
 failed:
-  LOG_WARNING ("failed parsing quant matrix");
+  WARNING ("failed parsing quant matrix");
   return FALSE;
 
 invalid_quant_mat:
-  LOG_WARNING ("the first value should be non zero");
+  WARNING ("the first value should be non zero");
   goto failed;
 }
 
@@ -193,7 +193,7 @@ parse_signal_type (BitReader * br, Mpeg4VideoSignalType * signal_type)
   return TRUE;
 
 failed:
-  LOG_WARNING ("failed parsing \"Video Signal Type\"");
+  WARNING ("failed parsing \"Video Signal Type\"");
 
   return FALSE;
 }
@@ -226,7 +226,7 @@ parse_sprite_trajectory (BitReader * br,
   return TRUE;
 
 failed:
-  LOG_WARNING ("Could not parse the sprite trajectory");
+  WARNING ("Could not parse the sprite trajectory");
   return FALSE;
 }
 
@@ -355,7 +355,7 @@ mpeg4_next_resync (Mpeg4Packet * packet,
   if (off1 == -1)
     return MPEG4_PARSER_NO_PACKET;
 
-  LOG_DEBUG ("Resync code found at %i", off1);
+  DEBUG ("Resync code found at %i", off1);
 
   packet->offset = off1;
   packet->type = MPEG4_RESYNC;
@@ -405,7 +405,7 @@ mpeg4_parse (Mpeg4Packet * packet, BOOL skip_user_data,
   RETURN_VAL_IF_FAIL (packet != NULL, MPEG4_PARSER_ERROR);
 
   if (size - offset <= 4) {
-    LOG_DEBUG ("Can't parse, buffer is to small size %li at offset %d", size, offset);
+    DEBUG ("Can't parse, buffer is to small size %li at offset %d", size, offset);
     return MPEG4_PARSER_ERROR;
   }
 
@@ -432,7 +432,7 @@ mpeg4_parse (Mpeg4Packet * packet, BOOL skip_user_data,
       offset, size - offset);
 
   if (off1 == -1) {
-    LOG_DEBUG ("No start code prefix in this buffer");
+    DEBUG ("No start code prefix in this buffer");
     return MPEG4_PARSER_NO_PACKET;
   }
 
@@ -451,7 +451,7 @@ find_end:
       off1 + 4, size - off1 - 4);
 
   if (off2 == -1) {
-    LOG_DEBUG ("Packet start %d, No end found", off1 + 4);
+    DEBUG ("Packet start %d, No end found", off1 + 4);
 
     packet->size = UINT32_MAX;
     return MPEG4_PARSER_NO_PACKET_END;
@@ -463,7 +463,7 @@ find_end:
     packet->size = (size_t) off2 - off1 - 3;
   }
 
-  LOG_DEBUG ("Complete packet of type %x found at: %d, Size: %li \n",
+  DEBUG ("Complete packet of type %x found at: %d, Size: %li \n",
       packet->type, packet->offset, packet->size);
   return MPEG4_PARSER_OK;
 
@@ -495,7 +495,7 @@ h263_parse (Mpeg4Packet * packet,
   RETURN_VAL_IF_FAIL (packet != NULL, MPEG4_PARSER_ERROR);
 
   if (size - offset < 3) {
-    LOG_DEBUG ("Can't parse, buffer is to small size %li at offset %d \n",
+    DEBUG ("Can't parse, buffer is to small size %li at offset %d \n",
         size, offset);
     return MPEG4_PARSER_ERROR;
   }
@@ -503,7 +503,7 @@ h263_parse (Mpeg4Packet * packet,
   off1 = find_psc (&br);
 
   if (off1 == -1) {
-    LOG_DEBUG ("No start code prefix in this buffer \n");
+    DEBUG ("No start code prefix in this buffer \n");
     return MPEG4_PARSER_NO_PACKET;
   }
 
@@ -514,7 +514,7 @@ h263_parse (Mpeg4Packet * packet,
   off2 = find_psc (&br);
 
   if (off2 == -1) {
-    LOG_DEBUG ("Packet start %d, No end found \n", off1);
+    DEBUG ("Packet start %d, No end found \n", off1);
 
     packet->size = UINT32_MAX;
     return MPEG4_PARSER_NO_PACKET_END;
@@ -522,7 +522,7 @@ h263_parse (Mpeg4Packet * packet,
 
   packet->size = (size_t) off2 - off1;
 
-  LOG_DEBUG ("Complete packet found at: %d, Size: %li \n" ,
+  DEBUG ("Complete packet found at: %d, Size: %li \n" ,
       packet->offset, packet->size);
 
   return MPEG4_PARSER_OK;
@@ -805,11 +805,11 @@ mpeg4_parse_visual_object_sequence (Mpeg4VisualObjectSequence * vos,
   return MPEG4_PARSER_OK;
 
 wrong_start_code:
-  LOG_WARNING ("got buffer with wrong start code \n");
+  WARNING ("got buffer with wrong start code \n");
   return MPEG4_PARSER_ERROR;
 
 failed:
-  LOG_WARNING ("failed parsing \"Visual Object\" \n");
+  WARNING ("failed parsing \"Visual Object\" \n");
   return MPEG4_PARSER_ERROR;
 }
 
@@ -835,7 +835,7 @@ mpeg4_parse_visual_object (Mpeg4VisualObject * vo,
 
   RETURN_VAL_IF_FAIL (vo != NULL, MPEG4_PARSER_ERROR);
 
-  LOG_DEBUG ("Parsing visual object");
+  DEBUG ("Parsing visual object");
 
   READ_UINT8 (&br, vo_start_code, 8);
   if (vo_start_code != MPEG4_VISUAL_OBJ)
@@ -867,11 +867,11 @@ mpeg4_parse_visual_object (Mpeg4VisualObject * vo,
   return MPEG4_PARSER_OK;
 
 wrong_start_code:
-  LOG_WARNING ("got buffer with wrong start code \n");
+  WARNING ("got buffer with wrong start code \n");
   return MPEG4_PARSER_ERROR;
 
 failed:
-  LOG_WARNING ("failed parsing \"Visual Object\" \n");
+  WARNING ("failed parsing \"Visual Object\" \n");
   return MPEG4_PARSER_ERROR;
 }
 
@@ -899,7 +899,7 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
 
   RETURN_VAL_IF_FAIL (vol != NULL, MPEG4_PARSER_ERROR);
 
-  LOG_DEBUG ("Parsing video object layer \n");
+  DEBUG ("Parsing video object layer \n");
 
   READ_UINT8 (&br, video_object_layer_start_code, 8);
   if (!(video_object_layer_start_code >= MPEG4_VIDEO_LAYER_FIRST &&
@@ -952,7 +952,7 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
     v = vol->par_height;
     CHECK_ALLOWED (v, 1, 255);
   }
-  LOG_DEBUG ("Pixel aspect ratio %d/%d", vol->par_width, vol->par_width);
+  DEBUG ("Pixel aspect ratio %d/%d", vol->par_width, vol->par_width);
 
   READ_UINT8 (&br, vol->control_parameters, 1);
   if (vol->control_parameters) {
@@ -1004,7 +1004,7 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
     /* TODO support grayscale shapes, for now we just pass */
 
     /* Something the standard starts to define... */
-    LOG_WARNING ("Grayscale shaped not supported \n");
+    WARNING ("Grayscale shaped not supported \n");
     goto failed;
   }
 
@@ -1017,7 +1017,7 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
   vol->vop_time_increment_resolution =
       bit_reader_get_bits_uint16_unchecked (&br, 16);
   if (vol->vop_time_increment_resolution < 1) {
-    LOG_WARNING ("value not in allowed range. value: %d, range %d-%d \n",
+    WARNING ("value not in allowed range. value: %d, range %d-%d \n",
         vol->vop_time_increment_resolution, 1, UINT16_MAX);
     goto failed;
   }
@@ -1116,7 +1116,7 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
 
       if (vol->shape == MPEG4_GRAYSCALE) {
         /* Something the standard starts to define... */
-        LOG_WARNING ("Grayscale shaped not supported \n");
+        WARNING ("Grayscale shaped not supported \n");
         goto failed;
       }
 
@@ -1182,7 +1182,7 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
 
     /* More unused infos */
   } else if (vol->verid != 0x01) {
-    LOG_WARNING ("Binary only shapes not fully supported \n");
+    WARNING ("Binary only shapes not fully supported \n");
     goto failed;
   }
   /* ... */
@@ -1190,11 +1190,11 @@ mpeg4_parse_video_object_layer (Mpeg4VideoObjectLayer * vol,
   return MPEG4_PARSER_OK;
 
 failed:
-  LOG_WARNING ("failed parsing \"Video Object Layer\" \n");
+  WARNING ("failed parsing \"Video Object Layer\" \n");
   return MPEG4_PARSER_ERROR;
 
 wrong_start_code:
-  LOG_WARNING ("got buffer with wrong start code \n");
+  WARNING ("got buffer with wrong start code \n");
   goto failed;
 }
 
@@ -1236,11 +1236,11 @@ mpeg4_parse_group_of_vop (Mpeg4GroupOfVOP *
   return MPEG4_PARSER_OK;
 
 failed:
-  LOG_WARNING ("failed parsing \"Group of Video Object Plane\" \n");
+  WARNING ("failed parsing \"Group of Video Object Plane\" \n");
   return MPEG4_PARSER_ERROR;
 
 wrong_start_code:
-  LOG_WARNING ("got buffer with wrong start code \n");
+  WARNING ("got buffer with wrong start code \n");
   goto failed;
 }
 
@@ -1269,7 +1269,7 @@ mpeg4_parse_video_object_plane (Mpeg4VideoObjectPlane * vop,
 
   if (vol->shape == MPEG4_BINARY_ONLY) {
     /* TODO: implement binary only shapes */
-    LOG_WARNING ("Binary only shapes not supported \n");
+    WARNING ("Binary only shapes not supported \n");
     goto failed;
   }
 
@@ -1385,7 +1385,7 @@ mpeg4_parse_video_object_plane (Mpeg4VideoObjectPlane * vop,
 
   if (vol->shape != MPEG4_BINARY_ONLY) {
     if (!vol->complexity_estimation_disable) {
-      LOG_WARNING ("Complexity estimation not supported \n");
+      WARNING ("Complexity estimation not supported \n");
       goto failed;
     }
 
@@ -1407,12 +1407,12 @@ mpeg4_parse_video_object_plane (Mpeg4VideoObjectPlane * vop,
           vol->no_of_sprite_warping_points);
 
     if (vol->sprite_brightness_change) {
-      LOG_WARNING ("sprite_brightness_change not supported \n");
+      WARNING ("sprite_brightness_change not supported \n");
       goto failed;
     }
 
     if (vol->sprite_enable == MPEG4_SPRITE_STATIC) {
-      LOG_WARNING ("sprite enable static not supported \n");
+      WARNING ("sprite enable static not supported \n");
       goto failed;
     }
   }
@@ -1422,7 +1422,7 @@ mpeg4_parse_video_object_plane (Mpeg4VideoObjectPlane * vop,
 
     if (vol->shape == MPEG4_GRAYSCALE) {
       /* TODO implement grayscale support */
-      LOG_WARNING ("Grayscale shapes no supported \n");
+      WARNING ("Grayscale shapes no supported \n");
 
       /* TODO implement me */
       goto failed;
@@ -1448,7 +1448,7 @@ mpeg4_parse_video_object_plane (Mpeg4VideoObjectPlane * vop,
       READ_UINT8 (&br, vop->load_backward_shape, 1);
 
       if (vop->load_backward_shape) {
-        LOG_WARNING ("Load backward shape not supported \n");
+        WARNING ("Load backward shape not supported \n");
         goto failed;
       }
 
@@ -1462,11 +1462,11 @@ mpeg4_parse_video_object_plane (Mpeg4VideoObjectPlane * vop,
   return MPEG4_PARSER_OK;
 
 failed:
-  LOG_WARNING ("failed parsing \"Video Object Plane\" \n");
+  WARNING ("failed parsing \"Video Object Plane\" \n");
   return MPEG4_PARSER_ERROR;
 
 wrong_start_code:
-  LOG_WARNING ("got buffer with wrong start code \n");
+  WARNING ("got buffer with wrong start code \n");
   goto failed;
 }
 
@@ -1572,7 +1572,7 @@ mpeg4_parse_video_plane_short_header (Mpeg4VideoPlaneShortHdr *
   return MPEG4_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Could not parse the Plane short header \n");
+  WARNING ("Could not parse the Plane short header \n");
 
   return MPEG4_PARSER_ERROR;
 }
@@ -1711,7 +1711,7 @@ mpeg4_parse_video_packet_header (Mpeg4VideoPacketHdr * videopackethdr,
   videopackethdr->size = bit_reader_get_pos (&br);
 
 failed:
-  LOG_DEBUG ("Failed to parse video packet header \n");
+  DEBUG ("Failed to parse video packet header \n");
 
   return MPEG4_PARSER_NO_PACKET;
 }

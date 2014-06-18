@@ -257,7 +257,7 @@ decode_colskip (BitReader * br, uint8_t * data, uint32_t width, uint32_t height,
   uint32_t x, y;
   uint8_t colskip, v;
 
-  LOG_DEBUG ("Parsing colskip");
+  DEBUG ("Parsing colskip");
 
   invert &= 1;
   for (x = 0; x < width; x++) {
@@ -281,7 +281,7 @@ decode_colskip (BitReader * br, uint8_t * data, uint32_t width, uint32_t height,
   return TRUE;
 
 failed:
-  LOG_WARNING ("Failed to parse colskip");
+  WARNING ("Failed to parse colskip");
 
   return FALSE;
 }
@@ -293,7 +293,7 @@ decode_rowskip (BitReader * br, uint8_t * data, uint32_t width, uint32_t height,
   uint32_t x, y;
   uint8_t rowskip, v;
 
-  LOG_DEBUG ("Parsing rowskip");
+  DEBUG ("Parsing rowskip");
 
   invert &= 1;
   for (y = 0; y < height; y++) {
@@ -316,7 +316,7 @@ decode_rowskip (BitReader * br, uint8_t * data, uint32_t width, uint32_t height,
   return TRUE;
 
 failed:
-  LOG_WARNING ("Failed to parse rowskip");
+  WARNING ("Failed to parse rowskip");
 
   return FALSE;
 }
@@ -336,7 +336,7 @@ decode012 (BitReader * br)
   return n + 1;
 
 failed:
-  LOG_WARNING ("Could not decode 0 1 2 returning -1");
+  WARNING ("Could not decode 0 1 2 returning -1");
 
   return -1;
 }
@@ -389,7 +389,7 @@ decode_refdist (BitReader * br, uint16_t * value)
 
 failed:
   {
-    LOG_WARNING ("Could not decode end 0 returning");
+    WARNING ("Could not decode end 0 returning");
 
     return FALSE;
   }
@@ -419,7 +419,7 @@ bitplane_decoding (BitReader * br, uint8_t * data,
   switch (imode) {
     case IMODE_RAW:
 
-      LOG_DEBUG ("Parsing IMODE_RAW");
+      DEBUG ("Parsing IMODE_RAW");
 
       *is_raw = TRUE;
       return TRUE;
@@ -430,7 +430,7 @@ bitplane_decoding (BitReader * br, uint8_t * data,
     case IMODE_NORM2:
       invert_mask &= 3;
 
-      LOG_DEBUG ("Parsing IMODE_DIFF2 or IMODE_NORM2 biplane");
+      DEBUG ("Parsing IMODE_DIFF2 or IMODE_NORM2 biplane");
 
       x = 0;
       o = (height * width) & 1;
@@ -470,7 +470,7 @@ bitplane_decoding (BitReader * br, uint8_t * data,
       /* fall-through */
     case IMODE_NORM6:
 
-      LOG_DEBUG ("Parsing IMODE_DIFF6 or IMODE_NORM6 biplane");
+      DEBUG ("Parsing IMODE_DIFF6 or IMODE_NORM6 biplane");
 
       if (!(height % 3) && (width % 3)) {       /* decode 2x3 "vertical" tiles */
         for (y = 0; y < height; y += 3) {
@@ -539,14 +539,14 @@ bitplane_decoding (BitReader * br, uint8_t * data,
       break;
     case IMODE_ROWSKIP:
 
-      LOG_DEBUG ("Parsing IMODE_ROWSKIP biplane");
+      DEBUG ("Parsing IMODE_ROWSKIP biplane");
 
       if (!decode_rowskip (br, data, width, height, stride, invert_mask))
         goto failed;
       break;
     case IMODE_COLSKIP:
 
-      LOG_DEBUG ("Parsing IMODE_COLSKIP biplane");
+      DEBUG ("Parsing IMODE_COLSKIP biplane");
 
       if (!decode_colskip (br, data, width, height, stride, invert_mask))
         goto failed;
@@ -580,7 +580,7 @@ bitplane_decoding (BitReader * br, uint8_t * data,
   return TRUE;
 
 failed:
-  LOG_WARNING ("Failed to decode bitplane");
+  WARNING ("Failed to decode bitplane");
 
   return FALSE;
 }
@@ -590,7 +590,7 @@ parse_vopdquant (BitReader * br, VC1FrameHdr * framehdr, uint8_t dquant)
 {
   VC1VopDquant *vopdquant = &framehdr->vopdquant;
 
-  LOG_DEBUG ("Parsing vopdquant");
+  DEBUG ("Parsing vopdquant");
 
   vopdquant->dqbilevel = 0;
 
@@ -607,7 +607,7 @@ parse_vopdquant (BitReader * br, VC1FrameHdr * framehdr, uint8_t dquant)
     }
   } else {
     READ_UINT8 (br, vopdquant->dquantfrm, 1);
-    LOG_DEBUG (" %u DquantFrm %u", bit_reader_get_pos (br),
+    DEBUG (" %u DquantFrm %u", bit_reader_get_pos (br),
         vopdquant->dquantfrm);
 
     if (vopdquant->dquantfrm) {
@@ -642,7 +642,7 @@ parse_vopdquant (BitReader * br, VC1FrameHdr * framehdr, uint8_t dquant)
   return TRUE;
 
 failed:
-  LOG_WARNING ("Failed to parse vopdquant");
+  WARNING ("Failed to parse vopdquant");
 
   return FALSE;
 }
@@ -712,7 +712,7 @@ parse_hrd_param_flag (BitReader * br, VC1HrdParam * hrd_param)
 {
   uint32_t i;
 
-  LOG_DEBUG ("Parsing Hrd param flag");
+  DEBUG ("Parsing Hrd param flag");
 
 
   if (bit_reader_get_remaining (br) < 13)
@@ -737,7 +737,7 @@ parse_hrd_param_flag (BitReader * br, VC1HrdParam * hrd_param)
   return VC1_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Failed to parse hrd param flag");
+  WARNING ("Failed to parse hrd param flag");
 
   return VC1_PARSER_ERROR;
 }
@@ -748,7 +748,7 @@ parse_sequence_header_advanced (VC1SeqHdr * seqhdr, BitReader * br)
   VC1AdvancedSeqHdr *advanced = &seqhdr->advanced;
   uint8_t tmp;
 
-  LOG_DEBUG ("Parsing sequence header in advanced mode");
+  DEBUG ("Parsing sequence header in advanced mode");
 
   READ_UINT8 (br, tmp, 3);
   advanced->level = tmp;
@@ -764,7 +764,7 @@ parse_sequence_header_advanced (VC1SeqHdr * seqhdr, BitReader * br)
   calculate_framerate_bitrate (advanced->frmrtq_postproc,
       advanced->bitrtq_postproc, &advanced->framerate, &advanced->bitrate);
 
-  LOG_DEBUG ("level %u, colordiff_format %u , frmrtq_postproc %u,"
+  DEBUG ("level %u, colordiff_format %u , frmrtq_postproc %u,"
       " bitrtq_postproc %u", advanced->level, advanced->colordiff_format,
       advanced->frmrtq_postproc, advanced->bitrtq_postproc);
 
@@ -783,7 +783,7 @@ parse_sequence_header_advanced (VC1SeqHdr * seqhdr, BitReader * br)
   advanced->tfcntrflag = bit_reader_get_bits_uint8_unchecked (br, 1);
   advanced->finterpflag = bit_reader_get_bits_uint8_unchecked (br, 1);
 
-  LOG_DEBUG ("postprocflag %u, max_coded_width %u, max_coded_height %u,"
+  DEBUG ("postprocflag %u, max_coded_width %u, max_coded_height %u,"
       "pulldown %u, interlace %u, tfcntrflag %u, finterpflag %u",
       advanced->postprocflag, advanced->max_coded_width,
       advanced->max_coded_height, advanced->pulldown,
@@ -857,7 +857,7 @@ parse_sequence_header_advanced (VC1SeqHdr * seqhdr, BitReader * br)
   return VC1_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Failed to parse advanced headers");
+  WARNING ("Failed to parse advanced headers");
 
   return VC1_PARSER_ERROR;
 }
@@ -871,7 +871,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
   VC1EntryPointHdr *entrypthdr = &advhdr->entrypoint;
   uint8_t mvmodeidx;
 
-  LOG_DEBUG ("Parsing Frame header advanced %u", advhdr->interlace);
+  DEBUG ("Parsing Frame header advanced %u", advhdr->interlace);
 
   /* Set the conveninence fields */
   framehdr->profile = seqhdr->profile;
@@ -933,20 +933,20 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
 
   if (advhdr->tfcntrflag) {
     READ_UINT8 (br, pic->tfcntr, 8);
-    LOG_DEBUG ("tfcntr %u", pic->tfcntr);
+    DEBUG ("tfcntr %u", pic->tfcntr);
   }
 
   if (advhdr->pulldown) {
     if (!advhdr->interlace || advhdr->psf) {
 
       READ_UINT8 (br, pic->rptfrm, 2);
-      LOG_DEBUG ("rptfrm %u", pic->rptfrm);
+      DEBUG ("rptfrm %u", pic->rptfrm);
 
     } else {
 
       READ_UINT8 (br, pic->tff, 1);
       READ_UINT8 (br, pic->rff, 1);
-      LOG_DEBUG ("tff %u, rff %u", pic->tff, pic->rff);
+      DEBUG ("tff %u, rff %u", pic->tff, pic->rff);
     }
   }
 
@@ -975,7 +975,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
 
   if (advhdr->interlace) {
     READ_UINT8 (br, pic->uvsamp, 1);
-    LOG_DEBUG ("uvsamp %u", pic->uvsamp);
+    DEBUG ("uvsamp %u", pic->uvsamp);
     if (pic->fcm == VC1_FIELD_INTERLACE && entrypthdr->refdist_flag &&
         pic->fptype < 4)
       decode_refdist (br, &pic->refdist);
@@ -985,7 +985,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
 
   if (advhdr->finterpflag) {
     READ_UINT8 (br, framehdr->interpfrm, 1);
-    LOG_DEBUG ("interpfrm %u", framehdr->interpfrm);
+    DEBUG ("interpfrm %u", framehdr->interpfrm);
   }
 
   if ((pic->fcm != VC1_FIELD_INTERLACE &&
@@ -999,7 +999,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
       goto failed;
 
     pic->bfraction = bfraction;
-    LOG_DEBUG ("bfraction %u", pic->bfraction);
+    DEBUG ("bfraction %u", pic->bfraction);
 
     if (pic->bfraction == VC1_BFRACTION_PTYPE_BI) {
       framehdr->ptype = VC1_PICTURE_TYPE_BI;
@@ -1035,7 +1035,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
   if (advhdr->postprocflag)
     READ_UINT8 (br, pic->postproc, 2);
 
-  LOG_DEBUG ("Parsing %u picture, pqindex %u, pquant %u pquantizer %u"
+  DEBUG ("Parsing %u picture, pqindex %u, pquant %u pquantizer %u"
       "halfqp %u", framehdr->ptype, framehdr->pqindex, framehdr->pquant,
       framehdr->pquantizer, framehdr->halfqp);
 
@@ -1063,7 +1063,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
                   seqhdr, &pic->overflags))
             goto failed;
 
-          LOG_DEBUG ("overflags %u", pic->overflags);
+          DEBUG ("overflags %u", pic->overflags);
         }
       }
 
@@ -1074,7 +1074,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
       if (framehdr->dquant)
         parse_vopdquant (br, framehdr, framehdr->dquant);
 
-      LOG_DEBUG
+      DEBUG
           ("acpred %u, condover %u, transacfrm %u, transacfrm2 %u, transdctab %u",
           pic->acpred, pic->condover, framehdr->transacfrm, pic->transacfrm2,
           framehdr->transdctab);
@@ -1149,7 +1149,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
       framehdr->transacfrm = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      LOG_DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
+      DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
           "cbptab %u directmb %u skipmb %u", framehdr->transacfrm,
           framehdr->transdctab, pic->mvmode, pic->mvtab, pic->cbptab,
           pic->directmb, pic->skipmb);
@@ -1194,7 +1194,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
 
           READ_UINT8 (br, pic->lumscale, 6);
           READ_UINT8 (br, pic->lumshift, 6);
-          LOG_DEBUG ("lumscale %u lumshift %u", pic->lumscale, pic->lumshift);
+          DEBUG ("lumscale %u lumshift %u", pic->lumscale, pic->lumshift);
 
           if (pic->fcm == VC1_FIELD_INTERLACE && pic->intcompfield) {
             READ_UINT8 (br, pic->lumscale2, 6);
@@ -1211,7 +1211,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
                     seqhdr, &pic->mvtypemb))
               goto failed;
 
-            LOG_DEBUG ("mvtypemb %u", pic->mvtypemb);
+            DEBUG ("mvtypemb %u", pic->mvtypemb);
           }
         }
       }
@@ -1261,7 +1261,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
       framehdr->transacfrm = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      LOG_DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
+      DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
           "cbptab %u skipmb %u", framehdr->transacfrm, framehdr->transdctab,
           pic->mvmode, pic->mvtab, pic->cbptab, pic->skipmb);
 
@@ -1275,7 +1275,7 @@ parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
   return VC1_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Failed to parse frame header");
+  WARNING ("Failed to parse frame header");
 
   return VC1_PARSER_ERROR;
 }
@@ -1288,7 +1288,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
   VC1PicSimpleMain *pic = &framehdr->pic.simple;
   VC1SeqStructC *structc = &seqhdr->struct_c;
 
-  LOG_DEBUG ("Parsing frame header in simple or main mode");
+  DEBUG ("Parsing frame header in simple or main mode");
 
   /* Set the conveninence fields */
   framehdr->profile = seqhdr->profile;
@@ -1336,7 +1336,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
       goto failed;
 
     pic->bfraction = bfraction;
-    LOG_DEBUG ("bfraction %d", pic->bfraction);
+    DEBUG ("bfraction %d", pic->bfraction);
 
     if (pic->bfraction == VC1_BFRACTION_PTYPE_BI) {
       framehdr->ptype = VC1_PICTURE_TYPE_BI;
@@ -1351,7 +1351,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
   if (!framehdr->pqindex)
     return VC1_PARSER_ERROR;
 
-  LOG_DEBUG ("pqindex %u", framehdr->pqindex);
+  DEBUG ("pqindex %u", framehdr->pqindex);
 
   /* compute pquant */
   if (structc->quantizer == VC1_QUANTIZER_IMPLICITLY)
@@ -1359,7 +1359,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
   else
     framehdr->pquant = vc1_pquant_table[1][framehdr->pqindex];
 
-  LOG_DEBUG ("pquant %u", framehdr->pquant);
+  DEBUG ("pquant %u", framehdr->pquant);
 
   if (framehdr->pqindex <= 8) {
     READ_UINT8 (br, framehdr->halfqp, 1);
@@ -1378,16 +1378,16 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
 
   if (structc->extended_mv == 1) {
     pic->mvrange = get_unary (br, 0, 3);
-    LOG_DEBUG ("mvrange %u", pic->mvrange);
+    DEBUG ("mvrange %u", pic->mvrange);
   }
 
   if (structc->multires && (framehdr->ptype == VC1_PICTURE_TYPE_P ||
           framehdr->ptype == VC1_PICTURE_TYPE_I)) {
     READ_UINT8 (br, pic->respic, 2);
-    LOG_DEBUG ("Respic %u", pic->respic);
+    DEBUG ("Respic %u", pic->respic);
   }
 
-  LOG_DEBUG ("Parsing %u Frame, pquantizer %u, halfqp %u, rangeredfrm %u, "
+  DEBUG ("Parsing %u Frame, pquantizer %u, halfqp %u, rangeredfrm %u, "
       "interpfrm %u", framehdr->ptype, framehdr->pquantizer, framehdr->halfqp,
       pic->rangeredfrm, framehdr->interpfrm);
 
@@ -1398,7 +1398,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
       pic->transacfrm2 = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      LOG_DEBUG ("transacfrm %u, transacfrm2 %u, transdctab %u",
+      DEBUG ("transacfrm %u, transacfrm2 %u, transdctab %u",
           framehdr->transacfrm, pic->transacfrm2, framehdr->transdctab);
       break;
 
@@ -1410,7 +1410,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
         pic->mvmode2 = vc1_mvmode2_table[mvmodeidx][get_unary (br, 1, 3)];
         READ_UINT8 (br, pic->lumscale, 6);
         READ_UINT8 (br, pic->lumshift, 6);
-        LOG_DEBUG ("lumscale %u lumshift %u", pic->lumscale, pic->lumshift);
+        DEBUG ("lumscale %u lumshift %u", pic->lumscale, pic->lumshift);
       }
 
       if (pic->mvmode == VC1_MVMODE_MIXED_MV ||
@@ -1419,7 +1419,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
         if (!bitplane_decoding (br, bitplanes ? bitplanes->mvtypemb : NULL,
                 seqhdr, &pic->mvtypemb))
           goto failed;
-        LOG_DEBUG ("mvtypemb %u", pic->mvtypemb);
+        DEBUG ("mvtypemb %u", pic->mvtypemb);
       }
       if (!bitplane_decoding (br, bitplanes ? bitplanes->skipmb : NULL,
               seqhdr, &pic->skipmb))
@@ -1434,18 +1434,18 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
 
       if (structc->vstransform) {
         READ_UINT8 (br, pic->ttmbf, 1);
-        LOG_DEBUG ("ttmbf %u", pic->ttmbf);
+        DEBUG ("ttmbf %u", pic->ttmbf);
 
         if (pic->ttmbf) {
           READ_UINT8 (br, pic->ttfrm, 2);
-          LOG_DEBUG ("ttfrm %u", pic->ttfrm);
+          DEBUG ("ttfrm %u", pic->ttfrm);
         }
       }
 
       framehdr->transacfrm = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      LOG_DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
+      DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
           "cbptab %u skipmb %u", framehdr->transacfrm, framehdr->transdctab,
           pic->mvmode, pic->mvtab, pic->cbptab, pic->skipmb);
       break;
@@ -1477,7 +1477,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
       framehdr->transacfrm = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      LOG_DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
+      DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
           "cbptab %u directmb %u skipmb %u", framehdr->transacfrm,
           framehdr->transdctab, pic->mvmode, pic->mvtab, pic->cbptab,
           pic->directmb, pic->skipmb);
@@ -1492,7 +1492,7 @@ parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
   return VC1_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Failed to parse Simple picture header");
+  WARNING ("Failed to parse Simple picture header");
 
   return VC1_PARSER_ERROR;
 }
@@ -1501,7 +1501,7 @@ static VC1ParserResult
 parse_sequence_header_struct_a (BitReader * br, VC1SeqStructA * structa)
 {
   if (bit_reader_get_remaining (br) < 64) {
-    LOG_WARNING ("Failed to parse struct A");
+    WARNING ("Failed to parse struct A");
 
     return VC1_PARSER_ERROR;
   }
@@ -1516,7 +1516,7 @@ static VC1ParserResult
 parse_sequence_header_struct_b (BitReader * br, VC1SeqStructB * structb)
 {
   if (bit_reader_get_remaining (br) < 96) {
-    LOG_WARNING ("Failed to parse sequence header");
+    WARNING ("Failed to parse sequence header");
 
     return VC1_PARSER_ERROR;
   }
@@ -1545,7 +1545,7 @@ parse_sequence_header_struct_c (BitReader * br, VC1SeqStructC * structc)
   if (structc->profile == VC1_PROFILE_ADVANCED)
     return VC1_PARSER_OK;
 
-  LOG_DEBUG ("Parsing sequence header in simple or main mode");
+  DEBUG ("Parsing sequence header in simple or main mode");
 
   if (bit_reader_get_remaining (br) < 29)
     goto failed;
@@ -1553,11 +1553,11 @@ parse_sequence_header_struct_c (BitReader * br, VC1SeqStructC * structc)
   /* Reserved bits */
   old_interlaced_mode = bit_reader_get_bits_uint8_unchecked (br, 1);
   if (old_interlaced_mode)
-    LOG_WARNING ("Old interlaced mode used");
+    WARNING ("Old interlaced mode used");
 
   structc->wmvp = bit_reader_get_bits_uint8_unchecked (br, 1);
   if (structc->wmvp)
-    LOG_DEBUG ("WMVP mode");
+    DEBUG ("WMVP mode");
 
   structc->frmrtq_postproc = bit_reader_get_bits_uint8_unchecked (br, 3);
   structc->bitrtq_postproc = bit_reader_get_bits_uint8_unchecked (br, 5);
@@ -1589,7 +1589,7 @@ parse_sequence_header_struct_c (BitReader * br, VC1SeqStructC * structc)
   structc->quantizer = bit_reader_get_bits_uint8_unchecked (br, 2);
   structc->finterpflag = bit_reader_get_bits_uint8_unchecked (br, 1);
 
-  LOG_DEBUG ("frmrtq_postproc %u, bitrtq_postproc %u, loop_filter %u, "
+  DEBUG ("frmrtq_postproc %u, bitrtq_postproc %u, loop_filter %u, "
       "multires %u, fastuvmc %u, extended_mv %u, dquant %u, vstransform %u, "
       "overlap %u, syncmarker %u, rangered %u, maxbframes %u, quantizer %u, "
       "finterpflag %u", structc->frmrtq_postproc, structc->bitrtq_postproc,
@@ -1608,7 +1608,7 @@ parse_sequence_header_struct_c (BitReader * br, VC1SeqStructC * structc)
     bit_reader_skip_unchecked (br, 1);
     structc->slice_code = bit_reader_get_bits_uint8_unchecked (br, 1);
 
-    LOG_DEBUG ("coded_width %u, coded_height %u, framerate %u slice_code %u",
+    DEBUG ("coded_width %u, coded_height %u, framerate %u slice_code %u",
         structc->coded_width, structc->coded_height, structc->framerate,
         structc->slice_code);
   }
@@ -1616,7 +1616,7 @@ parse_sequence_header_struct_c (BitReader * br, VC1SeqStructC * structc)
   return VC1_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Failed to struct C");
+  WARNING ("Failed to struct C");
 
   return VC1_PARSER_ERROR;
 }
@@ -1640,14 +1640,14 @@ vc1_identify_next_bdu (const uint8_t * data, size_t size, VC1BDU * bdu)
   RETURN_VAL_IF_FAIL (bdu != NULL, VC1_PARSER_ERROR);
 
   if (size < 4) {
-    LOG_DEBUG ("Can't parse, buffer has too small size %li \n", size);
+    DEBUG ("Can't parse, buffer has too small size %li \n", size);
     return VC1_PARSER_ERROR;
   }
 
   off1 = scan_for_start_codes (data, size);
 
   if (off1 < 0) {
-    LOG_DEBUG ("No start code prefix in this buffer");
+    DEBUG ("No start code prefix in this buffer");
     return VC1_PARSER_NO_BDU;
   }
 
@@ -1658,14 +1658,14 @@ vc1_identify_next_bdu (const uint8_t * data, size_t size, VC1BDU * bdu)
   bdu->type = (VC1StartCode) (data[bdu->offset - 1]);
 
   if (bdu->type == VC1_END_OF_SEQ) {
-    LOG_DEBUG ("End-of-Seq BDU found");
+    DEBUG ("End-of-Seq BDU found");
     bdu->size = 0;
     return VC1_PARSER_OK;
   }
 
   off2 = scan_for_start_codes (data + bdu->offset, size - bdu->offset);
   if (off2 < 0) {
-    LOG_DEBUG ("Bdu start %d, No end found", bdu->offset);
+    DEBUG ("Bdu start %d, No end found", bdu->offset);
 
     return VC1_PARSER_NO_BDU_END;
   }
@@ -1675,7 +1675,7 @@ vc1_identify_next_bdu (const uint8_t * data, size_t size, VC1BDU * bdu)
 
   bdu->size = off2;
 
-  LOG_DEBUG ("Complete bdu found. Off: %d, Size: %d", bdu->offset, bdu->size);
+  DEBUG ("Complete bdu found. Off: %d, Size: %d", bdu->offset, bdu->size);
   return VC1_PARSER_OK;
 }
 
@@ -1727,7 +1727,7 @@ vc1_parse_sequence_layer (const uint8_t * data, size_t size,
   return VC1_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Failed to parse sequence layer");
+  WARNING ("Failed to parse sequence layer");
 
   return VC1_PARSER_ERROR;
 }
@@ -1829,7 +1829,7 @@ vc1_parse_sequence_header (const uint8_t * data, size_t size, VC1SeqHdr * seqhdr
   return VC1_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Failed to parse sequence header");
+  WARNING ("Failed to parse sequence header");
 
   return VC1_PARSER_ERROR;
 }
@@ -1875,7 +1875,7 @@ vc1_parse_entry_point_header (const uint8_t * data, size_t size,
   if (advanced->hrd_param_flag) {
     if (seqhdr->advanced.hrd_param.hrd_num_leaky_buckets >
         MAX_HRD_NUM_LEAKY_BUCKETS) {
-      LOG_WARNING
+      WARNING
           ("hrd_num_leaky_buckets (%d) > MAX_HRD_NUM_LEAKY_BUCKETS (%d)",
           seqhdr->advanced.hrd_param.hrd_num_leaky_buckets,
           MAX_HRD_NUM_LEAKY_BUCKETS);
@@ -1911,7 +1911,7 @@ vc1_parse_entry_point_header (const uint8_t * data, size_t size,
   return VC1_PARSER_OK;
 
 failed:
-  LOG_WARNING ("Failed to parse entry point header");
+  WARNING ("Failed to parse entry point header");
 
   return VC1_PARSER_ERROR;
 }
@@ -1933,7 +1933,7 @@ vc1_parse_frame_layer (const uint8_t * data, size_t size,
   BitReader br = BIT_READER_INIT (data, size);
 
   if (bit_reader_get_remaining (&br) < 64) {
-    LOG_WARNING ("Could not parse frame layer");
+    WARNING ("Could not parse frame layer");
 
     return VC1_PARSER_ERROR;
   }
@@ -2036,7 +2036,7 @@ vc1_parse_slice_header (const uint8_t * data, size_t size,
   VC1ParserResult result;
   uint8_t pic_header_flag;
 
-  LOG_DEBUG ("Parsing slice header");
+  DEBUG ("Parsing slice header");
 
   if (seqhdr->profile != VC1_PROFILE_ADVANCED)
     return VC1_PARSER_BROKEN_DATA;
@@ -2054,7 +2054,7 @@ vc1_parse_slice_header (const uint8_t * data, size_t size,
   return result;
 
 failed:
-  LOG_WARNING ("Failed to parse slice header");
+  WARNING ("Failed to parse slice header");
   return VC1_PARSER_ERROR;
 }
 
