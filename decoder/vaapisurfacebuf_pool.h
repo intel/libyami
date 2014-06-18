@@ -32,14 +32,15 @@
 #include "common/common_def.h"
 #include "common/vaapisurface.h"
 #include "interface/VideoDecoderDefs.h"
+#include <limits>
 #include <pthread.h>
 #include <semaphore.h>
 #include <deque>
 
 #define INVALID_PTS ((uint64_t)-1)
-#define INVALID_POC INT_MAX
-#define MAXIMUM_POC  0x7FFFFFFF
-#define MINIMUM_POC  0x80000000
+#define INVALID_POC (std::numeric_limits<int32_t>::max())
+
+
 /**
  * \class VaapiSurfaceBufferPool
  * \brief surface pool used for decoding rendering

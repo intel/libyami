@@ -219,10 +219,10 @@ bool
 
     field = pic->m_structure == VAAPI_PICTURE_STRUCTURE_TOP_FIELD ? 0 : 1;
 
-    RETURN_VAL_IF_FAIL(firstField->m_fieldPoc[field] == INT_MAX, false);
+    RETURN_VAL_IF_FAIL(firstField->m_fieldPoc[field] == INVALID_POC, false);
     firstField->m_fieldPoc[field] = pic->m_fieldPoc[field];
 
-    RETURN_VAL_IF_FAIL(pic->m_fieldPoc[!field] == INT_MAX, false);
+    RETURN_VAL_IF_FAIL(pic->m_fieldPoc[!field] == INVALID_POC, false);
     pic->m_fieldPoc[!field] = firstField->m_fieldPoc[!field];
     return true;
 }

@@ -991,7 +991,7 @@ void VaapiDPBManager::execPictureRefsModification1(const PicturePtr& picture,
                     continue;
                 longTermPicNumF =
                     VAAPI_H264_PICTURE_IS_LONG_TERM_REFERENCE(refList[j])
-                    ? refList[j]->m_longTermPicNum : INT_MAX;
+                    ? refList[j]->m_longTermPicNum : std::numeric_limits<int32_t>::max();
                 if (longTermPicNumF != l->value.long_term_pic_num)
                     refList[n++] = refList[j];
             }
