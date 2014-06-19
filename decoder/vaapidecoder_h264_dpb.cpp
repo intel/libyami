@@ -523,6 +523,45 @@ bool VaapiDPBManager::execRefPicMarking(const PicturePtr& pic,
     return true;
 }
 
+PicturePtr VaapiDPBManager::addDummyPicture(const PicturePtr& pic,
+                                            int32_t frameNum)
+{
+    PicturePtr dummyPic(new VaapiDecPictureH264(NULL, NULL, pic->m_surface, 0));
+    if (!dummyPic)
+        return dummyPic;
+
+    VAAPI_PICTURE_FLAG_SET(dummyPic,
+                           (VAAPI_PICTURE_FLAG_SKIPPED |
+                            VAAPI_PICTURE_FLAG_SHORT_TERM_REFERENCE |
+                            VAAPI_PICTURE_FLAG_FF));
+
+    //FIXME : how do we handle poc if B frame exists.
+    dummyPic->m_POC = INVALID_POC;
+    dummyPic->m_frameNum = frameNum;
+    dummyPic->m_frameNumWrap = frameNum;
+    dummyPic->m_pps = pic->m_pps;
+    dummyPic->m_outputNeeded = false;
+    dummyPic->m_picStructure = VAAPI_PICTURE_STRUCTURE_FRAME;
+    dummyPic->m_structure = dummyPic->m_picStructure;
+
+    return dummyPic;
+}
+
+bool VaapiDPBManager::execDummyPictureMarking(const PicturePtr& dummyPic,
+                                              const SliceHeaderPtr& sliceHdr,
+                                              int32_t frameNum)
+{
+    initPictureRefLists(dummyPic);
+    initPictureRefsPicNum(dummyPic, sliceHdr, frameNum);
+    if (!execRefPicMarkingSlidingWindow(dummyPic))
+        return false;
+    removeShortReference(dummyPic);
+    /* add to short reference */
+    DPBLayer->shortRef[DPBLayer->shortRefCount++] = dummyPic.get();
+
+    return true;
+}
+
 /* private functions */
 
 void VaapiDPBManager::initPictureRefLists(const PicturePtr& pic)

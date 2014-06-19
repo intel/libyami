@@ -561,7 +561,9 @@ bool VaapiDecoderH264::initPicture(const PicturePtr& picture,
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_IDR);
         m_DPBManager->flushDPB();
         m_prevFrame.reset();
-    }
+    } else if (sps->gaps_in_frame_num_value_allowed_flag)
+        if (!processForGapsInFrameNum(picture, sliceHdr))
+            return false;
 
     /* Initialize slice type */
     switch (sliceHdr->type % 5) {
@@ -1583,5 +1585,40 @@ void VaapiDecoderH264::flushOutport(void)
     // decodeSequenceEnd() drains dpb automatically
     if (decodeSequenceEnd() != DECODE_SUCCESS)
         ERROR("fail to decode current picture upon EOS");
+}
+
+bool VaapiDecoderH264::
+processForGapsInFrameNum(const PicturePtr& pic,
+                         const SliceHeaderPtr& sliceHdr)
+{
+    VaapiDecPicBufLayer::Ptr& DPBLayer = m_DPBManager->DPBLayer;
+    H264PPS *const pps = sliceHdr->pps;
+    H264SPS *const sps = pps->sequence;
+    const int32_t maxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
+    int32_t finalFrameNum;
+
+    if (m_frameNum == m_prevFrameNum ||
+        m_frameNum == (m_prevFrameNum + 1)%maxFrameNum)
+        return true;
+
+    finalFrameNum = m_frameNum;
+    m_frameNum = (m_prevFrameNum + 1)%maxFrameNum;
+
+    while(finalFrameNum != m_frameNum) {
+        PicturePtr dummyPic = m_DPBManager->addDummyPicture(pic, m_frameNum);
+        if (!m_DPBManager->execDummyPictureMarking(dummyPic, sliceHdr, m_frameNum))
+            return false;
+
+        m_currentPicture = dummyPic;
+        if (!storeDecodedPicture(dummyPic))
+            return false;
+
+        m_prevFrameNum = m_frameNum;
+        m_frameNum = (m_prevFrameNum + 1)%maxFrameNum;
+    }
+    m_frameNum = finalFrameNum;
+    m_currentPicture = pic;
+
+    return true;
 }
 

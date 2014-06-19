@@ -205,6 +205,11 @@ class VaapiDPBManager {
                          const SliceHeaderPtr& sliceHdr, int32_t frameNum);
     /* marking pic after slice decoded */
     bool execRefPicMarking(const PicturePtr& pic, bool * hasMMCO5);
+    PicturePtr addDummyPicture(const PicturePtr& pic,
+                               int32_t frameNum);
+    bool execDummyPictureMarking(const PicturePtr& dummyPic,
+                                 const SliceHeaderPtr& sliceHdr,
+                                 int32_t frameNum);
   private:
     bool outputImmediateBFrame();
     /* prepare reference list before decoding slice */
@@ -336,6 +341,8 @@ class VaapiDecoderH264:public VaapiDecoderBase {
     Decode_Status decodeNalu(H264NalUnit * nalu);
     bool decodeCodecData(uint8_t * buf, uint32_t bufSize);
     void updateFrameInfo();
+    bool processForGapsInFrameNum(const PicturePtr& pic,
+                                  const SliceHeaderPtr& sliceHdr);
 
   private:
     PicturePtr m_currentPicture;
