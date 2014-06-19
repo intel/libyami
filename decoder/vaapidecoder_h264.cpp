@@ -1259,6 +1259,14 @@ Decode_Status VaapiDecoderH264::decodeNalu(H264NalUnit * nalu)
         /* skip all Filler Data NALs */
         status = DECODE_SUCCESS;
         break;
+    case H264_NAL_SPS_EXT:
+        /* skip SPS Extension NALs */
+        status = DECODE_SUCCESS;
+        break;
+    case H264_NAL_SLICE_AUX:
+        /* skip Slice Aux NALs */
+        status = DECODE_SUCCESS;
+        break;
     default:
         WARNING("unsupported NAL unit type %d", nalu->type);
         status = DECODE_PARSER_FAIL;
