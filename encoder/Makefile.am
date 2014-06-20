@@ -1,6 +1,7 @@
 INCLUDES = -I$(top_srcdir) \
            -I$(top_srcdir)/interface \
            -I$(top_srcdir)/common \
+           -I$(top_srcdir)/vaapi \
            -I$(top_srcdir)/codecparsers
 
 libyami_encoder_source_c = \
@@ -32,6 +33,7 @@ endif
 
 libyami_encoder_la_LIBADD = \
 		$(top_builddir)/common/libyami_common.la \
+		$(top_builddir)/vaapi/libyami_vaapi.la \
 		$(top_builddir)/codecparsers/libcodecparser.la
 
 libyami_encoder_ldflags = \

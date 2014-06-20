@@ -29,7 +29,7 @@
 
 #include <assert.h>
 #include "vaapisurface.h"
-#include "log.h"
+#include "common/log.h"
 #include "vaapiutils.h"
 
 #ifndef N_ELEMENTS

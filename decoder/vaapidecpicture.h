@@ -22,7 +22,7 @@
 #ifndef vaapidecpicture_h
 #define vaapidecpicture_h
 
-#include "vaapipicture.h"
+#include "vaapi/vaapipicture.h"
 
 class VaapiDecPicture : public VaapiPicture
 {

@@ -30,7 +30,7 @@
 #include "vaapidecoder_h264.h"
 #include "codecparsers/bytereader.h"
 
-#include "vaapiptrs.h"
+#include "vaapi/vaapiptrs.h"
 
 typedef VaapiDecoderH264::PicturePtr PicturePtr;
 typedef VaapiDecPictureH264::SliceHeaderPtr SliceHeaderPtr;

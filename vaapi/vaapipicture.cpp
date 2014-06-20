@@ -25,7 +25,7 @@
 #endif
 #include "vaapipicture.h"
 
-#include "log.h"
+#include "common/log.h"
 #include "vaapibuffer.h"
 #include "vaapisurface.h"
 

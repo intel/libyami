@@ -16,7 +16,7 @@ m4_define([libyami_version],
                     [libva_major_version.libva_minor_version.libva_micro_version])
 
 AC_INIT([libyami], [libyami_version], [halley.zhao@intel.com])
-AC_CONFIG_SRCDIR([common/vaapitypes.h])
+AC_CONFIG_SRCDIR([vaapi/vaapitypes.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([aux])
@@ -141,6 +141,7 @@ AC_CHECK_FUNCS([memset strcasecmp strdup])
 AC_CONFIG_FILES([Makefile
                  codecparsers/Makefile
                  common/Makefile
+                 vaapi/Makefile
                  decoder/Makefile
                  encoder/Makefile
                  doc/Makefile

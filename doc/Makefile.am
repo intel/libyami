@@ -5,12 +5,12 @@ EXTRA_DIST = \
     doc.config          \
     $(NULL)
 
-LIBYAMI_DOC_STRIP_DIR = $(top_srcdir)/common $(top_srcdir)/decoder $(top_srcdir)/encoder $(top_srcdir)/interface
+LIBYAMI_DOC_STRIP_DIR = $(top_srcdir)/common $(top_srcdir)/vaapi $(top_srcdir)/decoder $(top_srcdir)/encoder $(top_srcdir)/interface
 LIBYAMI_DOC_STRIP_FILES = vaapibuffer.h             \
-    $(top_srcdir)/common/vaapiimage.h               \
-    $(top_srcdir)/common/vaapiptrs.h                \
-    $(top_srcdir)/common/vaapisurface.h             \
-    $(top_srcdir)/common/vaapiutils.h               \
+    $(top_srcdir)/vaapi/vaapiimage.h               \
+    $(top_srcdir)/vaapi/vaapiptrs.h                \
+    $(top_srcdir)/vaapi/vaapisurface.h             \
+    $(top_srcdir)/vaapi/vaapiutils.h               \
     $(top_srcdir)/decoder/vaapidecoder_base.h       \
     $(top_srcdir)/decoder/vaapidecoder_h264.h       \
     $(top_srcdir)/decoder/vaapidecoder_jpeg.h       \

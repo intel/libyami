@@ -30,7 +30,7 @@
 #if __BUILD_H264_ENCODER__
 #include "vaapiencoder_h264.h"
 #endif
-#include "vaapi_host.h"
+#include "vaapi/vaapi_host.h"
 #include <string.h>
 
 DEFINE_CLASS_FACTORY(Encoder)

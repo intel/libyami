@@ -25,7 +25,7 @@
 
 #include "common/log.h"
 #include "interface/VideoDecoderInterface.h"
-#include "vaapiptrs.h"
+#include "vaapi/vaapiptrs.h"
 #include "vaapisurfacebuf_pool.h"
 #include <pthread.h>
 #include <va/va.h>

@@ -34,7 +34,7 @@
 #if __BUILD_JPEG_DECODER__
 #include "vaapidecoder_jpeg.h"
 #endif
-#include "vaapi_host.h"
+#include "vaapi/vaapi_host.h"
 #include <string.h>
 
 DEFINE_CLASS_FACTORY(Decoder)

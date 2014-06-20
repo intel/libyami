@@ -29,7 +29,7 @@
 #endif
 
 #include "vaapiutils.h"
-#include "log.h"
+#include "common/log.h"
 #include "vaapisurface.h"
 #include <stdarg.h>
 #include <stdio.h>

@@ -28,7 +28,7 @@
 #endif
 
 #include "vaapiimage.h"
-#include "log.h"
+#include "common/log.h"
 #include "vaapiutils.h"
 #include <stdlib.h>
 

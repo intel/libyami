@@ -28,7 +28,7 @@
 #endif
 
 #include "vaapibuffer.h"
-#include "log.h"
+#include "common/log.h"
 #include "vaapiutils.h"
 #include <va/va.h>
 

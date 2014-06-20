@@ -30,7 +30,7 @@
 #include <stdint.h>
 #include <limits.h>
 #include "common/common_def.h"
-#include "common/vaapisurface.h"
+#include "vaapi/vaapisurface.h"
 #include "interface/VideoDecoderDefs.h"
 #include <limits>
 #include <pthread.h>

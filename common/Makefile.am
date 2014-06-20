@@ -1,19 +1,9 @@
 libyami_common_source_c = \
-        vaapipicture.cpp \
-        vaapibuffer.cpp \
-        vaapiimage.cpp \
-        vaapisurface.cpp\
-        vaapiutils.cpp \
 	$(NULL)
 
 libyami_common_source_h = \
-        vaapipicture.h \
-        vaapibuffer.h \
-        vaapiimage.h \
-        vaapisurface.h \
-        vaapiutils.h \
-        vaapitypes.h \
         log.h \
+		common_def.h \
 	$(NULL)
 
 libyami_common_ldflags = \

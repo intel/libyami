@@ -27,10 +27,10 @@
 #include "interface/VideoEncoderDef.h"
 #include "interface/VideoEncoderInterface.h"
 #include "log.h"
-#include "vaapibuffer.h"
+#include "vaapi/vaapibuffer.h"
 #include "vaapiencpicture.h"
-#include "vaapiptrs.h"
-#include "vaapisurface.h"
+#include "vaapi/vaapiptrs.h"
+#include "vaapi/vaapisurface.h"
 #include <va/va.h>
 #include <va/va_tpi.h>
 #ifdef HAVE_VA_X11
