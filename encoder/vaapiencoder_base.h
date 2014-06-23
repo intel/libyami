@@ -29,7 +29,6 @@
 #include "common/log.h"
 #include "vaapiencpicture.h"
 #include "vaapi/vaapibuffer.h"
-#include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapisurface.h"
 
@@ -125,8 +124,7 @@ protected:
     }
 
     DisplayPtr m_display;
-    VAContextID m_context;
-    VAConfigID m_config;
+    ContextPtr m_context;
     VAEntrypoint m_entrypoint;
     VideoParamsCommon m_videoParamCommon;
 

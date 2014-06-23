@@ -1,5 +1,5 @@
 /*
- *  vaapidisplay.h - abstract for VADisplay
+ *  vaapidisplay.h - abstract for VaContext
  *
  *  Copyright (C) 2014 Intel Corporation
  *    Author: Xu Guangxin <guangxin.xu@intel.com>
@@ -20,35 +20,42 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef vaapidisplay_h
-#define vaapidisplay_h
+#ifndef vaapicontext_h
+#define vaapicontext_h
 
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapitypes.h"
 #include <va/va.h>
-#include <va/va_tpi.h>
-#ifdef HAVE_VA_X11
-#include <va/va_x11.h>
-#endif
 
-///abstract for all display, x11, wayland, ozone, android etc.
-class VaapiDisplay
+class VaapiConfig
 {
-friend class DisplayCache;
+friend class VaapiContext;
 public:
-    //FIXME: add more create functions.
-    static DisplayPtr create(Display*);
+    static ConfigPtr create(const DisplayPtr&, VAProfile, VAEntrypoint,
+                    VAConfigAttrib *attribList, int numAttribs);
+    ~VaapiConfig();
+private:
+    VaapiConfig(const DisplayPtr&, VAConfigID);
+    DisplayPtr m_display;
+    VAConfigID  m_config;
+    DISALLOW_COPY_AND_ASSIGN(VaapiConfig);
+};
 
-    VADisplay getID() const { return m_display; }
+class VaapiContext
+{
+public:
+    static ContextPtr create(const ConfigPtr&,
+                      int width,int height,int flag,
+                      VASurfaceID *render_targets,
+                      int num_render_targets);
+    VAContextID getID() const { return m_context; }
 
-protected:
-    /// for display cache management.
-    virtual bool isCompatible(const Display*) {return false;}
-
-    VaapiDisplay(VADisplay vaDisplay):m_display(vaDisplay){}
-    VADisplay   m_display;
-    DISALLOW_COPY_AND_ASSIGN(VaapiDisplay);
+    ~VaapiContext();
+private:
+    VaapiContext(const ConfigPtr&,  VAContextID);
+    ConfigPtr m_config;
+    VAContextID m_context;
+    DISALLOW_COPY_AND_ASSIGN(VaapiContext);
 };
 
 #endif
-

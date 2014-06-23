@@ -25,6 +25,7 @@
 #endif
 #include "vaapi/vaapidisplay.h"
 
+#include "common/log.h"
 #include "vaapi/vaapiutils.h"
 #include <list>
 

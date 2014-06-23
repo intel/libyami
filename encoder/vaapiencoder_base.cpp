@@ -30,11 +30,11 @@
 #include "common/common_def.h"
 #include "scopedlogger.h"
 #include "vaapicodedbuffer.h"
+#include "vaapi/vaapidisplay.h"
+#include "vaapi/vaapicontext.h"
 #include "vaapi/vaapiutils.h"
 
 VaapiEncoderBase::VaapiEncoderBase():
-    m_context(VA_INVALID_ID),
-    m_config(VA_INVALID_ID),
     m_entrypoint(VAEntrypointEncSlice),
     m_externalDisplay(NULL)
 {
@@ -285,16 +285,8 @@ VaapiProfile VaapiEncoderBase::profile() const
 
 void VaapiEncoderBase::cleanupVA()
 {
-    if (m_display && (m_context != VA_INVALID_ID)) {
-        vaDestroyContext(m_display->getID(), m_context);
-        m_context = VA_INVALID_ID;
-    }
-    if (m_display && (m_config != VA_INVALID_ID)) {
-        vaDestroyConfig(m_display->getID(), m_config);
-        m_config = VA_INVALID_ID;
-    }
+    m_context.reset();
     m_display.reset();
-
 }
 
 bool VaapiEncoderBase::initVA()
@@ -302,29 +294,24 @@ bool VaapiEncoderBase::initVA()
     FUNC_ENTER();
 
     m_display = VaapiDisplay::create(m_externalDisplay);
-    if (!m_display)
-    {
+    if (!m_display) {
         ERROR("failed to create display");
-        goto error;
+        return false;
     }
 
-    VAStatus vaStatus;
-    DEBUG("profile = %d", m_videoParamCommon.profile);
-    vaStatus = vaCreateConfig(m_display->getID(), m_videoParamCommon.profile, m_entrypoint,
-                              NULL, 0, &m_config);
-    if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
-        goto error;
+    ConfigPtr config = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, NULL, 0);
+    if (!config) {
+        ERROR("failed to create config");
+        return false;
+    }
 
-    vaStatus = vaCreateContext(m_display->getID(), m_config,
-                               m_videoParamCommon.resolution.width,
-                               m_videoParamCommon.resolution.height,
-                               VA_PROGRESSIVE, 0, 0,
-                               &m_context);
-    if (!checkVaapiStatus(vaStatus, "vaCreateContext "))
-        goto error;
+    m_context = VaapiContext::create(config,
+                             m_videoParamCommon.resolution.width,
+                             m_videoParamCommon.resolution.height,
+                             VA_PROGRESSIVE, 0, 0);
+    if (!m_context) {
+        ERROR("failed to create context");
+        return false;
+    }
     return true;
-
-error:
-    cleanupVA();
-    return false;
 }

@@ -5,6 +5,7 @@ libyami_vaapi_source_c = \
         vaapisurface.cpp\
         vaapiutils.cpp \
         vaapidisplay.cpp \
+        vaapicontext.cpp \
 	$(NULL)
 
 libyami_vaapi_source_h = \
@@ -15,6 +16,7 @@ libyami_vaapi_source_h = \
         vaapiutils.h \
         vaapitypes.h \
         vaapidisplay.h \
+        vaapicontext.h \
 	$(NULL)
 
 libyami_vaapi_ldflags = \

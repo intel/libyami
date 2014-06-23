@@ -27,6 +27,8 @@
 #include <assert.h>
 #include "bitwriter.h"
 #include "scopedlogger.h"
+#include "vaapi/vaapicontext.h"
+#include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
 #include <algorithm>
@@ -620,7 +622,7 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
         return ENCODE_INVALID_PARAMS;
 
     ++m_curPresentIndex;
-    PicturePtr picture(new VaapiEncPictureH264(m_display->getID(), m_context,surface, timeStamp));
+    PicturePtr picture(new VaapiEncPictureH264(m_display->getID(), m_context->getID(),surface, timeStamp));
     picture->m_poc = ((m_curPresentIndex * 2) % m_maxPicOrderCnt);
 
     bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= keyFramePeriod());
@@ -713,7 +715,7 @@ Encode_Status VaapiEncoderH264::getOutput(VideoEncOutputBuffer *outBuffer)
 
     Encode_Status ret;
     if (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
-        CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_display->getID(), m_context,outBuffer->bufferSize);
+        CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_display->getID(), m_context->getID(),outBuffer->bufferSize);
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
         if (m_reorderFrameList.empty())

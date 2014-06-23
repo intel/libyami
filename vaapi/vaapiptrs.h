@@ -35,4 +35,10 @@ typedef std::tr1::shared_ptr < VaapiBufObject > BufObjectPtr;
 class VaapiDisplay;
 typedef std::tr1::shared_ptr < VaapiDisplay > DisplayPtr;
 
+class VaapiConfig;
+typedef std::tr1::shared_ptr < VaapiConfig > ConfigPtr;
+
+class VaapiContext;
+typedef std::tr1::shared_ptr < VaapiContext > ContextPtr;
+
 #endif                          /* vaapiptr_h */
