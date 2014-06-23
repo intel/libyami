@@ -32,4 +32,7 @@ typedef std::tr1::shared_ptr < VaapiCodedBuffer > CodedBufferPtr;
 class VaapiBufObject;
 typedef std::tr1::shared_ptr < VaapiBufObject > BufObjectPtr;
 
+class VaapiDisplay;
+typedef std::tr1::shared_ptr < VaapiDisplay > DisplayPtr;
+
 #endif                          /* vaapiptr_h */
