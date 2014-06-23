@@ -33,12 +33,10 @@
 #include "vaapi/vaapiutils.h"
 
 VaapiEncoderBase::VaapiEncoderBase():
-    m_xDisplay(NULL),
-    m_display(NULL),
     m_context(VA_INVALID_ID),
     m_config(VA_INVALID_ID),
     m_entrypoint(VAEntrypointEncSlice),
-    m_externalDisplay(false)
+    m_externalDisplay(NULL)
 {
     FUNC_ENTER();
     m_videoParamCommon.rawFormat = RAW_FORMAT_NV12;
@@ -64,11 +62,7 @@ VaapiEncoderBase::~VaapiEncoderBase()
 
 void VaapiEncoderBase::setXDisplay(Display * xdisplay)
 {
-    if (!m_externalDisplay && m_xDisplay) {
-        XCloseDisplay(m_xDisplay);
-    }
-    m_externalDisplay = true;
-    m_xDisplay = xdisplay;
+    m_externalDisplay = xdisplay;
 }
 
 Encode_Status VaapiEncoderBase::start(void)
@@ -173,7 +167,7 @@ SurfacePtr VaapiEncoderBase::createSurface()
     attrib.type = VASurfaceAttribPixelFormat;
     attrib.value.type = VAGenericValueTypeInteger;
     attrib.value.value.i = VA_FOURCC_NV12;
-    return VaapiSurface::create(m_display, VAAPI_CHROMA_TYPE_YUV420,
+    return VaapiSurface::create(m_display->getID(), VAAPI_CHROMA_TYPE_YUV420,
                                 m_videoParamCommon.resolution.width, m_videoParamCommon.resolution.height, &attrib, 1);
 
 }
@@ -291,58 +285,37 @@ VaapiProfile VaapiEncoderBase::profile() const
 
 void VaapiEncoderBase::cleanupVA()
 {
-    if (m_display && m_context) {
-        vaDestroyContext(m_display, m_context);
+    if (m_display && (m_context != VA_INVALID_ID)) {
+        vaDestroyContext(m_display->getID(), m_context);
         m_context = VA_INVALID_ID;
     }
-    if (m_display && m_config) {
-        vaDestroyConfig(m_display, m_config);
+    if (m_display && (m_config != VA_INVALID_ID)) {
+        vaDestroyConfig(m_display->getID(), m_config);
         m_config = VA_INVALID_ID;
     }
-    if (m_display) {
-        vaTerminate(m_display);
-        m_display = NULL;
-    }
-    if (m_xDisplay) {
-        if (!m_externalDisplay)
-            XCloseDisplay(m_xDisplay);
-        m_xDisplay = NULL;
-    }
+    m_display.reset();
+
 }
 
 bool VaapiEncoderBase::initVA()
 {
     FUNC_ENTER();
 
-    if (!m_externalDisplay)
-        m_xDisplay = XOpenDisplay(NULL);
-    if (!m_xDisplay)
+    m_display = VaapiDisplay::create(m_externalDisplay);
+    if (!m_display)
     {
-        ERROR("no x display.");
-        return false;
+        ERROR("failed to create display");
+        goto error;
     }
 
-    int majorVersion, minorVersion;
     VAStatus vaStatus;
-
-    m_display = vaGetDisplay(m_xDisplay);
-    if (m_display == NULL) {
-        ERROR("vaGetDisplay failed.");
-        goto error;
-    }
-
-    vaStatus= vaInitialize(m_display, &majorVersion, &minorVersion);
-    DEBUG("vaInitialize \n");
-    if (!checkVaapiStatus(vaStatus, "vaInitialize"))
-        goto error;
-
     DEBUG("profile = %d", m_videoParamCommon.profile);
-    vaStatus = vaCreateConfig(m_display, m_videoParamCommon.profile, m_entrypoint,
+    vaStatus = vaCreateConfig(m_display->getID(), m_videoParamCommon.profile, m_entrypoint,
                               NULL, 0, &m_config);
     if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
         goto error;
 
-    vaStatus = vaCreateContext(m_display, m_config,
+    vaStatus = vaCreateContext(m_display->getID(), m_config,
                                m_videoParamCommon.resolution.width,
                                m_videoParamCommon.resolution.height,
                                VA_PROGRESSIVE, 0, 0,

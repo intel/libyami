@@ -27,15 +27,12 @@
 #include "interface/VideoEncoderDef.h"
 #include "interface/VideoEncoderInterface.h"
 #include "common/log.h"
-#include "vaapi/vaapibuffer.h"
 #include "vaapiencpicture.h"
+#include "vaapi/vaapibuffer.h"
+#include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapisurface.h"
-#include <va/va.h>
-#include <va/va_tpi.h>
-#ifdef HAVE_VA_X11
-#include <va/va_x11.h>
-#endif
+
 
 enum VaapiEncReorderState
 {
@@ -127,8 +124,7 @@ protected:
         return m_videoParamCommon.rcParams.minQP;
     }
 
-    Display* m_xDisplay;
-    VADisplay m_display;
+    DisplayPtr m_display;
     VAContextID m_context;
     VAConfigID m_config;
     VAEntrypoint m_entrypoint;
@@ -137,7 +133,7 @@ protected:
 private:
     bool initVA();
     void cleanupVA();
-    bool m_externalDisplay;
+    Display* m_externalDisplay;
 };
 
 #endif /* vaapiencoder_base_h */
