@@ -533,6 +533,14 @@ h264_parser_parse_scaling_list (NalReader * nr,
 {
   uint32_t i;
 
+  static const uint8_t *default_lists[12] = {
+    default_4x4_intra, default_4x4_intra, default_4x4_intra,
+    default_4x4_inter, default_4x4_inter, default_4x4_inter,
+    default_8x8_intra, default_8x8_inter,
+    default_8x8_intra, default_8x8_inter,
+    default_8x8_intra, default_8x8_inter
+  };
+
   DEBUG ("parsing scaling lists");
 
   for (i = 0; i < 12; i++) {
@@ -569,7 +577,8 @@ h264_parser_parse_scaling_list (NalReader * nr,
             next_scale = (last_scale + delta_scale) & 0xff;
           }
           if (j == 0 && next_scale == 0) {
-            use_default = TRUE;
+            /* Use default scaling lists (7.4.2.1.1.1) */
+            memcpy (scaling_list, default_lists[i], size);
             break;
           }
           last_scale = scaling_list[scan[j]] =
