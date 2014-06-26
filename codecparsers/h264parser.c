@@ -987,7 +987,7 @@ h264_parser_parse_pic_timing (H264NalParser * nalparser,
           vui->nal_hrd_parameters.cpb_removal_delay_length_minus1 + 1);
       NAL_READ_UINT32 (nr, tim->dpb_output_delay,
           vui->nal_hrd_parameters.dpb_output_delay_length_minus1 + 1);
-    } else if (vui->nal_hrd_parameters_present_flag) {
+    } else if (vui->vcl_hrd_parameters_present_flag) {
       NAL_READ_UINT32 (nr, tim->cpb_removal_delay,
           vui->vcl_hrd_parameters.cpb_removal_delay_length_minus1 + 1);
       NAL_READ_UINT32 (nr, tim->dpb_output_delay,
