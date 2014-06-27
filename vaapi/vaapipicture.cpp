@@ -27,13 +27,15 @@
 
 #include "common/log.h"
 #include "vaapibuffer.h"
+#include "vaapidisplay.h"
+#include "vaapicontext.h"
 #include "vaapisurface.h"
 #include "vaapi/vaapiutils.h"
 
 
-VaapiPicture::VaapiPicture(VADisplay display, VAContextID context,
-                           const SurfacePtr & surface, int64_t timeStamp)
-:m_display(display), m_context(context), m_surface(surface),
+VaapiPicture::VaapiPicture(const ContextPtr& context,
+                           const SurfacePtr& surface, int64_t timeStamp)
+:m_display(context->getDisplay()), m_context(context), m_surface(surface),
 m_timeStamp(timeStamp), m_type(VAAPI_PICTURE_TYPE_NONE)
 {
 
@@ -47,19 +49,19 @@ bool VaapiPicture::render()
     }
 
     VAStatus status;
-    status = vaBeginPicture(m_display, m_context, m_surface->getID());
+    status = vaBeginPicture(m_display->getID(), m_context->getID(), m_surface->getID());
     if (!checkVaapiStatus(status, "vaBeginPicture()"))
         return false;
 
     bool ret = doRender();
 
-    status = vaEndPicture(m_display, m_context);
+    status = vaEndPicture(m_display->getID(), m_context->getID());
     if (!checkVaapiStatus(status, "vaEndPicture()"))
         return false;
     return ret;
 }
 
-bool VaapiPicture::render(BufObjectPtr & buffer)
+bool VaapiPicture::render(BufObjectPtr& buffer)
 {
     VAStatus status = VA_STATUS_SUCCESS;
     VABufferID bufferID = VA_INVALID_ID;
@@ -74,7 +76,7 @@ bool VaapiPicture::render(BufObjectPtr & buffer)
     if (bufferID == VA_INVALID_ID)
         return false;
 
-    status = vaRenderPicture(m_display, m_context, &bufferID, 1);
+    status = vaRenderPicture(m_display->getID(), m_context->getID(), &bufferID, 1);
     if (!checkVaapiStatus(status, "vaRenderPicture failed"))
         return false;
 
@@ -82,14 +84,12 @@ bool VaapiPicture::render(BufObjectPtr & buffer)
     return true;
 }
 
-bool VaapiPicture::render(std::pair < BufObjectPtr,
-                          BufObjectPtr > &paramAndData)
+bool VaapiPicture::render(std::pair <BufObjectPtr,BufObjectPtr> &paramAndData)
 {
     return render(paramAndData.first) && render(paramAndData.second);
 }
 
-bool VaapiPicture::addObject(std::vector < std::pair < BufObjectPtr,
-                             BufObjectPtr > >&objects,
+bool VaapiPicture::addObject(std::vector<std::pair<BufObjectPtr,BufObjectPtr> >& objects,
                              const BufObjectPtr & param,
                              const BufObjectPtr & data)
 {
@@ -99,8 +99,8 @@ bool VaapiPicture::addObject(std::vector < std::pair < BufObjectPtr,
     return true;
 }
 
-bool VaapiPicture::addObject(std::vector < BufObjectPtr > &objects,
-                             const BufObjectPtr & object)
+bool VaapiPicture::addObject(std::vector < BufObjectPtr >& objects,
+                             const BufObjectPtr& object)
 {
     if (!object)
         return false;

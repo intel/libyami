@@ -526,7 +526,7 @@ bool VaapiDPBManager::execRefPicMarking(const PicturePtr& pic,
 PicturePtr VaapiDPBManager::addDummyPicture(const PicturePtr& pic,
                                             int32_t frameNum)
 {
-    PicturePtr dummyPic(new VaapiDecPictureH264(NULL, NULL, pic->m_surface, 0));
+    PicturePtr dummyPic(new VaapiDecPictureH264(pic->m_context, pic->m_surface, 0));
     if (!dummyPic)
         return dummyPic;
 

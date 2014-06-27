@@ -74,8 +74,8 @@ class VaapiDecPictureH264 : public VaapiDecPicture
 
   private:
     //make this public after we move this to cpp.
-    VaapiDecPictureH264(VADisplay display, VAContextID context, const SurfacePtr& surface, int64_t timeStamp):
-        VaapiDecPicture(display, context, surface, timeStamp),
+    VaapiDecPictureH264(ContextPtr context, const SurfacePtr& surface, int64_t timeStamp):
+        VaapiDecPicture(context, surface, timeStamp),
         m_pps(NULL),
         m_flags(0),
         m_POC(0),
@@ -95,7 +95,7 @@ class VaapiDecPictureH264 : public VaapiDecPicture
 
     PicturePtr newField()
     {
-        PicturePtr field(new VaapiDecPictureH264(m_display, m_context, m_surface, m_timeStamp));
+        PicturePtr field(new VaapiDecPictureH264(m_context, m_surface, m_timeStamp));
         if (!field)
             return field;
         field->m_frameNum = m_frameNum;

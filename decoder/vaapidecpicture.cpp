@@ -27,9 +27,9 @@
 
 #include "log.h"
 
-VaapiDecPicture::VaapiDecPicture(VADisplay display, VAContextID context,
+VaapiDecPicture::VaapiDecPicture(const ContextPtr& context,
                                  const SurfacePtr& surface, int64_t timeStamp)
-    :VaapiPicture(display, context, surface, timeStamp)
+    :VaapiPicture(context, surface, timeStamp)
 {
 }
 

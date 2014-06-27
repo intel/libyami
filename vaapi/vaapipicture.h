@@ -36,7 +36,7 @@
 class VaapiPicture
 {
 public:
-    VaapiPicture(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp);
+    VaapiPicture(const ContextPtr&, const SurfacePtr&, int64_t timeStamp);
     virtual ~VaapiPicture() {};
 
     inline VASurfaceID getSurfaceID() const;
@@ -67,8 +67,8 @@ protected:
                                            uint32_t size,const void *data, void **mapped_data);
 
 protected:
-    VADisplay              m_display;
-    VAContextID            m_context;
+    DisplayPtr             m_display;
+    ContextPtr             m_context;
     SurfacePtr             m_surface;
 };
 
@@ -84,7 +84,7 @@ BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr)
 BufObjectPtr VaapiPicture::createBufferObject(VABufferType bufType,
                                           uint32_t size,const void *data, void **mapped_data)
 {
-    return VaapiBufObject::create(m_display, m_context, bufType, size, data, mapped_data);
+    return VaapiBufObject::create(m_context, bufType, size, data, mapped_data);
 }
 
 template<class T>

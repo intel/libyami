@@ -27,7 +27,7 @@
 class VaapiDecPicture : public VaapiPicture
 {
 public:
-    VaapiDecPicture(VADisplay display, VAContextID context,const SurfacePtr& surface, int64_t timeStamp);
+    VaapiDecPicture(const ContextPtr&, const SurfacePtr&, int64_t timeStamp);
     virtual ~VaapiDecPicture() {};
 
 

@@ -26,33 +26,15 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
 #include "vaapibuffer.h"
+
 #include "common/log.h"
+#include "vaapicontext.h"
+#include "vaapidisplay.h"
 #include "vaapiutils.h"
 #include <va/va.h>
 
-VaapiBufObject::VaapiBufObject(VADisplay display,
-                               VAContextID context,
-                               uint32_t bufType, const void *data,
-                               uint32_t size)
-:m_display(display), m_size(size), m_buf(NULL)
-{
-    VAStatus status;
-
-    if (size == 0) {
-        ERROR("buffer size is zero");
-        return;
-    }
-
-    if (!vaapiCreateBuffer(display, context,
-                           bufType, size, data, &m_bufID, (void **) 0)) {
-        ERROR("create buffer failed");
-        return;
-    }
-}
-
-VaapiBufObject::VaapiBufObject(VADisplay display,
+VaapiBufObject::VaapiBufObject(const DisplayPtr& display,
                                VABufferID bufID, void *buf, uint32_t size)
 :m_display(display), m_bufID(bufID), m_buf(buf), m_size(size)
 {
@@ -61,12 +43,8 @@ VaapiBufObject::VaapiBufObject(VADisplay display,
 
 VaapiBufObject::~VaapiBufObject()
 {
-    if (m_buf) {
-        vaapiUnmapBuffer(m_display, m_bufID, &m_buf);
-        m_buf = NULL;
-    }
-
-    vaapiDestroyBuffer(m_display, &m_bufID);
+    unmap();
+    vaapiDestroyBuffer(m_display->getID(), &m_bufID);
 }
 
 VABufferID VaapiBufObject::getID() const
@@ -84,14 +62,14 @@ void *VaapiBufObject::map()
     if (m_buf)
         return m_buf;
 
-    m_buf = vaapiMapBuffer(m_display, m_bufID);
+    m_buf = vaapiMapBuffer(m_display->getID(), m_bufID);
     return m_buf;
 }
 
 void VaapiBufObject::unmap()
 {
     if (m_buf) {
-        vaapiUnmapBuffer(m_display, m_bufID, &m_buf);
+        vaapiUnmapBuffer(m_display->getID(), m_bufID, &m_buf);
         m_buf = NULL;
     }
 }
@@ -101,8 +79,7 @@ bool VaapiBufObject::isMapped() const
     return m_buf != NULL;
 }
 
-BufObjectPtr VaapiBufObject::create(VADisplay display,
-                                    VAContextID context,
+BufObjectPtr VaapiBufObject::create(const ContextPtr& context,
                                     VABufferType bufType,
                                     uint32_t size,
                                     const void *data, void **mapped_data)
@@ -115,8 +92,9 @@ BufObjectPtr VaapiBufObject::create(VADisplay display,
         return buf;
     }
 
+    DisplayPtr display = context->getDisplay();
     VABufferID bufID;
-    if (!vaapiCreateBuffer(display, context,
+    if (!vaapiCreateBuffer(display->getID(), context->getID(),
                            bufType, size, data, &bufID, mapped_data)) {
         ERROR("create buffer failed");
         return buf;

@@ -70,7 +70,7 @@ PicturePtr VaapiDecoderBase::createPicture(int64_t timeStamp /* , VaapiPictureSt
         return picture;
     }
 
-    picture.reset(new VaapiDecPicture(m_display->getID(), m_context->getID(), surface, timeStamp));
+    picture.reset(new VaapiDecPicture(m_context, surface, timeStamp));
     return picture;
 }
 

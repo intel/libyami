@@ -19,14 +19,18 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "vaapicodedbuffer.h"
+
+#include "vaapicontext.h"
 #include <string.h>
 
-CodedBufferPtr VaapiCodedBuffer::create(VADisplay display, VAContextID context, uint32_t bufSize)
+CodedBufferPtr VaapiCodedBuffer::create(const ContextPtr& context, uint32_t bufSize)
 {
     CodedBufferPtr coded;
-    BufObjectPtr buf = VaapiBufObject::create(display, context, VAEncCodedBufferType, bufSize);
+    BufObjectPtr buf = VaapiBufObject::create(context, VAEncCodedBufferType, bufSize);
     if (buf)
         coded.reset(new VaapiCodedBuffer(buf));
     return coded;

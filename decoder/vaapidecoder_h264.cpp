@@ -1169,7 +1169,7 @@ Decode_Status
         SurfacePtr s = createSurface();
         if (!s)
             return DECODE_FAIL;
-        picture.reset(new VaapiDecPictureH264(m_display->getID(), m_context->getID(), s, 0));
+        picture.reset(new VaapiDecPictureH264(m_context, s, 0));
         /* test code */
 
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);

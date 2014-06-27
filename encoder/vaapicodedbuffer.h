@@ -31,7 +31,7 @@
 class VaapiCodedBuffer
 {
 public:
-    static CodedBufferPtr create(VADisplay, VAContextID, uint32_t bufSize);
+    static CodedBufferPtr create(const ContextPtr&, uint32_t bufSize);
     ~VaapiCodedBuffer() {}
     uint32_t size();
     VABufferID getID() const {

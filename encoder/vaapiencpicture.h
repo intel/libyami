@@ -27,19 +27,22 @@
 
 class VaapiEncPicture:public VaapiPicture {
   public:
-    VaapiEncPicture(VADisplay display, VAContextID context,
+    VaapiEncPicture(const ContextPtr& context,
                     const SurfacePtr & surface, int64_t timeStamp);
-     virtual ~ VaapiEncPicture() {
-    };
-
-    template < class T > bool editSequence(T * &seqParam);
-
-    template < class T > bool editPicture(T * &picParam);
-
-    template < class T > bool newSlice(T * &sliceParam);
+    virtual ~VaapiEncPicture() { }
 
     template < class T >
-        bool newMisc(VAEncMiscParameterType, T * &miscParam);
+    bool editSequence(T * &seqParam);
+
+    template < class T >
+    bool editPicture(T * &picParam);
+
+    template < class T >
+    bool newSlice(T * &sliceParam);
+
+
+    template < class T >
+    bool newMisc(VAEncMiscParameterType, T * &miscParam);
 
     bool addPackedHeader(VAEncPackedHeaderType, const void *header,
                          uint32_t headerBitSize);

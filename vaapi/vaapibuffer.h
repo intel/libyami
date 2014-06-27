@@ -35,25 +35,21 @@ class VaapiBufObject {
   private:
     DISALLOW_COPY_AND_ASSIGN(VaapiBufObject);
   public:
-    VaapiBufObject(VADisplay display,
-                   VAContextID context,
-                   uint32_t bufType, const void *param, uint32_t size);
     ~VaapiBufObject();
     VABufferID getID() const;
     uint32_t getSize();
     void *map();
     void unmap();
     bool isMapped() const;
-    static BufObjectPtr create(VADisplay display,
-                               VAContextID context,
+    static BufObjectPtr create(const ContextPtr&,
                                VABufferType bufType,
                                uint32_t size,
                                const void *data = 0,
                                void **mapped_data = 0);
 
   private:
-    VaapiBufObject(VADisplay, VABufferID, void *buf, uint32_t size);
-    VADisplay m_display;
+    VaapiBufObject(const DisplayPtr&, VABufferID, void *buf, uint32_t size);
+    DisplayPtr m_display;
     VABufferID m_bufID;
     void *m_buf;
     uint32_t m_size;

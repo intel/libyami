@@ -477,8 +477,8 @@ class VaapiEncPictureH264:public VaapiEncPicture
 public:
     virtual ~VaapiEncPictureH264() {}
 private:
-    VaapiEncPictureH264(VADisplay display, VAContextID context, const SurfacePtr& surface, int64_t timeStamp):
-        VaapiEncPicture(display, context, surface, timeStamp),
+    VaapiEncPictureH264(const ContextPtr& context, const SurfacePtr& surface, int64_t timeStamp):
+        VaapiEncPicture(context, surface, timeStamp),
         m_frameNum(0),
         m_poc(0)
     {
@@ -622,7 +622,7 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
         return ENCODE_INVALID_PARAMS;
 
     ++m_curPresentIndex;
-    PicturePtr picture(new VaapiEncPictureH264(m_display->getID(), m_context->getID(),surface, timeStamp));
+    PicturePtr picture(new VaapiEncPictureH264(m_context, surface, timeStamp));
     picture->m_poc = ((m_curPresentIndex * 2) % m_maxPicOrderCnt);
 
     bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= keyFramePeriod());
@@ -715,7 +715,7 @@ Encode_Status VaapiEncoderH264::getOutput(VideoEncOutputBuffer *outBuffer)
 
     Encode_Status ret;
     if (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
-        CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_display->getID(), m_context->getID(),outBuffer->bufferSize);
+        CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, outBuffer->bufferSize);
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
         if (m_reorderFrameList.empty())

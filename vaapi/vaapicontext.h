@@ -49,6 +49,7 @@ public:
                       VASurfaceID *render_targets,
                       int num_render_targets);
     VAContextID getID() const { return m_context; }
+    DisplayPtr getDisplay() const { return m_config->m_display; }
 
     ~VaapiContext();
 private:

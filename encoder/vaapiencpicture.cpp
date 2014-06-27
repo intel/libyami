@@ -26,10 +26,10 @@
 
 #include "log.h"
 
-VaapiEncPicture::VaapiEncPicture(VADisplay display, VAContextID context,
+VaapiEncPicture::VaapiEncPicture(const ContextPtr& context,
                                  const SurfacePtr & surface,
                                  int64_t timeStamp)
-:VaapiPicture(display, context, surface, timeStamp)
+:VaapiPicture(context, surface, timeStamp)
 {
 }
 
