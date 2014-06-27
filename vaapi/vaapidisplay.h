@@ -39,6 +39,8 @@ public:
     //FIXME: add more create functions.
     static DisplayPtr create(Display*);
 
+    virtual bool setRotation(int degree);
+
     VADisplay getID() const { return m_display; }
 
 protected:

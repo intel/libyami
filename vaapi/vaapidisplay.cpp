@@ -48,8 +48,10 @@ class VaapiX11Display:public VaapiDisplay
     friend DisplayPtr X11DisplayCreate(Display* display);
 
 public:
-    ~VaapiX11Display();
+    bool setRotation(int degree);
 
+
+    ~VaapiX11Display();
 protected:
     virtual bool isCompatible(const Display* other)
     {
@@ -112,6 +114,29 @@ VaapiX11Display::~VaapiX11Display()
     vaTerminate(m_display);
 }
 
+bool VaapiX11Display::setRotation(int degree)
+{
+    VAStatus vaStatus;
+    VADisplayAttribute rotate;
+    rotate.type = VADisplayAttribRotation;
+    rotate.value = VA_ROTATION_NONE;
+    if (degree == 0)
+        rotate.value = VA_ROTATION_NONE;
+    else if (degree == 90)
+        rotate.value = VA_ROTATION_90;
+    else if (degree == 180)
+        rotate.value = VA_ROTATION_180;
+    else if (degree == 270)
+        rotate.value = VA_ROTATION_270;
+
+    vaStatus = vaSetDisplayAttributes(m_display, &rotate, 1);
+    if (!checkVaapiStatus(vaStatus, "vaSetDisplayAttributes"))
+        return false;
+    return true;
+
+}
+
+
 
 //display cache
 class DisplayCache
@@ -167,6 +192,12 @@ DisplayPtr DisplayCache::createDisplay(DisplayPtr (*create)(UserData), const Use
     }
     pthread_mutex_unlock(&m_lock);
     return display;
+}
+
+
+bool VaapiDisplay::setRotation(int degree)
+{
+    return true;
 }
 
 DisplayPtr VaapiDisplay::create(Display* display)

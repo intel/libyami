@@ -28,7 +28,7 @@
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapiutils.h"
 
-static ConfigPtr VaapiConfig::create(const DisplayPtr& display,
+ConfigPtr VaapiConfig::create(const DisplayPtr& display,
                                      VAProfile profile, VAEntrypoint entry,
                                      VAConfigAttrib *attribList, int numAttribs)
 {
@@ -38,6 +38,16 @@ static ConfigPtr VaapiConfig::create(const DisplayPtr& display,
     VAStatus vaStatus;
     VAConfigID config;
     vaStatus = vaCreateConfig(display->getID(), profile, entry, attribList, numAttribs, &config);
+
+    // VAProfileH264Baseline is super profile for VAProfileH264ConstrainedBaseline
+    // old i965 driver incorrectly claims supporting VAProfileH264Baseline, but not VAProfileH264ConstrainedBaseline
+    if (vaStatus == VA_STATUS_ERROR_UNSUPPORTED_PROFILE
+        && profile == VAProfileH264ConstrainedBaseline
+        && entry == VAEntrypointVLD)
+        vaStatus = vaCreateConfig(display->getID(),
+                                  VAProfileH264Baseline,
+                                  VAEntrypointVLD, attribList, numAttribs, &config);
+
     if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
         return ret;
     ret.reset(new VaapiConfig(display, config));
@@ -54,7 +64,7 @@ VaapiConfig::~VaapiConfig()
     vaDestroyConfig(m_display->getID(), m_config);
 }
 
-static ContextPtr VaapiContext::create(const ConfigPtr& config,
+ContextPtr VaapiContext::create(const ConfigPtr& config,
                                        int width,int height,int flag,
                                        VASurfaceID *render_targets,
                                        int num_render_targets)

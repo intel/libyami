@@ -25,6 +25,8 @@
 
 #include "vaapidecoder_base.h"
 #include "common/log.h"
+#include "vaapi/vaapicontext.h"
+#include "vaapi/vaapidisplay.h"
 #include <string.h>
 #include <va/va_backend.h>
 #include "vaapi/vaapiutils.h"
@@ -38,10 +40,7 @@
 typedef VaapiDecoderBase::PicturePtr PicturePtr;
 
 VaapiDecoderBase::VaapiDecoderBase()
-:m_display(NULL),
-m_VADisplay(NULL),
-m_VAContext(VA_INVALID_ID),
-m_VAConfig(VA_INVALID_ID),
+:m_externalDisplay(NULL),
 m_renderTarget(NULL),
 m_lastReference(NULL),
 m_forwardReference(NULL),
@@ -71,7 +70,7 @@ PicturePtr VaapiDecoderBase::createPicture(int64_t timeStamp /* , VaapiPictureSt
         return picture;
     }
 
-    picture.reset(new VaapiDecPicture(m_VADisplay, m_VAContext, surface, timeStamp));
+    picture.reset(new VaapiDecPicture(m_display->getID(), m_context->getID(), surface, timeStamp));
     return picture;
 }
 
@@ -197,7 +196,7 @@ Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int drawX, int drawY, i
         || frameX <= 0 || frameY <= 0 || frameWidth <= 0 || frameHeight <= 0)
         return RENDER_INVALID_PARAMETER;
 
-    vaStatus = vaPutSurface(m_VADisplay, renderBuffer->surface,
+    vaStatus = vaPutSurface(m_display->getID(), renderBuffer->surface,
             draw, drawX, drawY, drawWidth, drawHeight,
             frameX, frameY, frameWidth, frameHeight,
             NULL,0,0);
@@ -308,59 +307,36 @@ Decode_Status
         return DECODE_SUCCESS;
     }
 
-    if (m_VADisplay != NULL) {
+    if (m_display != NULL) {
         WARNING("VA is partially started.");
         return DECODE_FAIL;
     }
-#ifdef ANDROID
-    m_display = new Display;
-    *m_display = ANDROID_DISPLAY_HANDLE;
-#else
-    if (!m_display) {
-        m_display = XOpenDisplay(NULL);
-        m_ownNativeDisplay = true;
-    }
+
 #if __PLATFORM_BYT__
     if (setenv("LIBVA_DRIVER_NAME", "wrapper", 1) == 0) {
         INFO("setting LIBVA_DRIVER_NAME to wrapper for chromeos");
     }
 #endif
-#endif
+    m_display = VaapiDisplay::create(m_externalDisplay);
 
-    m_VADisplay = vaGetDisplay(m_display);
-    if (m_VADisplay == NULL) {
-        ERROR("vaGetDisplay failed.");
+    if (!m_display) {
+        ERROR("failed to create display");
         return DECODE_FAIL;
     }
-
-    int majorVersion, minorVersion;
-    vaStatus = vaInitialize(m_VADisplay, &majorVersion, &minorVersion);
-    if (!checkVaapiStatus(vaStatus, "vaInitialize"))
-        return DECODE_FAIL;
 
     VAConfigAttrib attrib;
     attrib.type = VAConfigAttribRTFormat;
     attrib.value = VA_RT_FORMAT_YUV420;
 
-    INFO("base:the profile = %d", profile);
-    vaStatus = vaCreateConfig(m_VADisplay,
-                              profile,
-                              VAEntrypointVLD, &attrib, 1, &m_VAConfig);
 
-    // VAProfileH264Baseline is super profile for VAProfileH264ConstrainedBaseline
-    // old i965 driver incorrectly claims supporting VAProfileH264Baseline, but not VAProfileH264ConstrainedBaseline
-    if (vaStatus == VA_STATUS_ERROR_UNSUPPORTED_PROFILE
-        && profile == VAProfileH264ConstrainedBaseline)
-        vaStatus = vaCreateConfig(m_VADisplay,
-                                  VAProfileH264Baseline,
-                                  VAEntrypointVLD, &attrib, 1,
-                                  &m_VAConfig);
-
-    if (!checkVaapiStatus(vaStatus, "vaCreateConfig"))
+    ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD,&attrib, 1);
+    if (!config) {
+        ERROR("failed to create config");
         return DECODE_FAIL;
+    }
 
     m_configBuffer.surfaceNumber = numSurface;
-    m_bufPool = new VaapiSurfaceBufferPool(m_VADisplay, &m_configBuffer);
+    m_bufPool = new VaapiSurfaceBufferPool(m_display->getID(), &m_configBuffer);
     surfaces = new VASurfaceID[numSurface];
     for (i = 0; i < numSurface; i++) {
         surfaces[i] = VA_INVALID_SURFACE;
@@ -370,29 +346,20 @@ Decode_Status
             surfaces[i] = suf->getID();
     }
 
-    vaStatus = vaCreateContext(m_VADisplay,
-                               m_VAConfig,
-                               m_videoFormatInfo.width,
-                               m_videoFormatInfo.height,
-                               0, surfaces, numSurface, &m_VAContext);
-    if (!checkVaapiStatus(vaStatus, "vaCreateContext"))
-        return DECODE_FAIL;
+    m_context = VaapiContext::create(config,
+                                       m_videoFormatInfo.width,
+                                       m_videoFormatInfo.height,
+                                       0, surfaces, numSurface);
 
-    VADisplayAttribute rotate;
-    rotate.type = VADisplayAttribRotation;
-    rotate.value = VA_ROTATION_NONE;
-    if (m_configBuffer.rotationDegrees == 0)
-        rotate.value = VA_ROTATION_NONE;
-    else if (m_configBuffer.rotationDegrees == 90)
-        rotate.value = VA_ROTATION_90;
-    else if (m_configBuffer.rotationDegrees == 180)
-        rotate.value = VA_ROTATION_180;
-    else if (m_configBuffer.rotationDegrees == 270)
-        rotate.value = VA_ROTATION_270;
-
-    vaStatus = vaSetDisplayAttributes(m_VADisplay, &rotate, 1);
-    if (!checkVaapiStatus(vaStatus, "vaSetDisplayAttributes"))
+    if (!m_context) {
+        ERROR("create context failed");
         return DECODE_FAIL;
+    }
+
+    if (!m_display->setRotation(m_configBuffer.rotationDegrees)) {
+        return DECODE_FAIL;
+    }
+
 
     m_videoFormatInfo.surfaceNumber = numSurface;
     m_videoFormatInfo.ctxSurfaces = surfaces;
@@ -413,28 +380,9 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
         m_bufPool = NULL;
     }
 
-    if (m_VAContext != VA_INVALID_ID) {
-        vaDestroyContext(m_VADisplay, m_VAContext);
-        m_VAContext = VA_INVALID_ID;
-    }
-
-    if (m_VAConfig != VA_INVALID_ID) {
-        vaDestroyConfig(m_VADisplay, m_VAConfig);
-        m_VAConfig = VA_INVALID_ID;
-    }
-
-    if (m_VADisplay) {
-        vaTerminate(m_VADisplay);
-        m_VADisplay = NULL;
-    }
-#ifdef ANDROID
-    delete m_display;
-#else
-    if (m_display && m_ownNativeDisplay) {
-        XCloseDisplay(m_display);
-    }
-#endif
-    m_display = NULL;
+    m_context.reset();
+    m_display.reset();
+    m_externalDisplay = NULL;
 
     m_VAStarted = false;
     return DECODE_SUCCESS;
@@ -443,18 +391,12 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
 /* not used funtion here */
 void VaapiDecoderBase::setXDisplay(Display * xDisplay)
 {
-    if (m_display && m_ownNativeDisplay) {
+    if (m_externalDisplay) {
         WARNING
             ("it may be buggy that va context has been setup with self X display");
-#ifndef ANDROID
-        XCloseDisplay(m_display);
-        // usually it is unnecessary to reset va context on X except driver is buggy.
-        // it is always required to reset va context for wayland if we support that.
-#endif
     }
 
-    m_display = xDisplay;
-    m_ownNativeDisplay = false;
+    m_externalDisplay = xDisplay;
 }
 
 void VaapiDecoderBase::enableNativeBuffers(void)

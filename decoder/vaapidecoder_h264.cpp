@@ -31,6 +31,8 @@
 #include "codecparsers/bytereader.h"
 
 #include "vaapi/vaapiptrs.h"
+#include "vaapi/vaapicontext.h"
+#include "vaapi/vaapidisplay.h"
 
 typedef VaapiDecoderH264::PicturePtr PicturePtr;
 typedef VaapiDecPictureH264::SliceHeaderPtr SliceHeaderPtr;
@@ -1167,7 +1169,7 @@ Decode_Status
         SurfacePtr s = createSurface();
         if (!s)
             return DECODE_FAIL;
-        picture.reset(new VaapiDecPictureH264(m_VADisplay, m_VAContext, s, 0));
+        picture.reset(new VaapiDecPictureH264(m_display->getID(), m_context->getID(), s, 0));
         /* test code */
 
         VAAPI_PICTURE_FLAG_SET(picture, VAAPI_PICTURE_FLAG_FF);

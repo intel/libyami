@@ -78,10 +78,9 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status outputPicture(PicturePtr& picture, int poc = 0);
     SurfacePtr createSurface();
 
-    Display *m_display;
-    VADisplay m_VADisplay;
-    VAContextID m_VAContext;
-    VAConfigID m_VAConfig;
+    Display*   m_externalDisplay;
+    DisplayPtr m_display;
+    ContextPtr m_context;
     bool m_VAStarted;
 
     VideoConfigBuffer m_configBuffer;
@@ -112,7 +111,6 @@ class VaapiDecoderBase:public IVideoDecoder {
     bool m_lowDelay;
     bool m_rawOutput;
     bool m_enableNativeBuffersFlag;
-    bool m_ownNativeDisplay;
 };
 
 #endif                          // vaapidecoder_base_h
