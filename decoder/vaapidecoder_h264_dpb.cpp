@@ -1126,7 +1126,7 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
                 refPicMarking->long_term_frame_idx;
             setH264PictureReference(refPicture,
                                     VAAPI_PICTURE_FLAG_LONG_TERM_REFERENCE,
-                                    VAAPI_PICTURE_IS_FRAME(picture));
+                                    VAAPI_PICTURE_IS_COMPLETE(picture));
         }
         break;
     case 4:
@@ -1165,11 +1165,22 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
         break;
     case 6:
         {
+            for (i = 0; i < DPBLayer->longRefCount; i++) {
+                if ((int32_t) DPBLayer->longRef[i]->m_longTermFrameIdx ==
+                    refPicMarking->long_term_frame_idx)
+                    break;
+            }
+
+            if (i != DPBLayer->longRefCount) {
+                setH264PictureReference(DPBLayer->longRef[i], 0, true);
+                ARRAY_REMOVE_INDEX(DPBLayer->longRef, i);
+            }
+
             picture->m_longTermFrameIdx =
                 refPicMarking->long_term_frame_idx;
             setH264PictureReference(picture.get(),
                                     VAAPI_PICTURE_FLAG_LONG_TERM_REFERENCE,
-                                    false);
+                                    VAAPI_PICTURE_IS_COMPLETE(picture));
         }
         break;
     default:
