@@ -567,25 +567,6 @@ bool VaapiDecoderH264::initPicture(const PicturePtr& picture,
         if (!processForGapsInFrameNum(picture, sliceHdr))
             return false;
 
-    /* Initialize slice type */
-    switch (sliceHdr->type % 5) {
-    case H264_P_SLICE:
-        picture->m_type = VAAPI_PICTURE_TYPE_P;
-        break;
-    case H264_B_SLICE:
-        picture->m_type = VAAPI_PICTURE_TYPE_B;
-        break;
-    case H264_I_SLICE:
-        picture->m_type = VAAPI_PICTURE_TYPE_I;
-        break;
-    case H264_SP_SLICE:
-        picture->m_type = VAAPI_PICTURE_TYPE_SP;
-        break;
-    case H264_SI_SLICE:
-        picture->m_type = VAAPI_PICTURE_TYPE_SI;
-        break;
-    }
-
     /* Initialize picture structure */
     if (!sliceHdr->field_pic_flag)
         picture->m_picStructure = VAAPI_PICTURE_STRUCTURE_FRAME;
@@ -616,7 +597,6 @@ bool VaapiDecoderH264::initPicture(const PicturePtr& picture,
 
     initPicturePOC(picture, sliceHdr);
 
-    m_DPBManager->initPictureRefs(picture, sliceHdr, m_frameNum);
     return true;
 }
 
@@ -1224,6 +1204,8 @@ Decode_Status VaapiDecoderH264::decodeSlice(H264NalUnit * nalu)
     VASliceParameterBufferH264 *sliceParam;
     if (!m_currentPicture->newSlice(sliceParam, nalu->data+nalu->offset, nalu->size, sliceHdr))
         return DECODE_MEMORY_FAIL;
+
+    m_DPBManager->initPictureRefs(m_currentPicture, sliceHdr, m_frameNum);
 
     if (!fillSlice(sliceParam, sliceHdr, nalu))
         return DECODE_FAIL;

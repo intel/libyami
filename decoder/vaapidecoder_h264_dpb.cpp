@@ -463,12 +463,12 @@ void VaapiDPBManager::initPictureRefs(const PicturePtr& pic,
     DPBLayer->refPicList0Count = 0;
     DPBLayer->refPicList1Count = 0;
 
-    switch (pic->m_type) {
-    case VAAPI_PICTURE_TYPE_P:
-    case VAAPI_PICTURE_TYPE_SP:
+    switch (sliceHdr->type % 5) {
+    case H264_P_SLICE:
+    case H264_SP_SLICE:
         initPictureRefsPSlice(pic, sliceHdr);
         break;
-    case VAAPI_PICTURE_TYPE_B:
+    case H264_B_SLICE:
         initPictureRefsBSlice(pic, sliceHdr);
         break;
     default:
@@ -477,16 +477,16 @@ void VaapiDPBManager::initPictureRefs(const PicturePtr& pic,
 
     execPictureRefsModification(pic, sliceHdr);
 
-    switch (pic->m_type) {
-    case VAAPI_PICTURE_TYPE_B:
+    switch (sliceHdr->type % 5) {
+    case H264_B_SLICE:
         numRefs = 1 + sliceHdr->num_ref_idx_l1_active_minus1;
         for (i = DPBLayer->refPicList1Count; i < numRefs; i++)
             DPBLayer->refPicList1[i] = NULL;
         //DPBLayer->refPicList1Count = numRefs;
 
         // fall-through
-    case VAAPI_PICTURE_TYPE_P:
-    case VAAPI_PICTURE_TYPE_SP:
+    case H264_P_SLICE:
+    case H264_SP_SLICE:
         numRefs = 1 + sliceHdr->num_ref_idx_l0_active_minus1;
         for (i = DPBLayer->refPicList0Count; i < numRefs; i++)
             DPBLayer->refPicList0[i] = NULL;
