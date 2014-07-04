@@ -126,7 +126,7 @@ class VaapiDecPictureH264 : public VaapiDecPicture
     int32_t m_fieldPoc[2];
     int32_t m_frameNum;
     int32_t m_frameNumWrap;
-    int32_t m_longTermFrameIdx;
+    uint32_t m_longTermFrameIdx;
     int32_t m_picNum;
     int32_t m_longTermPicNum;
     uint32_t m_outputFlag;

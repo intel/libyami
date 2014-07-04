@@ -1067,8 +1067,7 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
                                                  H264RefPicMarking *refPicMarking,
                                                  uint32_t MMCO)
 {
-    uint32_t picNumX, i;
-    int32_t longTermFrameIdx;
+    uint32_t picNumX, longTermFrameIdxPlus1, i;
     VaapiDecPictureH264 *refPicture;
     int32_t foundIdx = 0;
 
@@ -1102,7 +1101,7 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
     case 3:
         {
             for (i = 0; i < DPBLayer->longRefCount; i++) {
-                if ((int32_t) DPBLayer->longRef[i]->m_longTermFrameIdx ==
+                if (DPBLayer->longRef[i]->m_longTermFrameIdx ==
                     refPicMarking->long_term_frame_idx)
                     break;
             }
@@ -1131,12 +1130,12 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
         break;
     case 4:
         {
-            longTermFrameIdx =
-                refPicMarking->max_long_term_frame_idx_plus1 - 1;
+            longTermFrameIdxPlus1 =
+                refPicMarking->max_long_term_frame_idx_plus1;
 
             for (i = 0; i < DPBLayer->longRefCount; i++) {
-                if (DPBLayer->longRef[i]->m_longTermFrameIdx <=
-                    longTermFrameIdx)
+                if (DPBLayer->longRef[i]->m_longTermFrameIdx + 1 <=
+                    longTermFrameIdxPlus1)
                     continue;
                 setH264PictureReference(DPBLayer->longRef[i], 0, false);
                 ARRAY_REMOVE_INDEX(DPBLayer->longRef, i);
@@ -1166,7 +1165,7 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
     case 6:
         {
             for (i = 0; i < DPBLayer->longRefCount; i++) {
-                if ((int32_t) DPBLayer->longRef[i]->m_longTermFrameIdx ==
+                if (DPBLayer->longRef[i]->m_longTermFrameIdx ==
                     refPicMarking->long_term_frame_idx)
                     break;
             }
