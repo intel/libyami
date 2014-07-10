@@ -259,11 +259,9 @@ bool VaapiDecoderVP8::fillPictureParam(const PicturePtr&  picture)
         picParam->loop_filter_deltas_mode[i] =
             m_frameHdr.multi_frame_data->mb_lf_adjust.mb_mode_delta[i];
     }
-    if ((picParam->pic_fields.bits.version == 0)
-        || (picParam->pic_fields.bits.version == 1)) {
-        picParam->pic_fields.bits.loop_filter_disable =
-            m_frameHdr.loop_filter_level == 0;
-    }
+
+    picParam->pic_fields.bits.loop_filter_disable =
+        m_frameHdr.loop_filter_level == 0;
 
     picParam->prob_skip_false = m_frameHdr.prob_skip_false;
     picParam->prob_intra = m_frameHdr.prob_intra;
