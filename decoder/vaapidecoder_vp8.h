@@ -36,6 +36,7 @@
 #define __PSB_VP8_INTERFACE_WORK_AROUND__   0
 #endif
 
+namespace YamiMediaCodec{
 enum {
     VP8_EXTRA_SURFACE_NUMBER = 5,
     VP8_MAX_PICTURE_COUNT = 5,  // gold_ref, alt_ref, last_ref, previous (m_currentPicture, optional), and the newly allocated one
@@ -88,6 +89,6 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     bool m_isFirstFrame;
 #endif
 };
-
+}
 
 #endif

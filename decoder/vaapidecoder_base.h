@@ -41,7 +41,7 @@ typedef unsigned int Display;
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 #define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 #define ALIGN_MB(a) (((a) + 15 ) & (~15))
-
+namespace YamiMediaCodec{
 class VaapiDecoderBase:public IVideoDecoder {
   public:
     typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
@@ -112,5 +112,5 @@ class VaapiDecoderBase:public IVideoDecoder {
     bool m_rawOutput;
     bool m_enableNativeBuffersFlag;
 };
-
+}
 #endif                          // vaapidecoder_base_h

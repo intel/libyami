@@ -37,6 +37,7 @@
 
 #define ANDROID_DISPLAY_HANDLE 0x18C34078
 
+namespace YamiMediaCodec{
 typedef VaapiDecoderBase::PicturePtr PicturePtr;
 
 VaapiDecoderBase::VaapiDecoderBase()
@@ -455,4 +456,5 @@ Decode_Status VaapiDecoderBase::outputPicture(PicturePtr& picture, int poc)
         return DECODE_FAIL;
 
     return DECODE_SUCCESS;
+}
 }

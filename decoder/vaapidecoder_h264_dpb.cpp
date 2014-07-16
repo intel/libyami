@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include "vaapidecoder_h264.h"
 
+namespace YamiMediaCodec{
 typedef VaapiDecPictureH264::PicturePtr PicturePtr;
 typedef VaapiDecPictureH264::PictureWeakPtr PictureWeakPtr;
 typedef VaapiDecPictureH264::SliceHeaderPtr SliceHeaderPtr;
@@ -1300,4 +1301,5 @@ void VaapiDPBManager::removeDPBIndex(uint32_t index)
 
     DPBLayer->DPB[numFrames].reset();
 
+}
 }

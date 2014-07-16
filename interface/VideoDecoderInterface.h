@@ -26,6 +26,7 @@
 #include "VideoDecoderDefs.h"
 #include <X11/Xlib.h>
 
+namespace YamiMediaCodec {
 /**
  * \class IVideoDecoder
  * \brief Abstract video decoding interface of libyami
@@ -113,4 +114,5 @@ public:
     /// not interest for now, may be used by Android
     virtual void releaseLock(void) = 0;
 };
+}
 #endif                          /* VIDEO_DECODER_INTERFACE_H_ */

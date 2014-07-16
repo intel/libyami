@@ -26,6 +26,7 @@
 
 #include "log.h"
 
+namespace YamiMediaCodec{
 VaapiEncPicture::VaapiEncPicture(const ContextPtr& context,
                                  const SurfacePtr & surface,
                                  int64_t timeStamp)
@@ -66,4 +67,5 @@ addPackedHeader(VAEncPackedHeaderType packedHeaderType, const void *header,
         packedHeader->has_emulation_bytes = 0;
     }
     return ret;
+}
 }

@@ -30,8 +30,9 @@
 /** \fn IVideoDecoder *createVideoDecoder(const char *mimeType)
 * \brief create a decoder basing on given mimetype
 */
+namespace YamiMediaCodec{
 IVideoDecoder *createVideoDecoder(const char *mimeType);
 /// \brief destroy the decoder
 void releaseVideoDecoder(IVideoDecoder * p);
-
+}
 #endif                          /* VIDEO_DECODER_HOST_H_ */

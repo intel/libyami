@@ -35,6 +35,7 @@
 #include "vaapidecoder_jpeg.h"
 #include "codecparsers/bytereader.h"
 
+namespace YamiMediaCodec{
 static VAProfile convertToVaProfile(VaapiProfile profile)
 {
     if (profile == VAAPI_PROFILE_JPEG_BASELINE)
@@ -567,4 +568,5 @@ void VaapiDecoderJpeg::flush(void)
 {
     DEBUG("Jpeg: flush()");
     VaapiDecoderBase::flush();
+}
 }

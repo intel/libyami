@@ -28,6 +28,7 @@
 #include "vaapidecoder_base.h"
 #include "codecparsers/jpegparser.h"
 
+namespace YamiMediaCodec{
 class VaapiDecoderJpeg:public VaapiDecoderBase {
   public:
     typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
@@ -77,5 +78,5 @@ typedef struct _JpegScanSegment {
     uint32_t m_dataSize;
     uint32_t m_isValid;
 } JpegScanSegment;
-
+}
 #endif                          /* VAAPI_DECODER_Jpeg_H */

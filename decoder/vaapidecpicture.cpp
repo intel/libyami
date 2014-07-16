@@ -27,6 +27,7 @@
 
 #include "log.h"
 
+namespace YamiMediaCodec{
 VaapiDecPicture::VaapiDecPicture(const ContextPtr& context,
                                  const SurfacePtr& surface, int64_t timeStamp)
     :VaapiPicture(context, surface, timeStamp)
@@ -48,4 +49,4 @@ bool VaapiDecPicture::doRender()
     RENDER_OBJECT(m_slices);
     return true;
 }
-
+}

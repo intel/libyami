@@ -25,6 +25,7 @@
 #include <va/va.h>
 #include <stdint.h>
 
+namespace YamiMediaCodec {
 enum {
     SURFACE_FREE = 0x00000000,
     SURFACE_DECODING = 0x00000001,
@@ -231,5 +232,5 @@ inline bool checkFatalDecoderError(Decode_Status status)
         return false;
     }
 }
-
+}
 #endif                          // VIDEO_DECODER_DEFS_H_

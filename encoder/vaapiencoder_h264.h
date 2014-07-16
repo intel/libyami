@@ -30,6 +30,7 @@
 #include <tr1/memory>
 #include <va/va_enc_h264.h>
 
+namespace YamiMediaCodec{
 class VaapiEncPictureH264;
 class VaapiEncoderH264Ref;
 
@@ -125,5 +126,5 @@ private:
     std::vector<uint8_t> m_sps;
     std::vector<uint8_t> m_pps;
 };
-
+}
 #endif /* vaapiencoder_h264_h */

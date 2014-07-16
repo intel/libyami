@@ -29,10 +29,10 @@
 /** \fn IVideoEncoder *createVideoEncoder(const char *mimeType)
  * \brief create encoder basing on given mimetype
 */
-IVideoEncoder *createVideoEncoder(const char *mimeType);
+YamiMediaCodec::IVideoEncoder *createVideoEncoder(const char *mimeType);
 /** \fn void releaseVideoEncoder(IVideoEncoder *p)
  * \brief destroy encoder
 */
-void releaseVideoEncoder(IVideoEncoder * p);
+void releaseVideoEncoder(YamiMediaCodec::IVideoEncoder * p);
 
 #endif                          /* VIDEO_ENCODER_HOST_H_ */

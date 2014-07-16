@@ -34,6 +34,7 @@
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 
+namespace YamiMediaCodec{
 typedef VaapiDecoderH264::PicturePtr PicturePtr;
 typedef VaapiDecPictureH264::SliceHeaderPtr SliceHeaderPtr;
 
@@ -1605,4 +1606,4 @@ processForGapsInFrameNum(const PicturePtr& pic,
 
     return true;
 }
-
+}

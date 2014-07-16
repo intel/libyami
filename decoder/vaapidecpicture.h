@@ -24,6 +24,7 @@
 
 #include "vaapi/vaapipicture.h"
 
+namespace YamiMediaCodec{
 class VaapiDecPicture : public VaapiPicture
 {
 public:
@@ -106,5 +107,5 @@ bool VaapiDecPicture::newSlice(T*& sliceParam, const void* sliceData, uint32_t s
     }
     return ret;
 }
-
+}
 #endif //#ifndef vaapidecpicture_h

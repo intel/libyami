@@ -34,6 +34,7 @@
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapiutils.h"
 
+namespace YamiMediaCodec{
 VaapiEncoderBase::VaapiEncoderBase():
     m_entrypoint(VAEntrypointEncSlice),
     m_externalDisplay(NULL)
@@ -314,4 +315,5 @@ bool VaapiEncoderBase::initVA()
         return false;
     }
     return true;
+}
 }

@@ -33,7 +33,7 @@
 #define BOTTOM_FIELD 1
 
 //#define MAX_VIEW_NUM 2
-
+namespace YamiMediaCodec{
 /* extended picture flags for h264 */
 enum {
     VAAPI_PICTURE_FLAG_IDR = (VAAPI_PICTURE_FLAG_LAST << 0),
@@ -376,6 +376,6 @@ enum {
     DPB_SIE = 17,
     REF_LIST_SIZE = 32,
 };
-
+}
 
 #endif

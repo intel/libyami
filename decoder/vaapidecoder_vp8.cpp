@@ -30,6 +30,7 @@
 #include "vaapidecoder_vp8.h"
 #include "codecparsers/bytereader.h"
 
+namespace YamiMediaCodec{
 typedef VaapiDecoderVP8::PicturePtr PicturePtr;
 
 // the following parameter apply to Intra-Predicted Macroblocks,
@@ -673,4 +674,5 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
     }
 
     return status;
+}
 }

@@ -37,6 +37,7 @@
 #include "vaapi/vaapi_host.h"
 #include <string.h>
 
+namespace YamiMediaCodec{
 DEFINE_CLASS_FACTORY(Decoder)
 static const DecoderEntry g_decoderEntries[] = {
 #if __BUILD_H264_DECODER__
@@ -75,4 +76,4 @@ void releaseVideoDecoder(IVideoDecoder * p)
 {
     delete p;
 }
-
+}

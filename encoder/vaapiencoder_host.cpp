@@ -33,6 +33,7 @@
 #include "vaapi/vaapi_host.h"
 #include <string.h>
 
+namespace YamiMediaCodec{
 DEFINE_CLASS_FACTORY(Encoder)
 static const EncoderEntry g_encoderEntries[] = {
 #if __BUILD_H264_ENCODER__
@@ -58,4 +59,5 @@ IVideoEncoder* createVideoEncoder(const char* mimeType) {
 
 void releaseVideoEncoder(IVideoEncoder* p) {
     delete p;
+}
 }

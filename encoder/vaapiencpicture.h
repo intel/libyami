@@ -25,6 +25,7 @@
 
 #include "vaapi/vaapipicture.h"
 
+namespace YamiMediaCodec{
 class VaapiEncPicture:public VaapiPicture {
   public:
     VaapiEncPicture(const ContextPtr& context,
@@ -105,5 +106,5 @@ template < class T >
     BufObjectPtr misc = createMiscObject(miscType, miscParam);
     return addObject(m_miscParams, misc);
 }
-
+}
 #endif                          //vaapiencpicture_h

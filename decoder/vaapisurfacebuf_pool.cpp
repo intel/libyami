@@ -34,6 +34,7 @@
 #include <string.h>
 #include "vaapi/vaapiutils.h"
 
+namespace YamiMediaCodec{
 VaapiSurfaceBufferPool::VaapiSurfaceBufferPool(VADisplay display,
                                                VideoConfigBuffer * config)
 :  m_display(display)
@@ -598,4 +599,5 @@ void VaapiSurfaceBufferPool::debugSurfaceStatus()
                m_bufArray[i]->status & SURFACE_TO_RENDER ? 1 : 0,
                m_bufArray[i]->status & SURFACE_RENDERING ? 1 : 0);
     }
+}
 }

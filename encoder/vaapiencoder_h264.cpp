@@ -32,7 +32,7 @@
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
 #include <algorithm>
-
+namespace YamiMediaCodec{
 //shortcuts
 typedef VaapiEncoderH264::PicturePtr PicturePtr;
 typedef VaapiEncoderH264::ReferencePtr ReferencePtr;
@@ -1188,4 +1188,5 @@ Encode_Status VaapiEncoderH264::encode(const PicturePtr& picture,const CodedBuff
     picture->sync();
 
     return ENCODE_SUCCESS;
+}
 }

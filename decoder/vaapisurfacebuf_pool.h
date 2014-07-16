@@ -57,6 +57,7 @@
  * 3. the output surface buffer will be managed by a queue (not done yet). (now, it depends on timestamp/poc for output order)
  *</pre>
 */
+namespace YamiMediaCodec{
 class VaapiSurfaceBufferPool {
   private:
     DISALLOW_COPY_AND_ASSIGN(VaapiSurfaceBufferPool);
@@ -116,5 +117,5 @@ class VaapiSurfaceBufferPool {
     pthread_mutex_t m_lock;
     pthread_cond_t m_cond;
 };
-
+}
 #endif

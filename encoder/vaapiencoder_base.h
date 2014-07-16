@@ -32,7 +32,7 @@
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapisurface.h"
 
-
+namespace YamiMediaCodec{
 enum VaapiEncReorderState
 {
     VAAPI_ENC_REORD_NONE = 0,
@@ -133,5 +133,5 @@ private:
     void cleanupVA();
     Display* m_externalDisplay;
 };
-
+}
 #endif /* vaapiencoder_base_h */

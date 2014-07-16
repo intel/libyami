@@ -25,6 +25,7 @@
 #include "VideoEncoderDef.h"
 #include <X11/Xlib.h>
 
+namespace YamiMediaCodec{
 /**
  * \class IVideoEncoder
  * \brief Abstract video encoding interface of libyami
@@ -66,5 +67,5 @@ class IVideoEncoder {
     virtual Encode_Status setConfig(VideoParamConfigSet * videoEncConfig) = 0;
 
 };
-
+}
 #endif                          /* VIDEO_ENCODER_INTERFACE_H_ */
