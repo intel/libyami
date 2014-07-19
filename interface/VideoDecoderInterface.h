@@ -103,10 +103,6 @@ public:
     virtual void  setXDisplay(Display * x_display) = 0;
     /// obsolete, make all cached video frame output-able, it can be done by getOutput(draining=true) as well
     virtual void flushOutport(void) = 0;
-    /// obsolete, usually client needn't check the available of output frame but blindly calls getOutput.
-    virtual bool checkBufferAvail() = 0;
-    /// not interest for now, may be used by Android
-    virtual Decode_Status signalRenderDone(void * graphichandler) = 0;
     /// not interest for now, may be used by Android to accept external video frame memory from gralloc
     virtual void  enableNativeBuffers(void) = 0;
     /// not interest for now, may be used by Android to accept external video frame memory from gralloc

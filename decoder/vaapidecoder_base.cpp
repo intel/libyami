@@ -213,47 +213,10 @@ Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int64_t *timeStamp
     return RENDER_SUCCESS;
 }
 
-Decode_Status VaapiDecoderBase::signalRenderDone(void *graphicHandler)
-{
-    INFO("base: signalRenderDone()");
-    VideoSurfaceBuffer *buf = NULL;
-    if (graphicHandler == NULL) {
-        return DECODE_SUCCESS;
-    }
-
-    if (!m_bufPool) {
-        ERROR("buffer pool is not initialized yet");
-        return DECODE_FAIL;
-    }
-
-    if (!(buf = m_bufPool->getBufferByHandler(graphicHandler))) {
-        return DECODE_SUCCESS;
-    }
-
-    if (!m_bufPool->recycleBuffer(buf, true))
-        return DECODE_FAIL;
-
-    return DECODE_FAIL;
-}
-
 const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
 {
     INFO("base: getFormatInfo()");
     return &m_videoFormatInfo;
-}
-
-bool VaapiDecoderBase::checkBufferAvail(void)
-{
-    INFO("base: checkBufferAvail()");
-    if (!m_bufPool) {
-        ERROR("buffer pool is not initialized yet");
-        return DECODE_FAIL;
-    }
-
-    if (m_bufPool->searchAvailableBuffer())
-        return true;
-
-    return false;
 }
 
 void VaapiDecoderBase::renderDone(VideoRenderBuffer * renderBuf)
