@@ -220,6 +220,7 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoEncRawBuffer* inBuffer)
         src += raw->width;
     }
 
+    inBuffer->bufAvailable = true;
     return surface;
 }
 
