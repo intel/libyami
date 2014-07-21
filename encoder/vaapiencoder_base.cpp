@@ -34,10 +34,12 @@
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapiutils.h"
 
+const uint32_t MaxOutputBuffer=5;
 namespace YamiMediaCodec{
 VaapiEncoderBase::VaapiEncoderBase():
     m_entrypoint(VAEntrypointEncSlice),
-    m_externalDisplay(NULL)
+    m_externalDisplay(NULL),
+    m_maxOutputBuffer(MaxOutputBuffer)
 {
     FUNC_ENTER();
     m_videoParamCommon.rawFormat = RAW_FORMAT_NV12;
@@ -53,6 +55,8 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.cyclicFrameInterval = 30;
     m_videoParamCommon.refreshType = VIDEO_ENC_NONIR;
     m_videoParamCommon.airParams.airAuto = 1;
+
+    updateMaxOutputBufferCount();
 }
 
 VaapiEncoderBase::~VaapiEncoderBase()
@@ -86,6 +90,10 @@ Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
 {
     FUNC_ENTER();
     Encode_Status ret;
+
+    if (isBusy())
+        return ENCODE_IS_BUSY;
+
     SurfacePtr surface = createSurface(inBuffer);
     if (!surface)
         ret = ENCODE_NO_MEMORY;
@@ -137,6 +145,7 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigSet *videoEncParam
             m_videoParamCommon = *common;
         } else
             ret = ENCODE_INVALID_PARAMS;
+        updateMaxOutputBufferCount();
         break;
     }
     case VideoConfigTypeFrameRate: {

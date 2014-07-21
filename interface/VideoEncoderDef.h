@@ -49,6 +49,7 @@ enum {
     ENCODE_SLICESIZE_OVERFLOW = 2,
     ENCODE_BUFFER_TOO_SMALL = 3, // The buffer passed to encode is too small to contain encoded data
     ENCODE_BUFFER_NO_MORE = 4,   //No more output buffers.
+    ENCODE_IS_BUSY = 5, // driver is busy, there are too many buffers under encoding in parallel.
 };
 
 enum VideoOutputFormat {
@@ -370,6 +371,7 @@ struct VideoParamsCommon:VideoParamConfigSet {
     AirParams airParams;
     uint32_t disableDeblocking;
     bool syncEncMode;
+    int32_t leastInputCount;
 
     VideoParamsCommon()
     :VideoParamConfigSet(VideoParamsTypeCommon, sizeof(VideoParamsCommon))
@@ -384,7 +386,8 @@ struct VideoParamsCommon:VideoParamConfigSet {
     , cyclicFrameInterval(0)
     , airParams()
     , disableDeblocking(0)
-    , syncEncMode(true) {
+    , syncEncMode(true)
+    , leastInputCount(3) {
     };
 
     VideoParamsCommon & operator=(const VideoParamsCommon & other) {

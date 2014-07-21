@@ -123,16 +123,23 @@ protected:
     uint32_t& minQP() {
         return m_videoParamCommon.rcParams.minQP;
     }
+    virtual bool isBusy() = 0 ;
 
     DisplayPtr m_display;
     ContextPtr m_context;
     VAEntrypoint m_entrypoint;
     VideoParamsCommon m_videoParamCommon;
+    uint32_t m_maxOutputBuffer; // max count of frames are encoding in parallel, it hurts performance when m_maxOutputBuffer is too big.
 
 private:
     bool initVA();
     void cleanupVA();
     Display* m_externalDisplay;
+
+    bool updateMaxOutputBufferCount() {
+        if (m_maxOutputBuffer < m_videoParamCommon.leastInputCount + 3)
+            m_maxOutputBuffer = m_videoParamCommon.leastInputCount + 3;
+    }
 };
 }
 #endif /* vaapiencoder_base_h */

@@ -56,6 +56,7 @@ public:
 
 protected:
     virtual Encode_Status reorder(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
+    virtual bool isBusy() { return m_outputQueue.size() >= m_maxOutputBuffer; } ;
 
 private:
     //following code is a template for other encoder implementation
