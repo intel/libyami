@@ -63,6 +63,7 @@ enum VideoOutputFormat {
 };
 
 enum VideoRawFormat {
+    // TODO, USE VA Fourcc here
     RAW_FORMAT_NONE = 0,
     RAW_FORMAT_YUV420 = 1,
     RAW_FORMAT_YUV422 = 2,
@@ -73,11 +74,11 @@ enum VideoRawFormat {
 };
 
 enum VideoRateControl {
-    RATE_CONTROL_NONE = 1,
-    RATE_CONTROL_CBR = 2,
-    RATE_CONTROL_VBR = 4,
-    RATE_CONTROL_VCM = 8,
-    RATE_CONTROL_CQP = 16,
+    RATE_CONTROL_NONE = VA_RC_NONE,
+    RATE_CONTROL_CBR = VA_RC_CBR,
+    RATE_CONTROL_VBR = VA_RC_VBR,
+    RATE_CONTROL_VCM = VA_RC_VCM,
+    RATE_CONTROL_CQP = VA_RC_CQP,
     RATE_CONTROL_LAST
 };
 
@@ -219,7 +220,7 @@ struct VideoRateControlParams {
     uint32_t bitRate;
     uint32_t initQP;
     uint32_t minQP;
-    uint32_t windowSize;
+    uint32_t windowSize; // use for HRD CPB length in ms
     uint32_t targetPercentage;
     uint32_t disableFrameSkip;
     uint32_t disableBitsStuffing;

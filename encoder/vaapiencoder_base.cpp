@@ -254,8 +254,10 @@ Encode_Status VaapiEncoderBase::copyCodedBuffer(VideoEncOutputBuffer *outBuffer,
 
 void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
 {
-    hrd->buffer_size = m_videoParamCommon.rcParams.bitRate;
-    hrd->initial_buffer_fullness = m_videoParamCommon.rcParams.bitRate/2;
+    hrd->buffer_size = m_videoParamCommon.rcParams.bitRate * m_videoParamCommon.rcParams.windowSize/1000;
+    hrd->initial_buffer_fullness = hrd->buffer_size/2;
+    DEBUG("bitRate: %d, hrd->buffer_size: %d, hrd->initial_buffer_fullness: %d\n",
+        m_videoParamCommon.rcParams.bitRate, hrd->buffer_size,hrd->initial_buffer_fullness);
 }
 
 void VaapiEncoderBase::fill(VAEncMiscParameterRateControl* rateControl) const

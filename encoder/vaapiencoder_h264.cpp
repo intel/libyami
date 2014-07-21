@@ -659,6 +659,8 @@ Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigSet *videoEncParam
         *avc = m_videoParamAVC;
         return ENCODE_SUCCESS;
     }
+
+    // TODO, update video resolution basing on hw requirement
     return VaapiEncoderBase::getParameters(videoEncParams);
 }
 
@@ -886,7 +888,7 @@ referenceListUpdate (const PicturePtr& picture, const SurfacePtr& surface)
         m_refList.pop_front();
     }
     ReferencePtr ref(new VaapiEncoderH264Ref(picture, surface));
-    m_refList.push_back(ref);
+    m_refList.push_front(ref); // recent first
     assert (m_refList.size() <= m_maxRefFrames);
     return true;
 }
@@ -919,6 +921,7 @@ bool VaapiEncoderH264::fill(VAEncSequenceParameterBufferH264* seqParam) const
     seqParam->seq_parameter_set_id = 0;
     seqParam->level_idc = m_levelIdc;
     seqParam->intra_period = intraPeriod();
+    seqParam->intra_idr_period = seqParam->intra_period;
     seqParam->ip_period = 1 + m_numBFrames;
     seqParam->bits_per_second = bitRate();
 
@@ -970,7 +973,7 @@ bool VaapiEncoderH264::fill(VAEncSequenceParameterBufferH264* seqParam) const
         seqParam->vui_fields.bits.timing_info_present_flag = TRUE;
         if (seqParam->vui_fields.bits.timing_info_present_flag) {
             seqParam->num_units_in_tick = frameRateDenom();
-            seqParam->time_scale = frameRateDenom() * 2;
+            seqParam->time_scale = frameRateNum() * 2;
         }
     }
     return true;
