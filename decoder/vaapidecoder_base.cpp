@@ -28,6 +28,7 @@
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include <string.h>
+#include <stdlib.h> // for setenv
 #include <va/va_backend.h>
 #include "vaapi/vaapiutils.h"
 
@@ -177,8 +178,9 @@ const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
     return &(surfBuf->renderBuffer);
 }
 
-Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int drawX, int drawY, int drawWidth, int drawHeight,
-    bool draining, int frameX, int frameY, int frameWidth, int frameHeight)
+Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int32_t *timeStamp
+    , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
+    , int frameX, int frameY, int frameWidth, int frameHeight)
 {
     VAStatus vaStatus = VA_STATUS_SUCCESS;
     const VideoRenderBuffer *renderBuffer = getOutput(draining);
@@ -204,6 +206,8 @@ Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int drawX, int drawY, i
 
     if (vaStatus != VA_STATUS_SUCCESS)
         return RENDER_FAIL;
+
+    *timeStamp = renderBuffer->timeStamp;
 
     return RENDER_SUCCESS;
 }

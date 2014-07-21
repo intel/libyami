@@ -62,6 +62,7 @@ public:
     /**
      * \brief  render one available video frame to draw
      * @param[in] draw a X11 drawable, Pixmap or Window ID
+     * @param[in/out] timeStamp, time stamp of current rendering frame (it is passed from client before)
      * @param[in] drawX/drawY/drawWidth/drawHeight specify a rect to render on the draw
      * @param[in] drawX horizontal offset to render on the draw
      * @param[in] drawY vertical offset to render on the draw
@@ -80,8 +81,9 @@ public:
      * @return RENDER_FAIL when driver fail to do vaPutSurface
      * @return RENDER_INVALID_PARAMETER
      */
-    virtual Decode_Status getOutput(Drawable draw, int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false,
-        int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1) = 0;
+    virtual Decode_Status getOutput(Drawable draw, int32_t *timeStamp
+        , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
+        , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1) = 0;
 
     /** \brief retrieve updated stream information after decoder has parsed the video stream.
     * client usually calls it when libyami return DECODE_FORMAT_CHANGE in decode().
