@@ -132,7 +132,7 @@ Decode_Status
 }
 
 Decode_Status
-    VaapiDecoderJpeg::parseScanHeader(JpegScanHdr * scanHdr, int8_t * buf,
+    VaapiDecoderJpeg::parseScanHeader(JpegScanHdr * scanHdr, uint8_t * buf,
                                       uint32_t bufSize)
 {
     if (!jpeg_parse_scan_hdr(scanHdr, buf, bufSize, 0)) {

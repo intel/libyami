@@ -181,7 +181,7 @@ Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int drawX, int drawY, i
     bool draining, int frameX, int frameY, int frameWidth, int frameHeight)
 {
     VAStatus vaStatus = VA_STATUS_SUCCESS;
-    VideoRenderBuffer *renderBuffer = getOutput(draining);
+    const VideoRenderBuffer *renderBuffer = getOutput(draining);
 
     if (!renderBuffer)
         return RENDER_NO_AVAILABLE_FRAME;

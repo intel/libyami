@@ -45,7 +45,7 @@ class VaapiDecoderJpeg:public VaapiDecoderBase {
     Decode_Status parseHuffmanTable(uint8_t * buf, uint32_t bufSize);
     Decode_Status parseQuantTable(uint8_t * buf, uint32_t bufSize);
     Decode_Status parseRestartInterval(uint8_t * buf, uint32_t bufSize);
-    Decode_Status parseScanHeader(JpegScanHdr * scanHdr, int8_t * buf,
+    Decode_Status parseScanHeader(JpegScanHdr * scanHdr, uint8_t * buf,
                                   uint32_t bufSize);
     Decode_Status fillSliceParam(JpegScanHdr * scanHdr, uint8_t * scanData,
                                  uint32_t scanDataSize);

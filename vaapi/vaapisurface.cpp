@@ -138,7 +138,7 @@ m_height(height)
         break;
     }
 
-    m_externalBufHandle = NULL;
+    m_externalBufHandle = 0;
     if (surfAttribs && surfAttribNum) {
         status = vaCreateSurfaces(m_display, format, width, height,
                                   &m_ID, 1, surfAttribs, surfAttribNum);
