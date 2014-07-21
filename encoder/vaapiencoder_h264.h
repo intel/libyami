@@ -50,6 +50,7 @@ public:
 
     virtual Encode_Status getParameters(VideoParamConfigSet *);
     virtual Encode_Status setParameters(VideoParamConfigSet *);
+    virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
 
 protected:
     virtual Encode_Status reorder(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
@@ -122,6 +123,7 @@ private:
     uint32_t m_maxPicOrderCnt;
     uint32_t m_log2MaxPicOrderCnt;
     uint32_t m_idrNum;
+    uint32_t m_maxCodedbufSize;
 
     std::vector<uint8_t> m_sps;
     std::vector<uint8_t> m_pps;

@@ -508,7 +508,8 @@ public:
 VaapiEncoderH264::VaapiEncoderH264():
     m_useCabac(false),
     m_useDct8x8(false),
-    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES)
+    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
+    m_maxCodedbufSize(0)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;
@@ -566,7 +567,44 @@ void VaapiEncoderH264::resetParams ()
     m_maxRefFrames =
         m_maxRefList0Count + m_maxRefList1Count;
 
+    INFO("m_maxRefFrames: %d\n", m_maxRefFrames);
+
+    /* Maximum sizes for common headers (in bits) */
+    enum
+    {
+      MAX_SPS_HDR_SIZE = 16473,
+      MAX_VUI_PARAMS_SIZE = 210,
+      MAX_HRD_PARAMS_SIZE = 4103,
+      MAX_PPS_HDR_SIZE = 101,
+      MAX_SLICE_HDR_SIZE = 397 + 2572 + 6670 + 2402,
+    };
+
+    /* Only YUV 4:2:0 formats are supported for now. This means that we
+       have a limit of 3200 bits per macroblock. */
+    /* XXX: check profile and compute RawMbBits */
+    m_maxCodedbufSize = m_mbWidth * m_mbHeight * 400;
+
+    /* Account for SPS header */
+    /* XXX: exclude scaling lists, MVC/SVC extensions */
+    m_maxCodedbufSize += 4 + (MAX_SPS_HDR_SIZE +
+        MAX_VUI_PARAMS_SIZE + 2 * MAX_HRD_PARAMS_SIZE + 7)/8;
+
+    /* Account for PPS header */
+    /* XXX: exclude slice groups, scaling lists, MVC/SVC extensions */
+    m_maxCodedbufSize += 4 + (MAX_PPS_HDR_SIZE + 7) / 8;
+
+    /* Account for slice header */
+    m_maxCodedbufSize += m_numSlices * (4 +
+        (MAX_SLICE_HDR_SIZE + 7) / 8);
+
     resetGopStart();
+}
+
+Encode_Status VaapiEncoderH264::getMaxOutSize(uint32_t *maxSize)
+{
+    FUNC_ENTER();
+    *maxSize = m_maxCodedbufSize;
+    return ENCODE_SUCCESS;
 }
 
 Encode_Status VaapiEncoderH264::start()

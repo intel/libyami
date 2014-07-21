@@ -169,6 +169,7 @@ Encode_Status VaapiEncoderBase::getConfig(VideoParamConfigSet *videoEncConfig)
 Encode_Status VaapiEncoderBase::getMaxOutSize(uint32_t *maxSize)
 {
     FUNC_ENTER();
+    *maxSize = 0;
     return ENCODE_SUCCESS;
 }
 
