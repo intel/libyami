@@ -121,7 +121,7 @@ Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigSet *videoEncParam
 Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigSet *videoEncParams)
 {
     FUNC_ENTER();
-    Encode_Status ret = ENCODE_INVALID_PARAMS;
+    Encode_Status ret = ENCODE_SUCCESS;
     if (!videoEncParams)
         return ret;
 
@@ -131,14 +131,25 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigSet *videoEncParam
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             m_videoParamCommon = *common;
-            ret = ENCODE_SUCCESS;
+        } else
+            ret = ENCODE_INVALID_PARAMS;
+        break;
+    }
+    case VideoConfigTypeFrameRate: {
+        VideoConfigFrameRate* frameRateConfig = (VideoConfigFrameRate*)videoEncParams;
+        m_videoParamCommon.frameRate = frameRateConfig->frameRate;
         }
         break;
-    }
+    case VideoConfigTypeBitRate: {
+        VideoConfigBitRate* rcParamsConfig = (VideoConfigBitRate*)videoEncParams;
+        m_videoParamCommon.rcParams = rcParamsConfig->rcParams;
+        }
+        break;
     default:
-        ret = ENCODE_SUCCESS;
+        ret = ENCODE_INVALID_PARAMS;
         break;
     }
+    INFO("bitrate: %d\n", bitRate());
     return ret;
 }
 
