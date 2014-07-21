@@ -23,6 +23,8 @@
 #define VIDEO_ENCODER_HOST_H_
 
 #include "VideoEncoderInterface.h"
+extern "C" { // for dlsym usage
+
 /** \file VideoEncoderHost.h
 */
 
@@ -35,4 +37,5 @@ YamiMediaCodec::IVideoEncoder *createVideoEncoder(const char *mimeType);
 */
 void releaseVideoEncoder(YamiMediaCodec::IVideoEncoder * p);
 
+}
 #endif                          /* VIDEO_ENCODER_HOST_H_ */

@@ -37,7 +37,7 @@
 #include "vaapi/vaapi_host.h"
 #include <string.h>
 
-namespace YamiMediaCodec{
+using namespace YamiMediaCodec;
 DEFINE_CLASS_FACTORY(Decoder)
 static const DecoderEntry g_decoderEntries[] = {
 #if __BUILD_H264_DECODER__
@@ -55,7 +55,7 @@ static const DecoderEntry g_decoderEntries[] = {
 #ifndef N_ELEMENTS
 #define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
 #endif
-
+extern "C" {
 IVideoDecoder *createVideoDecoder(const char *mimeType)
 {
     if (!mimeType) {
@@ -76,4 +76,4 @@ void releaseVideoDecoder(IVideoDecoder * p)
 {
     delete p;
 }
-}
+} // extern "C"

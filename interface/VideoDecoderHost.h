@@ -24,15 +24,16 @@
 #define VIDEO_DECODER_HOST_H_
 
 #include "VideoDecoderInterface.h"
+
+extern "C" { // for dlsym usage
 /** \file VideoDecoderHost.h
 */
 
 /** \fn IVideoDecoder *createVideoDecoder(const char *mimeType)
 * \brief create a decoder basing on given mimetype
 */
-namespace YamiMediaCodec{
-IVideoDecoder *createVideoDecoder(const char *mimeType);
+YamiMediaCodec::IVideoDecoder *createVideoDecoder(const char *mimeType);
 /// \brief destroy the decoder
-void releaseVideoDecoder(IVideoDecoder * p);
+void releaseVideoDecoder(YamiMediaCodec::IVideoDecoder * p);
 }
 #endif                          /* VIDEO_DECODER_HOST_H_ */
