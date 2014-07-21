@@ -38,12 +38,16 @@ public:
         return m_buf->getID();
     }
     bool copyInto(void* data);
+    bool setFlag(uint32_t flag) { m_flags |= flag; }
+    bool clearFlag(uint32_t flag) { m_flags &= !flag; }
+    uint32_t getFlags() { return m_flags; }
 
 private:
-    VaapiCodedBuffer(const BufObjectPtr& buf):m_buf(buf), m_segments(NULL) {}
+    VaapiCodedBuffer(const BufObjectPtr& buf):m_buf(buf), m_segments(NULL), m_flags(0) {}
     bool map();
     BufObjectPtr m_buf;
     VACodedBufferSegment* m_segments;
+    uint32_t m_flags;
 };
 
 #endif //vaapicodedbuffer_h

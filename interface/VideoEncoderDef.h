@@ -133,7 +133,7 @@ struct VideoEncOutputBuffer {
     uint32_t bufferSize;        //buffer size
     uint32_t dataSize;          //actuall size
     uint32_t remainingSize;
-    int flag;                   //Key frame, Codec Data etc
+    uint32_t flag;                   //Key frame, Codec Data etc
     VideoOutputFormat format;   //output format
     uint64_t timeStamp;         //reserved
 

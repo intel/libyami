@@ -759,6 +759,11 @@ Encode_Status VaapiEncoderH264::getOutput(VideoEncOutputBuffer *outBuffer)
         if (m_reorderFrameList.empty())
             m_reorderState = VAAPI_ENC_REORD_WAIT_FRAMES;
         ret =  encode(picture, codedBuffer);
+        codedBuffer->setFlag(ENCODE_BUFFERFLAG_ENDOFFRAME);
+        INFO("picture->m_type: 0x%x\n", picture->m_type);
+        if (picture->m_type == VAAPI_PICTURE_TYPE_I) {
+            codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
+        }
         m_codedBuffers.push_back(codedBuffer);
         if (ret != ENCODE_SUCCESS) {
             return ret;

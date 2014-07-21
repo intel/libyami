@@ -233,7 +233,7 @@ Encode_Status VaapiEncoderBase::copyCodedBuffer(VideoEncOutputBuffer *outBuffer,
     }
     if (size > 0) {
         codedBuffer->copyInto(outBuffer->data);
-        outBuffer->flag = ENCODE_BUFFERFLAG_ENDOFFRAME | ENCODE_BUFFERFLAG_SYNCFRAME;
+        outBuffer->flag = codedBuffer->getFlags();
     }
     outBuffer->dataSize = size;
     return ENCODE_SUCCESS;
