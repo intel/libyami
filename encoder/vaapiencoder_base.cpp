@@ -90,7 +90,7 @@ Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
     if (!surface)
         ret = ENCODE_NO_MEMORY;
     else
-        ret = reorder(surface, inBuffer->timeStamp);
+        ret = reorder(surface, inBuffer->timeStamp, inBuffer->forceKeyFrame);
     return ret;
 }
 

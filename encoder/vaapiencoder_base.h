@@ -77,7 +77,7 @@ protected:
     Encode_Status copyCodedBuffer(VideoEncOutputBuffer *, const CodedBufferPtr&) const;
 
     //virtual functions
-    virtual Encode_Status reorder(const SurfacePtr& , uint64_t timeStamp) = 0;
+    virtual Encode_Status reorder(const SurfacePtr& , uint64_t timeStamp, bool forceKeyFrame = false) = 0;
 
     //rate control related things
     void fill(VAEncMiscParameterHRD*) const ;

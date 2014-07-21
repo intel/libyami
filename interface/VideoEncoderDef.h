@@ -147,9 +147,10 @@ struct VideoEncRawBuffer {
     uint32_t size;
     bool bufAvailable;          //To indicate whether this buffer can be reused
     uint64_t timeStamp;         //reserved
+    bool forceKeyFrame;
 
      VideoEncRawBuffer():data(0), size(0), bufAvailable(false),
-        timeStamp(0) {
+        timeStamp(0), forceKeyFrame(false) {
 }};
 
 struct VideoEncSurfaceBuffer {

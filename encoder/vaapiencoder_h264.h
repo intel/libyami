@@ -52,7 +52,7 @@ public:
     virtual Encode_Status setParameters(VideoParamConfigSet *);
 
 protected:
-    virtual Encode_Status reorder(const SurfacePtr&, uint64_t timeStamp);
+    virtual Encode_Status reorder(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
 
 private:
     //following code is a template for other encoder implementation

@@ -616,7 +616,7 @@ Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigSet *videoEncParam
     return VaapiEncoderBase::getParameters(videoEncParams);
 }
 
-Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeStamp)
+Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
 {
     if (!surface)
         return ENCODE_INVALID_PARAMS;
@@ -625,7 +625,7 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
     PicturePtr picture(new VaapiEncPictureH264(m_context, surface, timeStamp));
     picture->m_poc = ((m_curPresentIndex * 2) % m_maxPicOrderCnt);
 
-    bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= keyFramePeriod());
+    bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= keyFramePeriod() || forceKeyFrame);
 
     /* check key frames */
     if (isIdr || (m_frameIndex % intraPeriod() == 0)) {
