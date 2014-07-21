@@ -318,6 +318,8 @@ void VaapiEncoderBase::cleanupVA()
 
 bool VaapiEncoderBase::initVA()
 {
+    VAConfigAttrib attrib, *pAttrib = NULL;
+    int32_t attribCount = 0;
     FUNC_ENTER();
 
     m_display = VaapiDisplay::create(m_externalDisplay);
@@ -326,7 +328,13 @@ bool VaapiEncoderBase::initVA()
         return false;
     }
 
-    ConfigPtr config = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, NULL, 0);
+    if (RATE_CONTROL_NONE != m_videoParamCommon.rcMode) {
+        attrib.type = VAConfigAttribRateControl;
+        attrib.value = m_videoParamCommon.rcMode;
+        pAttrib = &attrib;
+        attribCount = 1;
+    }
+    ConfigPtr config = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, pAttrib, attribCount);
     if (!config) {
         ERROR("failed to create config");
         return false;
