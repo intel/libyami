@@ -37,5 +37,18 @@ YamiMediaCodec::IVideoEncoder *createVideoEncoder(const char *mimeType);
 */
 void releaseVideoEncoder(YamiMediaCodec::IVideoEncoder * p);
 
+/** \fn void preSandboxInitEncoder()
+ * \brief when yami runs inside sandbox, some necessary work goes here before enter sanbox
+ * usually, nothing special is required  except when yami dlopen thirty party libraries.
+ * the shared libraries linked by yami will be loaded automatically.
+ * vaGetDisplay/vaInitialize should NOT run in this function. since:
+ * 1)  it is ok to call vaGetDisplay()/vaInitialize() inside sandbox.
+ * 2) Native display (X11 display) isn't available at this point
+ */
+bool preSandboxInitEncoder();
+
+typedef YamiMediaCodec::IVideoEncoder *(*YamiCreateVideoEncoderFuncPtr) (const char *mimeType);
+typedef void (*YamiReleaseVideoEncoderFuncPtr)(YamiMediaCodec::IVideoEncoder * p);
+typedef bool (*YamiPreSandboxInitEncoder)();
 }
 #endif                          /* VIDEO_ENCODER_HOST_H_ */

@@ -60,4 +60,9 @@ IVideoEncoder* createVideoEncoder(const char* mimeType) {
 void releaseVideoEncoder(IVideoEncoder* p) {
     delete p;
 }
+
+bool preSandboxInitEncoder() {
+    // TODO, for hybrid VP8 encoder uses mediasdk, does the prework here
+    return true;
+}
 } // extern "C"

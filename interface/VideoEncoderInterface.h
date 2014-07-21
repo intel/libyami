@@ -24,6 +24,7 @@
 
 #include "VideoEncoderDef.h"
 #include <X11/Xlib.h>
+#undef None // work around for compile in chromeos
 
 namespace YamiMediaCodec{
 /**
