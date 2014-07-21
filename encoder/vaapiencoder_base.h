@@ -57,7 +57,7 @@ public:
     * If the buffer passed to encoded is not big enough, this API call will return ENCODE_BUFFER_TOO_SMALL
     * and caller should provide a big enough buffer and call again
     */
-    virtual Encode_Status getOutput(VideoEncOutputBuffer *) = 0;
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) const = 0;
 
     virtual Encode_Status getParameters(VideoParamConfigSet *);
     virtual Encode_Status setParameters(VideoParamConfigSet *);
@@ -78,6 +78,7 @@ protected:
 
     //virtual functions
     virtual Encode_Status reorder(const SurfacePtr& , uint64_t timeStamp, bool forceKeyFrame = false) = 0;
+    virtual Encode_Status submitEncode() = 0;
 
     //rate control related things
     void fill(VAEncMiscParameterHRD*) const ;

@@ -30,7 +30,8 @@ namespace YamiMediaCodec{
 /**
  * \class IVideoEncoder
  * \brief Abstract video encoding interface of libyami
- * it is the interface with client
+ * it is the interface with client. they are not thread safe.
+ * getOutput() can be called in one (and only one) separated thread, though IVideoEncoder APIs are not fully thread safe.
  */
 class IVideoEncoder {
   public:
@@ -47,12 +48,20 @@ class IVideoEncoder {
     virtual Encode_Status encode(VideoEncRawBuffer * inBuffer) = 0;
     /**
      * \brief return one frame encoded data to client;
-     * ENCODE_BUFFER_NO_MORE will be returned if no available frame
+     * when withWait is false, ENCODE_BUFFER_NO_MORE will be returned if there is no available frame. \n
+     * when withWait is true, function call is block until there is one frame available. \n
+     * typically, getOutput() is called in a separate thread (than encoding thread), this thread sleeps when
+     * there is no output available when withWait is true. \n
+     *
+     * param [in/out] outBuffer a #VideoEncOutputBuffer of one frame encoded data
+     * param [in/out] when there is no output data available, wait or not
      */
-    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer) = 0;
-    /// get encoder params
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) const = 0;
+    /// get encoder params, some config parameter are updated basing on sw/hw implement limition.
+    /// for example, update pitches basing on hw alignment
     virtual Encode_Status getParameters(VideoParamConfigSet * videoEncParams) = 0;
-    /// set encoder params
+    /// set encoder params before start. \n
+    /// update rate controls on the fly by VideoParamsTypeRatesControl/VideoParamsRatesControl. SPS updates accordingly.
     virtual Encode_Status setParameters(VideoParamConfigSet * videoEncParams) = 0;
     /// get max coded buffer size.
     virtual Encode_Status getMaxOutSize(uint32_t * maxSize) = 0;

@@ -27,6 +27,8 @@
 #include "vaapiencoder_base.h"
 #include "vaapi/vaapiptrs.h"
 #include <list>
+#include <queue>
+#include <pthread.h>
 #include <tr1/memory>
 #include <va/va_enc_h264.h>
 
@@ -46,7 +48,7 @@ public:
     virtual Encode_Status start();
     virtual void flush();
     virtual Encode_Status stop();
-    virtual Encode_Status getOutput(VideoEncOutputBuffer *outBuffer);
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) const;
 
     virtual Encode_Status getParameters(VideoParamConfigSet *);
     virtual Encode_Status setParameters(VideoParamConfigSet *);
@@ -57,7 +59,8 @@ protected:
 
 private:
     //following code is a template for other encoder implementation
-    Encode_Status encode(const PicturePtr&,const CodedBufferPtr&);
+    Encode_Status submitEncode();
+    Encode_Status encodePicture(const PicturePtr&,const CodedBufferPtr&);
     bool fill(VAEncSequenceParameterBufferH264*) const;
     bool fill(VAEncPictureParameterBufferH264*, const PicturePtr&, const CodedBufferPtr&, const SurfacePtr&) const ;
     bool addPackedSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferH264* const);
@@ -115,7 +118,9 @@ private:
     uint32_t m_maxRefList0Count;
     uint32_t m_maxRefList1Count;
 
-    std::list<CodedBufferPtr> m_codedBuffers;
+    /* output queue */
+    mutable std::queue<std::pair<PicturePtr, CodedBufferPtr> >  m_outputQueue;
+    mutable pthread_mutex_t m_outputQueueMutex;
 
     /* frame, poc */
     uint32_t m_maxFrameNum;

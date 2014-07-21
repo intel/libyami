@@ -517,11 +517,13 @@ VaapiEncoderH264::VaapiEncoderH264():
     m_videoParamCommon.rcParams.minQP = 1;
 
     m_videoParamAVC.idrInterval = 30;
+    pthread_mutex_init(&m_outputQueueMutex, NULL);
 }
 
 VaapiEncoderH264::~VaapiEncoderH264()
 {
     FUNC_ENTER();
+    pthread_mutex_destroy(&m_outputQueueMutex);
 }
 
 void VaapiEncoderH264::resetParams ()
@@ -620,6 +622,12 @@ void VaapiEncoderH264::flush()
     resetGopStart();
     m_reorderFrameList.clear();
     m_refList.clear();
+
+    INFO("output queue size: %ld\n", m_outputQueue.size());
+    pthread_mutex_lock(&m_outputQueueMutex);
+    while (!m_outputQueue.empty())
+        m_outputQueue.pop();
+    pthread_mutex_unlock(&m_outputQueueMutex);
 }
 
 Encode_Status VaapiEncoderH264::stop()
@@ -745,42 +753,74 @@ bs_error:
     }
 }
 
-Encode_Status VaapiEncoderH264::getOutput(VideoEncOutputBuffer *outBuffer)
+// calls immediately after reorder,
+// it makes sure I frame are encoded immediately, so P frames can be pushed to the front of the m_reorderFrameList.
+// it also makes sure input thread and output thread runs in parallel
+Encode_Status VaapiEncoderH264::submitEncode()
 {
     FUNC_ENTER();
-    if (!outBuffer)
-        return ENCODE_INVALID_PARAMS;
-
     Encode_Status ret;
     if (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
-        CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, outBuffer->bufferSize);
+        CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
         if (m_reorderFrameList.empty())
             m_reorderState = VAAPI_ENC_REORD_WAIT_FRAMES;
-        ret =  encode(picture, codedBuffer);
+
+        ret =  encodePicture(picture, codedBuffer);
+        if (ret != ENCODE_SUCCESS) {
+            return ret;
+        }
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_ENDOFFRAME);
         INFO("picture->m_type: 0x%x\n", picture->m_type);
         if (picture->m_type == VAAPI_PICTURE_TYPE_I) {
             codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
         }
-        m_codedBuffers.push_back(codedBuffer);
-        if (ret != ENCODE_SUCCESS) {
-            return ret;
-        }
+
+        pthread_mutex_lock(&m_outputQueueMutex);
+        m_outputQueue.push(std::make_pair(picture, codedBuffer));
+        pthread_mutex_unlock(&m_outputQueueMutex);
     }
+
+    INFO();
+    return ENCODE_SUCCESS;
+}
+/** getOutput suppose to run in a separated thread with other functions, be carefull
+ * 1) it update m_outputQueue only for now, we use m_outputQueueMutex for it
+ * 2) the rest which are not protected by mutex is generally fine
+ *   a). getCodecCofnig() read some sps/pps parameter only, we suppose client doesn't change sps/pps at the same time.
+ *   b). read/peek of the m_outputQueue is fine since getOutput is the only place to erase element
+ *   c). picture->sync and copyCodecBuffer are fine as well
+*/
+Encode_Status VaapiEncoderH264::getOutput(VideoEncOutputBuffer * outBuffer, bool withWait) const
+{
+    Encode_Status ret;
+    bool isEmpty;
+    FUNC_ENTER();
+    if (!outBuffer)
+        return ENCODE_INVALID_PARAMS;
 
     if (outBuffer->format & OUTPUT_CODEC_DATA)
         return getCodecCofnig(outBuffer);
 
-    if (!m_codedBuffers.size())
+    pthread_mutex_lock(&m_outputQueueMutex);
+    isEmpty = m_outputQueue.empty();
+    pthread_mutex_unlock(&m_outputQueueMutex);
+    if (isEmpty)
         return ENCODE_BUFFER_NO_MORE;
 
-    CodedBufferPtr codedBuffer = m_codedBuffers.front();
+    INFO("output queue size: %ld\n", m_outputQueue.size());
+    PicturePtr picture = m_outputQueue.front().first;
+    CodedBufferPtr codedBuffer = m_outputQueue.front().second;
+    picture->sync();
     ret = copyCodedBuffer(outBuffer, codedBuffer);
     if (ret != ENCODE_SUCCESS)
         return ret;
-    m_codedBuffers.pop_front();
+
+    pthread_mutex_lock(&m_outputQueueMutex);
+    m_outputQueue.pop();
+    pthread_mutex_unlock(&m_outputQueueMutex);
+
     return ENCODE_SUCCESS;
 }
 
@@ -1207,7 +1247,7 @@ bool VaapiEncoderH264::ensureSlices(const PicturePtr& picture)
     return true;
 }
 
-Encode_Status VaapiEncoderH264::encode(const PicturePtr& picture,const CodedBufferPtr& codedBuf)
+Encode_Status VaapiEncoderH264::encodePicture(const PicturePtr& picture,const CodedBufferPtr& codedBuf)
 {
     Encode_Status ret = ENCODE_FAIL;
     SurfacePtr reconstruct = createSurface();
@@ -1227,8 +1267,6 @@ Encode_Status VaapiEncoderH264::encode(const PicturePtr& picture,const CodedBuff
 
     if (!referenceListUpdate (picture, reconstruct))
         return ret;
-    /*FIXME: after we use separated thread*/
-    picture->sync();
 
     return ENCODE_SUCCESS;
 }
