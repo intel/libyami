@@ -178,7 +178,7 @@ const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
     return &(surfBuf->renderBuffer);
 }
 
-Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int32_t *timeStamp
+Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int64_t *timeStamp
     , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
     , int frameX, int frameY, int frameWidth, int frameHeight)
 {
@@ -195,8 +195,8 @@ Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int32_t *timeStamp
         frameHeight = m_videoFormatInfo.height;
     }
 
-    if (!draw || drawX <= 0 || drawY <= 0 || drawWidth <= 0 || drawHeight <=0
-        || frameX <= 0 || frameY <= 0 || frameWidth <= 0 || frameHeight <= 0)
+    if (!draw || drawX < 0 || drawY < 0 || drawWidth <=0 || drawHeight <=0
+        || frameX < 0 || frameY < 0 || frameWidth <= 0 || frameHeight <= 0)
         return RENDER_INVALID_PARAMETER;
 
     vaStatus = vaPutSurface(m_display->getID(), renderBuffer->surface,
@@ -209,6 +209,7 @@ Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int32_t *timeStamp
 
     *timeStamp = renderBuffer->timeStamp;
 
+    renderDone(renderBuffer);
     return RENDER_SUCCESS;
 }
 

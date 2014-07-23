@@ -81,7 +81,7 @@ public:
      * @return RENDER_FAIL when driver fail to do vaPutSurface
      * @return RENDER_INVALID_PARAMETER
      */
-    virtual Decode_Status getOutput(Drawable draw, int32_t *timeStamp
+    virtual Decode_Status getOutput(Drawable draw, int64_t *timeStamp
         , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
         , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1) = 0;
 
