@@ -638,15 +638,28 @@ Encode_Status VaapiEncoderH264::stop()
 
 Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigSet *videoEncParams)
 {
+    Encode_Status status = ENCODE_SUCCESS;
     FUNC_ENTER();
     if (!videoEncParams)
         return ENCODE_INVALID_PARAMS;
-    if (videoEncParams->type == VideoParamsTypeAVC) {
-        VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
-        m_videoParamAVC = *avc;
-        return ENCODE_SUCCESS;
+
+    switch (videoEncParams->type) {
+    case VideoParamsTypeAVC: {
+            VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
+            m_videoParamAVC = *avc;
+        }
+        break;
+    case VideoConfigTypeAVCIntraPeriod: {
+            VideoConfigAVCIntraPeriod* intraPeriod = (VideoConfigAVCIntraPeriod*)videoEncParams;
+            m_videoParamAVC.idrInterval = intraPeriod->idrInterval;
+            m_videoParamCommon.intraPeriod = intraPeriod->intraPeriod;
+        }
+        break;
+    default:
+        status = VaapiEncoderBase::setParameters(videoEncParams);
+        break;
     }
-    return VaapiEncoderBase::setParameters(videoEncParams);
+    return status;
 }
 
 Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigSet *videoEncParams)
