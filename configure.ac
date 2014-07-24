@@ -41,6 +41,15 @@ if test "$debug" = "yes"; then
 AC_DEFINE([__ENABLE_DEBUG__], [1], [Defined to 1 if --enable-debug="yes" ])
 fi
 
+AC_ARG_ENABLE(tests,
+    [AC_HELP_STRING([--enable-tests], [build tests @<:@default=no@:>@])],
+    [], [enable_tests="no"])
+
+if test "$enable_tests" = "yes"; then
+AC_DEFINE([__ENABLE_TESTS__], [1], [Defined to 1 if --enable-tests="yes" ])
+fi
+AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "xyes")
+
 AC_ARG_ENABLE(baytrail,
     [AC_HELP_STRING([--enable-baytrail], [build with baytrail/chromeos support @<:@default=no@:>@])],
     [], [enable_baytrail="no"])
@@ -144,6 +153,7 @@ AC_CONFIG_FILES([Makefile
                  vaapi/Makefile
                  decoder/Makefile
                  encoder/Makefile
+                 tests/Makefile
                  doc/Makefile
                  pkgconfig/Makefile])
 

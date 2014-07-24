@@ -13,3 +13,7 @@ SUBDIRS = codecparsers common vaapi decoder encoder pkgconfig
 if ENABLE_DOCS
 	SUBDIRS += doc
 endif
+
+if ENABLE_TESTS
+SUBDIRS += tests
+endif
