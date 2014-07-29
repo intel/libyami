@@ -1001,7 +1001,7 @@ void VaapiDPBManager::execPictureRefsModification1(const PicturePtr& picture,
             // (8-37)
             for (j = numRefs; j > refListIdx; j--)
                 refList[j] = refList[j - 1];
-            foundRefIdx = findShortRermReference(picNum);
+            foundRefIdx = findShortTermReference(picNum);
             refList[refListIdx++] =
                 foundRefIdx >= 0 ? DPBLayer->shortRef[foundRefIdx] : NULL;
             n = refListIdx;
@@ -1076,7 +1076,7 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
     case 1:
         {
             picNumX = getPicNumX(picture, refPicMarking);
-            foundIdx = findShortRermReference(picNumX);
+            foundIdx = findShortTermReference(picNumX);
             if (foundIdx < 0)
                 return false;
 
@@ -1113,7 +1113,7 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
             }
 
             picNumX = getPicNumX(picture, refPicMarking);
-            foundIdx = findShortRermReference(picNumX);
+            foundIdx = findShortTermReference(picNumX);
             if (foundIdx < 0)
                 return false;
 
@@ -1240,7 +1240,7 @@ bool VaapiDPBManager::execRefPicMarkingSlidingWindow(const PicturePtr& picture)
     return true;
 }
 
-int32_t VaapiDPBManager::findShortRermReference(uint32_t picNum)
+int32_t VaapiDPBManager::findShortTermReference(uint32_t picNum)
 {
     uint32_t i;
 
