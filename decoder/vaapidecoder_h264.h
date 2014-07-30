@@ -27,13 +27,17 @@
 #include "codecparsers/h264parser.h"
 #include "vaapidecoder_base.h"
 #include "vaapidecpicture.h"
+#include <limits>
 #include <list>
+
+//#define MAX_VIEW_NUM 2
+namespace YamiMediaCodec{
+
+#define INVALID_POC (std::numeric_limits<int32_t>::max())
 
 #define TOP_FIELD    0
 #define BOTTOM_FIELD 1
 
-//#define MAX_VIEW_NUM 2
-namespace YamiMediaCodec{
 /* extended picture flags for h264 */
 enum {
     VAAPI_PICTURE_FLAG_IDR = (VAAPI_PICTURE_FLAG_LAST << 0),

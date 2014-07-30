@@ -28,6 +28,7 @@
 #endif
 
 #include <assert.h>
+#include "vaapidisplay.h"
 #include "vaapisurface.h"
 #include "common/log.h"
 #include "vaapiutils.h"
@@ -53,7 +54,7 @@ static uint32_t vaapiChromaToVaChroma(VaapiChromaType chroma)
     return VA_RT_FORMAT_YUV420;
 }
 
-SurfacePtr VaapiSurface::create(VADisplay display,
+SurfacePtr VaapiSurface::create(const DisplayPtr& display,
                                 VaapiChromaType chromaType,
                                 uint32_t width,
                                 uint32_t height,
@@ -72,7 +73,7 @@ SurfacePtr VaapiSurface::create(VADisplay display,
 
     format = vaapiChromaToVaChroma(chromaType);
     uint32_t externalBufHandle = 0;
-    status = vaCreateSurfaces(display, format, width, height,
+    status = vaCreateSurfaces(display->getID(), format, width, height,
                               &id, 1, surfAttribs, surfAttribNum);
     if (!checkVaapiStatus(status, "vaCreateSurfacesWithAttribute()"))
         return surface;
@@ -92,7 +93,7 @@ SurfacePtr VaapiSurface::create(VADisplay display,
     return surface;
 }
 
-VaapiSurface::VaapiSurface(VADisplay display,
+VaapiSurface::VaapiSurface(const DisplayPtr& display,
                            VASurfaceID id,
                            VaapiChromaType chromaType,
                            uint32_t width,
@@ -104,71 +105,13 @@ m_derivedImage(NULL)
 
 }
 
-VaapiSurface::VaapiSurface(VASurfaceID id)
-:m_display(NULL), m_chromaType(VAAPI_CHROMA_TYPE_YUV420), m_width(0),m_height(0),
-    m_externalBufHandle(0), m_ID(id),m_derivedImage(NULL)
-{
-
-}
-
-VaapiSurface::VaapiSurface(VADisplay display,
-                           VaapiChromaType chromaType,
-                           uint32_t width,
-                           uint32_t height,
-                           void *surfAttribArray, uint32_t surfAttribNum)
-:m_display(display), m_chromaType(chromaType), m_width(width),
-m_height(height)
-{
-    VAStatus status;
-    uint32_t format, i;
-    VASurfaceAttrib *surfAttribs = (VASurfaceAttrib *) surfAttribArray;
-
-    switch (m_chromaType) {
-    case VAAPI_CHROMA_TYPE_YUV420:
-        format = VA_RT_FORMAT_YUV420;
-        break;
-    case VAAPI_CHROMA_TYPE_YUV422:
-        format = VA_RT_FORMAT_YUV422;
-        break;
-    case VAAPI_CHROMA_TYPE_YUV444:
-        format = VA_RT_FORMAT_YUV444;
-        break;
-    default:
-        format = VA_RT_FORMAT_YUV420;
-        break;
-    }
-
-    m_externalBufHandle = 0;
-    if (surfAttribs && surfAttribNum) {
-        status = vaCreateSurfaces(m_display, format, width, height,
-                                  &m_ID, 1, surfAttribs, surfAttribNum);
-
-        for (i = 0; i < surfAttribNum; i++)
-            if (surfAttribs[i].type ==
-                VASurfaceAttribExternalBufferDescriptor) {
-                VASurfaceAttribExternalBuffers *surfAttribExtBuf =
-                    (VASurfaceAttribExternalBuffers *)
-                    surfAttribs[i].value.value.p;
-                m_externalBufHandle = surfAttribExtBuf->buffers[0];
-            }
-    } else {
-        status = vaCreateSurfaces(m_display, format, width, height,
-                                  &m_ID, 1, NULL, 0);
-    }
-
-    if (!checkVaapiStatus(status, "vaCreateSurfacesWithAttribute()"))
-        return;
-
-    m_derivedImage = NULL;
-}
-
 VaapiSurface::~VaapiSurface()
 {
     VAStatus status;
 
     delete m_derivedImage;
 
-    status = vaDestroySurfaces(m_display, &m_ID, 1);
+    status = vaDestroySurfaces(m_display->getID(), &m_ID, 1);
 
     if (!checkVaapiStatus(status, "vaDestroySurfaces()"))
         WARNING("failed to destroy surface");
@@ -219,7 +162,7 @@ bool VaapiSurface::getImage(VaapiImage * image)
 
     imageID = image->getID();
 
-    status = vaGetImage(m_display, m_ID, 0, 0, width, height, imageID);
+    status = vaGetImage(m_display->getID(), m_ID, 0, 0, width, height, imageID);
 
     if (!checkVaapiStatus(status, "vaGetImage()"))
         return false;
@@ -246,7 +189,7 @@ bool VaapiSurface::putImage(VaapiImage * image)
 
     imageID = image->getID();
 
-    status = vaGetImage(m_display, m_ID, 0, 0, width, height, imageID);
+    status = vaGetImage(m_display->getID(), m_ID, 0, 0, width, height, imageID);
 
     if (!checkVaapiStatus(status, "vaPutImage()"))
         return false;
@@ -265,11 +208,11 @@ VaapiImage *VaapiSurface::getDerivedImage()
     va_image.image_id = VA_INVALID_ID;
     va_image.buf = VA_INVALID_ID;
 
-    status = vaDeriveImage(m_display, m_ID, &va_image);
+    status = vaDeriveImage(m_display->getID(), m_ID, &va_image);
     if (!checkVaapiStatus(status, "vaDeriveImage()"))
         return NULL;
 
-    m_derivedImage = new VaapiImage(m_display, &va_image);
+    m_derivedImage = new VaapiImage(m_display->getID(), &va_image);
 
     return m_derivedImage;
 }
@@ -278,7 +221,7 @@ bool VaapiSurface::sync()
 {
     VAStatus status;
 
-    status = vaSyncSurface((VADisplay) m_display, (VASurfaceID) m_ID);
+    status = vaSyncSurface((VADisplay) m_display->getID(), (VASurfaceID) m_ID);
 
     if (!checkVaapiStatus(status, "vaSyncSurface()"))
         return false;
@@ -294,7 +237,7 @@ bool VaapiSurface::queryStatus(VaapiSurfaceStatus * pStatus)
     if (!pStatus)
         return false;
 
-    status = vaQuerySurfaceStatus((VADisplay) m_display,
+    status = vaQuerySurfaceStatus((VADisplay) m_display->getID(),
                                   (VASurfaceID) m_ID, &surfaceStatus);
 
     if (!checkVaapiStatus(status, "vaQuerySurfaceStatus()"))

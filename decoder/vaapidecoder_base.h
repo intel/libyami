@@ -26,7 +26,8 @@
 #include "common/log.h"
 #include "interface/VideoDecoderInterface.h"
 #include "vaapi/vaapiptrs.h"
-#include "vaapisurfacebuf_pool.h"
+#include "vaapidecpicture.h"
+#include <deque>
 #include <pthread.h>
 #include <va/va.h>
 #include <va/va_tpi.h>
@@ -35,13 +36,16 @@
 #else
 typedef unsigned int Display;
 #endif
-#include "vaapidecpicture.h"
+
+namespace YamiMediaCodec{
 
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #define MIN(a, b)  (((a) < (b)) ? (a) : (b))
 #define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
 #define ALIGN_MB(a) (((a) + 15 ) & (~15))
-namespace YamiMediaCodec{
+
+#define INVALID_PTS ((uint64_t)-1)
+
 class VaapiDecoderBase:public IVideoDecoder {
   public:
     typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
@@ -74,7 +78,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status setupVA(uint32_t numSurface, VAProfile profile);
     Decode_Status terminateVA(void);
     Decode_Status updateReference(void);
-    Decode_Status outputPicture(PicturePtr& picture, int poc = 0);
+    Decode_Status outputPicture(const PicturePtr& picture);
     SurfacePtr createSurface();
 
     Display*   m_externalDisplay;
@@ -85,11 +89,13 @@ class VaapiDecoderBase:public IVideoDecoder {
     VideoConfigBuffer m_configBuffer;
     VideoFormatInfo m_videoFormatInfo;
 
+
     /* allocate all surfaces need for decoding & display
      * in one pool, the pool will responsable for allocating
      * empty surface, recycle used surface.
      */
-    VaapiSurfaceBufferPool *m_bufPool;
+    DecSurfacePoolPtr m_surfacePool;
+
     /* the current render target for decoder */
     // XXX, not useful. decoding bases on VaapiPicture, rendering bases on IVideoDecoder->getOutput()
     VideoSurfaceBuffer *m_renderTarget;

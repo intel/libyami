@@ -27,10 +27,11 @@
 #include "common/log.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
+#include "vaapi/vaapiutils.h"
+#include "vaapidecsurfacepool.h"
 #include <string.h>
 #include <stdlib.h> // for setenv
 #include <va/va_backend.h>
-#include "vaapi/vaapiutils.h"
 
 #ifdef ANDROID
 #include <va/va_android.h>
@@ -52,20 +53,18 @@ m_currentPTS(INVALID_PTS), m_enableNativeBuffersFlag(false)
     INFO("base: construct()");
     memset(&m_videoFormatInfo, 0, sizeof(VideoFormatInfo));
     memset(&m_configBuffer, 0, sizeof(m_configBuffer));
-    m_bufPool = NULL;
 }
 
 VaapiDecoderBase::~VaapiDecoderBase()
 {
     INFO("base: deconstruct()");
     stop();
-    delete[] m_videoFormatInfo.ctxSurfaces;
 }
 
 PicturePtr VaapiDecoderBase::createPicture(int64_t timeStamp /* , VaapiPictureStructure structure = VAAPI_PICTURE_STRUCTURE_FRAME */)
 {
     PicturePtr picture;
-    /*accquire one surface from m_bufPool in base decoder  */
+    /*accquire one surface from m_surfacePool in base decoder  */
     SurfacePtr surface = createSurface();
     if (!surface) {
         ERROR("create surface failed");
@@ -152,8 +151,9 @@ void VaapiDecoderBase::flush(void)
 {
 
     INFO("base: flush()");
-    if (m_bufPool)
-        m_bufPool->flushPool();
+    if (m_surfacePool) {
+        m_surfacePool->flush();
+    }
 
     m_currentPTS = INVALID_PTS;
     m_renderTarget = NULL;
@@ -167,15 +167,9 @@ void VaapiDecoderBase::flushOutport(void)
 
 const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
 {
-    VideoSurfaceBuffer *surfBuf = NULL;
-
-    if (m_bufPool)
-        surfBuf = m_bufPool->getOutputByMinTimeStamp();
-
-    if (!surfBuf)
+    if (!m_surfacePool)
         return NULL;
-
-    return &(surfBuf->renderBuffer);
+    return m_surfacePool->getOutput();
 }
 
 Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int64_t *timeStamp
@@ -222,18 +216,11 @@ const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
 void VaapiDecoderBase::renderDone(VideoRenderBuffer * renderBuf)
 {
     INFO("base: renderDone()");
-    VideoSurfaceBuffer *buf = NULL;
-
-    if (!m_bufPool) {
-        ERROR("buffer pool is not initialized yet");
+    if (!m_surfacePool) {
+        ERROR("surface pool is not initialized yet");
         return;
     }
-
-    if (!(buf = m_bufPool->getBufferBySurfaceID(renderBuf->surface))) {
-        return;
-    }
-
-    m_bufPool->recycleBuffer(buf, true);
+    m_surfacePool->recycle(renderBuf);
 }
 
 Decode_Status VaapiDecoderBase::updateReference(void)
@@ -262,7 +249,6 @@ Decode_Status
 {
     INFO("base: setup VA");
     uint32_t i;
-    VASurfaceID *surfaces;
     VideoSurfaceBuffer *buf;
     VaapiSurface *suf;
     Decode_Status status;
@@ -305,20 +291,18 @@ Decode_Status
     }
 
     m_configBuffer.surfaceNumber = numSurface;
-    m_bufPool = new VaapiSurfaceBufferPool(m_display->getID(), &m_configBuffer);
-    surfaces = new VASurfaceID[numSurface];
-    for (i = 0; i < numSurface; i++) {
-        surfaces[i] = VA_INVALID_SURFACE;
-        buf = m_bufPool->getBufferByIndex(i);
-        suf = m_bufPool->getVaapiSurface(buf);
-        if (suf)
-            surfaces[i] = suf->getID();
-    }
-
+    m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_configBuffer);
+    if (!m_surfacePool)
+        return DECODE_FAIL;
+    std::vector<VASurfaceID> surfaces;
+    m_surfacePool->getSurfaceIDs(surfaces);
+    if (surfaces.empty())
+        return DECODE_FAIL;
+    int size = surfaces.size();
     m_context = VaapiContext::create(config,
                                        m_videoFormatInfo.width,
                                        m_videoFormatInfo.height,
-                                       0, surfaces, numSurface);
+                                       0, &surfaces[0], size);
 
     if (!m_context) {
         ERROR("create context failed");
@@ -330,8 +314,6 @@ Decode_Status
     }
 
 
-    m_videoFormatInfo.surfaceNumber = numSurface;
-    m_videoFormatInfo.ctxSurfaces = surfaces;
     if (!(m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER)) {
         m_videoFormatInfo.surfaceWidth = m_videoFormatInfo.width;
         m_videoFormatInfo.surfaceHeight = m_videoFormatInfo.height;
@@ -344,11 +326,7 @@ Decode_Status
 Decode_Status VaapiDecoderBase::terminateVA(void)
 {
     INFO("base: terminate VA");
-    if (m_bufPool) {
-        delete m_bufPool;
-        m_bufPool = NULL;
-    }
-
+    m_surfacePool.reset();
     m_context.reset();
     m_display.reset();
     m_externalDisplay = NULL;
@@ -388,41 +366,20 @@ void VaapiDecoderBase::releaseLock()
 {
 }
 
-struct SurfaceRecycler
-{
-    SurfaceRecycler(VaapiSurfaceBufferPool* pool, VideoSurfaceBuffer* surfBuf)
-        :m_pool(pool), m_surfBuf(surfBuf)
-    {
-    }
-
-    void operator()(VaapiSurface* surface)
-    {
-        if (m_pool && m_surfBuf)
-            m_pool->recycleBuffer(m_surfBuf, false);
-    }
-
-private:
-    VideoSurfaceBuffer      *m_surfBuf;
-    VaapiSurfaceBufferPool  *m_pool;
-};
-
 SurfacePtr VaapiDecoderBase::createSurface()
 {
     SurfacePtr surface;
-    if (m_bufPool) {
-        VideoSurfaceBuffer* surfBuf = m_bufPool->acquireFreeBufferWithWait();
-        if (surfBuf) {
-            surface = VaapiSurface::create(surfBuf->renderBuffer.surface, SurfaceRecycler(m_bufPool, surfBuf));
-        }
+    if (m_surfacePool) {
+        surface = m_surfacePool->acquireWithWait();
     }
     return surface;
 }
 
-Decode_Status VaapiDecoderBase::outputPicture(PicturePtr& picture, int poc)
+Decode_Status VaapiDecoderBase::outputPicture(const PicturePtr& picture)
 {
-    if (!m_bufPool->outputSurface(picture->getSurfaceID(), picture->m_timeStamp, poc))
-        return DECODE_FAIL;
+    //TODO: reorder poc
+    return m_surfacePool->output(picture->getSurface(),
+        picture->m_timeStamp)?DECODE_SUCCESS:DECODE_FAIL;
+}
 
-    return DECODE_SUCCESS;
-}
-}
+} //namespace YamiMediaCodec

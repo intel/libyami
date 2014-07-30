@@ -50,20 +50,12 @@ class VaapiSurface {
   private:
     DISALLOW_COPY_AND_ASSIGN(VaapiSurface);
   public:
-    static SurfacePtr create(VADisplay,
+    static SurfacePtr create(const DisplayPtr&,
                              VaapiChromaType,
                              uint32_t width,
                              uint32_t height,
                              void *surfaceAttribArray,
                              uint32_t surfAttribNum);
-    template <class D>
-    static SurfacePtr create(VASurfaceID id, D delter);
-
-    VaapiSurface(VADisplay display,
-                 VaapiChromaType chromaType,
-                 uint32_t width,
-                 uint32_t height,
-                 void *surfaceAttribArray, uint32_t surfAttribNum);
 
     ~VaapiSurface();
 
@@ -81,17 +73,15 @@ class VaapiSurface {
     VaapiImage *getDerivedImage();
 
   private:
-    VaapiSurface(VADisplay,
+    VaapiSurface(const DisplayPtr&,
                  VASurfaceID,
                  VaapiChromaType,
                  uint32_t width,
                  uint32_t height, uint32_t externalBufHandle);
 
-    VaapiSurface(VASurfaceID);
-
     uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
 
-    VADisplay m_display;
+    DisplayPtr m_display;
     VaapiChromaType m_chromaType;
     VASurfaceID m_ID;
     uint32_t m_width;
@@ -100,11 +90,5 @@ class VaapiSurface {
     uint32_t m_externalBufHandle;   //allocate surface from extenal buf
     VaapiImage *m_derivedImage;
 };
-
-template <class D>
-SurfacePtr VaapiSurface::create(VASurfaceID id, D deleter)
-{
-    return SurfacePtr(new VaapiSurface(id), deleter);
-}
 
 #endif                          /* VAAPI_SURFACE_H */

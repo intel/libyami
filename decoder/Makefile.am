@@ -7,7 +7,7 @@ INCLUDES = -I$(top_srcdir) \
 libyami_decoder_source_c = \
         vaapidecoder_base.cpp \
         vaapidecoder_host.cpp \
-        vaapisurfacebuf_pool.cpp \
+        vaapidecsurfacepool.cpp \
         vaapidecpicture.cpp \
 	$(NULL)
 
@@ -32,7 +32,7 @@ libyami_decoder_source_h = \
 
 libyami_decoder_source_h_priv = \
         vaapidecoder_base.h \
-        vaapisurfacebuf_pool.h \
+        vaapidecsurfacepool.h \
         vaapidecpicture.h \
 	$(NULL)
 

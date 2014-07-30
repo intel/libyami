@@ -193,7 +193,7 @@ SurfacePtr VaapiEncoderBase::createSurface()
     attrib.type = VASurfaceAttribPixelFormat;
     attrib.value.type = VAGenericValueTypeInteger;
     attrib.value.value.i = VA_FOURCC_NV12;
-    return VaapiSurface::create(m_display->getID(), VAAPI_CHROMA_TYPE_YUV420,
+    return VaapiSurface::create(m_display, VAAPI_CHROMA_TYPE_YUV420,
                                 m_videoParamCommon.resolution.width, m_videoParamCommon.resolution.height, &attrib, 1);
 
 }

@@ -26,12 +26,6 @@
 #include <stdint.h>
 
 namespace YamiMediaCodec {
-enum {
-    SURFACE_FREE = 0x00000000,
-    SURFACE_DECODING = 0x00000001,
-    SURFACE_TO_RENDER = 0x00000002,
-    SURFACE_RENDERING = 0x00000004,
-};
 
 // format specific data, for future extension.
 struct VideoExtensionBuffer {
@@ -145,17 +139,7 @@ struct VideoConfigBuffer {
 struct VideoRenderBuffer {
     VASurfaceID surface;
     VADisplay display;
-    int32_t scanFormat;         //progressive,  top-field first, or bottom-field first
     int64_t timeStamp;          // presentation time stamp
-    mutable volatile bool renderDone;   // indicated whether frame is rendered, this must be set to false by the client of this library once
-    // surface is rendered. Not setting this flag will lead to DECODE_NO_SURFACE error.
-    void *graphicBufferHandle;
-    int32_t graphicBufferIndex; //the index in graphichandle array
-    uint32_t flag;
-    mutable volatile bool driverRenderDone;
-    VideoFrameRawData *rawData;
-    void *nwHandle;
-    void *nwOMXBufHeader;       //used to return the decoded nativeWindow Handle back to OpenMax Component.
 };
 
 struct VideoSurfaceBuffer {

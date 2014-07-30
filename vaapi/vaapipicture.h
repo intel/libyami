@@ -40,6 +40,7 @@ public:
     virtual ~VaapiPicture() {};
 
     inline VASurfaceID getSurfaceID() const;
+    inline SurfacePtr getSurface() const;
     inline bool sync();
 
     VaapiPictureType        m_type;
@@ -113,8 +114,14 @@ bool VaapiPicture::render(std::vector<O>& objects)
 }
 
 
-VASurfaceID VaapiPicture::getSurfaceID() const {
+VASurfaceID VaapiPicture::getSurfaceID() const
+{
     return m_surface->getID();
+}
+
+SurfacePtr VaapiPicture::getSurface() const
+{
+    return m_surface;
 }
 
 bool VaapiPicture::sync()

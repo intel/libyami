@@ -1350,7 +1350,7 @@ void VaapiDecoderH264::updateFrameInfo()
 Decode_Status VaapiDecoderH264::outputPicture(PicturePtr& picture)
 {
     VaapiDecoderBase::PicturePtr base = std::tr1::static_pointer_cast<VaapiDecPicture>(picture);
-    return VaapiDecoderBase::outputPicture(base, picture->m_POC) == DECODE_SUCCESS;
+    return VaapiDecoderBase::outputPicture(base);
 }
 
 VaapiDecoderH264::VaapiDecoderH264()
@@ -1544,7 +1544,6 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
 const VideoRenderBuffer *VaapiDecoderH264::getOutput(bool draining)
 {
     INFO("VaapiDecoderH264: getOutput(), draining: %d", draining);
-    VideoSurfaceBuffer *surfBuf = NULL;
 #ifdef __ENABLE_DEBUG__
     static int renderPictureCount = 0;
 #endif
@@ -1552,17 +1551,16 @@ const VideoRenderBuffer *VaapiDecoderH264::getOutput(bool draining)
         flushOutport();
     }
 
-    if (m_bufPool)
-        surfBuf = m_bufPool->getOutputByMinPOC();
-
-    if (!surfBuf)
+    VideoRenderBuffer* buf;
+    buf = VaapiDecoderBase::getOutput(draining);
+    if (!buf)
         return NULL;
 
 #ifdef __ENABLE_DEBUG__
     renderPictureCount++;
     DEBUG("renderPictureCount: %d", renderPictureCount);
 #endif
-    return &(surfBuf->renderBuffer);
+    return buf;
 }
 
 void VaapiDecoderH264::flushOutport(void)
