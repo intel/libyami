@@ -1,4 +1,5 @@
 libyami_common_source_c = \
+	log.cpp \
 	$(NULL)
 
 libyami_common_source_h = \

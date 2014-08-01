@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2013 Intel Coperation.
+ *    Author: Xin Tang <xin.t.tang@intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -28,34 +29,54 @@
 #define DEBUG(...)   ALOGV(__VA_ARGS__);
 #else
 #include <stdio.h>
+extern int yamiLogFlag;
+extern FILE* yamiLogFn;
+extern int isIni;
+
+#define YAMI_LOG_WARNING 0x1
+#define YAMI_LOG_INFO 0x2
+#define YAMI_LOG_DEBUG 0x3
+
+#ifndef YAMIMESSAGE
+#define yamiMessage(stream, format, ...)  do {\
+  fprintf(stream, format, ##__VA_ARGS__); \
+}while (0)
+#endif
+
 #ifndef ERROR
 #define ERROR(format, ...)   do { \
-   fprintf(stderr, "libyami error(%s, %d): " format "\n", __func__, __LINE__, ##__VA_ARGS__);\
+  if (yamiLogFn) \
+   yamiMessage(yamiLogFn, "libyami error(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
+   yamiMessage(stderr, "libyami error(%s, %d): " format "\n", __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifdef __ENABLE_DEBUG__
 #ifndef INFO
 #define INFO(format, ...)   do { \
-   fprintf(stderr, "yami info(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
+  if (yamiLogFlag >= YAMI_LOG_INFO) \
+   yamiMessage(yamiLogFn, "yami info(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifndef WARNING
 #define WARNING(format, ...)   do { \
-   fprintf(stderr, "yami warning(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
+  if (yamiLogFlag >= YAMI_LOG_WARNING) \
+   yamiMessage(yamiLogFn, "yami warning(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifndef DEBUG
 #define DEBUG(format, ...)   do { \
-   fprintf(stderr, "yami debug(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
+  if (yamiLogFlag >= YAMI_LOG_DEBUG) \
+   yamiMessage(yamiLogFn, "yami debug(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
 }while (0)
 #endif
 
 #ifndef DEBUG_
 #define DEBUG_(format, ...)   do { \
-   fprintf(stderr, format, ##__VA_ARGS__);\
+  if (yamiLogFlag >= YAMI_LOG_DEBUG) \
+    yamiMessage(yamiLogFn, format, ##__VA_ARGS__);\
 }while (0)
 #endif
 
@@ -77,5 +98,7 @@
 #endif                          //__ENABLE_DEBUG__
 
 #endif                          //__ANDROID
+
+void yamiTraceInit();
 
 #endif                          //__LOG_H__
