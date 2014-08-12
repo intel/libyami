@@ -114,6 +114,14 @@ Decode_Status VaapiDecoderVP8::ensureContext()
 
         if (status != DECODE_SUCCESS)
             return status;
+    } else if (m_videoFormatInfo.width != m_frameHdr.width
+        || m_videoFormatInfo.height != m_frameHdr.height) {
+        // notify client of resolution change, no need to reset hw context
+            INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d\n", m_videoFormatInfo.width, m_videoFormatInfo.height, m_frameHdr.width, m_frameHdr.height);
+            m_videoFormatInfo.width = m_frameHdr.width;
+            m_videoFormatInfo.height = m_frameHdr.height;
+            // XXX, assume graphicBufferWidth/graphicBufferHeight are hw resolution, needn't update here
+            return DECODE_FORMAT_CHANGE;
     }
 
     if (m_hasContext)
