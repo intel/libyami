@@ -36,6 +36,7 @@
 namespace YamiMediaCodec{
 class VaapiEncPictureH264;
 class VaapiEncoderH264Ref;
+class VaapiEncStreamHeaderH264;
 
 class VaapiEncoderH264 : public VaapiEncoderBase {
 public:
@@ -43,6 +44,7 @@ public:
     //to make template for other codec implelmentation.
     typedef std::tr1::shared_ptr<VaapiEncPictureH264> PicturePtr;
     typedef std::tr1::shared_ptr<VaapiEncoderH264Ref> ReferencePtr;
+    typedef std::tr1::shared_ptr <VaapiEncStreamHeaderH264> StreamHeaderPtr;
 
     VaapiEncoderH264();
     ~VaapiEncoderH264();
@@ -65,8 +67,8 @@ private:
     Encode_Status encodePicture(const PicturePtr&,const CodedBufferPtr&);
     bool fill(VAEncSequenceParameterBufferH264*) const;
     bool fill(VAEncPictureParameterBufferH264*, const PicturePtr&, const CodedBufferPtr&, const SurfacePtr&) const ;
-    bool addPackedSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferH264* const);
-    bool addPackedPictureHeader(const PicturePtr&, const VAEncPictureParameterBufferH264* const );
+    bool ensureSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferH264* const);
+    bool ensurePictureHeader(const PicturePtr&, const VAEncPictureParameterBufferH264* const );
     bool addSliceHeaders (const PicturePtr&,
                           const std::vector<ReferencePtr>& refList0,
                           const std::vector<ReferencePtr>& refList1) const;
@@ -74,7 +76,8 @@ private:
     bool ensurePicture (const PicturePtr&,const CodedBufferPtr&, const SurfacePtr&);
     bool ensureSlices(const PicturePtr&);
     bool ensureCodedBufferSize();
-    Encode_Status getCodecCofnig(VideoEncOutputBuffer *outBuffer);
+    Encode_Status getCodecCofnig(VideoEncOutputBuffer *outBuffer, PicturePtr picture);
+    Encode_Status getStreamHeader(VideoEncOutputBuffer *outBuffer, PicturePtr picture);
 
     //reference list related
     bool referenceListUpdate (const PicturePtr&, const SurfacePtr&);
@@ -132,9 +135,9 @@ private:
     uint32_t m_log2MaxPicOrderCnt;
     uint32_t m_idrNum;
 
-    std::vector<uint8_t> m_sps;
-    std::vector<uint8_t> m_pps;
-    Lock m_paramLock; // locker for parameters update, for example: sps/pps/m_maxCodedbufSize (width/height etc)
+    StreamHeaderPtr m_sps;
+    StreamHeaderPtr m_pps;
+    Lock m_paramLock; // locker for parameters update, for example: m_sps/m_pps/m_maxCodedbufSize (width/height etc)
 };
 }
 #endif /* vaapiencoder_h264_h */

@@ -54,11 +54,12 @@ enum {
 
 enum VideoOutputFormat {
     OUTPUT_EVERYTHING = 0,      //Output whatever driver generates
-    OUTPUT_CODEC_DATA = 1,
+    OUTPUT_CODEC_DATA = 1,      // codec data for mp4, similar to avcc format
     OUTPUT_FRAME_DATA = 2,      //Equal to OUTPUT_EVERYTHING when no header along with the frame data
     OUTPUT_ONE_NAL = 4,
     OUTPUT_ONE_NAL_WITHOUT_STARTCODE = 8,
     OUTPUT_LENGTH_PREFIXED = 16,
+    OUTPUT_STREAM_HEADER = 32,       // sps/pss in bytestream format OUTPUT_EVERYTHING = OUTPUT_STREAM_HEADER (if needed) + OUTPUT_FRAME_DATA;
     OUTPUT_BUFFER_LAST
 };
 
