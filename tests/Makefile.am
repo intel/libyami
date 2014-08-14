@@ -33,7 +33,7 @@ decode_LDADD	= $(YAMI_DECODE_LIBS) -lX11
 decode_SOURCES	= decode.cpp
 
 h264encode_LDADD	= $(YAMI_ENCODE_LIBS) -lX11
-h264encode_SOURCES	= h264encode.cpp
+h264encode_SOURCES	= h264encode.cpp encodehelp.h
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
-v4l2encode_SOURCES = v4l2encode.cpp
+v4l2encode_SOURCES = v4l2encode.cpp encodehelp.h

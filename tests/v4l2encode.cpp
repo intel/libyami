@@ -33,15 +33,10 @@
 
 #include "common/log.h"
 #include "v4l2/v4l2_wrapper.h"
+#include "encodehelp.h"
 
-const uint32_t inputFrameFormat  = V4L2_PIX_FMT_YUV420M;
-const uint32_t inputFramePlaneCount = 3;
-const uint32_t inputFrameWidth   = 320;
-const uint32_t inputFrameHeight  = 192;
-const uint32_t inputFramerate    = 30;
-const uint32_t outputBitrate     = 400000;
-const char* fileName    = "/home/halley/media/video/raw/bear_320x192_40frames.yuv";
-const char* outFilename = "out.h264";
+const uint32_t inputFramePlaneCount = 3; // I420 format has 3 planes
+
 const uint32_t kMaxFrameQueueLength = 8;
 uint32_t inputQueueCapacity = 0;
 uint32_t outputQueueCapacity = 0;
@@ -59,10 +54,10 @@ bool readOneFrameData(uint8_t *data, uint32_t frameSize)
         return false;
 
     if(!fp)
-        fp = fopen(fileName, "r");
+        fp = fopen(inputFileName, "r");
 
     if (!fp) {
-        fprintf(stderr, "fail to open file: %s\n", fileName);
+        fprintf(stderr, "fail to open file: %s\n", inputFileName);
         return false;
     }
 
@@ -102,7 +97,7 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
             isEncodeEOS = true;
         return false;
     }
-    if (!readOneFrameData(inputFrames[buf.index], inputFrameWidth*inputFrameHeight*3/2)) {
+    if (!readOneFrameData(inputFrames[buf.index], videoWidth*videoHeight*3/2)) {
         ASSERT(isReadEOS);
         dqCountAfterEOS++;
         return false;
@@ -115,12 +110,12 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
         buf.m.planes[2].m.userptr = 0;
 
     } else {
-        buf.m.planes[0].bytesused = inputFrameWidth*inputFrameHeight;
-        buf.m.planes[1].bytesused = inputFrameWidth*inputFrameHeight/4;
-        buf.m.planes[2].bytesused = inputFrameWidth*inputFrameHeight/4;
+        buf.m.planes[0].bytesused = videoWidth*videoHeight;
+        buf.m.planes[1].bytesused = videoWidth*videoHeight/4;
+        buf.m.planes[2].bytesused = videoWidth*videoHeight/4;
         buf.m.planes[0].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index]);
-        buf.m.planes[1].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index] + inputFrameWidth*inputFrameHeight);
-        buf.m.planes[2].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index] + inputFrameWidth*inputFrameHeight*5/4);
+        buf.m.planes[1].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index] + videoWidth*videoHeight);
+        buf.m.planes[2].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index] + videoWidth*videoHeight*5/4);
     }
 
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
@@ -134,9 +129,9 @@ bool writeOneOutputFrame(uint8_t* data, uint32_t dataSize)
     static FILE* fp = NULL;
 
     if(!fp) {
-        fp = fopen(outFilename, "w+");
+        fp = fopen(outputFileName, "w+");
         if (!fp) {
-            fprintf(stderr, "fail to open file: %s\n", outFilename);
+            fprintf(stderr, "fail to open file: %s\n", outputFileName);
             return false;
         }
     }
@@ -199,6 +194,10 @@ int main(int argc, char** argv)
     int32_t i = 0;
     int32_t ioctlRet = -1;
 
+    // parse command line parameters
+    if (!process_cmdline(argc, argv))
+        return -1;
+
     // open device
     fd = YamiV4L2_Open("encoder", 0);
     ASSERT(fd!=-1);
@@ -220,9 +219,9 @@ int main(int argc, char** argv)
 
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUV420M;
-    format.fmt.pix_mp.width = inputFrameWidth;
-    format.fmt.pix_mp.height = inputFrameHeight;
+    format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUV420M; // XXX, support I420 only for now
+    format.fmt.pix_mp.width = videoWidth;
+    format.fmt.pix_mp.height = videoHeight;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
 
@@ -230,7 +229,7 @@ int main(int argc, char** argv)
     struct v4l2_streamparm parms;
     memset(&parms, 0, sizeof(parms));
     parms.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    parms.parm.output.timeperframe.denominator = inputFramerate;
+    parms.parm.output.timeperframe.denominator = fps;
     parms.parm.output.timeperframe.numerator = 1;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_PARM, &parms);
     ASSERT(ioctlRet != -1);
@@ -241,7 +240,7 @@ int main(int argc, char** argv)
     memset(&ctrls, 0, sizeof(ctrls));
     memset(&control, 0, sizeof(control));
     ctrls[0].id = V4L2_CID_MPEG_VIDEO_BITRATE;
-    ctrls[0].value = outputBitrate;
+    ctrls[0].value = bitRate;
     control.ctrl_class = V4L2_CTRL_CLASS_MPEG;
     control.count = 1;
     control.controls = ctrls;
@@ -280,7 +279,7 @@ int main(int argc, char** argv)
     inputQueueCapacity = reqbufs.count;
 
     for (i=0; i<inputQueueCapacity; i++)
-        inputFrames[i] = static_cast<uint8_t*>(malloc(inputFrameWidth * inputFrameHeight * 3/2)); //
+        inputFrames[i] = static_cast<uint8_t*>(malloc(videoWidth * videoHeight * 3/2)); //
     for (i=inputQueueCapacity; i<kMaxFrameQueueLength; i++)
         inputFrames[i] = NULL;
 
