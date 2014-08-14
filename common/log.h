@@ -80,6 +80,10 @@ extern int isIni;
 }while (0)
 #endif
 
+#ifndef ASSERT
+#define ASSERT(expr) assert(expr)
+#endif
+
 #else                           //__ENABLE_DEBUG__
 #ifndef INFO
 #define INFO(format, ...)
@@ -97,8 +101,11 @@ extern int isIni;
 #endif
 #endif                          //__ENABLE_DEBUG__
 
-#endif                          //__ANDROID
+#ifndef ASSERT
+#define ASSERT(...)
+#endif
 
+#endif                          //__ANDROID
 void yamiTraceInit();
 
 #endif                          //__LOG_H__

@@ -528,6 +528,7 @@ VaapiEncoderH264::~VaapiEncoderH264()
 
 void VaapiEncoderH264::resetParams ()
 {
+    AutoLock locker(m_paramLock);
 
     m_levelIdc = level();
 
@@ -639,6 +640,8 @@ Encode_Status VaapiEncoderH264::stop()
 Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigSet *videoEncParams)
 {
     Encode_Status status = ENCODE_SUCCESS;
+    AutoLock locker(m_paramLock);
+
     FUNC_ENTER();
     if (!videoEncParams)
         return ENCODE_INVALID_PARAMS;
@@ -664,6 +667,8 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigSet *videoEncParam
 
 Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigSet *videoEncParams)
 {
+    AutoLock locker(m_paramLock);
+
     FUNC_ENTER();
     if (!videoEncParams)
         return ENCODE_INVALID_PARAMS;
@@ -723,6 +728,7 @@ Encode_Status VaapiEncoderH264::getCodecCofnig(VideoEncOutputBuffer *outBuffer)
     const uint32_t nalLengthSize = 4;
     uint8_t profileIdc, profileComp, levelIdc;
     BitWriter bs;
+    AutoLock locker(m_paramLock);
 
     if (!m_sps.size() || !m_pps.size())
         return ENCODE_NO_REQUEST_DATA;
@@ -1052,6 +1058,7 @@ bool VaapiEncoderH264::addPackedSequenceHeader(const PicturePtr& picture,const V
     BitWriter bs;
     uint32_t dataBitSize;
     uint8_t *data;
+    AutoLock locker(m_paramLock);
 
     bit_writer_init (&bs, 128 * 8);
     bit_writer_put_bits_uint32 (&bs, 0x00000001, 32);   /* start code */
@@ -1091,6 +1098,7 @@ bool VaapiEncoderH264::addPackedPictureHeader(const PicturePtr& picture, const V
     BitWriter bs;
     uint32_t dataBitSize;
     uint8_t *data;
+    AutoLock locker(m_paramLock);
 
     bit_writer_init (&bs, 128 * 8);
     bit_writer_put_bits_uint32 (&bs, 0x00000001, 32);   /* start code */

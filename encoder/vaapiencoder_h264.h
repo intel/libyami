@@ -26,6 +26,7 @@
 
 #include "vaapiencoder_base.h"
 #include "vaapi/vaapiptrs.h"
+#include "common/lock.h"
 #include <list>
 #include <queue>
 #include <pthread.h>
@@ -133,6 +134,7 @@ private:
 
     std::vector<uint8_t> m_sps;
     std::vector<uint8_t> m_pps;
+    Lock m_paramLock; // locker for parameters update, for example: sps/pps/m_maxCodedbufSize (width/height etc)
 };
 }
 #endif /* vaapiencoder_h264_h */
