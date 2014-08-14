@@ -50,6 +50,15 @@ AC_DEFINE([__ENABLE_TESTS__], [1], [Defined to 1 if --enable-tests="yes" ])
 fi
 AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "xyes")
 
+AC_ARG_ENABLE(v4l2,
+    [AC_HELP_STRING([--enable-v4l2], [wrapper of v4l2 interface@<:@default=no@:>@])],
+    [], [enable_v4l2="no"])
+
+if test "$enable_v4l2" = "yes"; then
+AC_DEFINE([__ENABLE_V4L2__], [1], [Defined to 1 if --enable-v4l2="yes" ])
+fi
+AM_CONDITIONAL(ENABLE_V4L2, test "x$enable_v4l2" = "xyes")
+
 AC_ARG_ENABLE(baytrail,
     [AC_HELP_STRING([--enable-baytrail], [build with baytrail/chromeos support @<:@default=no@:>@])],
     [], [enable_baytrail="no"])
@@ -141,6 +150,9 @@ PKG_CHECK_MODULES(LIBVA, [libva])
 PKG_CHECK_MODULES(LIBVA_DRM, [libva-drm])
 PKG_CHECK_MODULES(LIBVA_X11, [libva-x11],
 	         [AC_DEFINE([HAVE_VA_X11], [1], [Defined to 1 if VA/X11 API is enabled])])
+if test "$enable_v4l2" = "yes"; then
+PKG_CHECK_MODULES(LIBV4L2, [libv4l2])
+fi
 
 # Checks for library functions.
 AC_FUNC_MALLOC
@@ -153,6 +165,7 @@ AC_CONFIG_FILES([Makefile
                  vaapi/Makefile
                  decoder/Makefile
                  encoder/Makefile
+                 v4l2/Makefile
                  tests/Makefile
                  doc/Makefile
                  pkgconfig/Makefile])

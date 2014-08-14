@@ -14,6 +14,10 @@ if ENABLE_DOCS
 	SUBDIRS += doc
 endif
 
+if ENABLE_V4L2
+SUBDIRS += v4l2
+endif
+
 if ENABLE_TESTS
 SUBDIRS += tests
 endif
