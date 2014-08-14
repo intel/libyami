@@ -6,16 +6,23 @@ AM_CPPFLAGS = \
 	$(LIBVA_CFLAGS)             \
 	$(NULL)
 
-DECODE_LIBS 	= \
+YAMI_COMMON_LIBS 	= \
+	$(top_builddir)/common/libyami_common.la		\
+	$(top_builddir)/vaapi/libyami_vaapi.la		\
+	$(NULL)
+
+YAMI_DECODE_LIBS 	= \
+	$(YAMI_COMMON_LIBS)                             \
 	$(top_builddir)/decoder/libyami_decoder.la		\
 	$(NULL)
 
-H264ENCODE_LIBS = \
+YAMI_ENCODE_LIBS = \
+	$(YAMI_COMMON_LIBS)                             \
 	$(top_builddir)/encoder/libyami_encoder.la		\
 	$(NULL)
 
-decode_LDADD	= $(DECODE_LIBS) -lX11
+decode_LDADD	= $(YAMI_DECODE_LIBS) -lX11
 decode_SOURCES	= decode.cpp
 
-h264encode_LDADD	= $(H264ENCODE_LIBS) -lX11
+h264encode_LDADD	= $(YAMI_ENCODE_LIBS) -lX11
 h264encode_SOURCES	= h264encode.cpp
