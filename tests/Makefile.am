@@ -3,6 +3,7 @@ bin_PROGRAMS = decode h264encode
 AM_CPPFLAGS = \
 	-I$(top_srcdir)			\
 	-I$(top_srcdir)/interface	\
+	$(LIBVA_CFLAGS)             \
 	$(NULL)
 
 DECODE_LIBS 	= \
