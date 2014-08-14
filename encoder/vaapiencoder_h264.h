@@ -73,6 +73,7 @@ private:
     bool ensureSequence(const PicturePtr&);
     bool ensurePicture (const PicturePtr&,const CodedBufferPtr&, const SurfacePtr&);
     bool ensureSlices(const PicturePtr&);
+    bool ensureCodedBufferSize();
     Encode_Status getCodecCofnig(VideoEncOutputBuffer *outBuffer);
 
     //reference list related
@@ -130,7 +131,6 @@ private:
     uint32_t m_maxPicOrderCnt;
     uint32_t m_log2MaxPicOrderCnt;
     uint32_t m_idrNum;
-    uint32_t m_maxCodedbufSize;
 
     std::vector<uint8_t> m_sps;
     std::vector<uint8_t> m_pps;

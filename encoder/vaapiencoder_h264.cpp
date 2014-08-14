@@ -508,8 +508,7 @@ public:
 VaapiEncoderH264::VaapiEncoderH264():
     m_useCabac(false),
     m_useDct8x8(false),
-    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
-    m_maxCodedbufSize(0)
+    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;
@@ -526,51 +525,28 @@ VaapiEncoderH264::~VaapiEncoderH264()
     pthread_mutex_destroy(&m_outputQueueMutex);
 }
 
-void VaapiEncoderH264::resetParams ()
+bool VaapiEncoderH264::ensureCodedBufferSize()
 {
     AutoLock locker(m_paramLock);
+    uint32_t mbSize;
 
-    m_levelIdc = level();
+    FUNC_ENTER();
+
+    if (m_maxCodedbufSize)
+        return true;
+
+    if (!width() || !height()) {
+        return false;
+    }
 
     m_mbWidth = (width() + 15) / 16;
     m_mbHeight = (height() + 15)/ 16;
     //FIXME:
     m_numSlices = 1;
-    m_numBFrames = 0;
-
-    uint32_t mbSize;
-
-    if (keyFramePeriod() < intraPeriod())
-        keyFramePeriod() = intraPeriod();
-    if (keyFramePeriod() > MAX_IDR_PERIOD)
-        keyFramePeriod() = MAX_IDR_PERIOD;
-
-    if (minQP() > initQP() ||
-            (rateControlMode()== RATE_CONTROL_CQP && minQP() < initQP()))
-        minQP() = initQP();
-
     mbSize = m_mbWidth * m_mbHeight;
     if (m_numSlices > (mbSize + 1) / 2)
         m_numSlices = (mbSize + 1) / 2;
-    assert (m_numSlices);
-
-    if (m_numBFrames > (intraPeriod() + 1) / 2)
-        m_numBFrames = (intraPeriod() + 1) / 2;
-
-    /* init m_maxFrameNum, max_poc */
-    m_log2MaxFrameNum =
-        h264_get_log2_max_frame_num (keyFramePeriod());
-    assert (m_log2MaxFrameNum >= 4);
-    m_maxFrameNum = (1 << m_log2MaxFrameNum);
-    m_log2MaxPicOrderCnt = m_log2MaxFrameNum + 1;
-    m_maxPicOrderCnt = (1 << m_log2MaxPicOrderCnt);
-
-    m_maxRefList0Count = 1;
-    m_maxRefList1Count = m_numBFrames > 0;
-    m_maxRefFrames =
-        m_maxRefList0Count + m_maxRefList1Count;
-
-    INFO("m_maxRefFrames: %d\n", m_maxRefFrames);
+    ASSERT (m_numSlices);
 
     /* Maximum sizes for common headers (in bits) */
     enum
@@ -599,6 +575,49 @@ void VaapiEncoderH264::resetParams ()
     /* Account for slice header */
     m_maxCodedbufSize += m_numSlices * (4 +
         (MAX_SLICE_HDR_SIZE + 7) / 8);
+    DEBUG("m_maxCodedbufSize: %u", m_maxCodedbufSize);
+
+    return true;
+}
+
+void VaapiEncoderH264::resetParams ()
+{
+
+    m_levelIdc = level();
+
+    DEBUG("resetParams, ensureCodedBufferSize");
+    ensureCodedBufferSize();
+
+    //FIXME:
+    m_numBFrames = 0;
+
+    if (keyFramePeriod() < intraPeriod())
+        keyFramePeriod() = intraPeriod();
+    if (keyFramePeriod() > MAX_IDR_PERIOD)
+        keyFramePeriod() = MAX_IDR_PERIOD;
+
+    if (minQP() > initQP() ||
+            (rateControlMode()== RATE_CONTROL_CQP && minQP() < initQP()))
+        minQP() = initQP();
+
+    if (m_numBFrames > (intraPeriod() + 1) / 2)
+        m_numBFrames = (intraPeriod() + 1) / 2;
+
+    /* init m_maxFrameNum, max_poc */
+    m_log2MaxFrameNum =
+        h264_get_log2_max_frame_num (keyFramePeriod());
+    assert (m_log2MaxFrameNum >= 4);
+    m_maxFrameNum = (1 << m_log2MaxFrameNum);
+    m_log2MaxPicOrderCnt = m_log2MaxFrameNum + 1;
+    m_maxPicOrderCnt = (1 << m_log2MaxPicOrderCnt);
+
+    m_maxRefList0Count = 1;
+    m_maxRefList1Count = m_numBFrames > 0;
+    m_maxRefFrames =
+        m_maxRefList0Count + m_maxRefList1Count;
+
+    INFO("m_maxRefFrames: %d", m_maxRefFrames);
+
 
     resetGopStart();
 }
@@ -606,7 +625,12 @@ void VaapiEncoderH264::resetParams ()
 Encode_Status VaapiEncoderH264::getMaxOutSize(uint32_t *maxSize)
 {
     FUNC_ENTER();
-    *maxSize = m_maxCodedbufSize;
+
+    if (ensureCodedBufferSize())
+        *maxSize = m_maxCodedbufSize;
+    else
+        *maxSize = 0;
+
     return ENCODE_SUCCESS;
 }
 
@@ -624,7 +648,7 @@ void VaapiEncoderH264::flush()
     m_reorderFrameList.clear();
     m_refList.clear();
 
-    INFO("output queue size: %ld\n", m_outputQueue.size());
+    INFO("output queue size: %ld", m_outputQueue.size());
     pthread_mutex_lock(&m_outputQueueMutex);
     while (!m_outputQueue.empty())
         m_outputQueue.pop();
@@ -782,6 +806,8 @@ Encode_Status VaapiEncoderH264::submitEncode()
     FUNC_ENTER();
     Encode_Status ret;
     if (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
+        if (!m_maxCodedbufSize)
+            ensureCodedBufferSize();
         CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
@@ -793,7 +819,7 @@ Encode_Status VaapiEncoderH264::submitEncode()
             return ret;
         }
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_ENDOFFRAME);
-        INFO("picture->m_type: 0x%x\n", picture->m_type);
+        INFO("picture->m_type: 0x%x", picture->m_type);
         if (picture->m_type == VAAPI_PICTURE_TYPE_I) {
             codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
         }

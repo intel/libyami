@@ -39,7 +39,8 @@ namespace YamiMediaCodec{
 VaapiEncoderBase::VaapiEncoderBase():
     m_entrypoint(VAEntrypointEncSlice),
     m_externalDisplay(NULL),
-    m_maxOutputBuffer(MaxOutputBuffer)
+    m_maxOutputBuffer(MaxOutputBuffer),
+    m_maxCodedbufSize(0)
 {
     FUNC_ENTER();
     m_videoParamCommon.rawFormat = RAW_FORMAT_NV12;
@@ -145,7 +146,7 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigSet *videoEncParam
             m_videoParamCommon = *common;
         } else
             ret = ENCODE_INVALID_PARAMS;
-        updateMaxOutputBufferCount();
+        m_maxCodedbufSize = 0; // resolution may change, recalculate max codec buffer size when it is requested
         break;
     }
     case VideoConfigTypeFrameRate: {
@@ -162,7 +163,7 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigSet *videoEncParam
         ret = ENCODE_INVALID_PARAMS;
         break;
     }
-    INFO("bitrate: %d\n", bitRate());
+    INFO("bitrate: %d", bitRate());
     return ret;
 }
 
@@ -256,7 +257,7 @@ void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
 {
     hrd->buffer_size = m_videoParamCommon.rcParams.bitRate * m_videoParamCommon.rcParams.windowSize/1000;
     hrd->initial_buffer_fullness = hrd->buffer_size/2;
-    DEBUG("bitRate: %d, hrd->buffer_size: %d, hrd->initial_buffer_fullness: %d\n",
+    DEBUG("bitRate: %d, hrd->buffer_size: %d, hrd->initial_buffer_fullness: %d",
         m_videoParamCommon.rcParams.bitRate, hrd->buffer_size,hrd->initial_buffer_fullness);
 }
 
