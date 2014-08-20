@@ -3,6 +3,7 @@
  *
  *  Copyright (C) 2014 Intel Corporation
  *    Author: Xu Guangxin <guangxin.xu@intel.com>
+ *            Zhao Halley<halley.zhao@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -24,14 +25,33 @@
 #include "config.h"
 #endif
 #include "vaapi/vaapidisplay.h"
-
-#include "common/log.h"
-#include "vaapi/vaapiutils.h"
+#include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <list>
+#include "common/log.h"
+#include "common/lock.h"
+#include "vaapi/vaapiutils.h"
+
 
 using std::tr1::shared_ptr;
 using std::tr1::weak_ptr;
 using std::list;
+/**
+1. client and yami shares the same display when it provides both native
+   display (x11 Display or drm fd) and display type in setNativeDisplay().
+   client owns the native display
+2. when client set native display type only, yami will create a native
+   display and owns it.
+3. when client doesn't set any native display, or set display type to
+   NATIVE_DISPLAY_AUTO; yami will try to open a x11 display first. if fail,
+   drm display will try next
+
+4. A x11 display is compatible to drm display, while not reverse.
+   it means, when there is a VADisplay created from x11 display already ,
+   yami will not create a new display when drm display is requested,
+   simplely reuse the VADisplay.
+*/
 
 //helper function
 static bool vaInit(VADisplay vaDisplay)
@@ -42,79 +62,98 @@ static bool vaInit(VADisplay vaDisplay)
    return checkVaapiStatus(vaStatus, "vaInitialize");
 }
 
-typedef std::tr1::shared_ptr<Display> XDisplayPtr;
-class VaapiX11Display:public VaapiDisplay
-{
-    friend DisplayPtr X11DisplayCreate(Display* display);
+class NativeDisplayBase {
+  public:
+    NativeDisplayBase() :m_handle(0) { };
+    ~NativeDisplayBase() {};
+    virtual bool initialize(const NativeDisplay& display) = 0;
+    virtual bool isCompatible (const NativeDisplay& display) = 0;
+    intptr_t nativeHandle() {return m_handle;};
 
-public:
-    bool setRotation(int degree);
-
-
-    ~VaapiX11Display();
-protected:
-    virtual bool isCompatible(const Display* other)
-    {
-        //NULL means any useful thing is ok
-        if (!other)
+  protected:
+    virtual bool acceptValidExternalHandle(const NativeDisplay& display) {
+        if (display.handle && display.handle != -1) {
+            m_handle = display.handle;
+            m_selfCreated = false;
             return true;
-        return other == m_xDisplay.get();
-    }
-
-private:
-    VaapiX11Display(const XDisplayPtr &, VADisplay);
-    XDisplayPtr m_xDisplay;
-};
-
-struct XDisplayDeleter
-{
-    void operator()(Display* display) { XCloseDisplay(display); }
-};
-
-struct XDisplayNullDeleter
-{
-    void operator()(Display* display) { /*nothing*/ }
-};
-
-DisplayPtr X11DisplayCreate(Display* display)
-{
-    DisplayPtr ret;
-    XDisplayPtr xDisplay;
-
-    if (!display) {
-        display = XOpenDisplay(NULL);
-        if (!display) {
-            ERROR("create local display failed");
-            return ret;
         }
-        xDisplay.reset(display, XDisplayDeleter());
-    } else {
-        xDisplay.reset(display, XDisplayNullDeleter());
+        return false;
     }
+    intptr_t m_handle;
+    bool m_selfCreated;
 
-    VADisplay vaDisplay = vaGetDisplay(display);
-    if (vaDisplay == NULL) {
-        ERROR("vaGetDisplay failed.");
-        return ret;
+  private:
+    DISALLOW_COPY_AND_ASSIGN(NativeDisplayBase);
+};
+
+class NativeDisplayX11 : public NativeDisplayBase{
+  public:
+    NativeDisplayX11() :NativeDisplayBase(){ };
+    ~NativeDisplayX11() {
+        if (m_selfCreated && m_handle)
+            XCloseDisplay((Display*)(m_handle));
+    };
+
+    virtual bool initialize (const NativeDisplay& display) {
+        ASSERT(display.type == NATIVE_DISPLAY_X11 || display.type == NATIVE_DISPLAY_AUTO);
+
+        if (acceptValidExternalHandle(display))
+            return true;
+
+        m_handle = (intptr_t)XOpenDisplay(NULL);
+        m_selfCreated = true;
+        return (Display*)m_handle != NULL;
+    };
+
+    virtual bool isCompatible(const NativeDisplay& display) {
+        if (display.type == NATIVE_DISPLAY_DRM || display.type == NATIVE_DISPLAY_AUTO)
+            return true; // x11 is compatile to any drm, (do not consider one X with 2 gfx device)
+        if (display.type == NATIVE_DISPLAY_X11 && (!display.handle || display.handle == m_handle))
+            return true;
+        return false;
     }
+};
 
-    if (vaInit(vaDisplay))
-        ret.reset(new VaapiX11Display(xDisplay, vaDisplay));
-    return ret;
-}
+class NativeDisplayDrm : public NativeDisplayBase{
+  public:
+    NativeDisplayDrm() :NativeDisplayBase(){ };
+    ~NativeDisplayDrm() {
+        if (m_selfCreated && m_handle && m_handle != -1)
+            ::close(m_handle);
+    };
+    virtual bool initialize (const NativeDisplay& display) {
+        ASSERT(display.type == NATIVE_DISPLAY_DRM || display.type == NATIVE_DISPLAY_AUTO);
 
-VaapiX11Display::VaapiX11Display(const XDisplayPtr& xDisplay, VADisplay vaDisplay)
-:VaapiDisplay(vaDisplay), m_xDisplay(xDisplay)
+        if (acceptValidExternalHandle(display))
+            return true;
+
+        m_handle = open("/dev/dri/card0", O_RDWR);
+        m_selfCreated = true;
+        return m_handle != -1;
+    };
+
+    bool isCompatible(const NativeDisplay& display) {
+        if (display.type != NATIVE_DISPLAY_DRM)
+            return false;
+        if (display.handle == 0 || display.handle == -1 || display.handle == m_handle)
+            return true;
+        return true;
+    }
+};
+
+typedef std::tr1::shared_ptr<NativeDisplayBase> NativeDisplayPtr;
+
+bool VaapiDisplay::isCompatible(const NativeDisplay& other)
 {
-
+    return m_nativeDisplay->isCompatible(other);
 }
 
-VaapiX11Display::~VaapiX11Display()
+VaapiDisplay::~VaapiDisplay()
 {
-    vaTerminate(m_display);
+    vaTerminate(m_vaDisplay);
 }
 
-bool VaapiX11Display::setRotation(int degree)
+bool VaapiDisplay::setRotation(int degree)
 {
     VAStatus vaStatus;
     VADisplayAttribute rotate;
@@ -129,29 +168,26 @@ bool VaapiX11Display::setRotation(int degree)
     else if (degree == 270)
         rotate.value = VA_ROTATION_270;
 
-    vaStatus = vaSetDisplayAttributes(m_display, &rotate, 1);
+    vaStatus = vaSetDisplayAttributes(m_vaDisplay, &rotate, 1);
     if (!checkVaapiStatus(vaStatus, "vaSetDisplayAttributes"))
         return false;
     return true;
 
 }
 
-
-
 //display cache
 class DisplayCache
 {
 public:
     static shared_ptr<DisplayCache> getInstance();
-    template <typename UserData>
-    DisplayPtr createDisplay(DisplayPtr (*create)(UserData), const UserData& data);
+    DisplayPtr createDisplay(const NativeDisplay& nativeDisplay);
 
-    ~DisplayCache() { pthread_mutex_destroy(&m_lock); }
+    ~DisplayCache() {}
 private:
-    DisplayCache() { pthread_mutex_init(&m_lock, NULL);}
+    DisplayCache() {}
 
     list<weak_ptr<VaapiDisplay> > m_cache;
-    pthread_mutex_t m_lock;
+    YamiMediaCodec::Lock m_lock;
 };
 
 shared_ptr<DisplayCache> DisplayCache::getInstance()
@@ -167,41 +203,64 @@ bool expired(const weak_ptr<VaapiDisplay>& weak)
     return !weak.lock();
 }
 
-template <typename UserData>
-DisplayPtr DisplayCache::createDisplay(DisplayPtr (*create)(UserData), const UserData& data)
+DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
 {
-    pthread_mutex_lock(&m_lock);
+    NativeDisplayPtr nativeDisplayObj;
+    VADisplay vaDisplay = NULL;
+    DisplayPtr vaapiDisplay;
+    YamiMediaCodec::AutoLock locker(m_lock);
+
     m_cache.remove_if(expired);
 
     //lockup first
-    DisplayPtr display;
     list<weak_ptr<VaapiDisplay> >::iterator it;
     for (it = m_cache.begin(); it != m_cache.end(); ++it) {
-        display = (*it).lock();
-        if (display->isCompatible(data)) {
-            pthread_mutex_unlock(&m_lock);
-            return display;
+        vaapiDisplay = (*it).lock();
+        if (vaapiDisplay->isCompatible(nativeDisplay)) {
+            return vaapiDisplay;
         }
     }
+    vaapiDisplay.reset();
 
     //crate new one
-    display = create(data);
-    if (display) {
-        weak_ptr<VaapiDisplay> weak(display);
+    DEBUG("nativeDisplay: (type : %d), (handle : 0x%x)", nativeDisplay.type, nativeDisplay.handle);
+
+    switch (nativeDisplay.type) {
+    case NATIVE_DISPLAY_AUTO:
+    case NATIVE_DISPLAY_X11:
+        nativeDisplayObj.reset (new NativeDisplayX11());
+        if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
+            vaDisplay = vaGetDisplay(nativeDisplayObj->nativeHandle());
+        if(vaDisplay || nativeDisplay.type == NATIVE_DISPLAY_X11)
+            break;
+        // NATIVE_DISPLAY_AUTO continue, no break
+    case NATIVE_DISPLAY_DRM:
+        nativeDisplayObj.reset (new NativeDisplayDrm());
+        if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
+            vaDisplay = vaGetDisplayDRM(nativeDisplayObj->nativeHandle());
+        INFO("use vaapi drm backend");
+        break;
+    default:
+        break;
+    }
+
+    if (vaDisplay == NULL) {
+        ERROR("vaGetDisplay failed.");
+        return vaapiDisplay;
+    }
+
+    if (vaInit(vaDisplay))
+        vaapiDisplay.reset(new VaapiDisplay(nativeDisplayObj, vaDisplay));
+
+    if (vaapiDisplay) {
+        weak_ptr<VaapiDisplay> weak(vaapiDisplay);
         m_cache.push_back(weak);
     }
-    pthread_mutex_unlock(&m_lock);
-    return display;
+    return vaapiDisplay;
 }
 
-
-bool VaapiDisplay::setRotation(int degree)
+DisplayPtr VaapiDisplay::create(const NativeDisplay& display)
 {
-    return true;
-}
-
-DisplayPtr VaapiDisplay::create(Display* display)
-{
-    return DisplayCache::getInstance()->createDisplay(X11DisplayCreate, display);
+    return DisplayCache::getInstance()->createDisplay(display);
 }
 

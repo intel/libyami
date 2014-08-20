@@ -187,6 +187,7 @@ int main(int argc, char** argv)
     Window window = 0;
     int64_t timeStamp = 0;
     int32_t videoWidth = 0, videoHeight = 0;
+    NativeDisplay nativeDisplay;
 
     if (argc <2) {
         fprintf(stderr, "no input file to decode\n");
@@ -202,7 +203,9 @@ int main(int argc, char** argv)
 
     x11Display = XOpenDisplay(NULL);
     decoder = createVideoDecoder("video/h264");
-    decoder->setXDisplay(x11Display);
+    nativeDisplay.type = NATIVE_DISPLAY_X11;
+    nativeDisplay.handle = (intptr_t)x11Display;
+    decoder->setNativeDisplay(&nativeDisplay);
 
     configBuffer.data = NULL;
     configBuffer.size = 0;

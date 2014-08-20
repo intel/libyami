@@ -67,7 +67,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     virtual void renderDone(VideoRenderBuffer * renderBuf);
 
     /* native window related functions */
-    void setXDisplay(Display * xDisplay);
+    void setNativeDisplay(NativeDisplay * nativeDisplay);
     void enableNativeBuffers(void);
     Decode_Status getClientNativeWindowBuffer(void *bufferHeader,
                                               void *nativeBufferHandle);
@@ -81,7 +81,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status outputPicture(const PicturePtr& picture);
     SurfacePtr createSurface();
 
-    Display*   m_externalDisplay;
+    NativeDisplay   m_externalDisplay;
     DisplayPtr m_display;
     ContextPtr m_context;
     bool m_VAStarted;

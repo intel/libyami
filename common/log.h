@@ -29,6 +29,7 @@
 #define DEBUG(...)   ALOGV(__VA_ARGS__);
 #else
 #include <stdio.h>
+#include <assert.h>
 extern int yamiLogFlag;
 extern FILE* yamiLogFn;
 extern int isIni;

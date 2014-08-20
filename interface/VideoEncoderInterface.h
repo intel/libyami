@@ -36,8 +36,8 @@ namespace YamiMediaCodec{
 class IVideoEncoder {
   public:
     virtual ~ IVideoEncoder() {}
-    ///set external display
-    virtual void  setXDisplay(Display * xdisplay) = 0;
+    /// set native display
+    virtual void  setNativeDisplay( NativeDisplay * display = NULL) = 0;
     /** \brief start encode, make sure you setParameters before start, else if will use default.
     */
     virtual Encode_Status start(void) = 0;

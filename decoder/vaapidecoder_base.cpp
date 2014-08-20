@@ -42,8 +42,7 @@
 namespace YamiMediaCodec{
 typedef VaapiDecoderBase::PicturePtr PicturePtr;
 
-VaapiDecoderBase::VaapiDecoderBase()
-:m_externalDisplay(NULL),
+VaapiDecoderBase::VaapiDecoderBase():
 m_renderTarget(NULL),
 m_lastReference(NULL),
 m_forwardReference(NULL),
@@ -51,6 +50,8 @@ m_VAStarted(false),
 m_currentPTS(INVALID_PTS), m_enableNativeBuffersFlag(false)
 {
     INFO("base: construct()");
+    m_externalDisplay.handle = 0,
+    m_externalDisplay.type = NATIVE_DISPLAY_AUTO,
     memset(&m_videoFormatInfo, 0, sizeof(VideoFormatInfo));
     memset(&m_configBuffer, 0, sizeof(m_configBuffer));
 }
@@ -329,23 +330,22 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
     m_surfacePool.reset();
     m_context.reset();
     m_display.reset();
-    m_externalDisplay = NULL;
+    m_externalDisplay.type = NATIVE_DISPLAY_AUTO;
+    m_externalDisplay.handle = 0;
 
     m_VAStarted = false;
     return DECODE_SUCCESS;
 }
 
-/* not used funtion here */
-void VaapiDecoderBase::setXDisplay(Display * xDisplay)
+void VaapiDecoderBase::setNativeDisplay(NativeDisplay * nativeDisplay)
 {
-    if (m_externalDisplay) {
-        WARNING
-            ("it may be buggy that va context has been setup with self X display");
-    }
+    if (!nativeDisplay || nativeDisplay->type == NATIVE_DISPLAY_AUTO)
+        return;
 
-    m_externalDisplay = xDisplay;
+    m_externalDisplay = *nativeDisplay;
 }
 
+/* not used funtion here */
 void VaapiDecoderBase::enableNativeBuffers(void)
 {
 }

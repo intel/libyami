@@ -99,8 +99,8 @@ public:
     */
     virtual void renderDone(VideoRenderBuffer* buffer) = 0;
 
-    /// todo: move the x_display to VideoConfigBuffer and mark this API as obsolete
-    virtual void  setXDisplay(Display * x_display) = 0;
+    /// set native display
+    virtual void  setNativeDisplay( NativeDisplay * display = NULL) = 0;
     /// obsolete, make all cached video frame output-able, it can be done by getOutput(draining=true) as well
     virtual void flushOutport(void) = 0;
     /// not interest for now, may be used by Android to accept external video frame memory from gralloc

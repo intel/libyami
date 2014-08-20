@@ -24,6 +24,7 @@
 
 #include <va/va.h>
 #include <stdint.h>
+#include "VideoCommonDefs.h"
 
 namespace YamiMediaCodec {
 

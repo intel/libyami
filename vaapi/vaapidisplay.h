@@ -30,26 +30,37 @@
 #ifdef HAVE_VA_X11
 #include <va/va_x11.h>
 #endif
+#include <va/va_drm.h>
+#include "interface/VideoCommonDefs.h"
 
 ///abstract for all display, x11, wayland, ozone, android etc.
+class NativeDisplayBase;
 class VaapiDisplay
 {
-friend class DisplayCache;
+    typedef std::tr1::shared_ptr<NativeDisplayBase> NativeDisplayPtr;
+    friend class DisplayCache;
+
 public:
+    ~VaapiDisplay();
     //FIXME: add more create functions.
-    static DisplayPtr create(Display*);
+    static DisplayPtr create(const NativeDisplay& display);
 
     virtual bool setRotation(int degree);
 
-    VADisplay getID() const { return m_display; }
+    VADisplay getID() const { return m_vaDisplay; }
 
 protected:
     /// for display cache management.
-    virtual bool isCompatible(const Display*) {return false;}
+    virtual bool isCompatible(const NativeDisplay& other);
 
-    VaapiDisplay(VADisplay vaDisplay):m_display(vaDisplay){}
-    VADisplay   m_display;
-    DISALLOW_COPY_AND_ASSIGN(VaapiDisplay);
+private:
+    VaapiDisplay(const NativeDisplayPtr& nativeDisplay, VADisplay vaDisplay)
+    :m_vaDisplay(vaDisplay), m_nativeDisplay(nativeDisplay) { };
+
+    VADisplay   m_vaDisplay;
+    NativeDisplayPtr m_nativeDisplay;
+
+DISALLOW_COPY_AND_ASSIGN(VaapiDisplay);
 };
 
 #endif

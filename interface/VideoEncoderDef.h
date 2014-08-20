@@ -24,6 +24,7 @@
 
 #include <va/va.h>
 #include <stdint.h>
+#include "VideoCommonDefs.h"
 
 namespace YamiMediaCodec{
 #define STRING_TO_FOURCC(format) ((uint32_t)(((format)[0])|((format)[1]<<8)|((format)[2]<<16)|((format)[3]<<24)))

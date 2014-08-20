@@ -38,11 +38,13 @@ const uint32_t MaxOutputBuffer=5;
 namespace YamiMediaCodec{
 VaapiEncoderBase::VaapiEncoderBase():
     m_entrypoint(VAEntrypointEncSlice),
-    m_externalDisplay(NULL),
     m_maxOutputBuffer(MaxOutputBuffer),
     m_maxCodedbufSize(0)
 {
     FUNC_ENTER();
+    m_externalDisplay.handle = 0,
+    m_externalDisplay.type = NATIVE_DISPLAY_AUTO,
+
     m_videoParamCommon.rawFormat = RAW_FORMAT_NV12;
     m_videoParamCommon.frameRate.frameRateNum = 30;
     m_videoParamCommon.frameRate.frameRateDenom = 1;
@@ -66,9 +68,12 @@ VaapiEncoderBase::~VaapiEncoderBase()
     INFO("~VaapiEncoderBase");
 }
 
-void VaapiEncoderBase::setXDisplay(Display * xdisplay)
+void VaapiEncoderBase::setNativeDisplay(NativeDisplay * nativeDisplay)
 {
-    m_externalDisplay = xdisplay;
+    if (!nativeDisplay || nativeDisplay->type == NATIVE_DISPLAY_AUTO)
+        return;
+
+    m_externalDisplay = *nativeDisplay;
 }
 
 Encode_Status VaapiEncoderBase::start(void)

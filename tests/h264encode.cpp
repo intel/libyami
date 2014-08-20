@@ -192,7 +192,6 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
 int main(int argc, char** argv)
 {
     IVideoEncoder *encoder = NULL;
-    Display *x11Display = NULL;
     uint32_t maxOutSize = 0;
     StreamInput input;
     StreamOutput output;
@@ -207,9 +206,7 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    x11Display = XOpenDisplay(NULL);
     encoder = createVideoEncoder("video/h264");
-    encoder->setXDisplay(x11Display);
 
     //configure encoding parameters
     VideoParamsCommon encVideoParams;
@@ -250,5 +247,6 @@ int main(int argc, char** argv)
     encoder->stop();
     releaseVideoEncoder(encoder);
 
+    fprintf(stderr, "encode done\n");
     return 0;
 }

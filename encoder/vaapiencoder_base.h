@@ -45,7 +45,7 @@ public:
     VaapiEncoderBase();
     virtual ~VaapiEncoderBase();
 
-    virtual void  setXDisplay(Display * xdisplay);
+    virtual void  setNativeDisplay(NativeDisplay * nativeDisplay);
     virtual Encode_Status start(void) = 0;
     virtual void flush(void) = 0;
     virtual Encode_Status stop(void) = 0;
@@ -135,7 +135,7 @@ protected:
 private:
     bool initVA();
     void cleanupVA();
-    Display* m_externalDisplay;
+    NativeDisplay m_externalDisplay;
 
     bool updateMaxOutputBufferCount() {
         if (m_maxOutputBuffer < m_videoParamCommon.leastInputCount + 3)
