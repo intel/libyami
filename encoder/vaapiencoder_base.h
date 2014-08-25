@@ -24,7 +24,7 @@
 #ifndef vaapiencoder_base_h
 #define vaapiencoder_base_h
 
-#include "interface/VideoEncoderDef.h"
+#include "interface/VideoEncoderDefs.h"
 #include "interface/VideoEncoderInterface.h"
 #include "common/log.h"
 #include "vaapiencpicture.h"

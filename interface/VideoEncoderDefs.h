@@ -1,5 +1,5 @@
 /*
- *  VideoEncoderDef.h- basic va decoder for video
+ *  VideoEncoderDefs.h- basic va decoder for video
  *
  *  Copyright (C) 2013 Intel Corporation
  *

@@ -8,7 +8,7 @@ libyami_vaapi_source_c = \
         vaapicontext.cpp \
 	$(NULL)
 
-libyami_vaapi_source_h = \
+libyami_vaapi_source_h_priv = \
         vaapipicture.h \
         vaapibuffer.h \
         vaapiimage.h \

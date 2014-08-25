@@ -16,7 +16,8 @@ if BUILD_H264_ENCODER
 endif
 
 libyami_encoder_source_h = \
-        ../interface/VideoEncoderDef.h      \
+        ../interface/VideoCommonDefs.h      \
+        ../interface/VideoEncoderDefs.h      \
         ../interface/VideoEncoderInterface.h \
         ../interface/VideoEncoderHost.h \
 	$(NULL)

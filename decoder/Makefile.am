@@ -25,6 +25,7 @@ if BUILD_JPEG_DECODER
 endif
 
 libyami_decoder_source_h = \
+        ../interface/VideoCommonDefs.h      \
         ../interface/VideoDecoderDefs.h      \
         ../interface/VideoDecoderInterface.h \
         ../interface/VideoDecoderHost.h \

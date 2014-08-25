@@ -26,7 +26,7 @@ LIBYAMI_DOC_STRIP_FILES = vaapibuffer.h             \
     $(top_srcdir)/interface/VideoDecoderInterface.h \
     $(top_srcdir)/interface/VideoEncoderAVC.h       \
     $(top_srcdir)/interface/VideoEncoderBase.h      \
-    $(top_srcdir)/interface/VideoEncoderDef.h       \
+    $(top_srcdir)/interface/VideoEncoderDefs.h       \
     $(top_srcdir)/interface/VideoEncoderHost.h      \
     $(top_srcdir)/interface/VideoEncoderInterface.h
 

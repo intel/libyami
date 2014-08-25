@@ -13,7 +13,7 @@ libcodecparser_source_c = \
         bitwriter.c \
 	$(NULL)
 
-libcodecparser_source_h = \
+libcodecparser_source_h_priv = \
         bitreader.h \
         bytereader.h \
         h264parser.h \

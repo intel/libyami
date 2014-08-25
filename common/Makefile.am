@@ -2,7 +2,7 @@ libyami_common_source_c = \
 	log.cpp \
 	$(NULL)
 
-libyami_common_source_h = \
+libyami_common_source_h_priv = \
         log.h \
 		common_def.h \
 	$(NULL)

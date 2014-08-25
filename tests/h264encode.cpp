@@ -31,7 +31,6 @@
 #include <X11/Xlib.h>
 
 #include "common/log.h"
-#include "VideoEncoderDef.h"
 #include "VideoEncoderInterface.h"
 #include "VideoEncoderHost.h"
 #include "encodehelp.h"
