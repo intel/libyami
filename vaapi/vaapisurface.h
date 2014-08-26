@@ -31,6 +31,7 @@
 #include "vaapitypes.h"
 #include <va/va_drmcommon.h>
 #include <va/va.h>
+#include "common/common_def.h"
 
 namespace YamiMediaCodec{
 typedef enum {

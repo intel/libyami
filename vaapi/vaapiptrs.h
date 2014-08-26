@@ -42,7 +42,6 @@ typedef std::tr1::shared_ptr < VaapiConfig > ConfigPtr;
 class VaapiContext;
 typedef std::tr1::shared_ptr < VaapiContext > ContextPtr;
 
-//TODO: fix this when we put all Vaapi* classes list above to YamiMediaCodec
 class VaapiDecSurfacePool;
 typedef std::tr1::shared_ptr < VaapiDecSurfacePool > DecSurfacePoolPtr;
 } //namespace YamiMediaCodec

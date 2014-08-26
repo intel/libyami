@@ -59,10 +59,10 @@ public:
     */
     virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) const = 0;
 
-    virtual Encode_Status getParameters(VideoParamConfigSet *);
-    virtual Encode_Status setParameters(VideoParamConfigSet *);
-    virtual Encode_Status setConfig(VideoParamConfigSet *);
-    virtual Encode_Status getConfig(VideoParamConfigSet *);
+    virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR);
+    virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR);
+    virtual Encode_Status setConfig(VideoParamConfigType type, Yami_PTR);
+    virtual Encode_Status getConfig(VideoParamConfigType type, Yami_PTR);
 
     virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
 

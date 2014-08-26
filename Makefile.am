@@ -18,6 +18,10 @@ if ENABLE_V4L2
 SUBDIRS += v4l2
 endif
 
+if ENABLE_CAPI
+SUBDIRS += capi
+endif
+
 if ENABLE_TESTS
 SUBDIRS += tests
 endif

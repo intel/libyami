@@ -23,6 +23,24 @@
 #define VIDEO_COMMON_DEFS_H_
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef __cplusplus
+#ifndef bool
+#define bool  int
+#endif
+
+#ifndef true
+#define true  1
+#endif
+
+#ifndef false
+#define false 0
+#endif
+#endif
+
 typedef enum {
     NATIVE_DISPLAY_AUTO,    // decided by yami
     NATIVE_DISPLAY_X11,
@@ -35,4 +53,7 @@ typedef struct {
     NativeDisplayType type;
 } NativeDisplay;
 
+#ifdef __cplusplus
+}
+#endif
 #endif                          // VIDEO_COMMON_DEFS_H_

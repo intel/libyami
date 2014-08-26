@@ -32,7 +32,7 @@
 #include "vaapisurface.h"
 #include "common/log.h"
 #include "vaapiutils.h"
-#include "common/common_def.h"
+
 
 namespace YamiMediaCodec{
 /* FIXME: find a better place for this*/

@@ -26,20 +26,21 @@
 #include <stdint.h>
 #include "VideoCommonDefs.h"
 
-namespace YamiMediaCodec {
-
+#ifdef __cplusplus
+extern "C" {
+#endif
 // format specific data, for future extension.
-struct VideoExtensionBuffer {
+typedef struct {
     int32_t extType;
     int32_t extSize;
     uint8_t *extData;
-};
+}VideoExtensionBuffer;
 
 typedef enum {
     PACKED_FRAME_TYPE,
 } VIDEO_EXTENSION_TYPE;
 
-struct VideoFrameRawData {
+typedef struct {
     int32_t width;
     int32_t height;
     int32_t pitch[3];
@@ -49,12 +50,12 @@ struct VideoFrameRawData {
     uint8_t *data;
     // own data or derived from surface. If true, the library will release the memory during clearnup
     bool own;
-};
+}VideoFrameRawData;
 
-struct PackedFrameData {
+typedef struct {
     int64_t timestamp;
     int32_t offSet;
-};
+}PackedFrameData;
 
 // flags for VideoDecodeBuffer, VideoConfigBuffer and VideoRenderBuffer
 typedef enum {
@@ -105,18 +106,18 @@ typedef enum {
 
 } VIDEO_BUFFER_FLAG;
 
-struct VideoDecodeBuffer {
+typedef struct {
     uint8_t *data;
     int32_t size;
     int64_t timeStamp;
     uint32_t flag;
     VideoExtensionBuffer *ext;
-};
+}VideoDecodeBuffer;
 
 
 #define MAX_GRAPHIC_BUFFER_NUM  (16 + 1 + 11)   // max DPB + 1 + AVC_EXTRA_NUM
 
-struct VideoConfigBuffer {
+typedef struct {
     uint8_t *data;
     int32_t size;
     int32_t width;
@@ -135,25 +136,25 @@ struct VideoConfigBuffer {
     uint32_t rotationDegrees;
 
     void *parser_handle;
-};
+}VideoConfigBuffer;
 
-struct VideoRenderBuffer {
+typedef struct {
     VASurfaceID surface;
     VADisplay display;
     int64_t timeStamp;          // presentation time stamp
-};
+}VideoRenderBuffer;
 
-struct VideoSurfaceBuffer {
+typedef struct SurfaceBuffer{
     VideoRenderBuffer renderBuffer;
     int32_t pictureOrder;       // picture order count, valid only for AVC format
     bool referenceFrame;        // indicated whether frame associated with this surface is a reference I/P frame
     bool asReferernce;          // indicated wheter frame is used as reference (as a result surface can not be used for decoding)
     VideoFrameRawData *mappedData;
-    VideoSurfaceBuffer *next;
+    struct SurfaceBuffer *next;
     uint32_t status;
-};
+}VideoSurfaceBuffer;
 
-struct VideoFormatInfo {
+typedef struct {
     bool valid;                 // indicates whether format info is valid. MimeType is always valid.
     char *mimeType;
     int32_t width;
@@ -174,7 +175,7 @@ struct VideoFormatInfo {
     int32_t framerateNom;
     int32_t framerateDenom;
     VideoExtensionBuffer *ext;
-};
+}VideoFormatInfo;
 
 // TODO: categorize the follow errors as fatal and non-fatal.
 typedef enum {
@@ -217,5 +218,8 @@ inline bool checkFatalDecoderError(Decode_Status status)
         return false;
     }
 }
+
+#ifdef __cplusplus
 }
+#endif
 #endif                          // VIDEO_DECODER_DEFS_H_

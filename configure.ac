@@ -59,6 +59,16 @@ AC_DEFINE([__ENABLE_V4L2__], [1], [Defined to 1 if --enable-v4l2="yes" ])
 fi
 AM_CONDITIONAL(ENABLE_V4L2, test "x$enable_v4l2" = "xyes")
 
+AC_ARG_ENABLE(capi,
+    [AC_HELP_STRING([--enable-capi], [wrapper of c api interface@<:@default=no@:>@])],
+    [], [enable_capi="no"])
+
+if test "$enable_capi" = "yes"; then
+AC_DEFINE([__ENABLE_CAPI__], [1], [Defined to 1 if --enable-capi="yes" ])
+fi
+AM_CONDITIONAL(ENABLE_CAPI, test "x$enable_capi" = "xyes")
+
+
 AC_ARG_ENABLE(baytrail,
     [AC_HELP_STRING([--enable-baytrail], [build with baytrail/chromeos support @<:@default=no@:>@])],
     [], [enable_baytrail="no"])
@@ -166,6 +176,7 @@ AC_CONFIG_FILES([Makefile
                  decoder/Makefile
                  encoder/Makefile
                  v4l2/Makefile
+                 capi/Makefile
                  tests/Makefile
                  doc/Makefile
                  pkgconfig/Makefile])

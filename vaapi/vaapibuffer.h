@@ -30,6 +30,7 @@
 #include "vaapiptrs.h"
 #include <stdint.h>
 #include <va/va.h>
+#include "common/common_def.h"
 
 namespace YamiMediaCodec{
 class VaapiBufObject {

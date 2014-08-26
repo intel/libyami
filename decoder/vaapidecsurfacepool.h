@@ -35,8 +35,6 @@
 #include <vector>
 #include <va/va.h>
 
-struct VideoConfigBuffer;
-
 namespace YamiMediaCodec{
 
 /**

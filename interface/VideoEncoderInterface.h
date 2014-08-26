@@ -59,10 +59,10 @@ class IVideoEncoder {
     virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) const = 0;
     /// get encoder params, some config parameter are updated basing on sw/hw implement limition.
     /// for example, update pitches basing on hw alignment
-    virtual Encode_Status getParameters(VideoParamConfigSet * videoEncParams) = 0;
+    virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR videoEncParams) = 0;
     /// set encoder params before start. \n
     /// update rate controls on the fly by VideoParamsTypeRatesControl/VideoParamsRatesControl. SPS updates accordingly.
-    virtual Encode_Status setParameters(VideoParamConfigSet * videoEncParams) = 0;
+    virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR videoEncParams) = 0;
     /// get max coded buffer size.
     virtual Encode_Status getMaxOutSize(uint32_t * maxSize) = 0;
 
@@ -72,9 +72,9 @@ class IVideoEncoder {
     ///obsolete, discard cached data (input data or encoded video frames), not sure why an encoder need this
     virtual void flush(void) = 0;
     ///obsolete, what is the difference between  getParameters and getConfig?
-    virtual Encode_Status getConfig(VideoParamConfigSet * videoEncConfig) = 0;
+    virtual Encode_Status getConfig(VideoParamConfigType type, Yami_PTR videoEncConfig) = 0;
     ///obsolete, what is the difference between  setParameters and setConfig?
-    virtual Encode_Status setConfig(VideoParamConfigSet * videoEncConfig) = 0;
+    virtual Encode_Status setConfig(VideoParamConfigType type, Yami_PTR videoEncConfig) = 0;
 
 };
 }

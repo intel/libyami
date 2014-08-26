@@ -209,13 +209,16 @@ int main(int argc, char** argv)
 
     //configure encoding parameters
     VideoParamsCommon encVideoParams;
-    encoder->getParameters(&encVideoParams);
+    encVideoParams.size = sizeof(VideoParamsCommon);
+    encoder->getParameters(VideoParamsTypeCommon, &encVideoParams);
     setEncoderParameters(&encVideoParams);
-    encoder->setParameters(&encVideoParams);
+    encVideoParams.size = sizeof(VideoParamsCommon);
+    encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
     status = encoder->start();
 
     //init output buffer
     encoder->getMaxOutSize(&maxOutSize);
+   
     if (!output.init(outputFileName, maxOutSize)) {
         fprintf (stderr, "fail to init input stream\n");
         return -1;
@@ -223,8 +226,8 @@ int main(int argc, char** argv)
 
     while (!input.isEOS())
     {
-        if (input.getOneFrameInput(inputBuffer))
-            status = encoder->encode(&inputBuffer);
+        if (input.getOneFrameInput(inputBuffer)){
+            status = encoder->encode(&inputBuffer);}
         else
             break;
 

@@ -720,7 +720,7 @@ Encode_Status VaapiEncoderH264::stop()
     return VaapiEncoderBase::stop();
 }
 
-Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigSet *videoEncParams)
+Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     Encode_Status status = ENCODE_SUCCESS;
     AutoLock locker(m_paramLock);
@@ -728,41 +728,51 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigSet *videoEncParam
     FUNC_ENTER();
     if (!videoEncParams)
         return ENCODE_INVALID_PARAMS;
-
-    switch (videoEncParams->type) {
+    switch (type) {
     case VideoParamsTypeAVC: {
             VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
-            m_videoParamAVC = *avc;
+            if (avc->size == sizeof(VideoParamsAVC)) {
+                *avc = m_videoParamAVC;
+                PARAMETER_ASSIGN(*avc, m_videoParamAVC);
+            } else
+                status = ENCODE_INVALID_PARAMS;
         }
         break;
     case VideoConfigTypeAVCIntraPeriod: {
             VideoConfigAVCIntraPeriod* intraPeriod = (VideoConfigAVCIntraPeriod*)videoEncParams;
-            m_videoParamAVC.idrInterval = intraPeriod->idrInterval;
-            m_videoParamCommon.intraPeriod = intraPeriod->intraPeriod;
+            if (intraPeriod->size == sizeof(VideoConfigAVCIntraPeriod)) {
+                m_videoParamAVC.idrInterval = intraPeriod->idrInterval;
+                m_videoParamCommon.intraPeriod = intraPeriod->intraPeriod;
+            } else
+                status = ENCODE_INVALID_PARAMS;
         }
         break;
     default:
-        status = VaapiEncoderBase::setParameters(videoEncParams);
+        status = VaapiEncoderBase::setParameters(type, videoEncParams);
         break;
     }
     return status;
 }
 
-Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigSet *videoEncParams)
+Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     AutoLock locker(m_paramLock);
 
     FUNC_ENTER();
     if (!videoEncParams)
         return ENCODE_INVALID_PARAMS;
-    if (videoEncParams->type == VideoParamsTypeAVC) {
+    if (type == VideoParamsTypeAVC) {
         VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
-        *avc = m_videoParamAVC;
+        if (avc->size == sizeof(VideoParamsAVC)) {
+            *avc = m_videoParamAVC;
+            PARAMETER_ASSIGN(*avc, m_videoParamAVC);
+        } else
+            return ENCODE_INVALID_PARAMS;
         return ENCODE_SUCCESS;
     }
 
     // TODO, update video resolution basing on hw requirement
-    return VaapiEncoderBase::getParameters(videoEncParams);
+    return VaapiEncoderBase::getParameters(type, videoEncParams);
 }
 
 Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)

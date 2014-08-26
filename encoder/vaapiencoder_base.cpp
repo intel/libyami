@@ -112,19 +112,20 @@ Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
     return ret;
 }
 
-Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigSet *videoEncParams)
+Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     FUNC_ENTER();
     Encode_Status ret = ENCODE_INVALID_PARAMS;
     if (!videoEncParams)
         return ret;
 
-    DEBUG("type = %d", videoEncParams->type);
-    switch (videoEncParams->type) {
+    DEBUG("type = %d", type);
+    switch (type) {
     case VideoParamsTypeCommon: {
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             *common = m_videoParamCommon;
+            PARAMETER_ASSIGN(*common, m_videoParamCommon);
             ret = ENCODE_SUCCESS;
         }
         break;
@@ -136,19 +137,20 @@ Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigSet *videoEncParam
     return ret;
 }
 
-Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigSet *videoEncParams)
+Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     FUNC_ENTER();
     Encode_Status ret = ENCODE_SUCCESS;
     if (!videoEncParams)
         return ret;
 
-    DEBUG("type = %d", videoEncParams->type);
-    switch (videoEncParams->type) {
+    DEBUG("type = %d", type);
+    switch (type) {
     case VideoParamsTypeCommon: {
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             m_videoParamCommon = *common;
+            PARAMETER_ASSIGN(m_videoParamCommon, *common);
         } else
             ret = ENCODE_INVALID_PARAMS;
         m_maxCodedbufSize = 0; // resolution may change, recalculate max codec buffer size when it is requested
@@ -156,12 +158,18 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigSet *videoEncParam
     }
     case VideoConfigTypeFrameRate: {
         VideoConfigFrameRate* frameRateConfig = (VideoConfigFrameRate*)videoEncParams;
-        m_videoParamCommon.frameRate = frameRateConfig->frameRate;
+        if (frameRateConfig->size == sizeof(VideoConfigFrameRate)) {
+            m_videoParamCommon.frameRate = frameRateConfig->frameRate;
+        } else
+            ret = ENCODE_INVALID_PARAMS;
         }
         break;
     case VideoConfigTypeBitRate: {
         VideoConfigBitRate* rcParamsConfig = (VideoConfigBitRate*)videoEncParams;
-        m_videoParamCommon.rcParams = rcParamsConfig->rcParams;
+        if (rcParamsConfig->size == sizeof(VideoConfigFrameRate)) {
+            m_videoParamCommon.rcParams = rcParamsConfig->rcParams;
+        } else
+            ret = ENCODE_INVALID_PARAMS;
         }
         break;
     default:
@@ -172,14 +180,14 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigSet *videoEncParam
     return ret;
 }
 
-Encode_Status VaapiEncoderBase::setConfig(VideoParamConfigSet *videoEncConfig)
+Encode_Status VaapiEncoderBase::setConfig(VideoParamConfigType type, Yami_PTR videoEncConfig)
 {
     FUNC_ENTER();
-    DEBUG("type = %d", videoEncConfig->type);
+    DEBUG("type = %d", type);
     return ENCODE_SUCCESS;
 }
 
-Encode_Status VaapiEncoderBase::getConfig(VideoParamConfigSet *videoEncConfig)
+Encode_Status VaapiEncoderBase::getConfig(VideoParamConfigType type, Yami_PTR videoEncConfig)
 {
     FUNC_ENTER();
     return ENCODE_SUCCESS;

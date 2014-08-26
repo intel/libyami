@@ -22,17 +22,24 @@
 #ifndef __VIDEO_ENCODER_DEF_H__
 #define __VIDEO_ENCODER_DEF_H__
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <va/va.h>
 #include <stdint.h>
 #include "VideoCommonDefs.h"
 
-namespace YamiMediaCodec{
 #define STRING_TO_FOURCC(format) ((uint32_t)(((format)[0])|((format)[1]<<8)|((format)[2]<<16)|((format)[3]<<24)))
 #define min(X,Y) (((X) < (Y)) ? (X) : (Y))
 #define max(X,Y) (((X) > (Y)) ? (X) : (Y))
 
-typedef int32_t Encode_Status;
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+typedef int32_t Encode_Status;
+typedef void * Yami_PTR;
 // Video encode error code
 enum {
     ENCODE_NO_REQUEST_DATA = -10,
@@ -53,7 +60,7 @@ enum {
     ENCODE_IS_BUSY = 5, // driver is busy, there are too many buffers under encoding in parallel.
 };
 
-enum VideoOutputFormat {
+typedef enum {
     OUTPUT_EVERYTHING = 0,      //Output whatever driver generates
     OUTPUT_CODEC_DATA = 1,      // codec data for mp4, similar to avcc format
     OUTPUT_FRAME_DATA = 2,      //Equal to OUTPUT_EVERYTHING when no header along with the frame data
@@ -62,9 +69,9 @@ enum VideoOutputFormat {
     OUTPUT_LENGTH_PREFIXED = 16,
     OUTPUT_STREAM_HEADER = 32,       // sps/pss in bytestream format OUTPUT_EVERYTHING = OUTPUT_STREAM_HEADER (if needed) + OUTPUT_FRAME_DATA;
     OUTPUT_BUFFER_LAST
-};
+}VideoOutputFormat;
 
-enum VideoRawFormat {
+typedef enum {
     // TODO, USE VA Fourcc here
     RAW_FORMAT_NONE = 0,
     RAW_FORMAT_YUV420 = 1,
@@ -73,18 +80,18 @@ enum VideoRawFormat {
     RAW_FORMAT_NV12 = 8,
     RAW_FORMAT_PROTECTED = 0x80000000,
     RAW_FORMAT_LAST
-};
+}VideoRawFormat;
 
-enum VideoRateControl {
+typedef enum {
     RATE_CONTROL_NONE = VA_RC_NONE,
     RATE_CONTROL_CBR = VA_RC_CBR,
     RATE_CONTROL_VBR = VA_RC_VBR,
     RATE_CONTROL_VCM = VA_RC_VCM,
     RATE_CONTROL_CQP = VA_RC_CQP,
     RATE_CONTROL_LAST
-};
+}VideoRateControl;
 
-enum VideoProfile {
+typedef enum {
     PROFILE_MPEG2SIMPLE = 0,
     PROFILE_MPEG2MAIN,
     PROFILE_MPEG4SIMPLE,
@@ -97,22 +104,22 @@ enum VideoProfile {
     PROFILE_VC1MAIN,
     PROFILE_VC1ADVANCED,
     PROFILE_H263BASELINE
-};
+}VideoProfile;
 
-enum AVCDelimiterType {
+typedef enum {
     AVC_DELIMITER_LENGTHPREFIX = 0,
     AVC_DELIMITER_ANNEXB
-};
+}AVCDelimiterType;
 
-enum VideoIntraRefreshType {
+typedef enum {
     VIDEO_ENC_NONIR,            // Non intra refresh
     VIDEO_ENC_CIR,              // Cyclic intra refresh
     VIDEO_ENC_AIR,              // Adaptive intra refresh
     VIDEO_ENC_BOTH,
     VIDEO_ENC_LAST
-};
+}VideoIntraRefreshType;
 
-enum VideoBufferSharingMode {
+typedef enum {
     BUFFER_SHARING_NONE = 1,    //Means non shared buffer mode
     BUFFER_SHARING_CI = 2,
     BUFFER_SHARING_V4L2 = 4,
@@ -121,7 +128,7 @@ enum VideoBufferSharingMode {
     BUFFER_SHARING_GFXHANDLE = 32,
     BUFFER_SHARING_KBUFHANDLE = 64,
     BUFFER_LAST
-};
+}VideoBufferSharingMode;
 
 // Output buffer flag
 #define ENCODE_BUFFERFLAG_ENDOFFRAME       0x00000001
@@ -132,7 +139,7 @@ enum VideoBufferSharingMode {
 #define ENCODE_BUFFERFLAG_DATAINVALID      0x00000020
 #define ENCODE_BUFFERFLAG_SLICEOVERFOLOW   0x00000040
 
-struct VideoEncOutputBuffer {
+typedef struct VideoEncOutputBuffer {
     uint8_t *data;
     uint32_t bufferSize;        //buffer size
     uint32_t dataSize;          //actuall size
@@ -140,85 +147,68 @@ struct VideoEncOutputBuffer {
     uint32_t flag;                   //Key frame, Codec Data etc
     VideoOutputFormat format;   //output format
     uint64_t timeStamp;         //reserved
-
+#ifndef __ENABLE_CAPI__
      VideoEncOutputBuffer():data(0), bufferSize(0), dataSize(0)
     , remainingSize(0), flag(0), format(OUTPUT_BUFFER_LAST), timeStamp(0) {
     };
-};
+#endif
+}VideoEncOutputBuffer;
 
-struct VideoEncRawBuffer {
+typedef struct VideoEncRawBuffer {
     uint8_t *data;
     uint32_t size;
     bool bufAvailable;          //To indicate whether this buffer can be reused
     uint64_t timeStamp;         //reserved
     bool forceKeyFrame;
-
+#ifndef __ENABLE_CAPI__
      VideoEncRawBuffer():data(0), size(0), bufAvailable(false),
         timeStamp(0), forceKeyFrame(false) {
-}};
+    };
+#endif
+}VideoEncRawBuffer;
 
-struct VideoEncSurfaceBuffer {
+typedef struct VideoEncSurfaceBuffer {
     VASurfaceID surface;
     uint8_t *usrptr;
     uint32_t index;
     bool bufAvailable;
-    VideoEncSurfaceBuffer *next;
-     VideoEncSurfaceBuffer():surface(VA_INVALID_ID), usrptr(0)
+    struct EncSurfaceBuffer *next;
+#ifndef __ENABLE_CAPI__
+    VideoEncSurfaceBuffer():surface(VA_INVALID_ID), usrptr(0)
     , index(0), bufAvailable(false) {
-}};
+    };
+#endif
+}VideoEncSurfaceBuffer;
 
-struct AirParams {
+typedef struct AirParams {
     uint32_t airMBs;
     uint32_t airThreshold;
     uint32_t airAuto;
-
+#ifndef __ENABLE_CAPI__
      AirParams():airMBs(0), airThreshold(0), airAuto(0) {
     };
+#endif
+}AirParams;
 
-    AirParams & operator=(const AirParams & other) {
-        if (this == &other)
-            return *this;
-
-        this->airMBs = other.airMBs;
-        this->airThreshold = other.airThreshold;
-        this->airAuto = other.airAuto;
-        return *this;
-    }
-};
-
-struct VideoFrameRate {
+typedef struct VideoFrameRate {
     uint32_t frameRateNum;
     uint32_t frameRateDenom;
-
+#ifndef __ENABLE_CAPI__
      VideoFrameRate():frameRateNum(0), frameRateDenom(1) {
-    } VideoFrameRate & operator=(const VideoFrameRate & other) {
-        if (this == &other)
-            return *this;
+    };
+#endif
+}VideoFrameRate;
 
-        this->frameRateNum = other.frameRateNum;
-        this->frameRateDenom = other.frameRateDenom;
-        return *this;
-    }
-};
-
-struct VideoResolution {
+typedef struct VideoResolution {
     uint32_t width;
     uint32_t height;
-
+#ifndef __ENABLE_CAPI__
      VideoResolution():width(0), height(0) {
     };
+#endif
+}VideoResolution;
 
-    VideoResolution & operator=(const VideoResolution & other) {
-        if (this == &other)
-            return *this;
-
-        this->width = other.width;
-        this->height = other.height;
-        return *this;
-    }
-};
-
-struct VideoRateControlParams {
+typedef struct VideoRateControlParams {
     uint32_t bitRate;
     uint32_t initQP;
     uint32_t minQP;
@@ -226,46 +216,24 @@ struct VideoRateControlParams {
     uint32_t targetPercentage;
     uint32_t disableFrameSkip;
     uint32_t disableBitsStuffing;
-
+#ifndef __ENABLE_CAPI__
      VideoRateControlParams():bitRate(0), initQP(0), minQP(0)
     , windowSize(0), targetPercentage(0)
     , disableFrameSkip(0), disableBitsStuffing(0) {
     };
+#endif
+}VideoRateControlParams;
 
-    VideoRateControlParams & operator=(const VideoRateControlParams &
-                                       other) {
-        if (this == &other)
-            return *this;
-
-        this->bitRate = other.bitRate;
-        this->initQP = other.initQP;
-        this->minQP = other.minQP;
-        this->windowSize = other.windowSize;
-        this->targetPercentage = other.targetPercentage;
-        this->disableFrameSkip = other.disableFrameSkip;
-        this->disableBitsStuffing = other.disableBitsStuffing;
-        return *this;
-    };
-};
-
-struct SliceNum {
+typedef struct SliceNum {
     uint32_t iSliceNum;
     uint32_t pSliceNum;
-
+#ifndef __ENABLE_CAPI__
      SliceNum():iSliceNum(1), pSliceNum(1) {
     };
+#endif
+}SliceNum;
 
-    SliceNum & operator=(const SliceNum & other) {
-        if (this == &other)
-            return *this;
-
-        this->iSliceNum = other.iSliceNum;
-        this->pSliceNum = other.pSliceNum;
-        return *this;
-    };
-};
-
-typedef struct {
+typedef struct ExternalBufferAttrib {
     uint32_t realWidth;
     uint32_t realHeight;
     uint32_t lumaStride;
@@ -273,45 +241,28 @@ typedef struct {
     uint32_t format;
 } ExternalBufferAttrib;
 
-struct Cropping {
+typedef struct Cropping {
     uint32_t LeftOffset;
     uint32_t RightOffset;
     uint32_t TopOffset;
     uint32_t BottomOffset;
-
+#ifndef __ENABLE_CAPI__
      Cropping():LeftOffset(0), RightOffset(0),
         TopOffset(0), BottomOffset(0) {
     };
+#endif
+}Cropping;
 
-    Cropping & operator=(const Cropping & other) {
-        if (this == &other)
-            return *this;
-
-        this->LeftOffset = other.LeftOffset;
-        this->RightOffset = other.RightOffset;
-        this->TopOffset = other.TopOffset;
-        this->BottomOffset = other.BottomOffset;
-        return *this;
-    }
-};
-
-struct SamplingAspectRatio {
+typedef struct SamplingAspectRatio {
     uint16_t SarWidth;
     uint16_t SarHeight;
-
+#ifndef __ENABLE_CAPI__
      SamplingAspectRatio():SarWidth(0), SarHeight(0) {
     };
+#endif
+}SamplingAspectRatio;
 
-    SamplingAspectRatio & operator=(const SamplingAspectRatio & other) {
-        if (this == &other)
-            return *this;
-        this->SarWidth = other.SarWidth;
-        this->SarHeight = other.SarHeight;
-        return *this;
-    }
-};
-
-enum VideoParamConfigType {
+typedef enum {
     VideoParamsTypeStartUnused = 0x01000000,
     VideoParamsTypeCommon,
     VideoParamsTypeAVC,
@@ -335,32 +286,14 @@ enum VideoParamConfigType {
     VideoConfigTypeSliceNum,
 
     VideoParamsConfigExtension
-};
+}VideoParamConfigType;
 
-struct VideoParamConfigSet {
-    VideoParamConfigType type;
+typedef struct VideoParamConfigSet {
     uint32_t size;
+}VideoParamConfigSet;
 
-  protected:
-    VideoParamConfigSet(VideoParamConfigType t, uint32_t s)
-    :type(t), size(s) {
-    };
-
-    VideoParamConfigSet & operator=(const VideoParamConfigSet & other) {
-        if (this == &other)
-            return *this;
-        this->type = other.type;
-        this->size = other.size;
-        return *this;
-    }
-
-  private:
-    VideoParamConfigSet() {
-    };
-};
-
-struct VideoParamsCommon:VideoParamConfigSet {
-
+typedef struct VideoParamsCommon {
+    uint32_t size;
     VAProfile profile;
     uint8_t level;
     VideoRawFormat rawFormat;
@@ -375,48 +308,10 @@ struct VideoParamsCommon:VideoParamConfigSet {
     uint32_t disableDeblocking;
     bool syncEncMode;
     int32_t leastInputCount;
+}VideoParamsCommon;
 
-    VideoParamsCommon()
-    :VideoParamConfigSet(VideoParamsTypeCommon, sizeof(VideoParamsCommon))
-    , profile(VAProfileNone)
-    , level(0)
-    , rawFormat(RAW_FORMAT_NONE)
-    , resolution()
-    , intraPeriod(0)
-    , rcMode(RATE_CONTROL_NONE)
-    , rcParams()
-    , refreshType(VIDEO_ENC_NONIR)
-    , cyclicFrameInterval(0)
-    , airParams()
-    , disableDeblocking(0)
-    , syncEncMode(true)
-    , leastInputCount(3) {
-    };
-
-    VideoParamsCommon & operator=(const VideoParamsCommon & other) {
-        if (this == &other)
-            return *this;
-
-        VideoParamConfigSet::operator=(other);
-        this->profile = other.profile;
-        this->level = other.level;
-        this->rawFormat = other.rawFormat;
-        this->resolution = other.resolution;
-        this->frameRate = other.frameRate;
-        this->intraPeriod = other.intraPeriod;
-        this->rcMode = other.rcMode;
-        this->rcParams = other.rcParams;
-        this->refreshType = other.refreshType;
-        this->cyclicFrameInterval = other.cyclicFrameInterval;
-        this->airParams = other.airParams;
-        this->disableDeblocking = other.disableDeblocking;
-        this->syncEncMode = other.syncEncMode;
-        return *this;
-    }
-};
-
-struct VideoParamsAVC:VideoParamConfigSet {
-
+typedef struct VideoParamsAVC {
+    uint32_t size;
     uint32_t basicUnitSize;     //for rate control
     uint8_t VUIFlag;
     int32_t maxSliceSize;
@@ -425,67 +320,19 @@ struct VideoParamsAVC:VideoParamConfigSet {
     AVCDelimiterType delimiterType;
     Cropping crop;
     SamplingAspectRatio SAR;
+}VideoParamsAVC;
 
-     VideoParamsAVC()
-    :VideoParamConfigSet(VideoParamsTypeAVC, sizeof(VideoParamsAVC))
-    , basicUnitSize(0)
-    , VUIFlag(0)
-    , maxSliceSize(0)
-    , idrInterval(0)
-    , sliceNum()
-    , delimiterType(AVC_DELIMITER_ANNEXB)
-    , crop()
-    , SAR() {
-    };
-
-    VideoParamsAVC & operator=(const VideoParamsAVC & other) {
-        if (this == &other)
-            return *this;
-
-        VideoParamConfigSet::operator=(other);
-        this->basicUnitSize = other.basicUnitSize;
-        this->VUIFlag = other.VUIFlag;
-        this->maxSliceSize = other.maxSliceSize;
-        this->idrInterval = other.idrInterval;
-        this->sliceNum = other.sliceNum;
-        this->delimiterType = other.delimiterType;
-        this->crop.LeftOffset = other.crop.LeftOffset;
-        this->crop.RightOffset = other.crop.RightOffset;
-        this->crop.TopOffset = other.crop.TopOffset;
-        this->crop.BottomOffset = other.crop.BottomOffset;
-        this->SAR.SarWidth = other.SAR.SarWidth;
-        this->SAR.SarHeight = other.SAR.SarHeight;
-
-        return *this;
-    }
-};
-
-struct VideoParamsUpstreamBuffer:VideoParamConfigSet {
-
-    VideoParamsUpstreamBuffer()
-    :VideoParamConfigSet(VideoParamsTypeUpSteamBuffer,
-                         sizeof(VideoParamsUpstreamBuffer))
-    , bufferMode(BUFFER_SHARING_NONE)
-    , bufList(0)
-    , bufCnt(0)
-    , bufAttrib(0)
-    , display(0) {
-    };
-
+typedef struct VideoParamsUpstreamBuffer {
+    uint32_t size;
     VideoBufferSharingMode bufferMode;
     uint32_t *bufList;
     uint32_t bufCnt;
     ExternalBufferAttrib *bufAttrib;
     void *display;
-};
+}VideoParamsUpstreamBuffer;
 
-struct VideoParamsUsrptrBuffer:VideoParamConfigSet {
-
-    VideoParamsUsrptrBuffer()
-    :VideoParamConfigSet(VideoParamsTypeUsrptrBuffer,
-                         sizeof(VideoParamsUsrptrBuffer))
-    , width(0), height(0), format(0), expectedSize(0) {
-    }
+typedef struct VideoParamsUsrptrBuffer {
+    uint32_t size;
 
     //input
     uint32_t width;
@@ -497,114 +344,62 @@ struct VideoParamsUsrptrBuffer:VideoParamConfigSet {
     uint32_t actualSize;
     uint32_t stride;
     uint8_t *usrPtr;
-};
+}VideoParamsUsrptrBuffer;
 
-struct VideoParamsHRD:VideoParamConfigSet {
-
-    VideoParamsHRD():VideoParamConfigSet(VideoParamsTypeHRD,
-                                         sizeof(VideoParamsHRD))
-    , bufferSize(0), initBufferFullness(0) {
-    };
-
+typedef struct VideoParamsHRD {
+    uint32_t size;
     uint32_t bufferSize;
     uint32_t initBufferFullness;
-};
+}VideoParamsHRD;
 
-struct VideoParamsStoreMetaDataInBuffers:VideoParamConfigSet {
-
-    VideoParamsStoreMetaDataInBuffers()
-    :VideoParamConfigSet(VideoParamsTypeStoreMetaDataInBuffers,
-                         sizeof(VideoParamsStoreMetaDataInBuffers))
-    , isEnabled(false) {
-    }
+typedef struct VideoParamsStoreMetaDataInBuffers {
+    uint32_t size;
     bool isEnabled;
-};
+}VideoParamsStoreMetaDataInBuffers;
 
-struct VideoConfigFrameRate:VideoParamConfigSet {
-
-    VideoConfigFrameRate()
-    :VideoParamConfigSet(VideoConfigTypeFrameRate,
-                         sizeof(VideoConfigFrameRate))
-    , frameRate() {
-    }
+typedef struct VideoConfigFrameRate {
+    uint32_t size;
     VideoFrameRate frameRate;
-};
+}VideoConfigFrameRate;
 
-struct VideoConfigBitRate:VideoParamConfigSet {
-
-    VideoConfigBitRate()
-    :VideoParamConfigSet(VideoConfigTypeBitRate,
-                         sizeof(VideoConfigBitRate))
-    , rcParams() {
-    }
+typedef struct VideoConfigBitRate {
+    uint32_t size;
     VideoRateControlParams rcParams;
-};
+}VideoConfigBitRate;
 
-struct VideoConfigAVCIntraPeriod:VideoParamConfigSet {
-
-    VideoConfigAVCIntraPeriod()
-    :VideoParamConfigSet(VideoConfigTypeAVCIntraPeriod,
-                         sizeof(VideoConfigAVCIntraPeriod))
-    , idrInterval(0), intraPeriod(0) {
-    }
+typedef struct VideoConfigAVCIntraPeriod {
+    uint32_t size;
     uint32_t idrInterval;       //How many Intra frame will have a IDR frame
     uint32_t intraPeriod;
-};
+}VideoConfigAVCIntraPeriod;
 
-struct VideoConfigNALSize:VideoParamConfigSet {
-
-    VideoConfigNALSize():VideoParamConfigSet(VideoConfigTypeNALSize,
-                                             sizeof(VideoConfigNALSize))
-    , maxSliceSize(1) {
-    }
+typedef struct VideoConfigNALSize {
+    uint32_t size;
     uint32_t maxSliceSize;
-};
+}VideoConfigNALSize;
 
-struct VideoConfigResoltuion:VideoParamConfigSet {
-
-    VideoConfigResoltuion()
-    :VideoParamConfigSet(VideoConfigTypeResolution,
-                         sizeof(VideoConfigResoltuion))
-    , resolution() {
-    }
+typedef struct VideoConfigResoltuion {
+    uint32_t size;
     VideoResolution resolution;
-};
+}VideoConfigResoltuion;
 
-struct VideoConfigIntraRefreshType:VideoParamConfigSet {
-
-    VideoConfigIntraRefreshType()
-    :VideoParamConfigSet(VideoConfigTypeIntraRefreshType,
-                         sizeof(VideoConfigIntraRefreshType))
-    , refreshType(VIDEO_ENC_NONIR) {
-    }
+typedef struct VideoConfigIntraRefreshType {
+    uint32_t size;
     VideoIntraRefreshType refreshType;
-};
+}VideoConfigIntraRefreshType;
 
-struct VideoConfigCyclicFrameInterval:VideoParamConfigSet {
-
-    VideoConfigCyclicFrameInterval()
-    :VideoParamConfigSet(VideoConfigTypeCyclicFrameInterval,
-                         sizeof(VideoConfigCyclicFrameInterval))
-    , cyclicFrameInterval(0) {
-    }
+typedef struct VideoConfigCyclicFrameInterval {
+    uint32_t size;
     int32_t cyclicFrameInterval;
-};
+}VideoConfigCyclicFrameInterval;
 
-struct VideoConfigAIR:VideoParamConfigSet {
-
-    VideoConfigAIR():VideoParamConfigSet(VideoConfigTypeAIR,
-                                         sizeof(VideoConfigAIR))
-    , airParams() {
-    }
+struct VideoConfigAIR {
+    uint32_t size;
     AirParams airParams;
 };
 
-struct VideoConfigSliceNum:VideoParamConfigSet {
-
-    VideoConfigSliceNum():VideoParamConfigSet(VideoConfigTypeSliceNum,
-                                              sizeof(VideoConfigSliceNum))
-    , sliceNum() {
-    }
+struct VideoConfigSliceNum {
+    uint32_t size;
     SliceNum sliceNum;
 };
 
@@ -617,5 +412,8 @@ typedef struct {
     uint32_t min_encode_time;
     uint32_t min_encode_frame;
 } VideoStatistics;
+
+#ifdef __cplusplus
 }
+#endif
 #endif                          /*  __VIDEO_ENCODER_DEF_H__ */

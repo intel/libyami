@@ -29,6 +29,7 @@
 #include "vaapitypes.h"
 #include <va/va.h>
 #include <stdint.h>
+#include "common/common_def.h"
 
 namespace YamiMediaCodec{
 /* Image format definition */
