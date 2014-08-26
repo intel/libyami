@@ -54,6 +54,7 @@ using std::list;
 */
 
 //helper function
+namespace YamiMediaCodec{
 static bool vaInit(VADisplay vaDisplay)
 {
    int majorVersion, minorVersion;
@@ -263,4 +264,4 @@ DisplayPtr VaapiDisplay::create(const NativeDisplay& display)
 {
     return DisplayCache::getInstance()->createDisplay(display);
 }
-
+}

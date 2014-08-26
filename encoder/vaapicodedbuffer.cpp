@@ -27,6 +27,7 @@
 #include "vaapicontext.h"
 #include <string.h>
 
+namespace YamiMediaCodec{
 CodedBufferPtr VaapiCodedBuffer::create(const ContextPtr& context, uint32_t bufSize)
 {
     CodedBufferPtr coded;
@@ -70,4 +71,5 @@ bool VaapiCodedBuffer::copyInto(void* data)
         segment = static_cast<VACodedBufferSegment*>(segment->next);
     }
     return true;
+}
 }

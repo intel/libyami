@@ -28,6 +28,7 @@
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapiutils.h"
 
+namespace YamiMediaCodec{
 ConfigPtr VaapiConfig::create(const DisplayPtr& display,
                                      VAProfile profile, VAEntrypoint entry,
                                      VAConfigAttrib *attribList, int numAttribs)
@@ -93,4 +94,5 @@ VaapiContext::VaapiContext(const ConfigPtr& config, VAContextID context)
 VaapiContext::~VaapiContext()
 {
     vaDestroyContext(m_config->m_display->getID(), m_context);
+}
 }

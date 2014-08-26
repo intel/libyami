@@ -27,7 +27,7 @@
 #include "vaapi/vaapitypes.h"
 #include <stdlib.h>
 
-
+namespace YamiMediaCodec{
 class VaapiCodedBuffer
 {
 public:
@@ -49,5 +49,5 @@ private:
     VACodedBufferSegment* m_segments;
     uint32_t m_flags;
 };
-
+}
 #endif //vaapicodedbuffer_h

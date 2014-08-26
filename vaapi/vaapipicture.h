@@ -33,6 +33,7 @@
 #include <vector>
 #include <utility>
 
+namespace YamiMediaCodec{
 class VaapiPicture
 {
 public:
@@ -128,7 +129,7 @@ bool VaapiPicture::sync()
 {
     return m_surface->sync();
 }
-
+}
 
 #endif //vaapipicture_h
 

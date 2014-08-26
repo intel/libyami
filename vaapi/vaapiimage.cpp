@@ -33,6 +33,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+namespace YamiMediaCodec{
 const VAImageFormat *VaapiImage::getVaFormat(VaapiImageFormat format)
 {
     const VaapiImageFormatMap *map = NULL;
@@ -169,4 +170,5 @@ uint32_t VaapiImage::getWidth()
 uint32_t VaapiImage::getHeight()
 {
     return m_height;
+}
 }

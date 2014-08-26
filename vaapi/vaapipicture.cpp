@@ -32,7 +32,7 @@
 #include "vaapisurface.h"
 #include "vaapi/vaapiutils.h"
 
-
+namespace YamiMediaCodec{
 VaapiPicture::VaapiPicture(const ContextPtr& context,
                            const SurfacePtr& surface, int64_t timeStamp)
 :m_display(context->getDisplay()), m_context(context), m_surface(surface),
@@ -106,4 +106,5 @@ bool VaapiPicture::addObject(std::vector < BufObjectPtr >& objects,
         return false;
     objects.push_back(object);
     return true;
+}
 }

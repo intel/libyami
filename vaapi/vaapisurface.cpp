@@ -34,6 +34,7 @@
 #include "vaapiutils.h"
 #include "common/common_def.h"
 
+namespace YamiMediaCodec{
 /* FIXME: find a better place for this*/
 static uint32_t vaapiChromaToVaChroma(VaapiChromaType chroma)
 {
@@ -273,4 +274,5 @@ uint32_t VaapiSurface::toVaapiSurfaceStatus(uint32_t vaFlags)
     }
 
     return flags;
+}
 }

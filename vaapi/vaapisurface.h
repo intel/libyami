@@ -32,6 +32,7 @@
 #include <va/va_drmcommon.h>
 #include <va/va.h>
 
+namespace YamiMediaCodec{
 typedef enum {
     VAAPI_CHROMA_TYPE_YUV400,
     VAAPI_CHROMA_TYPE_YUV420,
@@ -90,5 +91,5 @@ class VaapiSurface {
     uint32_t m_externalBufHandle;   //allocate surface from extenal buf
     VaapiImage *m_derivedImage;
 };
-
+}
 #endif                          /* VAAPI_SURFACE_H */

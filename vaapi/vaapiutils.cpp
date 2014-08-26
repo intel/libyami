@@ -41,6 +41,7 @@
 #define STRCASEP(p, x)  STRCASE(CONCAT(p, x))
 #define STRCASE(x)      case x: return STRINGIFY(x)
 
+namespace YamiMediaCodec{
 /* Maps VA buffer */
 void *vaapiMapBuffer(VADisplay dpy, VABufferID bufId)
 {
@@ -265,4 +266,5 @@ uint32_t toVaapiRotation(uint32_t value)
     }
     ERROR("unsupported VA-API rotation value %d", value);
     return VAAPI_ROTATION_0;
+}
 }

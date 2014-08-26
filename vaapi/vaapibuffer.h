@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include <va/va.h>
 
+namespace YamiMediaCodec{
 class VaapiBufObject {
   private:
     DISALLOW_COPY_AND_ASSIGN(VaapiBufObject);
@@ -54,5 +55,5 @@ class VaapiBufObject {
     void *m_buf;
     uint32_t m_size;
 };
-
+}
 #endif                          /* VAAPIBUFFER_H */

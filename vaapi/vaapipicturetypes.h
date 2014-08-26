@@ -26,6 +26,7 @@
 #ifndef vaapipicturetypes_h
 #define vaapipicturetypes_h
 
+namespace YamiMediaCodec{
 typedef enum {
     VAAPI_PICTURE_FLAG_SKIPPED = (1 << 0),
     VAAPI_PICTURE_FLAG_REFERENCE = (1 << 1),
@@ -107,5 +108,5 @@ typedef enum {
     VAAPI_PICTURE_TYPE_SP,              // Switching Predicted
     VAAPI_PICTURE_TYPE_BI,              // BI type (VC-1)
 } VaapiPictureType;
-
+}
 #endif //vaapipicturetypes_h

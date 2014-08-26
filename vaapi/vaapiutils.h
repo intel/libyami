@@ -30,6 +30,7 @@
 #include <va/va.h>
 #include "common/log.h"
 
+namespace YamiMediaCodec{
 void *vaapiMapBuffer(VADisplay dpy, VABufferID bufId);
 
 void vaapiUnmapBuffer(VADisplay dpy, VABufferID bufId, void **pbuf);
@@ -63,5 +64,5 @@ static inline bool checkVaapiStatus(VAStatus status, const char *msg)
     }
     return true;
 }
-
+}
 #endif                          /* vaapiutils_h */

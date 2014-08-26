@@ -27,6 +27,7 @@
 #include "vaapi/vaapitypes.h"
 #include <va/va.h>
 
+namespace YamiMediaCodec{
 class VaapiConfig
 {
 friend class VaapiContext;
@@ -58,5 +59,5 @@ private:
     VAContextID m_context;
     DISALLOW_COPY_AND_ASSIGN(VaapiContext);
 };
-
+}
 #endif

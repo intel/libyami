@@ -30,6 +30,7 @@
 #include <va/va.h>
 #include <stdint.h>
 
+namespace YamiMediaCodec{
 /* Image format definition */
 typedef enum {
     VAAPI_IMAGE_FORMAT_TYPE_YCBCR = 1,  /* YUV */
@@ -136,5 +137,5 @@ class VaapiImage {
     bool m_isMapped;
     VaapiImageRaw m_rawImage;
 };
-
+}
 #endif                          /* VAAPI_IMAGE_H */

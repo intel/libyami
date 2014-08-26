@@ -34,6 +34,7 @@
 #include "interface/VideoCommonDefs.h"
 
 ///abstract for all display, x11, wayland, ozone, android etc.
+namespace YamiMediaCodec{
 class NativeDisplayBase;
 class VaapiDisplay
 {
@@ -62,6 +63,6 @@ private:
 
 DISALLOW_COPY_AND_ASSIGN(VaapiDisplay);
 };
-
+}
 #endif
 

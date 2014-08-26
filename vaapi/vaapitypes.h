@@ -27,6 +27,7 @@
 #define vaapitypes_h
 #include <stdint.h>
 
+namespace YamiMediaCodec{
 typedef struct _VaapiPoint {
     uint32_t x;
     uint32_t y;
@@ -82,7 +83,7 @@ typedef enum {
     VAAPI_ENTRYPOINT_MOCO,
     VAAPI_ENTRYPOINT_SLICE_ENCODE
 } VaapiEntrypoint;
-
+}
 #define MAKE_FOURCC(ch0, ch1, ch2, ch3) \
  (((unsigned long)(unsigned char) (ch0))      | ((unsigned long)(unsigned char) (ch1) << 8) | \
   ((unsigned long)(unsigned char) (ch2) << 16) | ((unsigned long)(unsigned char) (ch3) << 24 ))

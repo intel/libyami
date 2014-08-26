@@ -34,6 +34,7 @@
 #include "vaapiutils.h"
 #include <va/va.h>
 
+namespace YamiMediaCodec{
 VaapiBufObject::VaapiBufObject(const DisplayPtr& display,
                                VABufferID bufID, void *buf, uint32_t size)
 :m_display(display), m_bufID(bufID), m_buf(buf), m_size(size)
@@ -103,4 +104,5 @@ BufObjectPtr VaapiBufObject::create(const ContextPtr& context,
     void *mapped = mapped_data ? *mapped_data : NULL;
     buf.reset(new VaapiBufObject(display, bufID, mapped, size));
     return buf;
+}
 }
