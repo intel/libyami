@@ -218,7 +218,7 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoEncRawBuffer* inBuffer)
     if (!surface)
         return surface;
 
-    VaapiImage* image = surface->getDerivedImage();
+    ImagePtr image = surface->getDerivedImage();
     if (!image) {
         ERROR("surface->getDerivedImage() failed");
         surface.reset();

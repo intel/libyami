@@ -72,7 +72,7 @@ class VaapiSurface {
 
     bool getImage(VaapiImage * image);
     bool putImage(VaapiImage * image);
-    VaapiImage *getDerivedImage();
+    ImagePtr getDerivedImage();
 
   private:
     VaapiSurface(const DisplayPtr&,
@@ -90,7 +90,6 @@ class VaapiSurface {
     uint32_t m_height;
     uint32_t m_fourcc;
     uint32_t m_externalBufHandle;   //allocate surface from extenal buf
-    VaapiImage *m_derivedImage;
 };
 }
 #endif                          /* VAAPI_SURFACE_H */
