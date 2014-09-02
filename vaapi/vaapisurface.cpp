@@ -100,8 +100,7 @@ VaapiSurface::VaapiSurface(const DisplayPtr& display,
                            uint32_t width,
                            uint32_t height, uint32_t externalBufHandle)
 :m_display(display), m_chromaType(chromaType), m_width(width),
-m_height(height),m_externalBufHandle(externalBufHandle), m_ID(id),
-m_derivedImage(NULL)
+m_height(height),m_externalBufHandle(externalBufHandle), m_ID(id)
 {
 
 }
@@ -109,8 +108,6 @@ m_derivedImage(NULL)
 VaapiSurface::~VaapiSurface()
 {
     VAStatus status;
-
-    delete m_derivedImage;
 
     status = vaDestroySurfaces(m_display->getID(), &m_ID, 1);
 
@@ -198,24 +195,21 @@ bool VaapiSurface::putImage(VaapiImage * image)
     return true;
 }
 
-VaapiImage *VaapiSurface::getDerivedImage()
+ImagePtr VaapiSurface::getDerivedImage()
 {
     VAImage va_image;
     VAStatus status;
-
-    if (m_derivedImage)
-        return m_derivedImage;
+    ImagePtr image;
 
     va_image.image_id = VA_INVALID_ID;
     va_image.buf = VA_INVALID_ID;
 
     status = vaDeriveImage(m_display->getID(), m_ID, &va_image);
     if (!checkVaapiStatus(status, "vaDeriveImage()"))
-        return NULL;
+        return image;
 
-    m_derivedImage = new VaapiImage(m_display->getID(), &va_image);
-
-    return m_derivedImage;
+    image.reset(new VaapiImage(m_display->getID(), &va_image));
+    return image;
 }
 
 bool VaapiSurface::sync()
