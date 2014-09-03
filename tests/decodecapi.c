@@ -30,133 +30,13 @@
 #include <X11/Xlib.h>
 
 #include "capi/VideoDecoderCapi.h"
-
-#ifndef bool
-#define bool  int
-#endif
-
-#ifndef true
-#define true  1
-#endif
-
-#ifndef false
-#define false 0
-#endif
-
-static const int MaxNaluSize = 1024*1024;
-static const int CacheBufferSize = 4 * 1024 * 1024;
-const uint32_t StartCodeSize = 3;
-
-typedef struct StreamInput{
-    FILE *m_fp;
-    uint8_t *m_buffer;
-    bool m_readToEOS;
-    bool m_parseToEOS;
-    uint32_t m_lastReadOffset;
-    uint32_t m_availableData;
-}StreamInput;
-
-StreamInput input = {NULL, 0, 0, 0, 0, 0};
-
-int32_t scanForStartCode(const uint8_t * data,
-                 uint32_t offset, uint32_t size)
-{
-    uint32_t i;
-    const uint8_t *buf;
-
-    if (offset + StartCodeSize > size)
-        return -1;
-
-    for (i = 0; i < size - offset - StartCodeSize + 1; i++) {
-        buf = data + offset + i;
-        if (buf[0] == 0 && buf[1] == 0 && buf[2] == 1)
-            return i;
-    }
-
-    return -1;
-}
-
-bool ensureBufferData()
-{
-    int readCount = 0;
-
-    if (input.m_readToEOS)
-        return true;
-
-    // available data is enough for parsing
-    if (input.m_lastReadOffset + MaxNaluSize < input.m_availableData)
-        return true;
-
-    // move unused data to the begining of m_buffer
-    if (input.m_availableData + MaxNaluSize >= CacheBufferSize) {
-        memcpy(input.m_buffer, input.m_buffer+input.m_lastReadOffset, input.m_availableData-input.m_lastReadOffset);
-        input.m_availableData = input.m_availableData-input.m_lastReadOffset;
-        input.m_lastReadOffset = 0;
-    }
-
-    readCount = fread(input.m_buffer + input.m_availableData, 1, MaxNaluSize, input.m_fp);
-    if (readCount < MaxNaluSize)
-        input.m_readToEOS = true;
-
-    input.m_availableData += readCount;
-
-    return true;
-}
-
-bool init(const char* fileName)
-{
-    input.m_fp = fopen(fileName, "r");
-    
-    if (!input.m_fp) {
-        fprintf(stderr, "fail to open input file: %s\n", fileName);
-        return false;
-    }
-  
-    input.m_buffer = (uint8_t*)(malloc(CacheBufferSize));
-    
-    int32_t offset = -1;
-
-    ensureBufferData();
-    offset = scanForStartCode(input.m_buffer, input.m_lastReadOffset, input.m_availableData);
-    if(offset == -1)
-        return false;
-
-    input.m_lastReadOffset = offset;
-    return true;
-}
-
-bool getOneClipInput(VideoDecodeBuffer *inputBuffer)
-{
-    bool gotOneNalu= false;
-    int32_t offset = -1;
-
-    if(input.m_parseToEOS)
-        return false;
-
-    ensureBufferData();
-    offset = scanForStartCode(input.m_buffer, input.m_lastReadOffset+StartCodeSize, input.m_availableData);
-
-    if (offset == -1) {
-        assert(input.m_readToEOS);
-        offset = input.m_availableData;
-        input.m_parseToEOS = true;
-    }
-
-    inputBuffer->data = input.m_buffer + input.m_lastReadOffset;
-    inputBuffer->size = offset;
-
-    if(!input.m_parseToEOS)
-        inputBuffer->size += StartCodeSize;
-
-    printf("offset=%d, Clip data=%p, size=%d\n", offset, inputBuffer->data, inputBuffer->size);
-    input.m_lastReadOffset += offset + StartCodeSize;
-    return true;
-}
+#include "decodeInputCapi.h"
 
 int main(int argc, char** argv)
 {
-    const char *fileName = NULL;
-    DecodeHandler* decoder = NULL;
+    char *fileName = NULL;
+    DecodeHandler decoder = NULL;
+    DecodeInputHandler input = NULL;
     VideoDecodeBuffer inputBuffer;
     Display *x11Display = NULL;
     VideoConfigBuffer configBuffer;
@@ -172,36 +52,40 @@ int main(int argc, char** argv)
         return -1;
     }
     fileName = argv[1];
-    fprintf(stderr, "h264 fileName: %s\n", fileName);
+    fprintf(stderr, "FileName: %s\n", fileName);
 
-    if (!init(fileName)) {
+    input = createDecodeInput(fileName);
+
+    if (input == NULL) {
         fprintf(stderr, "fail to init input stream\n");
         return -1;
     }
 
     x11Display = XOpenDisplay(NULL);
 
-    decoder = createDecoder("video/h264");
+    decoder = createDecoder(getMimeType(input));
+    assert(decoder != NULL);
+
     nativeDisplay.type = NATIVE_DISPLAY_X11;
     nativeDisplay.handle = (intptr_t)x11Display;
-
     decodeSetNativeDisplay(decoder, &nativeDisplay);
+
     memset(&configBuffer,0,sizeof(VideoConfigBuffer));
-    configBuffer.data = NULL;
-    configBuffer.size = 0;
-    configBuffer.width = -1;
-    configBuffer.height = -1;
-    configBuffer.profile = VAProfileH264Main;
+    configBuffer.profile = VAProfileNone;
 
     status = decodeStart(decoder, &configBuffer);
+    assert(status == DECODE_SUCCESS);
 
-    while(!input.m_parseToEOS)
+    while(!decodeInputIsEOS(input))
     {
-        if (getOneClipInput(&inputBuffer))
+        if (getNextDecodeUnit(input, &inputBuffer))
             status = decode(decoder, &inputBuffer);
+        else
+          break;
 
         if (DECODE_FORMAT_CHANGE == status) {
             formatInfo = getFormatInfo(decoder);
+            assert(formatInfo != NULL);
             videoWidth = formatInfo->width;
             videoHeight = formatInfo->height;
 
@@ -214,6 +98,7 @@ int main(int argc, char** argv)
 
             // resend the buffer
             status = decode(decoder, &inputBuffer);
+            assert(status == DECODE_SUCCESS);
             XSync(x11Display, FALSE);
         }
 
@@ -231,4 +116,5 @@ int main(int argc, char** argv)
     decodeStop(decoder);
     releaseDecoder(decoder);
     XDestroyWindow(x11Display, window);
+    releaseDecodeInput(input);
 }

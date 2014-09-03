@@ -4,14 +4,16 @@ bin_PROGRAMS += v4l2encode
 endif
 
 if ENABLE_CAPI
-bin_PROGRAMS += decodecapi
+bin_PROGRAMS += decodecapi encodecapi
 endif
 
-AM_CPPFLAGS = \
+AM_CFLAGS = \
 	-I$(top_srcdir)			\
 	-I$(top_srcdir)/interface	\
 	$(LIBVA_CFLAGS)             \
 	$(NULL)
+
+AM_CPPFLAGS = $(AM_CFLAGS)
 
 YAMI_COMMON_LIBS 	= \
 	$(top_builddir)/common/libyami_common.la	\
@@ -33,17 +35,30 @@ V4L2_ENCODE_LIBS = \
 	$(top_builddir)/v4l2/libyami_v4l2.la        \
 	$(NULL)
 
+CAPI_DECODE_LIBS = \
+	$(YAMI_DECODE_LIBS)							\
+	$(top_builddir)/capi/libyami_capi.la		\
+	$(NULL)
+
+CAPI_ENCODE_LIBS = \
+	$(YAMI_ENCODE_LIBS)							\
+	$(top_builddir)/capi/libyami_capi.la		\
+	$(NULL)
+
+
 decode_LDADD    = $(YAMI_DECODE_LIBS) -lX11
-decode_SOURCES  = decode.cpp
+decode_SOURCES  = decode.cpp decodeinput.cpp
 
 h264encode_LDADD    = $(YAMI_ENCODE_LIBS) -lX11
-h264encode_SOURCES  = h264encode.cpp encodehelp.h
+h264encode_SOURCES  = h264encode.cpp encodeinput.cpp
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
-v4l2encode_SOURCES = v4l2encode.cpp encodehelp.h
+v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp
 
 if ENABLE_CAPI
-YAMI_COMMON_LIBS += $(top_builddir)/capi/libyami_capi.la
-decodecapi_LDADD	= $(YAMI_DECODE_LIBS) -lX11
-decodecapi_SOURCES	= decodecapi.c
+decodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
+decodecapi_SOURCES	= decodecapi.c decodeinput.cpp decodeInputCapi.cpp
+
+encodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
+encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCapi.cpp
 endif

@@ -30,89 +30,86 @@
 #include <assert.h>
 #include <X11/Xlib.h>
 
-#include "common/log.h"
-#include "VideoEncoderInterface.h"
-#include "VideoEncoderHost.h"
-#include "encodeinput.h"
+#include "capi/VideoEncoderCapi.h"
+#include "encodeInputCapi.h"
+#include "VideoEncoderDefs.h"
 #include "encodehelp.h"
-
-using namespace YamiMediaCodec;
 
 int main(int argc, char** argv)
 {
-    IVideoEncoder *encoder = NULL;
-    Display *x11Display = NULL;
+    EncodeHandler encoder = NULL;
     uint32_t maxOutSize = 0;
-    EncodeStreamInput input;
-    EncodeStreamOutput* output;
+    EncodeInputHandler input = createEncodeInput();
+    EncodeOutputHandler output;
     Encode_Status status;
     VideoEncRawBuffer inputBuffer = {0, 0, false, 0, false};
-    VideoEncOutputBuffer outputBuffer = {0, 0, 0, 0, 0, OUTPUT_BUFFER_LAST, 0};
-
+    VideoEncOutputBuffer outputBuffer;
 
     if (!process_cmdline(argc, argv))
         return -1;
 
-    if (!input.init(inputFileName, videoWidth, videoHeight)) {
+    if (!initInput(input, inputFileName, videoWidth, videoHeight)) {
         fprintf (stderr, "fail to init input stream\n");
         return -1;
     }
 
-    output = EncodeStreamOutput::create(outputFileName, videoWidth, videoHeight);
-    if (!output) {
-        fprintf (stderr, "fail to init ouput stream\n");
-        return -1;
+    output = createEncodeOutput(outputFileName, videoWidth, videoHeight);
+    if(!output) {
+      fprintf(stderr, "fail to init ourput stream\n");
+      return -1;
     }
 
-    encoder = createVideoEncoder(output->getMimeType());
+    encoder = createEncoder(getOutputMimeType(output));
     assert(encoder != NULL);
 
     //configure encoding parameters
     VideoParamsCommon encVideoParams;
     encVideoParams.size = sizeof(VideoParamsCommon);
-    encoder->getParameters(VideoParamsTypeCommon, &encVideoParams);
+    getParameters(encoder, VideoParamsTypeCommon, &encVideoParams);
     setEncoderParameters(&encVideoParams);
     encVideoParams.size = sizeof(VideoParamsCommon);
-    encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
-    status = encoder->start();
+    setParameters(encoder, VideoParamsTypeCommon, &encVideoParams);
+    status = encodeStart(encoder);
     assert(status == ENCODE_SUCCESS);
 
     //init output buffer
-    encoder->getMaxOutSize(&maxOutSize);
+    getMaxOutSize(encoder, &maxOutSize);
 
     if (!createOutputBuffer(&outputBuffer, maxOutSize)) {
-        fprintf (stderr, "fail to create output\n");
+        fprintf (stderr, "fail to init input stream\n");
         return -1;
     }
 
-    while (!input.isEOS())
+    while (!encodeInputIsEOS(input))
     {
-        if (input.getOneFrameInput(inputBuffer))
-            status = encoder->encode(&inputBuffer);
+        if (getOneFrameInput(input, &inputBuffer)){
+            status = encode(encoder, &inputBuffer);}
         else
             break;
 
         //get the output buffer
         do {
-            status = encoder->getOutput(&outputBuffer, false);
+            status = encodeGetOutput(encoder, &outputBuffer, false);
             if (status == ENCODE_SUCCESS
-                && !output->write(outputBuffer.data, outputBuffer.dataSize))
+              && !writeOutput(output, outputBuffer.data, outputBuffer.dataSize))
                 assert(0);
         } while (status != ENCODE_BUFFER_NO_MORE);
     }
 
     // drain the output buffer
     do {
-       status = encoder->getOutput(&outputBuffer, true);
+       status = encodeGetOutput(encoder, &outputBuffer, true);
        if (status == ENCODE_SUCCESS
-           && !output->write(outputBuffer.data, outputBuffer.dataSize))
+           && !writeOutput(output, outputBuffer.data, outputBuffer.dataSize))
            assert(0);
     } while (status != ENCODE_BUFFER_NO_MORE);
 
-    encoder->stop();
-    releaseVideoEncoder(encoder);
+    encodeStop(encoder);
+    releaseEncoder(encoder);
+    releaseEncodeInput(input);
+    releaseEncodeOutput(output);
     free(outputBuffer.data);
-    delete output;
+
     fprintf(stderr, "encode done\n");
     return 0;
 }

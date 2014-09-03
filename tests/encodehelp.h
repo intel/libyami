@@ -20,12 +20,29 @@
  *  Boston, MA 02110-1301 USA
  */
 
+#ifndef __ENCODE_HELP__
+#define __ENCODE_HELP__
+
 const int kIPeriod = 30;
 char *inputFileName = NULL;
 char *outputFileName = NULL;
 char *codec = NULL;
 char *colorspace = NULL;
 int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 0;
+
+#ifndef __cplusplus
+#ifndef bool
+#define bool  int
+#endif
+
+#ifndef true
+#define true  1
+#endif
+
+#ifndef false
+#define false 0
+#endif
+#endif
 
 static void print_help(const char* app)
 {
@@ -107,3 +124,27 @@ static bool process_cmdline(int argc, char *argv[])
     return true;
 }
 
+void setEncoderParameters(VideoParamsCommon * encVideoParams)
+{
+    //resolution
+    encVideoParams->resolution.width = videoWidth;
+    encVideoParams->resolution.height = videoHeight;
+
+    //frame rate parameters.
+    encVideoParams->frameRate.frameRateDenom = 1;
+    encVideoParams->frameRate.frameRateNum = fps;
+
+    //picture type and bitrate
+    encVideoParams->intraPeriod = kIPeriod;
+    encVideoParams->rcMode = RATE_CONTROL_CBR;
+    encVideoParams->rcParams.bitRate = bitRate;
+    //encVideoParams->rcParams.initQP = 26;
+    //encVideoParams->rcParams.minQP = 1;
+
+    //encVideoParams->profile = VAProfileH264Main;
+ //   encVideoParams->profile = VAProfileVP8Version0_3;
+    encVideoParams->rawFormat = RAW_FORMAT_YUV420;
+
+    encVideoParams->level = 31;
+}
+#endif
