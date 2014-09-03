@@ -156,7 +156,7 @@ bool getOneClipInput(VideoDecodeBuffer *inputBuffer)
 int main(int argc, char** argv)
 {
     const char *fileName = NULL;
-    DecodeHandler* decoder = NULL;
+    DecodeHandler decoder = NULL;
     VideoDecodeBuffer inputBuffer;
     Display *x11Display = NULL;
     VideoConfigBuffer configBuffer;

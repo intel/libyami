@@ -4,7 +4,7 @@ bin_PROGRAMS += v4l2encode
 endif
 
 if ENABLE_CAPI
-bin_PROGRAMS += decodecapi
+bin_PROGRAMS += decodecapi encodecapi
 endif
 
 AM_CPPFLAGS = \
@@ -46,4 +46,7 @@ if ENABLE_CAPI
 YAMI_COMMON_LIBS += $(top_builddir)/capi/libyami_capi.la
 decodecapi_LDADD	= $(YAMI_DECODE_LIBS) -lX11
 decodecapi_SOURCES	= decodecapi.c
+
+encodecapi_LDADD	= $(YAMI_ENCODE_LIBS) -lX11
+encodecapi_SOURCES	= encodecapi.c encodehelp.h
 endif

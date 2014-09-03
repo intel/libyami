@@ -11,6 +11,8 @@ extern "C" {
 
 typedef void* EncodeHandler;
 
+EncodeHandler createEncoder(const char *mimeType);
+
 void encodeSetNativeDisplay(EncodeHandler p, NativeDisplay * display);
 
 Encode_Status encodeStart(EncodeHandler p);
@@ -35,7 +37,7 @@ Encode_Status getConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR vid
 
 Encode_Status setConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig);
 
-void releaseDecoder(EncodeHandler p);
+void releaseEncoder(EncodeHandler p);
 
 #ifdef __cplusplus
 };
