@@ -7,10 +7,28 @@ if ENABLE_CAPI
 bin_PROGRAMS += decodecapi encodecapi
 endif
 
-AM_CPPFLAGS = \
+ INCLUDES = \
 	-I$(top_srcdir)			\
 	-I$(top_srcdir)/interface	\
 	$(LIBVA_CFLAGS)             \
+	$(NULL)
+
+input_capi_source_c = \
+	decodeinput.cpp	\
+	decodeInputCapi.cpp	\
+	$(NULL)
+
+input_capi_source_h = \
+	decodeinput.h
+	decodeInputCapi.h	\
+	$(NULL)
+
+input_capi_ldflags = \
+	$(LIBYAMI_LT_LDFLAGS)	\
+	$(NULL)
+
+input_capi_cppflags = \
+	$(LIBVA_CFLAGS)	\
 	$(NULL)
 
 YAMI_COMMON_LIBS 	= \
@@ -34,7 +52,7 @@ V4L2_ENCODE_LIBS = \
 	$(NULL)
 
 decode_LDADD    = $(YAMI_DECODE_LIBS) -lX11
-decode_SOURCES  = decode.cpp
+decode_SOURCES  = decode.cpp decodeinput.cpp decodeinput.h
 
 h264encode_LDADD    = $(YAMI_ENCODE_LIBS) -lX11
 h264encode_SOURCES  = h264encode.cpp encodehelp.h
@@ -43,7 +61,17 @@ v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
 v4l2encode_SOURCES = v4l2encode.cpp encodehelp.h
 
 if ENABLE_CAPI
-YAMI_COMMON_LIBS += $(top_builddir)/capi/libyami_capi.la
+lib_LTLIBRARIES             = libinput_capi.la
+libinput_capiincludedir        = $(includedir)/libinput_capi
+libinput_capiinclude_HEADERS = $(input_capi_source_h)
+libinput_capi_la_SOURCES       = $(input_capi_source_c)
+libinput_capi_la_LDFLAGS       = $(input_capi_ldflags)
+libinput_capi_la_CPPFLAGS      = $(input_capi_cppflags)
+
+YAMI_COMMON_LIBS += $(top_builddir)/capi/libyami_capi.la	\
+					libinput_capi.la	\
+					$(NULL)
+
 decodecapi_LDADD	= $(YAMI_DECODE_LIBS) -lX11
 decodecapi_SOURCES	= decodecapi.c
 

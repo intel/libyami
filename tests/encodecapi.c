@@ -155,7 +155,7 @@ int main(int argc, char** argv)
         return -1;
     }
     encoder = createEncoder("video/h264");
-
+    assert(encoder != NULL);
     //configure encoding parameters
     VideoParamsCommon encVideoParams;
     encVideoParams.size = sizeof(VideoParamsCommon);

@@ -27,6 +27,7 @@ char *codec = NULL;
 char *colorspace = NULL;
 int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 0;
 
+#ifndef __cplusplus
 #ifndef bool
 #define bool  int
 #endif
@@ -37,6 +38,7 @@ int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 0;
 
 #ifndef false
 #define false 0
+#endif
 #endif
 
 static void print_help(const char* app)
