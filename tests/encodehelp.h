@@ -22,6 +22,7 @@
 
 #ifndef __ENCODE_HELP__
 #define __ENCODE_HELP__
+#include "interface/VideoEncoderDefs.h"
 
 const int kIPeriod = 30;
 char *inputFileName = NULL;

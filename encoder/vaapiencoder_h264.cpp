@@ -732,7 +732,6 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PT
     case VideoParamsTypeAVC: {
             VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
             if (avc->size == sizeof(VideoParamsAVC)) {
-                *avc = m_videoParamAVC;
                 PARAMETER_ASSIGN(*avc, m_videoParamAVC);
             } else
                 status = ENCODE_INVALID_PARAMS;
@@ -764,7 +763,6 @@ Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PT
     if (type == VideoParamsTypeAVC) {
         VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
         if (avc->size == sizeof(VideoParamsAVC)) {
-            *avc = m_videoParamAVC;
             PARAMETER_ASSIGN(*avc, m_videoParamAVC);
         } else
             return ENCODE_INVALID_PARAMS;

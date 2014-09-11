@@ -58,10 +58,14 @@ V4l2Encoder::V4l2Encoder()
 
 bool V4l2Encoder::start()
 {
+    Encode_Status status = ENCODE_SUCCESS;
     ASSERT(m_encoder);
-    m_encoder->setParameters(&m_videoParams);
-    m_encoder->start();
-    m_encoder->getParameters(&m_videoParams);
+    status = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
+    ASSERT(status == ENCODE_SUCCESS);
+    status = m_encoder->start();
+    ASSERT(status == ENCODE_SUCCESS);
+    status = m_encoder->getParameters(VideoParamsTypeCommon, &m_videoParams);
+    ASSERT(status == ENCODE_SUCCESS);
 
     return true;
 }
@@ -83,7 +87,8 @@ bool V4l2Encoder::UpdateVideoParameters(bool isInputThread)
         return true;
 
     if (isInputThread || !m_streamOn[INPUT]) {
-        status = m_encoder->setParameters(&m_videoParams);
+        status = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
+        ASSERT(status == ENCODE_SUCCESS);
         m_videoParamsChanged = false;
     }
 
@@ -271,9 +276,12 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
             switch (format->fmt.pix_mp.pixelformat) {
                 case V4L2_PIX_FMT_H264: {
                     m_encoder.reset(createVideoEncoder("video/h264"), releaseVideoEncoder);
-                    m_encoder->getParameters(&m_videoParams);
+                    m_videoParams.size = sizeof(m_videoParams);
+                    encodeStatus = m_encoder->getParameters(VideoParamsTypeCommon, &m_videoParams);
+                    ASSERT(encodeStatus == ENCODE_SUCCESS);
                     m_videoParams.profile = VAProfileH264Main;
-                    m_encoder->setParameters(&m_videoParams);
+                    encodeStatus = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
+                    ASSERT(encodeStatus == ENCODE_SUCCESS);
                 }
                 break;
                 case V4L2_PIX_FMT_VP8:
@@ -288,8 +296,10 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
             ASSERT(m_encoder);
             m_videoParams.resolution.width = format->fmt.pix_mp.width;
             m_videoParams.resolution.height= format->fmt.pix_mp.height;
-            m_encoder->setParameters(&m_videoParams);
-            m_encoder->getMaxOutSize(&m_maxOutputBufferSize);
+            encodeStatus = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
+            ASSERT(encodeStatus == ENCODE_SUCCESS);
+            encodeStatus = m_encoder->getMaxOutSize(&m_maxOutputBufferSize);
+            ASSERT(encodeStatus == ENCODE_SUCCESS);
             INFO("resolution: %d x %d, m_maxOutputBufferSize: %d", m_videoParams.resolution.width,
                 m_videoParams.resolution.height, m_maxOutputBufferSize);
             format->fmt.pix_mp.plane_fmt[0].bytesperline = m_videoParams.resolution.width;

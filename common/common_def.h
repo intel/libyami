@@ -57,6 +57,6 @@ do{ \
 #ifndef __ENABLE_CAPI__
     #define PARAMETER_ASSIGN(a, b)  a = b
 #else
-    #define PARAMETER_ASSIGN(a, b)  memcpy(&a, &b, sizeof(b))
+    #define PARAMETER_ASSIGN(a, b)  memcpy(&(a), &(b), sizeof(b))
 #endif
 #endif //__COMMON_DEF_H__

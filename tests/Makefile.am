@@ -1,10 +1,10 @@
+if ENABLE_CAPI
+bin_PROGRAMS = decodecapi encodecapi
+else
 bin_PROGRAMS = decode h264encode
 if ENABLE_V4L2
 bin_PROGRAMS += v4l2encode
 endif
-
-if ENABLE_CAPI
-bin_PROGRAMS += decodecapi encodecapi
 endif
 
 AM_CFLAGS = \
@@ -46,6 +46,13 @@ CAPI_ENCODE_LIBS = \
 	$(NULL)
 
 
+if ENABLE_CAPI
+decodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
+decodecapi_SOURCES	= decodecapi.c decodeinput.cpp decodeInputCapi.cpp
+
+encodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
+encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCapi.cpp
+else
 decode_LDADD    = $(YAMI_DECODE_LIBS) -lX11
 decode_SOURCES  = decode.cpp decodeinput.cpp
 
@@ -54,11 +61,4 @@ h264encode_SOURCES  = h264encode.cpp encodeinput.cpp
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
 v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp
-
-if ENABLE_CAPI
-decodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
-decodecapi_SOURCES	= decodecapi.c decodeinput.cpp decodeInputCapi.cpp
-
-encodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
-encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCapi.cpp
 endif

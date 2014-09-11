@@ -46,8 +46,8 @@ int main(int argc, char** argv)
     EncodeStreamInput input;
     EncodeStreamOutput* output;
     Encode_Status status;
-    VideoEncRawBuffer inputBuffer = {0, 0, false, 0, false};
-    VideoEncOutputBuffer outputBuffer = {0, 0, 0, 0, 0, OUTPUT_BUFFER_LAST, 0};
+    VideoEncRawBuffer inputBuffer;
+    VideoEncOutputBuffer outputBuffer;
 
 
     if (!process_cmdline(argc, argv))

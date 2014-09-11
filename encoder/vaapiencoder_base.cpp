@@ -45,6 +45,7 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_externalDisplay.handle = 0,
     m_externalDisplay.type = NATIVE_DISPLAY_AUTO,
 
+    m_videoParamCommon.size = sizeof(m_videoParamCommon);
     m_videoParamCommon.rawFormat = RAW_FORMAT_NV12;
     m_videoParamCommon.frameRate.frameRateNum = 30;
     m_videoParamCommon.frameRate.frameRateDenom = 1;
@@ -119,12 +120,11 @@ Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PT
     if (!videoEncParams)
         return ret;
 
-    DEBUG("type = %d", type);
+    DEBUG("type = 0x%08x", type);
     switch (type) {
     case VideoParamsTypeCommon: {
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
-            *common = m_videoParamCommon;
             PARAMETER_ASSIGN(*common, m_videoParamCommon);
             ret = ENCODE_SUCCESS;
         }
@@ -144,12 +144,11 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PT
     if (!videoEncParams)
         return ret;
 
-    DEBUG("type = %d", type);
+    DEBUG("type = 0x%08x", type);
     switch (type) {
     case VideoParamsTypeCommon: {
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
-            m_videoParamCommon = *common;
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
         } else
             ret = ENCODE_INVALID_PARAMS;
