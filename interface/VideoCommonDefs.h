@@ -53,6 +53,25 @@ typedef struct {
     NativeDisplayType type;
 } NativeDisplay;
 
+typedef enum {
+    VIDEO_DATA_MEMORY_TYPE_RAW_POINTER,  // pass data pointer to client
+    VIDEO_DATA_MEMORY_TYPE_RAW_COPY,     // copy data to client provided buffer
+    VIDEO_DATA_MEMORY_TYPE_DRM_NAME,
+    VIDEO_DATA_MEMORY_TYPE_DMA_BUF,
+} VideoDataMemoryType;
+
+typedef struct {
+    VideoDataMemoryType memoryType;
+    uint32_t width;
+    uint32_t height;
+    uint32_t pitch[3];
+    uint32_t offset[3];
+    uint32_t fourcc;
+    uint32_t size;
+    intptr_t handle;        // planar data has one fd for now, raw data also uses one pointer (+ offset)
+    uint32_t internalID; // internal identification for image/surface recycle
+}VideoFrameRawData;
+
 #ifdef __cplusplus
 }
 #endif

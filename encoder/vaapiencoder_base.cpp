@@ -233,13 +233,13 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoEncRawBuffer* inBuffer)
     assert(inBuffer->size == raw->width * raw->height * 3 / 2);
 
     uint8_t* src = inBuffer->data;
-    uint8_t* dest = raw->pixels[0];
+    uint8_t* dest = (uint8_t*)raw->handles[0];
     for (int i = 0; i < raw->height; i++) {
         memcpy(dest, src, raw->width);
         dest += raw->strides[0];
         src += raw->width;
     }
-    dest = raw->pixels[1];
+    dest = (uint8_t*)raw->handles[1];
     for (int i = 0; i < raw->height/2; i++) {
         memcpy(dest, src, raw->width);
         dest += raw->strides[1];

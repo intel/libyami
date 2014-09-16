@@ -41,18 +41,6 @@ typedef enum {
 } VIDEO_EXTENSION_TYPE;
 
 typedef struct {
-    int32_t width;
-    int32_t height;
-    int32_t pitch[3];
-    int32_t offset[3];
-    uint32_t fourcc;            //NV12
-    int32_t size;
-    uint8_t *data;
-    // own data or derived from surface. If true, the library will release the memory during clearnup
-    bool own;
-}VideoFrameRawData;
-
-typedef struct {
     int64_t timestamp;
     int32_t offSet;
 }PackedFrameData;

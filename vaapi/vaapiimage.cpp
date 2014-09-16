@@ -92,7 +92,7 @@ VaapiImage::~VaapiImage()
         return;
 }
 
-VaapiImageRaw *VaapiImage::map()
+VaapiImageRaw *VaapiImage::map(VideoDataMemoryType memoryType)
 {
     uint32_t i;
     void *data;
@@ -102,21 +102,40 @@ VaapiImageRaw *VaapiImage::map()
         return &m_rawImage;
     }
 
-    status = vaMapBuffer(m_display->getID(), m_image.buf, &data);
-
-    if (!checkVaapiStatus(status, "vaMapBuffer()"))
-        return NULL;
-
     m_rawImage.format = m_image.format.fourcc;
     m_rawImage.width = m_image.width;
     m_rawImage.height = m_image.height;
     m_rawImage.numPlanes = m_image.num_planes;
     m_rawImage.size = m_image.data_size;
-
     for (i = 0; i < m_image.num_planes; i++) {
-        m_rawImage.pixels[i] = (uint8_t *) data + m_image.offsets[i];
         m_rawImage.strides[i] = m_image.pitches[i];
     }
+
+    if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_POINTER || memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
+        status = vaMapBuffer(m_display->getID(), m_image.buf, &data);
+        if (!checkVaapiStatus(status, "vaMapBuffer()"))
+            return NULL;
+        for (i = 0; i < m_image.num_planes; i++) {
+            m_rawImage.handles[i] = (intptr_t) data + m_image.offsets[i];
+        }
+    } else {
+        VABufferInfo bufferInfo;
+        if (memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
+            bufferInfo.mem_type = VA_SURFACE_ATTRIB_MEM_TYPE_KERNEL_DRM;
+        else if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
+            bufferInfo.mem_type = VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME;
+        else
+            ASSERT(0);
+
+        status = vaAcquireBufferHandle(m_display->getID(), m_image.buf, &bufferInfo);
+        if (!checkVaapiStatus(status, "vaAcquireBufferHandle()"))
+            return NULL;
+
+       for (i = 0; i < m_image.num_planes; i++) {
+           m_rawImage.handles[i] = (intptr_t) bufferInfo.handle;
+        }
+    }
+    m_rawImage.memoryType = memoryType;
     m_isMapped = true;
 
     return &m_rawImage;
@@ -129,9 +148,23 @@ bool VaapiImage::unmap()
     if (!m_isMapped)
         return true;
 
-    status = vaUnmapBuffer(m_display->getID(), m_image.buf);
-    if (!checkVaapiStatus(status, "vaUnmapBuffer()"))
-        return false;
+    switch(m_rawImage.memoryType) {
+    case VIDEO_DATA_MEMORY_TYPE_RAW_POINTER:
+    case VIDEO_DATA_MEMORY_TYPE_RAW_COPY:
+        status = vaUnmapBuffer(m_display->getID(), m_image.buf);
+        if (!checkVaapiStatus(status, "vaUnmapBuffer()"))
+            return false;
+    break;
+    case VIDEO_DATA_MEMORY_TYPE_DRM_NAME:
+    case VIDEO_DATA_MEMORY_TYPE_DMA_BUF:
+        status = vaReleaseBufferHandle(m_display->getID(), m_image.buf);
+        if (!checkVaapiStatus(status, "vaReleaseBufferHandle()"))
+            return false;
+    break;
+    default:
+        ASSERT(0);
+    break;
+    }
 
     m_isMapped = false;
     return true;

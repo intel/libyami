@@ -28,20 +28,22 @@
 
 #include "vaapitypes.h"
 #include <va/va.h>
+#include <va/va_drmcommon.h>
 #include <stdint.h>
 #include "common/common_def.h"
-#include <vector>
+#include "interface/VideoCommonDefs.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapidisplay.h"
 
 namespace YamiMediaCodec{
 /* Raw image to store mapped image*/
 typedef struct {
+    VideoDataMemoryType memoryType;
     uint32_t format;
     uint32_t width;
     uint32_t height;
     uint32_t numPlanes;
-    uint8_t *pixels[3];
+    intptr_t handles[3];
     uint32_t strides[3];
     uint32_t size;
 } VaapiImageRaw;
@@ -60,7 +62,7 @@ class VaapiImage {
     uint32_t getWidth();
     uint32_t getHeight();
 
-    VaapiImageRaw *map();
+    VaapiImageRaw *map(VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER); //RAW_POINTER & RAW_COPY are same inside VaaiImage
     bool isMapped();
     bool unmap();
 
