@@ -25,36 +25,197 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <assert.h>
 #include <X11/Xlib.h>
 
 #include "common/log.h"
+#include "egl/egl_util.h"
 #include "VideoDecoderHost.h"
 #include "decodeinput.h"
+#include "./egl/gles2_help.h"
 
 using namespace YamiMediaCodec;
 
+static int renderMode = 1;
+char *fileName = NULL;
+static IVideoDecoder *decoder = NULL;
+static FILE * outFile = NULL;
+static Display *x11Display = NULL;
+static Window window = 0;
+static int64_t timeStamp = 0;
+static int32_t videoWidth = 0, videoHeight = 0;
+#if __ENABLE_TESTS_GLES__
+static EGLContextType *eglContext = NULL;
+static XID pixmap = 0;
+static GLuint textureId = 0;
+#endif
+
+static void print_help(const char* app)
+{
+    printf("%s <options>\n", app);
+    printf("   -i media file to decode\n");
+    printf("   -m <render mode>\n");
+    printf("      0: dump video frame to file\n");
+    printf("      1: render to X window\n");
+    printf("      2: texture: render to Pixmap + texture from Pixmap\n");
+    printf("      3: texture: export video frame as drm name (RGBX) + texture from drm name\n");
+    printf("      4: texture: export video frame as dma_buf(RGBX) + texutre from dma_buf\n");
+    printf("      5: texture: export video frame as dma_buf(NV12) + texture from dma_buf\n");
+}
+
+bool renderOutputFrames(bool drain = false)
+{
+    Decode_Status status;
+    VideoFrameRawData frame;
+
+    if (renderMode > 0 && !window)
+        return false;
+
+    if (renderMode > 1 && !eglContext)
+        eglContext = eglInit(x11Display, window, VA_FOURCC_RGBA);
+
+    do {
+        switch (renderMode) {
+        case 0:
+            frame.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
+            frame.fourcc = 0;
+            frame.width = 0;
+            frame.height = 0;
+            status = decoder->getOutput(&frame);
+            if (status == RENDER_SUCCESS) {
+                if (!outFile) {
+                    uint32_t fourcc = frame.fourcc;
+                    char *ch = (char*)&fourcc;
+                    char outFileName[256];
+                    sprintf(outFileName, "%s_dump_%dx%d_%c%c%c%c.raw", fileName, frame.width, frame.height, ch[0], ch[1], ch[2], ch[3]);
+                    DEBUG("outFileName: %s", outFileName);
+                    outFile = fopen(outFileName, "w+");
+                }
+                ASSERT(outFile);
+                switch (frame.fourcc) {
+                case VA_FOURCC_NV12: {
+                    int row, ret;
+                    const char *data = NULL;
+
+                    // Y plane
+                    data = (char*)frame.handle + frame.offset[0];
+                    for (row = 0; row < frame.height; row++) {
+                        ret = fwrite(data, frame.width, 1, outFile);
+                        ASSERT(ret = 1);
+                        data += frame.pitch[0];
+                    }
+                    // UV plane
+                    int uvWidth = frame.width % 2 ? frame.width+1 : frame.width;
+                    int uvHeight = (frame.height +1 )/2;
+                    data = (char*) frame.handle + frame.offset[1];
+                    for (row = 0; row < uvHeight; row++) {
+                        ret = fwrite(data, uvWidth, 1, outFile);
+                        ASSERT(ret == 1);
+                        data += frame.pitch[1];
+                    }
+                }
+                break;
+                default:
+                    ASSERT(0);
+                    break;
+                }
+                decoder->renderDone(&frame);
+            }
+            break;
+        case 1:
+            status = decoder->getOutput(window, &timeStamp, 0, 0, videoWidth, videoHeight, drain);
+            break;
+#if __ENABLE_TESTS_GLES__
+        case 2:
+            if (!pixmap) {
+                int screen = DefaultScreen(x11Display);
+                Window rootWindow = RootWindow(x11Display, screen);
+                pixmap = XCreatePixmap(x11Display, rootWindow, videoWidth, videoHeight, XDefaultDepth(x11Display, screen));
+                XSync(x11Display, false);
+                textureId = createTextureFromPixmap(eglContext, pixmap);
+            }
+            status = decoder->getOutput(pixmap, &timeStamp, 0, 0, videoWidth, videoHeight);
+            if (status == RENDER_SUCCESS) {
+                drawTextures(eglContext, &textureId, 1);
+            }
+            break;
+        case 3:
+        case 4:
+        if (!textureId)
+                glGenTextures(1, &textureId);
+            glBindTexture(GL_TEXTURE_2D, textureId);
+
+            frame.memoryType = renderMode == 3 ? VIDEO_DATA_MEMORY_TYPE_DRM_NAME : VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
+            frame.fourcc = VA_FOURCC_RGBX;
+            frame.width = videoWidth;
+            frame.height = videoHeight;
+            status = decoder->getOutput(&frame);
+            if (status == RENDER_SUCCESS) {
+                EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
+                if (renderMode == 3)
+                    eglImage = createEglImageFromDrmBuffer(eglContext->eglContext.display, eglContext->eglContext.context, frame.handle, frame.width, frame.height, frame.pitch[0]);
+                else
+                    eglImage = createEglImageFromDmaBuf(eglContext->eglContext.display, eglContext->eglContext.context, frame.handle, frame.width, frame.height, frame.pitch[0]);
+
+                if (eglImage != EGL_NO_IMAGE_KHR) {
+                    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+                    drawTextures(eglContext, &textureId, 1);
+
+                    eglDestroyImageKHR(eglContext->eglContext.display, eglImage);
+                } else {
+                    ERROR("fail to create EGLImage from dma_buf");
+                }
+
+                decoder->renderDone(&frame);
+            }
+            break;
+#endif
+        default:
+            ASSERT(0);
+            break;
+        }
+    } while (status != RENDER_NO_AVAILABLE_FRAME);
+
+    return true;
+}
+
 int main(int argc, char** argv)
 {
-    char *fileName = NULL;
     DecodeStreamInput *input;
-    IVideoDecoder *decoder = NULL;
     VideoDecodeBuffer inputBuffer;
-    Display *x11Display = NULL;
     VideoConfigBuffer configBuffer;
     const VideoFormatInfo *formatInfo = NULL;
     Decode_Status status;
-    Window window = 0;
-    int64_t timeStamp = 0;
-    int32_t videoWidth = 0, videoHeight = 0;
     NativeDisplay nativeDisplay;
+    char opt;
 
-    if (argc <2) {
-        fprintf(stderr, "no input file to decode\n");
+    while ((opt = getopt(argc, argv, "h:m:i:?:")) != -1)
+    {
+        switch (opt) {
+        case 'h':
+        case '?':
+            print_help (argv[0]);
+            return false;
+        case 'i':
+            fileName = optarg;
+            break;
+        case 'm':
+            renderMode = atoi(optarg);
+            break;
+        default:
+            print_help(argv[0]);
+            break;
+        }
+    }
+    if (!fileName) {
+        fprintf(stderr, "no input media file specified\n");
         return -1;
     }
-    fileName = argv[1];
-    INFO("h264 fileName: %s\n", fileName);
+    fprintf(stderr, "input file: %s, renderMode: %d", fileName, renderMode);
 
     input = DecodeStreamInput::create(fileName);
 
@@ -63,13 +224,15 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    x11Display = XOpenDisplay(NULL);
     decoder = createVideoDecoder(input->getMimeType());
     assert(decoder != NULL);
 
-    nativeDisplay.type = NATIVE_DISPLAY_X11;
-    nativeDisplay.handle = (intptr_t)x11Display;
-    decoder->setNativeDisplay(&nativeDisplay);
+    if (renderMode > 0) {
+        x11Display = XOpenDisplay(NULL);
+        nativeDisplay.type = NATIVE_DISPLAY_X11;
+        nativeDisplay.handle = (intptr_t)x11Display;
+        decoder->setNativeDisplay(&nativeDisplay);
+    }
 
     memset(&configBuffer,0,sizeof(VideoConfigBuffer));
     configBuffer.profile = VAProfileNone;
@@ -89,24 +252,25 @@ int main(int argc, char** argv)
             videoWidth = formatInfo->width;
             videoHeight = formatInfo->height;
 
-            if (window) {
-                //todo, resize window;
-            } else {
-                window = XCreateSimpleWindow(x11Display, RootWindow(x11Display, DefaultScreen(x11Display))
-                    , 0, 0, videoWidth, videoHeight, 0, 0
-                    , WhitePixel(x11Display, 0));
-                XMapWindow(x11Display, window);
+            if (renderMode > 0) {
+                if (window) {
+                    //todo, resize window;
+                } else {
+                    int screen = DefaultScreen(x11Display);
+                    Window rootWindow = RootWindow(x11Display, screen);
+                    window = XCreateSimpleWindow(x11Display, rootWindow
+                        , 0, 0, videoWidth, videoHeight, 0, 0
+                        , WhitePixel(x11Display, 0));
+                    XMapWindow(x11Display, window);
+                }
+                XSync(x11Display, false);
             }
 
             // resend the buffer
             status = decoder->decode(&inputBuffer);
-            XSync(x11Display, false);
         }
 
-        // render the frame if available
-        do {
-            status = decoder->getOutput(window, &timeStamp, 0, 0, videoWidth, videoHeight);
-        } while (status != RENDER_NO_AVAILABLE_FRAME);
+        renderOutputFrames();
     }
 
 #if 0
@@ -117,13 +281,29 @@ int main(int argc, char** argv)
 #endif
 
     // drain the output buffer
-    do {
-        status = decoder->getOutput(window, &timeStamp, 0, 0, videoWidth, videoHeight, true);
-    } while (status != RENDER_NO_AVAILABLE_FRAME);
+    renderOutputFrames(true);
 
     decoder->stop();
     releaseVideoDecoder(decoder);
-    XDestroyWindow(x11Display, window);
+
     if(input)
         delete input;
+    if(outFile)
+        fclose(outFile);
+
+#if __ENABLE_TESTS_GLES__
+    if(textureId)
+        glDeleteTextures(1, &textureId);
+    if(eglContext)
+        eglRelease(eglContext);
+    if(pixmap)
+        XFreePixmap(x11Display, pixmap);
+#endif
+
+    if (x11Display && window)
+        XDestroyWindow(x11Display, window);
+    if (x11Display)
+        XCloseDisplay(x11Display);
+
+    fprintf(stderr, "decode done\n");
 }

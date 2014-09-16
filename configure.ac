@@ -50,6 +50,24 @@ AC_DEFINE([__ENABLE_TESTS__], [1], [Defined to 1 if --enable-tests="yes" ])
 fi
 AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "xyes")
 
+AC_ARG_ENABLE(tests-gles,
+    [AC_HELP_STRING([--enable-tests-gles], [build tests with opengles/texutre rendering@<:@default=no@:>@])],
+    [], [enable_tests_gles="no"])
+
+if test "$enable_tests_gles" = "yes"; then
+AC_DEFINE([__ENABLE_TESTS_GLES__], [1], [Defined to 1 if --enable-tests-gles="yes" ])
+fi
+AM_CONDITIONAL(ENABLE_TESTS_GLES, test "x$enable_tests_gles" = "xyes")
+
+AC_ARG_ENABLE(dmabuf,
+    [AC_HELP_STRING([--enable-dmabuf], [support dm_buf buffer sharing@<:@default=no@:>@])],
+    [], [enable_dmabuf="no"])
+
+if test "$enable_dmabuf" = "yes"; then
+AC_DEFINE([__ENABLE_DMABUF__], [1], [Defined to 1 if --enable-dmabuf="yes" ])
+fi
+AM_CONDITIONAL(ENABLE_DMABUF, test "x$enable_dmabuf" = "xyes")
+
 AC_ARG_ENABLE(v4l2,
     [AC_HELP_STRING([--enable-v4l2], [wrapper of v4l2 interface@<:@default=no@:>@])],
     [], [enable_v4l2="no"])
@@ -162,6 +180,19 @@ PKG_CHECK_MODULES(LIBVA_X11, [libva-x11],
 	         [AC_DEFINE([HAVE_VA_X11], [1], [Defined to 1 if VA/X11 API is enabled])])
 if test "$enable_v4l2" = "yes"; then
 PKG_CHECK_MODULES(LIBV4L2, [libv4l2])
+fi
+
+if test "$enable_v4l2" = "yes" -o "$enable_tests_gles" = "yes"; then
+    PKG_CHECK_MODULES(LIBEGL, [egl])
+fi
+
+if test ["$enable_v4l2" = "yes" -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
+    PKG_CHECK_MODULES(LIBGLES2, [glesv2])
+fi
+
+# drm_fourcc.h for dma_buf support
+if test "$enable_dmabuf" = "yes"; then
+PKG_CHECK_MODULES(LIBDRM, [libdrm])
 fi
 
 # Checks for library functions.

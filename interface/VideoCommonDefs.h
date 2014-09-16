@@ -46,11 +46,11 @@ typedef enum {
     NATIVE_DISPLAY_X11,
     NATIVE_DISPLAY_DRM,
     NATIVE_DISPLAY_WAYLAND,
-} NativeDisplayType;
+} YamiNativeDisplayType;
 
 typedef struct {
     intptr_t handle;
-    NativeDisplayType type;
+    YamiNativeDisplayType type;
 } NativeDisplay;
 
 typedef enum {

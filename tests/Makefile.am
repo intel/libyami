@@ -24,6 +24,9 @@ YAMI_DECODE_LIBS 	= \
 	$(YAMI_COMMON_LIBS)                            	\
 	$(top_builddir)/decoder/libyami_decoder.la      \
 	$(NULL)
+if ENABLE_TESTS_GLES
+YAMI_DECODE_LIBS += $(LIBEGL_LIBS) $(LIBGLES2_LIBS)
+endif
 
 YAMI_ENCODE_LIBS = \
 	$(YAMI_COMMON_LIBS)                             \
@@ -53,8 +56,11 @@ decodecapi_SOURCES	= decodecapi.c decodeinput.cpp decodeInputCapi.cpp
 encodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
 encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCapi.cpp
 else
-decode_LDADD    = $(YAMI_DECODE_LIBS) -lX11
-decode_SOURCES  = decode.cpp decodeinput.cpp
+decode_LDADD	= $(YAMI_DECODE_LIBS) -lX11
+decode_SOURCES	= decode.cpp decodeinput.cpp
+if ENABLE_TESTS_GLES
+decode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
+endif
 
 h264encode_LDADD    = $(YAMI_ENCODE_LIBS) -lX11
 h264encode_SOURCES  = h264encode.cpp encodeinput.cpp
