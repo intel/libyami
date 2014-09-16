@@ -29,6 +29,7 @@
 #define DEBUG(...)   ALOGV(__VA_ARGS__);
 #else
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
 extern int yamiLogFlag;
 extern FILE* yamiLogFn;
@@ -81,6 +82,16 @@ extern int isIni;
 }while (0)
 #endif
 
+#ifndef DEBUG_FOURCC
+#define DEBUG_FOURCC(promptStr, fourcc) do {                                                                            \
+  if (yamiLogFlag >= YAMI_LOG_DEBUG) {                                                                                  \
+    uint32_t i_fourcc = fourcc;                                                                                         \
+    char *ptr = (char*)(&(i_fourcc));                                                                                   \
+    yamiMessage(yamiLogFn, "%s, fourcc: 0x%x, %c%c%c%c\n", promptStr, i_fourcc, *(ptr), *(ptr+1), *(ptr+2), *(ptr+3));  \
+  }                                                                                                                     \
+} while(0)
+#endif
+
 #ifndef ASSERT
 #define ASSERT(expr) assert(expr)
 #endif
@@ -97,14 +108,16 @@ extern int isIni;
 #ifndef DEBUG
 #define DEBUG(format, ...)
 #endif
-#ifndef DEBUG_
-#define DEBUG_(format, ...)
+
+#ifndef PRINT_FOURCC
+#define DEBUG_FOURCC(promptStr, fourcc)
 #endif
-#endif                          //__ENABLE_DEBUG__
 
 #ifndef ASSERT
 #define ASSERT(...)
 #endif
+
+#endif                          //__ENABLE_DEBUG__
 
 #endif                          //__ANDROID
 void yamiTraceInit();

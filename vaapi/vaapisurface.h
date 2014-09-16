@@ -70,8 +70,8 @@ class VaapiSurface {
     bool sync();
     bool queryStatus(VaapiSurfaceStatus * pStatus);
 
-    bool getImage(VaapiImage * image);
-    bool putImage(VaapiImage * image);
+    bool getImage(ImagePtr image);
+    bool putImage(ImagePtr image);
     ImagePtr getDerivedImage();
 
   private:

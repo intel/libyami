@@ -34,55 +34,46 @@
 #include <string.h>
 
 namespace YamiMediaCodec{
-const VAImageFormat *VaapiImage::getVaFormat(VaapiImageFormat format)
+ImagePtr VaapiImage::create(DisplayPtr display,
+                           uint32_t format,
+                           uint32_t width, uint32_t height)
 {
-    const VaapiImageFormatMap *map = NULL;
-    for (map = vaapiImageFormats; map->format; map++) {
-        if (map->format == format)
-            return &map->vaFormat;
-    }
-    return NULL;
-}
-
-VaapiImage::VaapiImage(VADisplay display,
-                       VaapiImageFormat format,
-                       uint32_t width, uint32_t height)
-{
+    ImagePtr image;
     VAStatus status;
     VAImageFormat *vaFormat;
+    VAImage vaImage;
 
-    m_display = display;
-    m_format = format;
-    m_width = width;
-    m_height = height;
-    m_isMapped = false;
-
-    vaFormat = (VAImageFormat *) getVaFormat(format);
+    ASSERT(display && width && height);
+    DEBUG_FOURCC("create image with fourcc: ", format);
+    vaFormat = display->getVaFormat(format);
     if (!vaFormat) {
         ERROR("Create image failed, not supported fourcc");
-        return;
+        return image;
     }
 
-    status =
-        vaCreateImage(m_display, vaFormat, m_width, m_height, &m_image);
-
+    status = vaCreateImage(display->getID(), vaFormat, width, height, &vaImage);
     if (status != VA_STATUS_SUCCESS ||
-        m_image.format.fourcc != vaFormat->fourcc) {
+        vaImage.format.fourcc != vaFormat->fourcc) {
         ERROR("Create image failed");
-        return;
+        return image;
     }
+
+    image.reset(new VaapiImage(display, &vaImage));
+    return image;
 }
 
-VaapiImage::VaapiImage(VADisplay display, VAImage * image)
+ImagePtr VaapiImage::create(DisplayPtr display, VAImage * vaImage)
 {
-    VAStatus status;
+    ImagePtr image;
+    image.reset(new VaapiImage(display, vaImage));
+    return image;
+}
 
+VaapiImage::VaapiImage(DisplayPtr display, VAImage * image)
+    :m_isMapped(false)
+{
+    ASSERT(display && image);
     m_display = display;
-    m_width = image->width;
-    m_height = image->height;
-    m_ID = image->image_id;
-    m_isMapped = false;
-
     memcpy((void *) &m_image, (void *) image, sizeof(VAImage));
 }
 
@@ -95,7 +86,7 @@ VaapiImage::~VaapiImage()
         m_isMapped = false;
     }
 
-    status = vaDestroyImage(m_display, m_image.image_id);
+    status = vaDestroyImage(m_display->getID(), m_image.image_id);
 
     if (!checkVaapiStatus(status, "vaDestoryImage()"))
         return;
@@ -111,14 +102,14 @@ VaapiImageRaw *VaapiImage::map()
         return &m_rawImage;
     }
 
-    status = vaMapBuffer(m_display, m_image.buf, &data);
+    status = vaMapBuffer(m_display->getID(), m_image.buf, &data);
 
     if (!checkVaapiStatus(status, "vaMapBuffer()"))
         return NULL;
 
-    m_rawImage.format = m_format;
-    m_rawImage.width = m_width;
-    m_rawImage.height = m_height;
+    m_rawImage.format = m_image.format.fourcc;
+    m_rawImage.width = m_image.width;
+    m_rawImage.height = m_image.height;
     m_rawImage.numPlanes = m_image.num_planes;
     m_rawImage.size = m_image.data_size;
 
@@ -138,12 +129,11 @@ bool VaapiImage::unmap()
     if (!m_isMapped)
         return true;
 
-    status = vaUnmapBuffer(m_display, m_image.buf);
+    status = vaUnmapBuffer(m_display->getID(), m_image.buf);
     if (!checkVaapiStatus(status, "vaUnmapBuffer()"))
         return false;
 
     m_isMapped = false;
-
     return true;
 }
 
@@ -152,23 +142,23 @@ bool VaapiImage::isMapped()
     return m_isMapped;
 }
 
-VaapiImageFormat VaapiImage::getFormat()
+uint32_t VaapiImage::getFormat()
 {
-    return m_format;
+    return m_image.format.fourcc;
 }
 
 VAImageID VaapiImage::getID()
 {
-    return m_ID;
+    return m_image.image_id;
 }
 
 uint32_t VaapiImage::getWidth()
 {
-    return m_width;
+    return m_image.width;
 }
 
 uint32_t VaapiImage::getHeight()
 {
-    return m_height;
+    return m_image.height;
 }
 }

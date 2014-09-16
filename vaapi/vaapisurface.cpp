@@ -141,7 +141,7 @@ uint32_t VaapiSurface::getExtBufHandle(void)
     return m_externalBufHandle;
 }
 
-bool VaapiSurface::getImage(VaapiImage * image)
+bool VaapiSurface::getImage(ImagePtr image)
 {
     VAImageID imageID;
     VAStatus status;
@@ -160,6 +160,7 @@ bool VaapiSurface::getImage(VaapiImage * image)
 
     imageID = image->getID();
 
+    DEBUG("Display: 0x%x, surface: 0x%x, width: %d, height: %d, image: 0x%x", m_display->getID(), m_ID, width, height, imageID);
     status = vaGetImage(m_display->getID(), m_ID, 0, 0, width, height, imageID);
 
     if (!checkVaapiStatus(status, "vaGetImage()"))
@@ -168,7 +169,7 @@ bool VaapiSurface::getImage(VaapiImage * image)
     return true;
 }
 
-bool VaapiSurface::putImage(VaapiImage * image)
+bool VaapiSurface::putImage(ImagePtr image)
 {
     VAImageID imageID;
     VAStatus status;
@@ -187,7 +188,7 @@ bool VaapiSurface::putImage(VaapiImage * image)
 
     imageID = image->getID();
 
-    status = vaGetImage(m_display->getID(), m_ID, 0, 0, width, height, imageID);
+    status = vaPutImage(m_display->getID(), m_ID, imageID, 0, 0, width, height, 0, 0, width, height);
 
     if (!checkVaapiStatus(status, "vaPutImage()"))
         return false;
@@ -208,7 +209,7 @@ ImagePtr VaapiSurface::getDerivedImage()
     if (!checkVaapiStatus(status, "vaDeriveImage()"))
         return image;
 
-    image.reset(new VaapiImage(m_display->getID(), &va_image));
+    image = VaapiImage::create(m_display, &va_image);
     return image;
 }
 
