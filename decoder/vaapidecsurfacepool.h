@@ -69,8 +69,11 @@ public:
     bool output(const SurfacePtr&, int64_t timetamp);
     /// get surface from output queue
     VideoRenderBuffer* getOutput();
+    bool getOutput(VideoFrameRawData* frame);
     /// recycle to surface pool
     void recycle(VideoRenderBuffer * renderBuf);
+    /// recycle exported video frame to surface/image pool
+    void recycle(VideoFrameRawData* frame);
 
     //after this, acquireWithWait will always return null surface,
     //until all SurfacePtr and VideoRenderBuffer returned.
@@ -87,10 +90,11 @@ private:
 
     VaapiDecSurfacePool(const DisplayPtr&, std::vector<SurfacePtr>);
 
-    void VaapiDecSurfacePool::recycleLocked(VASurfaceID, SurfaceState);
+    void recycleLocked(VASurfaceID, SurfaceState);
     void recycle(VASurfaceID, SurfaceState);
 
     //following member only change in constructor.
+    DisplayPtr m_display;
     std::vector<VideoRenderBuffer> m_renderBuffers;
     std::vector<SurfacePtr> m_surfaces;
     typedef std::map<VASurfaceID, VideoRenderBuffer*> RenderMap;
@@ -112,6 +116,15 @@ private:
     bool m_flushing;
 
     struct SurfaceRecycler;
+    struct SurfaceRecyclerRender;
+
+    ImagePoolPtr m_imagePool;
+
+    class ExportFrameInfo;
+    typedef std::tr1::shared_ptr <ExportFrameInfo> ExportFramePtr;
+    typedef std::map<VAImageID, ExportFramePtr> ExportFrameMap;
+    ExportFrameMap m_exportFrames;
+    Lock m_exportFramesLock;
 
     DISALLOW_COPY_AND_ASSIGN(VaapiDecSurfacePool);
 };
