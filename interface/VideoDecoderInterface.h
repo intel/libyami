@@ -50,10 +50,10 @@ public:
     virtual void stop(void) = 0;
     /// discard cached data (input data or decoded video frames), it is usually required during seek
     virtual void flush(void) = 0;
-    /// continue decoding with new data in @param[in] buffer
+    /// continue decoding with new data in @param[in] buffer; send empty data (buffer.data=NULL, buffer.size=0) to indicate EOS
     virtual Decode_Status decode(VideoDecodeBuffer *buffer) = 0;
     /**
-     * \brief return one frame to client for display;
+     * \brief return one frame to client for display; obsolete API. please use getOutput(XID, ...) or getOutput(VideoFrameRawData, ...) instead.
      * NULL will be returned if no available frame for rendering
      * @param[in] draining drain out all possible frames or not. it is set to true upon EOS.
      * @return a #VideoRenderBuffer to be rendered by client
@@ -85,6 +85,15 @@ public:
         , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
         , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1) = 0;
 
+    /**
+     * \brief export one frame to client buffer;
+     * there are four type to export one frame (VideoDataMemoryType); after rendering, client return the buffer back by renderDone(VideoFrameRawData*);
+     * RENDER_NO_AVAILABLE_FRAME will be returned if no available frame for rendering.
+     * if frame->fourcc or/and frame->width/height are set, color conversion or/and resize is done as well.
+     * @param[in] draining drain out all possible frames or not. it is set to true upon EOS.
+     */
+    virtual Decode_Status getOutput(VideoFrameRawData* frame, bool draining = false) = 0;
+
     /** \brief retrieve updated stream information after decoder has parsed the video stream.
     * client usually calls it when libyami return DECODE_FORMAT_CHANGE in decode().
     */
@@ -98,6 +107,10 @@ public:
     * </pre>
     */
     virtual void renderDone(VideoRenderBuffer* buffer) = 0;
+
+    /** \brief client recycles video frame (retrieve by getOutput) back to libyami after the buffer has been rendered.
+    */
+    virtual void renderDone(VideoFrameRawData* frame) = 0;
 
     /// set native display
     virtual void  setNativeDisplay( NativeDisplay * display = NULL) = 0;

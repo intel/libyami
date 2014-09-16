@@ -214,7 +214,21 @@ const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
     return &m_videoFormatInfo;
 }
 
-void VaapiDecoderBase::renderDone(VideoRenderBuffer * renderBuf)
+Decode_Status VaapiDecoderBase::getOutput(VideoFrameRawData* frame, bool draining)
+{
+    if (!m_surfacePool)
+        return RENDER_NO_AVAILABLE_FRAME;
+
+    if (!frame)
+        return DECODE_INVALID_DATA;
+
+    if (!m_surfacePool->getOutput(frame))
+        return RENDER_NO_AVAILABLE_FRAME;
+
+    return RENDER_SUCCESS;
+}
+
+void VaapiDecoderBase::renderDone(const VideoRenderBuffer * renderBuf)
 {
     INFO("base: renderDone()");
     if (!m_surfacePool) {
@@ -222,6 +236,16 @@ void VaapiDecoderBase::renderDone(VideoRenderBuffer * renderBuf)
         return;
     }
     m_surfacePool->recycle(renderBuf);
+}
+
+void VaapiDecoderBase::renderDone(VideoFrameRawData* frame)
+{
+    INFO("base: renderDone()");
+    if (!m_surfacePool) {
+        ERROR("surface pool is not initialized yet");
+        return;
+    }
+    m_surfacePool->recycle(frame);
 }
 
 Decode_Status VaapiDecoderBase::updateReference(void)
