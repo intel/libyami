@@ -47,6 +47,9 @@ typedef std::tr1::shared_ptr < VaapiContext > ContextPtr;
 
 class VaapiDecSurfacePool;
 typedef std::tr1::shared_ptr < VaapiDecSurfacePool > DecSurfacePoolPtr;
+
+class VaapiImagePool;
+typedef std::tr1::shared_ptr < VaapiImagePool > ImagePoolPtr;
 } //namespace YamiMediaCodec
 
 #endif                          /* vaapiptr_h */
