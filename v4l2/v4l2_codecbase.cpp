@@ -34,16 +34,22 @@
 #include <linux/videodev2.h>
 
 #include "v4l2_encode.h"
+#include "v4l2_decode.h"
 #include "common/log.h"
 
 typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
  V4l2CodecPtr V4l2CodecBase::createCodec(const char* name, int32_t flags)
 {
-    V4l2CodecPtr encoder(new V4l2Encoder());
-    ASSERT(encoder);
-    encoder->open(name, flags);
+    V4l2CodecPtr codec;
+    if (!strcmp(name, "encoder"))
+        codec.reset(new V4l2Encoder());
+    else if (!strcmp(name, "decoder"))
+        codec.reset(new V4l2Decoder());
 
-    return encoder;
+    ASSERT(codec);
+    codec->open(name, flags);
+
+    return codec;
 }
 V4l2CodecBase::V4l2CodecBase()
     : m_memoryType(VIDEO_DATA_MEMORY_TYPE_RAW_COPY)

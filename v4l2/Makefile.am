@@ -5,6 +5,7 @@ INCLUDES = -I$(top_srcdir) \
 libyami_v4l2_source_c = \
         v4l2_codecbase.cpp \
         ../egl/egl_util.c \
+        v4l2_decode.cpp \
         v4l2_encode.cpp \
         v4l2_wrapper.cpp \
         $(NULL)
@@ -16,6 +17,7 @@ libyami_v4l2_source_h = \
 libyami_v4l2_source_h_priv = \
         v4l2_codecbase.h \
         v4l2_encode.h \
+        v4l2_decode.h \
         $(NULL)
 
 libyami_v4l2_la_LIBADD = \
