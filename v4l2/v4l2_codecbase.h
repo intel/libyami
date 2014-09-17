@@ -26,6 +26,12 @@
 #include <deque>
 #include <tr1/memory>
 #include "common/condition.h"
+#include <EGL/egl.h>
+#include "interface/VideoCommonDefs.h"
+
+#ifndef V4L2_EVENT_RESOLUTION_CHANGE
+    #define V4L2_EVENT_RESOLUTION_CHANGE 5
+#endif
 
 #if defined(INPUT) || defined(OUTPUT)
     #error("conflict define for INPUT/OUTPUT")
@@ -42,6 +48,7 @@ class V4l2CodecBase {
     typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
     static V4l2CodecPtr createCodec(const char* name, int32_t flags);
     bool close ();
+    virtual int32_t setFrameMemoryType(VideoDataMemoryType memory_type) {m_memoryType = memory_type; return 0;} ;
     virtual int32_t ioctl(int request, void* arg);
     int32_t poll(bool poll_device, bool* event_pending);
     int32_t setDeviceEvent(int index);
@@ -49,6 +56,7 @@ class V4l2CodecBase {
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset) {return NULL;};
     // virtual int32_t munmap(void* addr, size_t length) {return 0;};
+    virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
 
     void workerThread();
     int32_t fd() { return m_fd[0];};
@@ -60,13 +68,22 @@ class V4l2CodecBase {
     virtual bool giveOutputBuffer(struct v4l2_buffer *dqbuf) = 0;
     virtual bool inputPulse(int32_t index) = 0;
     virtual bool outputPulse(int32_t index) = 0;
+    virtual bool recycleOutputBuffer(int32_t index) {return true;};
+    virtual bool sendEOS() = 0;
+    virtual bool hasCodecEvent() {return m_hasEvent;}
+    virtual void setCodecEvent();
+    virtual void clearCodecEvent();
 
+    VideoDataMemoryType m_memoryType;
     int m_maxBufferCount[2];
+    uint32_t m_bufferPlaneCount[2];
     bool m_streamOn[2];
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
 
   private:
+    bool m_hasEvent;
+
     pthread_t m_worker[2];
     // to be processed by codec.
     // (0:INPUT):filled with input frame data, input worker thread will send them to yami
@@ -93,7 +110,6 @@ class V4l2CodecBase {
     uint32_t m_frameCount[2];
     uint32_t m_memoryMode[2];
     uint32_t m_pixelFormat[2]; // (it should be a set)
-    uint32_t m_bufferPlaneCount[2]; // (it should be a set)
 #endif
 };
 #endif

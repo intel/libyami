@@ -4,6 +4,7 @@ INCLUDES = -I$(top_srcdir) \
 
 libyami_v4l2_source_c = \
         v4l2_codecbase.cpp \
+        ../egl/egl_util.c \
         v4l2_encode.cpp \
         v4l2_wrapper.cpp \
         $(NULL)
@@ -14,7 +15,7 @@ libyami_v4l2_source_h = \
 
 libyami_v4l2_source_h_priv = \
         v4l2_codecbase.h \
-		v4l2_encode.h \
+        v4l2_encode.h \
         $(NULL)
 
 libyami_v4l2_la_LIBADD = \
@@ -24,14 +25,18 @@ libyami_v4l2_la_LIBADD = \
 
 libyami_v4l2_ldflags = \
         $(LIBYAMI_LT_LDFLAGS) \
+        $(LIBEGL_LIBS)        \
         -lpthread             \
         $(NULL)
 
 libyami_v4l2_cppflags = \
         $(LIBVA_CFLAGS) \
         $(LIBV4L2_CFLAGS) \
+        $(LIBEGL_CFLAGS)  \
         $(NULL)
-
+if ENABLE_DMABUF
+libyami_v4l2_cppflags += $(LIBDRM_CFLAGS)
+endif
 
 lib_LTLIBRARIES	               = libyami_v4l2.la
 libyami_v4l2includedir      = $(includedir)/libyami_v4l2

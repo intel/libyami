@@ -101,6 +101,11 @@ Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
     if (isBusy())
         return ENCODE_IS_BUSY;
 
+    if (!inBuffer->data && !inBuffer->size) {
+        // XXX handle EOS when there is B frames
+        return ENCODE_SUCCESS;
+    }
+
     SurfacePtr surface = createSurface(inBuffer);
     if (!surface)
         ret = ENCODE_NO_MEMORY;

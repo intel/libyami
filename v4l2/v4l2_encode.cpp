@@ -110,6 +110,18 @@ bool V4l2Encoder::inputPulse(int32_t index)
     return true;
 }
 
+bool V4l2Encoder::sendEOS()
+{
+    Encode_Status status = ENCODE_SUCCESS;
+    VideoEncRawBuffer inputBuffer;
+
+    inputBuffer.data = NULL;
+    inputBuffer.size = 0;
+    status = m_encoder->encode(&inputBuffer);
+
+    return status == ENCODE_SUCCESS;
+}
+
 bool V4l2Encoder::outputPulse(int32_t index)
 {
     Encode_Status status = ENCODE_SUCCESS;

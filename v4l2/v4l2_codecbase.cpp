@@ -29,10 +29,10 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <linux/videodev2.h>
 
-#include "v4l2_codecbase.h"
 #include "v4l2_encode.h"
 #include "common/log.h"
 
@@ -46,8 +46,10 @@ typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
     return encoder;
 }
 V4l2CodecBase::V4l2CodecBase()
-    : m_inputThreadCond(m_frameLock[INPUT])
+    : m_memoryType(VIDEO_DATA_MEMORY_TYPE_RAW_COPY)
+    , m_inputThreadCond(m_frameLock[INPUT])
     , m_outputThreadCond(m_frameLock[OUTPUT])
+    , m_hasEvent(false)
 {
     m_streamOn[INPUT] = false;
     m_streamOn[OUTPUT] = false;
@@ -126,6 +128,7 @@ void V4l2CodecBase::workerThread()
         {
             AutoLock locker(m_frameLock[thread]);
             if (m_framesTodo[thread].empty()) {
+                DEBUG("%s therad wait because m_framesTodo is empty", thread == INPUT ? "INPUT" : "OUTPUT");
                 m_threadCond[thread]->wait(); // wait if no todo frame is available
                 continue;
             }
@@ -144,12 +147,19 @@ void V4l2CodecBase::workerThread()
                 m_frameCount[thread]++;
                 DEBUG("m_frameCount[%s]: %d", thread == INPUT ? "input" : "output", m_frameCount[thread]);
                 #endif
+                DEBUG("%s therad wake up %s thread after process one frame", thread == INPUT ? "INPUT" : "OUTPUT", thread == INPUT ? "OUTPUT" : "INPUT");
                 m_threadCond[!thread]->signal(); // encode/getOutput one frame success, wakeup the other thread
             } else {
+                DEBUG("%s therad wait because operation on yami fails", thread == INPUT ? "INPUT" : "OUTPUT");
                 m_threadCond[thread]->wait(); // wait if encode/getOutput fail (encode hw is busy or no available output)
             }
         }
         DEBUG("fd: %d", m_fd[0]);
+    }
+
+    if(thread == INPUT) {
+        sendEOS();
+        m_threadCond[OUTPUT]->signal();
     }
 
     m_threadOn[thread] = false;
@@ -293,7 +303,11 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             if (port == INPUT) {
                 bool _ret = acceptInputBuffer(qbuf);
                 ASSERT(_ret);
+            } else {
+                bool _ret = recycleOutputBuffer(qbuf->index);
+                ASSERT(_ret);
             }
+
             m_frameLock[port].acquire();
             m_framesTodo[port].push_back(qbuf->index);
             m_frameLock[port].release();
@@ -401,11 +415,24 @@ int32_t V4l2CodecBase::poll(bool poll_device, bool* event_pending)
       ERROR("poll() failed");
       return -1;
     }
-    *event_pending = (pollfd != -1 && pollfds[pollfd].revents & (POLLPRI | POLLIN | POLLOUT));
+    // *event_pending = (pollfd != -1 && pollfds[pollfd].revents & (POLLPRI | POLLIN | POLLOUT));
+    *event_pending = m_hasEvent;
 
     // clear event
     clearDeviceEvent(0);
 
     return 0;
+}
+
+void V4l2CodecBase::setCodecEvent()
+{
+    YamiMediaCodec::AutoLock locker(m_codecLock);
+    m_hasEvent = true;
+}
+
+void V4l2CodecBase::clearCodecEvent()
+{
+    YamiMediaCodec::AutoLock locker(m_codecLock);
+    m_hasEvent = false;
 }
 

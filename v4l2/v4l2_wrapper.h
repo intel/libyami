@@ -22,12 +22,15 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <EGL/egl.h>
+#include "interface/VideoCommonDefs.h"
 
 #ifndef v4l2_wrapper_h
 #define v4l2_wrapper_h
 extern "C" {
 int32_t YamiV4L2_Open(const char* name, int32_t flags);
 int32_t YamiV4L2_Close(int32_t fd);
+int32_t YamiV4L2_FrameMemoryType(int32_t fd, VideoDataMemoryType memory_type);
 int32_t YamiV4L2_Ioctl(int32_t fd, int request, void* arg);
 int32_t YamiV4L2_Poll(int32_t fd, bool poll_device, bool* event_pending);
 int32_t YamiV4L2_SetDevicePollInterrupt(int32_t fd);
@@ -35,7 +38,7 @@ int32_t YamiV4L2_ClearDevicePollInterrupt(int32_t fd);
 void* YamiV4L2_Mmap(void* addr, size_t length,
                      int prot, int flags, int fd, unsigned int offset);
 int32_t YamiV4L2_Munmap(void* addr, size_t length);
-int32_t YamiV4L2_UseEglImage(int fd, unsigned int buffer_index, void* egl_image);
+int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int buffer_index, void* egl_image);
 } // extern "C"
 #endif
 

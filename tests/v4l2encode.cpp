@@ -333,15 +333,13 @@ int main(int argc, char** argv)
 
     bool event_pending=true;
     do {
-        if (event_pending) {
-            takeOneOutputFrame(fd);
-            feedOneInputFrame(fd);
-        }
+        takeOneOutputFrame(fd);
+        feedOneInputFrame(fd);
         if (isReadEOS)
             break;
     } while (YamiV4L2_Poll(fd, true, &event_pending) == 0);
 
-    // drain
+    // drain input buffer
     ASSERT(isReadEOS);
     while (!isEncodeEOS) {
         takeOneOutputFrame(fd);
@@ -349,8 +347,13 @@ int main(int argc, char** argv)
         usleep(10000);
     }
 
+    // drain output buffer
+    // stop input port to indicate EOS
+    type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMOFF, &type);
+    ASSERT(ioctlRet != -1);
     ASSERT(isEncodeEOS);
-     while (!isOutputEOS) {
+    while (!isOutputEOS) {
         usleep(10000);
         takeOneOutputFrame(fd);
     }
@@ -373,10 +376,7 @@ int main(int argc, char** argv)
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
 
-    // stop
-    type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMOFF, &type);
-    ASSERT(ioctlRet != -1);
+    // stop output prot
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);

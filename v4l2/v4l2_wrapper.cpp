@@ -94,6 +94,13 @@ int32_t YamiV4L2_Close(int32_t fd)
     return ret ? 0 : -1;
 }
 
+int32_t YamiV4L2_FrameMemoryType(int32_t fd, VideoDataMemoryType memory_type)
+{
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+    ASSERT(v4l2Codec);
+    return v4l2Codec->setFrameMemoryType(memory_type);
+}
+
 int32_t YamiV4L2_Ioctl(int32_t fd, int command, void* arg)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -135,8 +142,10 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length)
     return 0;
 }
 
-int32_t YamiV4L2_UseEglImage(int fd, unsigned int buffer_index, void* egl_image)
+int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int bufferIndex, void* eglImage)
 {
-    ASSERT(0); // not implemented yet
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+    ASSERT(v4l2Codec);
+    return v4l2Codec->useEglImage(eglDisplay, eglContext, bufferIndex, eglImage);
 }
 

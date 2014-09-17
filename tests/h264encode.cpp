@@ -41,14 +41,12 @@ using namespace YamiMediaCodec;
 int main(int argc, char** argv)
 {
     IVideoEncoder *encoder = NULL;
-    Display *x11Display = NULL;
     uint32_t maxOutSize = 0;
     EncodeStreamInput input;
     EncodeStreamOutput* output;
     Encode_Status status;
     VideoEncRawBuffer inputBuffer;
     VideoEncOutputBuffer outputBuffer;
-
 
     if (!process_cmdline(argc, argv))
         return -1;
