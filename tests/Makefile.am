@@ -3,7 +3,7 @@ bin_PROGRAMS = decodecapi encodecapi
 else
 bin_PROGRAMS = decode h264encode
 if ENABLE_V4L2
-bin_PROGRAMS += v4l2encode
+bin_PROGRAMS += v4l2encode v4l2decode
 endif
 endif
 
@@ -31,6 +31,12 @@ endif
 YAMI_ENCODE_LIBS = \
 	$(YAMI_COMMON_LIBS)                             \
 	$(top_builddir)/encoder/libyami_encoder.la      \
+	$(NULL)
+
+V4L2_DECODE_LIBS = \
+	$(YAMI_DECODE_LIBS)                         \
+	$(top_builddir)/v4l2/libyami_v4l2.la        \
+	$(LIBGLES2_LIBS)                            \
 	$(NULL)
 
 V4L2_ENCODE_LIBS = \
@@ -64,6 +70,9 @@ endif
 
 h264encode_LDADD    = $(YAMI_ENCODE_LIBS) -lX11
 h264encode_SOURCES  = h264encode.cpp encodeinput.cpp
+
+v4l2decode_LDADD = $(V4L2_DECODE_LIBS) -lX11
+v4l2decode_SOURCES = v4l2decode.cpp decodeinput.cpp ../egl/egl_util.c ./egl/gles2_help.c
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
 v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp
