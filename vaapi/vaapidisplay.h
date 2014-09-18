@@ -31,7 +31,9 @@
 #include <va/va_x11.h>
 #endif
 #include <va/va_drm.h>
+#include <vector>
 #include "interface/VideoCommonDefs.h"
+#include "common/lock.h"
 
 ///abstract for all display, x11, wayland, ozone, android etc.
 namespace YamiMediaCodec{
@@ -45,10 +47,9 @@ public:
     ~VaapiDisplay();
     //FIXME: add more create functions.
     static DisplayPtr create(const NativeDisplay& display);
-
     virtual bool setRotation(int degree);
-
     VADisplay getID() const { return m_vaDisplay; }
+    const VAImageFormat* getVaFormat(uint32_t fourcc);
 
 protected:
     /// for display cache management.
@@ -58,8 +59,10 @@ private:
     VaapiDisplay(const NativeDisplayPtr& nativeDisplay, VADisplay vaDisplay)
     :m_vaDisplay(vaDisplay), m_nativeDisplay(nativeDisplay) { };
 
+    Lock m_lock;
     VADisplay   m_vaDisplay;
     NativeDisplayPtr m_nativeDisplay;
+    std::vector<VAImageFormat> m_vaImageFormats;
 
 DISALLOW_COPY_AND_ASSIGN(VaapiDisplay);
 };

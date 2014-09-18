@@ -176,6 +176,36 @@ bool VaapiDisplay::setRotation(int degree)
 
 }
 
+const VAImageFormat *
+VaapiDisplay::getVaFormat(uint32_t fourcc)
+{
+    AutoLock locker(m_lock);
+    int i;
+
+    if (m_vaImageFormats.empty()) {
+        VAStatus vaStatus;
+        int numImageFormats;
+        numImageFormats = vaMaxNumImageFormats(m_vaDisplay);
+        if (numImageFormats == 0)
+            return NULL;
+
+        m_vaImageFormats.reserve(numImageFormats);
+        m_vaImageFormats.resize(numImageFormats);
+
+        vaStatus = vaQueryImageFormats(m_vaDisplay, &m_vaImageFormats[0], &numImageFormats);
+        checkVaapiStatus(vaStatus, "vaQueryImageFormats()");
+        for (i=0; i< m_vaImageFormats.size(); i++)
+            DEBUG_FOURCC("supported image format: ", m_vaImageFormats[i].fourcc);
+    }
+
+    for (i = 0; i < m_vaImageFormats.size(); i++) {
+        VAImageFormat vaImageFormat = m_vaImageFormats[i];
+        if (vaImageFormat.fourcc == fourcc)
+            return &m_vaImageFormats[i];
+    }
+    return NULL;
+}
+
 //display cache
 class DisplayCache
 {
@@ -231,7 +261,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
     case NATIVE_DISPLAY_X11:
         nativeDisplayObj.reset (new NativeDisplayX11());
         if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
-            vaDisplay = vaGetDisplay(nativeDisplayObj->nativeHandle());
+            vaDisplay = vaGetDisplay((Display*)(nativeDisplayObj->nativeHandle()));
         if(vaDisplay || nativeDisplay.type == NATIVE_DISPLAY_X11)
             break;
         // NATIVE_DISPLAY_AUTO continue, no break
