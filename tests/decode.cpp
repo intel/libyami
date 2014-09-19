@@ -39,6 +39,7 @@
 using namespace YamiMediaCodec;
 
 static int renderMode = 1;
+static bool waitBeforeQuit = false;
 char *fileName = NULL;
 static IVideoDecoder *decoder = NULL;
 static FILE * outFile = NULL;
@@ -56,6 +57,7 @@ static void print_help(const char* app)
 {
     printf("%s <options>\n", app);
     printf("   -i media file to decode\n");
+    printf("   -w wait before quit\n");
     printf("   -m <render mode>\n");
     printf("      0: dump video frame to file\n");
     printf("      1: render to X window\n");
@@ -131,8 +133,7 @@ bool renderOutputFrames(bool drain = false)
         case 2:
             if (!pixmap) {
                 int screen = DefaultScreen(x11Display);
-                Window rootWindow = RootWindow(x11Display, screen);
-                pixmap = XCreatePixmap(x11Display, rootWindow, videoWidth, videoHeight, XDefaultDepth(x11Display, screen));
+                pixmap = XCreatePixmap(x11Display, DefaultRootWindow(x11Display), videoWidth, videoHeight, XDefaultDepth(x11Display, screen));
                 XSync(x11Display, false);
                 textureId = createTextureFromPixmap(eglContext, pixmap);
             }
@@ -193,7 +194,7 @@ int main(int argc, char** argv)
     NativeDisplay nativeDisplay;
     char opt;
 
-    while ((opt = getopt(argc, argv, "h:m:i:?:")) != -1)
+    while ((opt = getopt(argc, argv, "h:m:i:w?")) != -1)
     {
         switch (opt) {
         case 'h':
@@ -202,6 +203,9 @@ int main(int argc, char** argv)
             return false;
         case 'i':
             fileName = optarg;
+            break;
+        case 'w':
+            waitBeforeQuit = true;
             break;
         case 'm':
             renderMode = atoi(optarg);
@@ -257,10 +261,12 @@ int main(int argc, char** argv)
                     //todo, resize window;
                 } else {
                     int screen = DefaultScreen(x11Display);
-                    Window rootWindow = RootWindow(x11Display, screen);
-                    window = XCreateSimpleWindow(x11Display, rootWindow
-                        , 0, 0, videoWidth, videoHeight, 0, 0
-                        , WhitePixel(x11Display, 0));
+
+                    XSetWindowAttributes x11WindowAttrib;
+                    x11WindowAttrib.event_mask = KeyPressMask;
+                    window = XCreateWindow(x11Display, DefaultRootWindow(x11Display),
+                        0, 0, videoWidth, videoHeight, 0, CopyFromParent, InputOutput,
+                        CopyFromParent, CWEventMask, &x11WindowAttrib);
                     XMapWindow(x11Display, window);
                 }
                 XSync(x11Display, false);
@@ -282,6 +288,18 @@ int main(int argc, char** argv)
 
     // drain the output buffer
     renderOutputFrames(true);
+
+    while (waitBeforeQuit) {
+        XEvent x_event;
+        XNextEvent(x11Display, &x_event);
+        switch (x_event.type) {
+        case KeyPress:
+            waitBeforeQuit = false;
+            break;
+        default:
+            break;
+        }
+    }
 
     decoder->stop();
     releaseVideoDecoder(decoder);
