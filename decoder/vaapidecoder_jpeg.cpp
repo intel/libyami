@@ -405,7 +405,7 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
             return DECODE_PARSER_FAIL;
         }
         // seg.offset points to the byte after current marker (oxFFXY)
-        ofs = seg.offset;
+        ofs = seg.offset+seg.size;
 
         /* Decode scan, if complete */
         if (seg.marker == JPEG_MARKER_EOI && scanSeg.m_headerSize > 0) {
@@ -496,7 +496,7 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
 
             /* Application segments */
             if (seg.marker >= JPEG_MARKER_APP_MIN &&
-                seg.marker <= JPEG_MARKER_APP_MAX) {
+                seg.marker <= JPEG_MARKER_APP_MAX || seg.marker == JPEG_MARKER_COM) {
                 status = DECODE_SUCCESS;
                 break;
             }
