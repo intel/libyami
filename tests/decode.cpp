@@ -75,9 +75,10 @@ bool renderOutputFrames(bool drain = false)
     if (renderMode > 0 && !window)
         return false;
 
+#if __ENABLE_TESTS_GLES__
     if (renderMode > 1 && !eglContext)
         eglContext = eglInit(x11Display, window, VA_FOURCC_RGBA);
-
+#endif
     do {
         switch (renderMode) {
         case 0:
@@ -219,7 +220,14 @@ int main(int argc, char** argv)
         fprintf(stderr, "no input media file specified\n");
         return -1;
     }
-    fprintf(stderr, "input file: %s, renderMode: %d", fileName, renderMode);
+    fprintf(stderr, "input file: %s, renderMode: %d\n", fileName, renderMode);
+
+#ifndef __ENABLE_TESTS_GLES__
+    if (renderMode > 1) {
+        fprintf(stderr, "renderMode=%d is not supported, please rebuild with --enable-tests-gles option\n", renderMode);
+        return -1;
+    }
+#endif
 
     input = DecodeStreamInput::create(fileName);
 

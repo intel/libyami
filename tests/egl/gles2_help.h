@@ -19,6 +19,9 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+#ifndef __GLES2_HELP_H__
+#define __GLES2_HELP_H__
+
 #include <X11/Xlib.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
@@ -62,4 +65,4 @@ int drawTextures(EGLContextType *context, GLuint *textureIds, int texCount);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
+#endif /* __GLES2_HELP_H__ */

@@ -36,6 +36,7 @@ YAMI_ENCODE_LIBS = \
 V4L2_DECODE_LIBS = \
 	$(YAMI_DECODE_LIBS)                         \
 	$(top_builddir)/v4l2/libyami_v4l2.la        \
+	$(LIBEGL_LIBS)                              \
 	$(LIBGLES2_LIBS)                            \
 	$(NULL)
 
