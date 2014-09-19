@@ -95,4 +95,6 @@ public:
     ~DecodeStreamInputJPEG();
     const char * getMimeType();
     bool isSyncWord(const uint8_t* buf);
+private:
+    int m_countSOI;
 };

@@ -260,6 +260,7 @@ bool DecodeStreamInputH264::isSyncWord(const uint8_t* buf)
 DecodeStreamInputJPEG::DecodeStreamInputJPEG()
 {
     StartCodeSize = 2;
+    m_countSOI = 0;
 }
 
 DecodeStreamInputJPEG::~DecodeStreamInputJPEG()
@@ -274,5 +275,16 @@ const char *DecodeStreamInputJPEG::getMimeType()
 
 bool DecodeStreamInputJPEG::isSyncWord(const uint8_t* buf)
 {
-    return buf[0] == 0xff && buf[1] == 0xD8;
+    if (buf[0] != 0xff)
+        return false;
+
+    if (buf[1] == 0xD8)
+        m_countSOI++;
+    if (buf[1] == 0xD9)
+        m_countSOI--;
+
+    if (buf[1] == 0xD8 && m_countSOI == 1)
+        return true;
+
+    return false;
 }
