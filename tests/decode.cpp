@@ -38,6 +38,10 @@
 
 using namespace YamiMediaCodec;
 
+#ifndef VA_FOURCC_I420
+#define VA_FOURCC_I420 VA_FOURCC('I','4','2','0')
+#endif
+static uint32_t dumpFourcc = VA_FOURCC_I420;
 static int renderMode = 1;
 static bool waitBeforeQuit = false;
 char *fileName = NULL;
@@ -58,6 +62,7 @@ static void print_help(const char* app)
     printf("%s <options>\n", app);
     printf("   -i media file to decode\n");
     printf("   -w wait before quit\n");
+    printf("   -f dumped fourcc\n");
     printf("   -m <render mode>\n");
     printf("      0: dump video frame to file\n");
     printf("      1: render to X window\n");
@@ -83,7 +88,7 @@ bool renderOutputFrames(bool drain = false)
         switch (renderMode) {
         case 0:
             frame.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
-            frame.fourcc = 0;
+            frame.fourcc = dumpFourcc;
             frame.width = 0;
             frame.height = 0;
             status = decoder->getOutput(&frame);
@@ -97,32 +102,41 @@ bool renderOutputFrames(bool drain = false)
                     outFile = fopen(outFileName, "w+");
                 }
                 ASSERT(outFile);
+
+                int widths[3], heights[3];
+                int planeCount = 0;
+                widths[0] = frame.width;
+                heights[0] = frame.height;
                 switch (frame.fourcc) {
                 case VA_FOURCC_NV12: {
-                    int row, ret;
-                    const char *data = NULL;
-
-                    // Y plane
-                    data = (char*)frame.handle + frame.offset[0];
-                    for (row = 0; row < frame.height; row++) {
-                        ret = fwrite(data, frame.width, 1, outFile);
-                        ASSERT(ret = 1);
-                        data += frame.pitch[0];
-                    }
-                    // UV plane
-                    int uvWidth = frame.width % 2 ? frame.width+1 : frame.width;
-                    int uvHeight = (frame.height +1 )/2;
-                    data = (char*) frame.handle + frame.offset[1];
-                    for (row = 0; row < uvHeight; row++) {
-                        ret = fwrite(data, uvWidth, 1, outFile);
-                        ASSERT(ret == 1);
-                        data += frame.pitch[1];
-                    }
+                    planeCount = 2;
+                    widths[1] = frame.width % 2 ? frame.width+1 : frame.width;
+                    heights[1] = (frame.height +1 )/2;
+                }
+                break;
+                case VA_FOURCC_I420: {
+                    planeCount = 3;
+                    widths[1] = (frame.width+1) / 2;
+                    heights[1] = (frame.height +1)/2;
+                    widths[2] = (frame.width+1) / 2;
+                    heights[2] = (frame.height +1)/2;
                 }
                 break;
                 default:
                     ASSERT(0);
                     break;
+                }
+
+                int plane, row, ret;
+                const char *data = NULL;
+
+                for (plane = 0; plane<planeCount; plane++){
+                    data = (char*) frame.handle + frame.offset[plane];
+                    for (row = 0; row < heights[plane]; row++) {
+                        ret = fwrite(data, widths[plane], 1, outFile);
+                        ASSERT(ret == 1);
+                        data += frame.pitch[plane];
+                    }
                 }
                 decoder->renderDone(&frame);
             }
@@ -195,7 +209,7 @@ int main(int argc, char** argv)
     NativeDisplay nativeDisplay;
     char opt;
 
-    while ((opt = getopt(argc, argv, "h:m:i:w?")) != -1)
+    while ((opt = getopt(argc, argv, "h:m:i:f:w?")) != -1)
     {
         switch (opt) {
         case 'h':
@@ -210,6 +224,13 @@ int main(int argc, char** argv)
             break;
         case 'm':
             renderMode = atoi(optarg);
+            break;
+        case 'f':
+            if (strlen(optarg) == 4) {
+                dumpFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
+            } else {
+                fprintf(stderr, "invalid fourcc: %s\n", optarg);
+            }
             break;
         default:
             print_help(argv[0]);
