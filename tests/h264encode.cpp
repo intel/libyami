@@ -56,6 +56,9 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    videoWidth = input.getWidth();
+    videoHeight = input.getHeight();
+
     output = EncodeStreamOutput::create(outputFileName, videoWidth, videoHeight);
     if (!output) {
         fprintf (stderr, "fail to init ouput stream\n");

@@ -42,6 +42,10 @@ const char * getOutputMimeType(EncodeOutputHandler output);
 
 bool initInput(EncodeInputHandler input, const char* inputFileName, const int width, const int height);
 
+int getInputWidth(EncodeInputHandler input);
+
+int getInputHeight(EncodeInputHandler input);
+
 bool getOneFrameInput(EncodeInputHandler input, VideoEncRawBuffer *inputBuffer);
 
 bool writeOutput(EncodeOutputHandler output, void* data, int size);

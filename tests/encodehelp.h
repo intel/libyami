@@ -105,11 +105,14 @@ static bool process_cmdline(int argc, char *argv[])
         return false;
     }
 
-    if (!videoWidth || !videoHeight) {
-        fprintf(stderr, "can not encode without video/height\n");
-        return false;
-    }
+    if (!outputFileName)
+        outputFileName = "test.264";
 
+    return true;
+}
+
+void ensureInputParameters()
+{
     if (!fps)
         fps = 30;
 
@@ -119,14 +122,11 @@ static bool process_cmdline(int argc, char *argv[])
         bitRate = rawBitRate / EmpiricalVaue;
     }
 
-    if (!outputFileName)
-        outputFileName = "test.yuv";
-
-    return true;
 }
 
 void setEncoderParameters(VideoParamsCommon * encVideoParams)
 {
+    ensureInputParameters();
     //resolution
     encVideoParams->resolution.width = videoWidth;
     encVideoParams->resolution.height = videoHeight;

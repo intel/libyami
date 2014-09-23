@@ -59,6 +59,20 @@ bool initInput(EncodeInputHandler input, const char* inputFileName, const int wi
     return ((EncodeStreamInput*)input)->init(inputFileName, width, height);
 }
 
+int getInputWidth(EncodeInputHandler input)
+{
+    if (input)
+        return ((EncodeStreamInput*)input)->getWidth();
+    return 0;
+}
+
+int getInputHeight(EncodeInputHandler input)
+{
+    if (input)
+        return ((EncodeStreamInput*)input)->getHeight();
+    return 0;
+}
+
 bool getOneFrameInput(EncodeInputHandler input, VideoEncRawBuffer *inputBuffer)
 {
     if(input)
