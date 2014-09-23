@@ -53,6 +53,14 @@ extern int isIni;
 }while (0)
 #endif
 
+#ifndef ASSERT
+#define ASSERT(expr) do {                                                                                               \
+        if (!(expr))                                                                                                    \
+            ERROR();                                                                                                    \
+        assert(expr);                                                                                                   \
+    } while(0)
+#endif
+
 #ifdef __ENABLE_DEBUG__
 #ifndef INFO
 #define INFO(format, ...)   do { \
@@ -92,10 +100,6 @@ extern int isIni;
 } while(0)
 #endif
 
-#ifndef ASSERT
-#define ASSERT(expr) assert(expr)
-#endif
-
 #else                           //__ENABLE_DEBUG__
 #ifndef INFO
 #define INFO(format, ...)
@@ -111,10 +115,6 @@ extern int isIni;
 
 #ifndef PRINT_FOURCC
 #define DEBUG_FOURCC(promptStr, fourcc)
-#endif
-
-#ifndef ASSERT
-#define ASSERT(...)
 #endif
 
 #endif                          //__ENABLE_DEBUG__

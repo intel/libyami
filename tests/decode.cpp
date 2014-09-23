@@ -41,6 +41,7 @@ using namespace YamiMediaCodec;
 #ifndef VA_FOURCC_I420
 #define VA_FOURCC_I420 VA_FOURCC('I','4','2','0')
 #endif
+static char *dumpOutputDir = NULL;
 static uint32_t dumpFourcc = VA_FOURCC_I420;
 static int renderMode = 1;
 static bool waitBeforeQuit = false;
@@ -63,6 +64,7 @@ static void print_help(const char* app)
     printf("   -i media file to decode\n");
     printf("   -w wait before quit\n");
     printf("   -f dumped fourcc\n");
+    printf("   -o dumped output dir\n");
     printf("   -m <render mode>\n");
     printf("      0: dump video frame to file\n");
     printf("      1: render to X window\n");
@@ -97,7 +99,12 @@ bool renderOutputFrames(bool drain = false)
                     uint32_t fourcc = frame.fourcc;
                     char *ch = (char*)&fourcc;
                     char outFileName[256];
-                    sprintf(outFileName, "%s_dump_%dx%d_%c%c%c%c.raw", fileName, frame.width, frame.height, ch[0], ch[1], ch[2], ch[3]);
+                    char* baseFileName = fileName;
+                    char *s = strrchr(fileName, '/');
+                    if (s)
+                        baseFileName = s+1;
+
+                    sprintf(outFileName, "%s/%s_%dx%d.%c%c%c%c", dumpOutputDir, baseFileName, frame.width, frame.height, ch[0], ch[1], ch[2], ch[3]);
                     DEBUG("outFileName: %s", outFileName);
                     outFile = fopen(outFileName, "w+");
                 }
@@ -209,7 +216,7 @@ int main(int argc, char** argv)
     NativeDisplay nativeDisplay;
     char opt;
 
-    while ((opt = getopt(argc, argv, "h:m:i:f:w?")) != -1)
+    while ((opt = getopt(argc, argv, "h:m:i:f:o:w?")) != -1)
     {
         switch (opt) {
         case 'h':
@@ -232,6 +239,10 @@ int main(int argc, char** argv)
                 fprintf(stderr, "invalid fourcc: %s\n", optarg);
             }
             break;
+        case 'o':
+            if (optarg)
+                dumpOutputDir = strdup(optarg);
+            break;
         default:
             print_help(argv[0]);
             break;
@@ -242,6 +253,9 @@ int main(int argc, char** argv)
         return -1;
     }
     fprintf(stderr, "input file: %s, renderMode: %d\n", fileName, renderMode);
+
+    if (!dumpOutputDir)
+        dumpOutputDir = strdup ("./");
 
 #ifndef __ENABLE_TESTS_GLES__
     if (renderMode > 1) {
@@ -337,6 +351,8 @@ int main(int argc, char** argv)
         delete input;
     if(outFile)
         fclose(outFile);
+    if (dumpOutputDir)
+        free(dumpOutputDir);
 
 #if __ENABLE_TESTS_GLES__
     if(textureId)
