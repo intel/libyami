@@ -163,13 +163,16 @@ int
 drawTextures(EGLContextType *context, GLuint *textureIds, int texCount)
 {
     unsigned int i;
-    #define RECT_SIZE_1 1.0f
-    #define RECT_SIZE_2 0.5f
-    static const GLfloat positions[4][2] = {
-        { -RECT_SIZE_1, -RECT_SIZE_1 },
-        {  RECT_SIZE_2, -RECT_SIZE_2 },
-        {  RECT_SIZE_1,  RECT_SIZE_1 },
-        { -RECT_SIZE_2,  RECT_SIZE_2 }
+    const int maxRectSize = 100;
+    const int minRectSize = 10;
+    static int rectSize1 = maxRectSize;
+    static int rectSize2 = minRectSize;
+    static int direction = 1;
+    const GLfloat positions[4][2] = {
+        { -rectSize1/100.f, -rectSize1/100.f},
+        {  rectSize2/100.f, -rectSize2/100.f},
+        {  rectSize1/100.f,  rectSize1/100.f},
+        { -rectSize2/100.f,  rectSize2/100.f}
     };
     static const GLfloat texcoords[4][2] = {
         {  0.0f,  1.0f },
@@ -177,6 +180,25 @@ drawTextures(EGLContextType *context, GLuint *textureIds, int texCount)
         {  1.0f,  0.0f },
         {  0.0f,  0.0f }
     };
+
+    if (direction) {
+        rectSize1--;
+        rectSize2++;
+    } else {
+        rectSize1++;
+        rectSize2--;
+    }
+
+    if (rectSize1 < 10 || rectSize2 > 100) {
+        rectSize1 = 10;
+        rectSize2 = 100;
+        direction = 0;
+    }
+    if (rectSize1 > 100 || rectSize2 < 10) {
+        rectSize1 = 100;
+        rectSize2 = 10;
+        direction = 1;
+    }
 
 
     if (!context)
