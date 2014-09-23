@@ -31,10 +31,13 @@
 #include <X11/Xlib.h>
 
 #include "common/log.h"
-#include "egl/egl_util.h"
 #include "VideoDecoderHost.h"
 #include "decodeinput.h"
+
+#ifdef __ENABLE_TESTS_GLES__
 #include "./egl/gles2_help.h"
+#include "egl/egl_util.h"
+#endif
 
 using namespace YamiMediaCodec;
 
