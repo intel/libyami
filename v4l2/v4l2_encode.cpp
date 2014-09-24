@@ -41,14 +41,12 @@ V4l2Encoder::V4l2Encoder()
     , m_requestStreamHeader(true)
     , m_forceKeyFrame(false)
 {
-#ifdef __ENABLE_DEBUG__
     m_memoryMode[INPUT] = V4L2_MEMORY_USERPTR; // dma_buf hasn't been supported yet
     m_pixelFormat[INPUT] = V4L2_PIX_FMT_YUV420M;
     m_bufferPlaneCount[INPUT] = 3; // decided by m_pixelFormat[INPUT]
     m_memoryMode[OUTPUT] = V4L2_MEMORY_MMAP;
     m_pixelFormat[OUTPUT] = V4L2_PIX_FMT_H264;
     m_bufferPlaneCount[OUTPUT] = 1;
-#endif
     m_maxBufferCount[INPUT] = 3;
     m_maxBufferCount[OUTPUT] = 3;
 

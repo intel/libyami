@@ -40,13 +40,11 @@ V4l2Decoder::V4l2Decoder()
     , m_videoHeight(0)
 {
     int i;
-#ifdef __ENABLE_DEBUG__
     m_memoryMode[INPUT] = V4L2_MEMORY_MMAP; // dma_buf hasn't been supported yet
     m_pixelFormat[INPUT] = V4L2_PIX_FMT_H264;
     m_bufferPlaneCount[INPUT] = 1; // decided by m_pixelFormat[INPUT]
     m_memoryMode[OUTPUT] = V4L2_MEMORY_MMAP;
     m_pixelFormat[OUTPUT] = V4L2_PIX_FMT_NV12M;
-#endif
     m_bufferPlaneCount[OUTPUT] = 2;
 
     m_maxBufferCount[INPUT] = 5;

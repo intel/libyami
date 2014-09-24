@@ -77,6 +77,8 @@ class V4l2CodecBase {
     VideoDataMemoryType m_memoryType;
     int m_maxBufferCount[2];
     uint32_t m_bufferPlaneCount[2];
+    uint32_t m_memoryMode[2];
+    uint32_t m_pixelFormat[2]; // (it should be a set)
     bool m_streamOn[2];
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
@@ -108,8 +110,6 @@ class V4l2CodecBase {
     const char* IoctlCommandString(int command);
 
     uint32_t m_frameCount[2];
-    uint32_t m_memoryMode[2];
-    uint32_t m_pixelFormat[2]; // (it should be a set)
 #endif
 };
 #endif
