@@ -81,7 +81,9 @@ bool renderOutputFrames(bool drain = false)
 {
     Decode_Status status;
     VideoFrameRawData frame;
-
+#ifdef __ENABLE_DEBUG__
+    static int renderFrames = 0;
+#endif
     if (renderMode > 0 && !window)
         return false;
 
@@ -96,7 +98,7 @@ bool renderOutputFrames(bool drain = false)
             frame.fourcc = dumpFourcc;
             frame.width = 0;
             frame.height = 0;
-            status = decoder->getOutput(&frame);
+            status = decoder->getOutput(&frame, drain);
             if (status == RENDER_SUCCESS) {
                 if (!outFile) {
                     uint32_t fourcc = frame.fourcc;
@@ -162,7 +164,7 @@ bool renderOutputFrames(bool drain = false)
                 XSync(x11Display, false);
                 textureId = createTextureFromPixmap(eglContext, pixmap);
             }
-            status = decoder->getOutput(pixmap, &timeStamp, 0, 0, videoWidth, videoHeight);
+            status = decoder->getOutput(pixmap, &timeStamp, 0, 0, videoWidth, videoHeight, drain);
             if (status == RENDER_SUCCESS) {
                 drawTextures(eglContext, &textureId, 1);
             }
@@ -177,7 +179,7 @@ bool renderOutputFrames(bool drain = false)
             frame.fourcc = VA_FOURCC_RGBX;
             frame.width = videoWidth;
             frame.height = videoHeight;
-            status = decoder->getOutput(&frame);
+            status = decoder->getOutput(&frame, drain);
             if (status == RENDER_SUCCESS) {
                 EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
                 if (renderMode == 3)
@@ -204,7 +206,13 @@ bool renderOutputFrames(bool drain = false)
             ASSERT(0);
             break;
         }
-    } while (status != RENDER_NO_AVAILABLE_FRAME);
+#ifdef __ENABLE_DEBUG__
+        if (status == RENDER_SUCCESS)
+            renderFrames++;
+#endif
+    } while (status != RENDER_NO_AVAILABLE_FRAME && status > 0);
+
+    DEBUG("renderFrames: %d", renderFrames);
 
     return true;
 }
