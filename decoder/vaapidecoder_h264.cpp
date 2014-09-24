@@ -1541,27 +1541,6 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
     return status;
 }
 
-const VideoRenderBuffer *VaapiDecoderH264::getOutput(bool draining)
-{
-    INFO("VaapiDecoderH264: getOutput(), draining: %d", draining);
-#ifdef __ENABLE_DEBUG__
-    static int renderPictureCount = 0;
-#endif
-    if (draining) {
-        flushOutport();
-    }
-
-    VideoRenderBuffer* buf;
-    buf = VaapiDecoderBase::getOutput(draining);
-    if (!buf)
-        return NULL;
-
-#ifdef __ENABLE_DEBUG__
-    renderPictureCount++;
-    DEBUG("renderPictureCount: %d", renderPictureCount);
-#endif
-    return buf;
-}
 
 void VaapiDecoderH264::flushOutport(void)
 {

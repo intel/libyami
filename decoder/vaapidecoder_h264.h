@@ -283,7 +283,6 @@ class VaapiDecoderH264:public VaapiDecoderBase {
     virtual void stop(void);
     virtual void flush(void);
     virtual Decode_Status decode(VideoDecodeBuffer * buf);
-    virtual const VideoRenderBuffer *getOutput(bool draining = false);
     virtual void flushOutport(void);
 
     //FIXME: make this private

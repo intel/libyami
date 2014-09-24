@@ -107,6 +107,10 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
         ("m_videoFormatInfo video size: %d x %d, m_videoFormatInfo surface size: %d x %d",
          m_videoFormatInfo.width, m_videoFormatInfo.height,
          m_videoFormatInfo.surfaceWidth, m_videoFormatInfo.surfaceHeight);
+
+#ifdef __ENABLE_DEBUG__
+    renderPictureCount = 0;
+#endif
     return DECODE_SUCCESS;
 }
 
@@ -170,7 +174,19 @@ const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
 {
     if (!m_surfacePool)
         return NULL;
-    return m_surfacePool->getOutput();
+    if (draining)
+        flushOutport();
+
+    VideoRenderBuffer *buffer = m_surfacePool->getOutput();
+
+#ifdef __ENABLE_DEBUG__
+    if (buffer) {
+        renderPictureCount++;
+        DEBUG("getOutput renderPictureCount: %d", renderPictureCount);
+    }
+#endif
+
+    return buffer;
 }
 
 Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int64_t *timeStamp
@@ -222,8 +238,16 @@ Decode_Status VaapiDecoderBase::getOutput(VideoFrameRawData* frame, bool drainin
     if (!frame)
         return DECODE_INVALID_DATA;
 
+    if (draining)
+        flushOutport();
+
     if (!m_surfacePool->getOutput(frame))
         return RENDER_NO_AVAILABLE_FRAME;
+
+#ifdef __ENABLE_DEBUG__
+    renderPictureCount++;
+    DEBUG("getOutput renderPictureCount: %d", renderPictureCount);
+#endif
 
     return RENDER_SUCCESS;
 }

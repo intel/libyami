@@ -118,6 +118,10 @@ class VaapiDecoderBase:public IVideoDecoder {
     bool m_lowDelay;
     bool m_rawOutput;
     bool m_enableNativeBuffersFlag;
+#ifdef __ENABLE_DEBUG__
+    int renderPictureCount;
+#endif
+
 };
 }
 #endif                          // vaapidecoder_base_h
