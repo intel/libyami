@@ -117,8 +117,13 @@ bool renderOutputFrames(bool drain = false)
 
                 int widths[3], heights[3];
                 int planeCount = 0;
-                widths[0] = frame.width;
-                heights[0] = frame.height;
+                /* XXX
+                 * use the video resolution from DECODE_FORMAT_CHANGE, since vp8 changes resolution dynamically.
+                 * the decent fix should happen in libyami by adding crop region to surface/image, and update in frame.width/height
+                 */
+                widths[0] = videoWidth; //frame.width;
+                heights[0] = videoHeight; // frame.height;
+                DEBUG("current frame: %dx%d", videoWidth, videoHeight);
                 switch (frame.fourcc) {
                 case VA_FOURCC_NV12: {
                     planeCount = 2;
