@@ -178,7 +178,7 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
     VaapiSurface *srf = m_surfaceMap[buffer->surface];
     ASSERT(srf);
     surface.reset(srf, SurfaceRecyclerRender(shared_from_this()));
-    ImagePtr image = surface->getDerivedImage();
+    ImagePtr image = VaapiImage::derive(surface);
     ASSERT(image);
 
     if (frame->fourcc && image->getFormat() != frame->fourcc) {

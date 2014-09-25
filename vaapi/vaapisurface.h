@@ -48,7 +48,8 @@ typedef enum {
     VAAPI_SURFACE_STATUS_SKIPPED = 1 << 3
 } VaapiSurfaceStatus;
 
-class VaapiSurface {
+class VaapiSurface
+{
   private:
     DISALLOW_COPY_AND_ASSIGN(VaapiSurface);
   public:
@@ -66,13 +67,13 @@ class VaapiSurface {
     uint32_t getWidth(void);
     uint32_t getHeight(void);
     uint32_t getExtBufHandle();
+    DisplayPtr getDisplay();
 
     bool sync();
     bool queryStatus(VaapiSurfaceStatus * pStatus);
 
     bool getImage(ImagePtr image);
     bool putImage(ImagePtr image);
-    ImagePtr getDerivedImage();
 
   private:
     VaapiSurface(const DisplayPtr&,

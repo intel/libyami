@@ -141,6 +141,11 @@ uint32_t VaapiSurface::getExtBufHandle(void)
     return m_externalBufHandle;
 }
 
+DisplayPtr VaapiSurface::getDisplay()
+{
+    return m_display;
+}
+
 bool VaapiSurface::getImage(ImagePtr image)
 {
     VAImageID imageID;
@@ -194,23 +199,6 @@ bool VaapiSurface::putImage(ImagePtr image)
         return false;
 
     return true;
-}
-
-ImagePtr VaapiSurface::getDerivedImage()
-{
-    VAImage va_image;
-    VAStatus status;
-    ImagePtr image;
-
-    va_image.image_id = VA_INVALID_ID;
-    va_image.buf = VA_INVALID_ID;
-
-    status = vaDeriveImage(m_display->getID(), m_ID, &va_image);
-    if (!checkVaapiStatus(status, "vaDeriveImage()"))
-        return image;
-
-    image = VaapiImage::create(m_display, &va_image);
-    return image;
 }
 
 bool VaapiSurface::sync()

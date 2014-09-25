@@ -50,11 +50,11 @@ typedef struct {
 
 class VaapiImage {
   private:
-    DISALLOW_COPY_AND_ASSIGN(VaapiImage);
+    typedef std::tr1::shared_ptr<VAImage> VAImagePtr;
   public:
-    static ImagePtr create(DisplayPtr display,
+    static ImagePtr create(const DisplayPtr&,
                uint32_t format, uint32_t width, uint32_t height);
-    static ImagePtr create(DisplayPtr display, VAImage * image);
+    static ImagePtr derive(const SurfacePtr&);
     ~VaapiImage();
 
     uint32_t getFormat();
@@ -67,15 +67,17 @@ class VaapiImage {
     bool unmap();
 
   private:
-    VaapiImage(DisplayPtr display,
-                 uint32_t format, uint32_t width, uint32_t height);
-    VaapiImage(DisplayPtr display, VAImage * image);
+    VaapiImage(const DisplayPtr& display, const VAImagePtr& image);
+    VaapiImage(const DisplayPtr& display, const SurfacePtr& surface, const VAImagePtr& image);
 
     DisplayPtr m_display;
-    VAImage m_image;
-    uint8_t *m_data;
+    //hold a reference to surface
+    //only use for derived image,
+    SurfacePtr m_surface;
+    VAImagePtr m_image;
     bool m_isMapped;
     VaapiImageRaw m_rawImage;
+    DISALLOW_COPY_AND_ASSIGN(VaapiImage);
 };
 }
 #endif                          /* VAAPI_IMAGE_H */
