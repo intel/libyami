@@ -30,20 +30,22 @@
 #include "vaapiimage.h"
 #include "common/log.h"
 #include "vaapiutils.h"
+#include "vaapisurface.h"
 #include <stdlib.h>
 #include <string.h>
 
 namespace YamiMediaCodec{
-ImagePtr VaapiImage::create(DisplayPtr display,
+ImagePtr VaapiImage::create(const DisplayPtr& display,
                            uint32_t format,
                            uint32_t width, uint32_t height)
 {
     ImagePtr image;
     VAStatus status;
     VAImageFormat *vaFormat;
-    VAImage vaImage;
 
-    ASSERT(display && width && height);
+    if (!display || !width || !height)
+        return image;
+
     DEBUG_FOURCC("create image with fourcc: ", format);
     vaFormat = display->getVaFormat(format);
     if (!vaFormat) {
@@ -51,30 +53,46 @@ ImagePtr VaapiImage::create(DisplayPtr display,
         return image;
     }
 
-    status = vaCreateImage(display->getID(), vaFormat, width, height, &vaImage);
+    VAImagePtr vaImage(new VAImage);
+
+    status = vaCreateImage(display->getID(), vaFormat, width, height, vaImage.get());
     if (status != VA_STATUS_SUCCESS ||
-        vaImage.format.fourcc != vaFormat->fourcc) {
-        ERROR("Create image failed");
+        vaImage->format.fourcc != vaFormat->fourcc) {
+        ERROR("fourcc mismatch wated = 0x%x, got = 0x%x", vaFormat->fourcc, vaImage->format.fourcc);
         return image;
     }
+    image.reset(new VaapiImage(display, vaImage));
 
-    image.reset(new VaapiImage(display, &vaImage));
     return image;
 }
 
-ImagePtr VaapiImage::create(DisplayPtr display, VAImage * vaImage)
+ImagePtr VaapiImage::derive(const SurfacePtr& surface)
 {
     ImagePtr image;
-    image.reset(new VaapiImage(display, vaImage));
-    return image;
+    if (!surface)
+        return image;
+
+    DisplayPtr display = surface->getDisplay();
+    VAImagePtr vaImage(new VAImage);
+
+    VAStatus status = vaDeriveImage(display->getID(), surface->getID(), vaImage.get());
+    if (!checkVaapiStatus(status, "vaDeriveImage()")) {
+        return image;
+    }
+    image.reset(new VaapiImage(display, surface, vaImage));
+
 }
 
-VaapiImage::VaapiImage(DisplayPtr display, VAImage * image)
-    :m_isMapped(false)
+VaapiImage::VaapiImage(const DisplayPtr& display, const VAImagePtr& image)
+    :m_display(display), m_image(image), m_isMapped(false)
 {
-    ASSERT(display && image);
-    m_display = display;
-    memcpy((void *) &m_image, (void *) image, sizeof(VAImage));
+
+}
+
+VaapiImage::VaapiImage(const DisplayPtr& display, const SurfacePtr& surface, const VAImagePtr& image)
+    :m_display(display), m_surface(surface), m_image(image), m_isMapped(false)
+{
+
 }
 
 VaapiImage::~VaapiImage()
@@ -86,7 +104,7 @@ VaapiImage::~VaapiImage()
         m_isMapped = false;
     }
 
-    status = vaDestroyImage(m_display->getID(), m_image.image_id);
+    status = vaDestroyImage(m_display->getID(), m_image->image_id);
 
     if (!checkVaapiStatus(status, "vaDestoryImage()"))
         return;
@@ -102,21 +120,21 @@ VaapiImageRaw *VaapiImage::map(VideoDataMemoryType memoryType)
         return &m_rawImage;
     }
 
-    m_rawImage.format = m_image.format.fourcc;
-    m_rawImage.width = m_image.width;
-    m_rawImage.height = m_image.height;
-    m_rawImage.numPlanes = m_image.num_planes;
-    m_rawImage.size = m_image.data_size;
-    for (i = 0; i < m_image.num_planes; i++) {
-        m_rawImage.strides[i] = m_image.pitches[i];
+    m_rawImage.format = m_image->format.fourcc;
+    m_rawImage.width = m_image->width;
+    m_rawImage.height = m_image->height;
+    m_rawImage.numPlanes = m_image->num_planes;
+    m_rawImage.size = m_image->data_size;
+    for (i = 0; i < m_image->num_planes; i++) {
+        m_rawImage.strides[i] = m_image->pitches[i];
     }
 
     if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_POINTER || memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
-        status = vaMapBuffer(m_display->getID(), m_image.buf, &data);
+        status = vaMapBuffer(m_display->getID(), m_image->buf, &data);
         if (!checkVaapiStatus(status, "vaMapBuffer()"))
             return NULL;
-        for (i = 0; i < m_image.num_planes; i++) {
-            m_rawImage.handles[i] = (intptr_t) data + m_image.offsets[i];
+        for (i = 0; i < m_image->num_planes; i++) {
+            m_rawImage.handles[i] = (intptr_t) data + m_image->offsets[i];
         }
     } else {
         VABufferInfo bufferInfo;
@@ -127,11 +145,11 @@ VaapiImageRaw *VaapiImage::map(VideoDataMemoryType memoryType)
         else
             ASSERT(0);
 
-        status = vaAcquireBufferHandle(m_display->getID(), m_image.buf, &bufferInfo);
+        status = vaAcquireBufferHandle(m_display->getID(), m_image->buf, &bufferInfo);
         if (!checkVaapiStatus(status, "vaAcquireBufferHandle()"))
             return NULL;
 
-       for (i = 0; i < m_image.num_planes; i++) {
+       for (i = 0; i < m_image->num_planes; i++) {
            m_rawImage.handles[i] = (intptr_t) bufferInfo.handle;
         }
     }
@@ -151,13 +169,13 @@ bool VaapiImage::unmap()
     switch(m_rawImage.memoryType) {
     case VIDEO_DATA_MEMORY_TYPE_RAW_POINTER:
     case VIDEO_DATA_MEMORY_TYPE_RAW_COPY:
-        status = vaUnmapBuffer(m_display->getID(), m_image.buf);
+        status = vaUnmapBuffer(m_display->getID(), m_image->buf);
         if (!checkVaapiStatus(status, "vaUnmapBuffer()"))
             return false;
     break;
     case VIDEO_DATA_MEMORY_TYPE_DRM_NAME:
     case VIDEO_DATA_MEMORY_TYPE_DMA_BUF:
-        status = vaReleaseBufferHandle(m_display->getID(), m_image.buf);
+        status = vaReleaseBufferHandle(m_display->getID(), m_image->buf);
         if (!checkVaapiStatus(status, "vaReleaseBufferHandle()"))
             return false;
     break;
@@ -177,21 +195,21 @@ bool VaapiImage::isMapped()
 
 uint32_t VaapiImage::getFormat()
 {
-    return m_image.format.fourcc;
+    return m_image->format.fourcc;
 }
 
 VAImageID VaapiImage::getID()
 {
-    return m_image.image_id;
+    return m_image->image_id;
 }
 
 uint32_t VaapiImage::getWidth()
 {
-    return m_image.width;
+    return m_image->width;
 }
 
 uint32_t VaapiImage::getHeight()
 {
-    return m_image.height;
+    return m_image->height;
 }
 }
