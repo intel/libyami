@@ -119,7 +119,6 @@ void VaapiImagePool::recycleID(VAImageID imageID)
 
     index = it->second;
     ASSERT(index >=0 && index < m_poolSize);
-    m_images[index]->unmap();
     m_freeIndex.push_back(index);
 
     if (m_flushing && m_freeIndex.size() == m_poolSize)

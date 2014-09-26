@@ -28,7 +28,10 @@ class VaapiSurface;
 typedef std::tr1::shared_ptr < VaapiSurface > SurfacePtr;
 
 class VaapiImage;
-typedef std::tr1::shared_ptr < VaapiImage> ImagePtr;
+typedef std::tr1::shared_ptr < VaapiImage > ImagePtr;
+
+class VaapiImageRaw;
+typedef std::tr1::shared_ptr < VaapiImageRaw > ImageRawPtr;
 
 class VaapiCodedBuffer;
 typedef std::tr1::shared_ptr < VaapiCodedBuffer > CodedBufferPtr;

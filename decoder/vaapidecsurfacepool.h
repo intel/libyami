@@ -120,9 +120,7 @@ private:
 
     ImagePoolPtr m_imagePool;
 
-    class ExportFrameInfo;
-    typedef std::tr1::shared_ptr <ExportFrameInfo> ExportFramePtr;
-    typedef std::map<VAImageID, ExportFramePtr> ExportFrameMap;
+    typedef std::map<VAImageID, ImageRawPtr> ExportFrameMap;
     ExportFrameMap m_exportFrames;
     Lock m_exportFramesLock;
 

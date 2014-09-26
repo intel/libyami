@@ -36,21 +36,13 @@
 #include "vaapi/vaapidisplay.h"
 
 namespace YamiMediaCodec{
-/* Raw image to store mapped image*/
-typedef struct {
-    VideoDataMemoryType memoryType;
-    uint32_t format;
-    uint32_t width;
-    uint32_t height;
-    uint32_t numPlanes;
-    intptr_t handles[3];
-    uint32_t strides[3];
-    uint32_t size;
-} VaapiImageRaw;
 
-class VaapiImage {
+class VaapiImage : public std::tr1::enable_shared_from_this<VaapiImage>
+{
   private:
     typedef std::tr1::shared_ptr<VAImage> VAImagePtr;
+    typedef std::tr1::weak_ptr<VaapiImageRaw> ImageRawWeakPtr;
+    friend VaapiImageRaw;
   public:
     static ImagePtr create(const DisplayPtr&,
                uint32_t format, uint32_t width, uint32_t height);
@@ -62,9 +54,7 @@ class VaapiImage {
     uint32_t getWidth();
     uint32_t getHeight();
 
-    VaapiImageRaw *map(VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER); //RAW_POINTER & RAW_COPY are same inside VaaiImage
-    bool isMapped();
-    bool unmap();
+    ImageRawPtr map(VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY);
 
   private:
     VaapiImage(const DisplayPtr& display, const VAImagePtr& image);
@@ -75,9 +65,44 @@ class VaapiImage {
     //only use for derived image,
     SurfacePtr m_surface;
     VAImagePtr m_image;
-    bool m_isMapped;
-    VaapiImageRaw m_rawImage;
+    ImageRawWeakPtr m_rawImage;
     DISALLOW_COPY_AND_ASSIGN(VaapiImage);
 };
+
+/* Raw image to store mapped image*/
+class VaapiImageRaw {
+private:
+    typedef VaapiImage::VAImagePtr VAImagePtr;
+    typedef VAStatus (*RealeaseCallback)(VADisplay, VABufferID);
+public:
+    static ImageRawPtr create(const DisplayPtr&, const ImagePtr&, VideoDataMemoryType);
+    VideoDataMemoryType getMemoryType();
+    bool copyTo(void* dest, const uint32_t offsets[3], const uint32_t pitches[3]);
+    bool copyFrom(const void* src, const uint32_t offsets[3], const uint32_t pitches[3]);
+    bool copyFrom(const void* src, uint32_t size);
+    bool getHandle(intptr_t& handle, uint32_t offsets[3], uint32_t pitches[3]);
+    ~VaapiImageRaw();
+private:
+    VaapiImageRaw(const DisplayPtr&, const ImagePtr&, VideoDataMemoryType,
+                uintptr_t handle, RealeaseCallback);
+    void getPlaneResolution(uint32_t width[3], uint32_t height[3]);
+    bool copy(uint8_t* destBase,
+              const uint32_t destOffsets[3], const uint32_t destPitches[3],
+              const uint8_t* srcBase,
+              const uint32_t srcOffsets[3], const uint32_t srcPitches[3]);
+    static bool copy(uint8_t* destBase,
+              const uint32_t destOffsets[3], const uint32_t destPitches[3],
+              const uint8_t* srcBase,
+              const uint32_t srcOffsets[3], const uint32_t srcPitches[3],
+              const uint32_t width[3], const uint32_t height[3]);
+
+    VideoDataMemoryType m_memoryType;
+    ImagePtr m_image;
+    DisplayPtr m_display;
+    RealeaseCallback m_release;
+    intptr_t m_handle;
+
+};
+
 }
 #endif                          /* VAAPI_IMAGE_H */
