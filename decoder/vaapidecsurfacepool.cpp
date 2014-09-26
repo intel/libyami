@@ -34,14 +34,6 @@
 
 namespace YamiMediaCodec{
 #define IMAGE_POOL_SIZE 8
-class VaapiDecSurfacePool::ExportFrameInfo {
-  public:
-    ExportFrameInfo(SurfacePtr surface, ImagePtr image):m_surface(surface), m_image(image) {};
-    ~ExportFrameInfo() {};
-  private:
-    SurfacePtr  m_surface;
-    ImagePtr    m_image;
-};
 
 DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoConfigBuffer* config)
 {
@@ -102,14 +94,6 @@ private:
     DecSurfacePoolPtr m_pool;
 };
 
-struct VaapiDecSurfacePool::SurfaceRecyclerRender
-{
-    SurfaceRecyclerRender(const DecSurfacePoolPtr& pool): m_pool(pool) {}
-    void operator()(VaapiSurface* surface) { m_pool->recycle(surface->getID(), SURFACE_RENDERING);}
-private:
-    DecSurfacePoolPtr m_pool;
-};
-
 SurfacePtr VaapiDecSurfacePool::acquireWithWait()
 {
     SurfacePtr surface;
@@ -166,20 +150,28 @@ VideoRenderBuffer* VaapiDecSurfacePool::getOutput()
     return buffer;
 }
 
+struct VaapiDecSurfacePool::SurfaceRecyclerRender
+{
+    SurfaceRecyclerRender(const DecSurfacePoolPtr& pool, VideoRenderBuffer* buffer): m_pool(pool), m_buffer(buffer) {}
+    void operator()(VaapiSurface* surface) { m_pool->recycle(m_buffer);}
+private:
+    DecSurfacePoolPtr m_pool;
+    VideoRenderBuffer* m_buffer;
+};
+
 bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
 {
     VideoRenderBuffer *buffer = getOutput();
-    SurfacePtr surface;
-    bool useConvertImage = false;
-
     if (!frame || !buffer)
         return false;
 
+    SurfacePtr surface;
     VaapiSurface *srf = m_surfaceMap[buffer->surface];
     ASSERT(srf);
-    surface.reset(srf, SurfaceRecyclerRender(shared_from_this()));
+    surface.reset(srf, SurfaceRecyclerRender(shared_from_this(), buffer));
     ImagePtr image = VaapiImage::derive(surface);
-    ASSERT(image);
+    if (!image)
+        return false;
 
     if (frame->fourcc && image->getFormat() != frame->fourcc) {
         if (!m_imagePool) {
@@ -199,82 +191,25 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
             ASSERT(0);
             return false;
         }
-        useConvertImage = true;
     }
 
-    VaapiImageRaw *rawImage = image->map(frame->memoryType);
-    switch (frame->memoryType) {
-    case VIDEO_DATA_MEMORY_TYPE_RAW_COPY: {
-        ASSERT(frame->handle);
-        int row, col;
-        switch(frame->fourcc) {
-        case 0:
-        case VA_FOURCC_NV12: {
-            // Y plane
-            int rowCopy = std::min(rawImage->height, frame->height);
-            int colCopy = std::min(image->getWidth(), frame->width);
-            for (row = 0; row < rowCopy; row++) {
-                memcpy ((uint8_t*)(frame->handle) + frame->offset[0] + frame->pitch[0] * row, (uint8_t*)rawImage->handles[0]+rawImage->strides[0] * row, colCopy);
-            }
-
-            // UV plane
-            rowCopy = std::min((rawImage->height+1)/2, (frame->height+1)/2);
-            colCopy = std::min((rawImage->width+1)/2*2, (frame->width+1)/2*2);
-            for (row = 0; row < rowCopy; row++) {
-                memcpy ((uint8_t*)(frame->handle) + frame->offset[1] + frame->pitch[1] * row, (uint8_t*)rawImage->handles[1]+rawImage->strides[1] * row, colCopy);
-            }
-        }
-        break;
-        case VA_FOURCC_RGBX:
-        case VA_FOURCC_RGBA:
-        case VA_FOURCC_BGRX:
-        case VA_FOURCC_BGRA: {
-            int rowCopy = std::min(rawImage->height, frame->height);
-            int colCopy = std::min(image->getWidth(), frame->width) * 4;
-            for (row = 0; row < rowCopy; row++) {
-                memcpy ((uint8_t*)(frame->handle) + frame->offset[0] + frame->pitch[0] * row, (uint8_t*)rawImage->handles[0]+rawImage->strides[0] * row, colCopy);
-            }
-        }
-        break;
-        default:
-            ASSERT(0);
-        break;
-        }
-        image->unmap();
+    VideoDataMemoryType memoryType = frame->memoryType;
+    ImageRawPtr rawImage = image->map(frame->memoryType);
+    if (!rawImage)
+        return false;
+    if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
+        return rawImage->copyTo((uint8_t *)frame->handle, frame->offset, frame->pitch);
     }
-    break;
-    case VIDEO_DATA_MEMORY_TYPE_RAW_POINTER:
-    case VIDEO_DATA_MEMORY_TYPE_DRM_NAME:
-    case VIDEO_DATA_MEMORY_TYPE_DMA_BUF:
-        frame->width = rawImage->width;
-        frame->height= rawImage->height;
-        frame->fourcc = rawImage->format;
+    if (!rawImage->getHandle(frame->handle, frame->offset, frame->pitch))
+        return false;
 
-        for (int i=0; i<rawImage->numPlanes; i++) {
-            frame->offset[i] = rawImage->handles[i] - rawImage->handles[0];
-            frame->pitch[i] = rawImage->strides[i];
-        }
-        frame->handle = rawImage->handles[0];
-    break;
-    default:
-        ASSERT(0);
-    break;
-    }
-
-
-    if (frame->memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
-        return true;
-    }
-
-    if (useConvertImage) {
-        surface.reset();
-    }
-
+    frame->width = image->getWidth();
+    frame->height = image->getHeight();
     frame->internalID = image->getID();
-    ExportFramePtr exportedBuffer(new ExportFrameInfo(surface, image));
+    frame->fourcc = image->getFormat();
     {
         AutoLock lock(m_exportFramesLock);
-        m_exportFrames[image->getID()] = exportedBuffer;
+        m_exportFrames[image->getID()] = rawImage;
     }
     return true;
 }

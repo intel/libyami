@@ -219,38 +219,25 @@ SurfacePtr VaapiEncoderBase::createSurface()
 SurfacePtr VaapiEncoderBase::createSurface(VideoEncRawBuffer* inBuffer)
 {
     SurfacePtr surface = createSurface();
+    SurfacePtr nil;
     if (!surface)
-        return surface;
+        return nil;
 
     ImagePtr image = VaapiImage::derive(surface);
     if (!image) {
         ERROR("VaapiImage::derive() failed");
-        surface.reset();
-        return surface;
+        return nil;
     }
-    VaapiImageRaw* raw = image->map();
+    ImageRawPtr raw = image->map();
     if (!raw) {
         ERROR("image->map() failed");
-        surface.reset();
-        return surface;
+        return nil;
     }
 
-    assert(inBuffer->size == raw->width * raw->height * 3 / 2);
-
-    uint8_t* src = inBuffer->data;
-    uint8_t* dest = (uint8_t*)raw->handles[0];
-    for (int i = 0; i < raw->height; i++) {
-        memcpy(dest, src, raw->width);
-        dest += raw->strides[0];
-        src += raw->width;
+    if (!raw->copyFrom(inBuffer->data, inBuffer->size)) {
+        ERROR("copyfrom in buffer failed");
+        return nil;
     }
-    dest = (uint8_t*)raw->handles[1];
-    for (int i = 0; i < raw->height/2; i++) {
-        memcpy(dest, src, raw->width);
-        dest += raw->strides[1];
-        src += raw->width;
-    }
-
     inBuffer->bufAvailable = true;
     return surface;
 }
