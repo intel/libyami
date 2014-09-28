@@ -31,13 +31,16 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
+#include <string.h>
 extern int yamiLogFlag;
 extern FILE* yamiLogFn;
 extern int isIni;
 
-#define YAMI_LOG_WARNING 0x1
-#define YAMI_LOG_INFO 0x2
-#define YAMI_LOG_DEBUG 0x3
+#define YAMI_LOG_ERROR 0x1
+#define YAMI_LOG_WARNING 0x2
+#define YAMI_LOG_INFO 0x3
+#define YAMI_LOG_DEBUG 0x4
+
 
 #ifndef YAMIMESSAGE
 #define yamiMessage(stream, format, ...)  do {\
@@ -45,12 +48,16 @@ extern int isIni;
 }while (0)
 #endif
 
+#define FILE_NAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
+#define YAMI_DEBUG_MESSAGE(LEVEL, prefix, format, ...) \
+    do {\
+        if (yamiLogFlag >= YAMI_LOG_##LEVEL) \
+            yamiMessage(yamiLogFn, "libyami %s(%s, %d): " format "\n", #prefix, FILE_NAME, __LINE__, ##__VA_ARGS__); \
+    } while (0)
+
 #ifndef ERROR
-#define ERROR(format, ...)   do { \
-  if (yamiLogFn) \
-   yamiMessage(yamiLogFn, "libyami error(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
-   yamiMessage(stderr, "libyami error(%s, %d): " format "\n", __func__, __LINE__, ##__VA_ARGS__);\
-}while (0)
+#define ERROR(format, ...)  YAMI_DEBUG_MESSAGE(ERROR, error, format, ##__VA_ARGS__)
 #endif
 
 #ifndef ASSERT
@@ -62,32 +69,21 @@ extern int isIni;
 #endif
 
 #ifdef __ENABLE_DEBUG__
-#ifndef INFO
-#define INFO(format, ...)   do { \
-  if (yamiLogFlag >= YAMI_LOG_INFO) \
-   yamiMessage(yamiLogFn, "yami info(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
-}while (0)
-#endif
 
 #ifndef WARNING
-#define WARNING(format, ...)   do { \
-  if (yamiLogFlag >= YAMI_LOG_WARNING) \
-   yamiMessage(yamiLogFn, "yami warning(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
-}while (0)
+#define WARNING(format, ...)   YAMI_DEBUG_MESSAGE(WARNING, warning, format, ##__VA_ARGS__)
+#endif
+
+#ifndef INFO
+#define INFO(format, ...)   YAMI_DEBUG_MESSAGE(INFO, info, format, ##__VA_ARGS__)
 #endif
 
 #ifndef DEBUG
-#define DEBUG(format, ...)   do { \
-  if (yamiLogFlag >= YAMI_LOG_DEBUG) \
-   yamiMessage(yamiLogFn, "yami debug(%s, %d): " format "\n",  __func__, __LINE__, ##__VA_ARGS__);\
-}while (0)
+#define DEBUG(format, ...)   YAMI_DEBUG_MESSAGE(DEBUG, debug, format, ##__VA_ARGS__)
 #endif
 
 #ifndef DEBUG_
-#define DEBUG_(format, ...)   do { \
-  if (yamiLogFlag >= YAMI_LOG_DEBUG) \
-    yamiMessage(yamiLogFn, format, ##__VA_ARGS__);\
-}while (0)
+#define DEBUG_(format, ...)   DEBUG(format, ##__VA_ARGS__)
 #endif
 
 #ifndef DEBUG_FOURCC
@@ -95,7 +91,7 @@ extern int isIni;
   if (yamiLogFlag >= YAMI_LOG_DEBUG) {                                                                                  \
     uint32_t i_fourcc = fourcc;                                                                                         \
     char *ptr = (char*)(&(i_fourcc));                                                                                   \
-    yamiMessage(yamiLogFn, "%s, fourcc: 0x%x, %c%c%c%c\n", promptStr, i_fourcc, *(ptr), *(ptr+1), *(ptr+2), *(ptr+3));  \
+    DEBUG("%s, fourcc: 0x%x, %c%c%c%c\n", promptStr, i_fourcc, *(ptr), *(ptr+1), *(ptr+2), *(ptr+3));  \
   }                                                                                                                     \
 } while(0)
 #endif
