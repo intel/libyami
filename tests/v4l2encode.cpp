@@ -34,39 +34,44 @@
 #include "common/log.h"
 #include "v4l2/v4l2_wrapper.h"
 #include "encodehelp.h"
+#include "encodeinput.h"
 
-const uint32_t inputFramePlaneCount = 3; // I420 format has 3 planes
+uint32_t inputFramePlaneCount = 3; // I420(default) format has 3 planes
+uint32_t inputFrameSize = 0;
 
 const uint32_t kMaxFrameQueueLength = 8;
 uint32_t inputQueueCapacity = 0;
 uint32_t outputQueueCapacity = 0;
-uint8_t *inputFrames[kMaxFrameQueueLength];
+VideoEncRawBuffer inputFrames[kMaxFrameQueueLength];
 uint8_t *outputFrames[kMaxFrameQueueLength];
 bool isReadEOS = false;
 bool isEncodeEOS = false;
 bool isOutputEOS = false;
 
-bool readOneFrameData(uint8_t *data, uint32_t frameSize)
-{
-    static FILE* fp = NULL;
+static EncodeStreamInputPtr streamInput;
 
+bool readOneFrameData(int index)
+{
+    VideoEncRawBuffer buffer;
+    static int encodeFrameCount = 0;
+
+    if (!streamInput)
+        return false;
     if (isReadEOS)
         return false;
 
-    if(!fp)
-        fp = fopen(inputFileName, "r");
+    ASSERT(index>=0 && index<inputQueueCapacity);
+    uint8_t *backupDataPtr = inputFrames[index].data;
+    memset(&buffer, 0, sizeof(buffer));
+    inputFrames[index].data = backupDataPtr;
 
-    if (!fp) {
-        fprintf(stderr, "fail to open file: %s\n", inputFileName);
+    bool ret = streamInput->getOneFrameInput(inputFrames[index]);
+    if (!ret || (frameCount && encodeFrameCount++>=frameCount)) {
+        isReadEOS = true;
         return false;
     }
 
-    if (fread(data, 1, frameSize, fp) != frameSize) {
-        isReadEOS = true;
-        fclose(fp);
-    }
-
-    return !isReadEOS;
+    return ret;
 }
 
 bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enque it*/)
@@ -81,12 +86,15 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
     buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type
     buf.memory = V4L2_MEMORY_USERPTR;
     buf.m.planes = planes;
-    buf.length = inputFramePlaneCount; // XXX, decided by I420; anyway, yami ingore it for now, assume YUV are tightly connected
+    buf.length = inputFramePlaneCount;
 
     if (index == -1) {
         ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_DQBUF, &buf);
         if (ioctlRet == -1)
             return false;
+        // recycle camera buffer
+        bool ret = streamInput->recycleOneFrameInput(inputFrames[buf.index]);
+        ASSERT(ret);
     } else {
         buf.index = index;
     }
@@ -97,7 +105,7 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
             isEncodeEOS = true;
         return false;
     }
-    if (!readOneFrameData(inputFrames[buf.index], videoWidth*videoHeight*3/2)) {
+    if (!readOneFrameData(buf.index)) {
         ASSERT(isReadEOS);
         dqCountAfterEOS++;
         return false;
@@ -110,12 +118,25 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
         buf.m.planes[2].m.userptr = 0;
 
     } else {
-        buf.m.planes[0].bytesused = videoWidth*videoHeight;
-        buf.m.planes[1].bytesused = videoWidth*videoHeight/4;
-        buf.m.planes[2].bytesused = videoWidth*videoHeight/4;
-        buf.m.planes[0].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index]);
-        buf.m.planes[1].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index] + videoWidth*videoHeight);
-        buf.m.planes[2].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index] + videoWidth*videoHeight*5/4);
+        switch (inputFourcc) {
+        case VA_FOURCC('I', '4', '2', '0'):
+            buf.m.planes[0].bytesused = videoWidth*videoHeight;
+            buf.m.planes[1].bytesused = videoWidth*videoHeight/4;
+            buf.m.planes[2].bytesused = videoWidth*videoHeight/4;
+            buf.m.planes[0].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index].data);
+            buf.m.planes[1].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index].data + videoWidth*videoHeight);
+            buf.m.planes[2].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index].data + videoWidth*videoHeight*5/4);
+            buf.length = 3;
+        break;
+        case VA_FOURCC_YUY2:
+            buf.m.planes[0].bytesused = videoWidth*videoHeight*2;
+            buf.m.planes[0].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index].data);
+            buf.length = 1;
+        break;
+        default:
+            ASSERT(0);
+        break;
+        }
     }
 
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
@@ -200,6 +221,9 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
+    streamInput = EncodeStreamInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
+    ASSERT(streamInput);
+
     // open device
     fd = YamiV4L2_Open("encoder", 0);
     ASSERT(fd!=-1);
@@ -221,7 +245,21 @@ int main(int argc, char** argv)
 
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUV420M; // XXX, support I420 only for now
+    switch (inputFourcc) {
+    case VA_FOURCC('I', '4', '2', '0'):
+        format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUV420M;
+        inputFramePlaneCount = 3;
+        inputFrameSize = videoWidth*videoHeight*3/2;
+        break;
+    case VA_FOURCC_YUY2:
+        format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUYV;
+        inputFramePlaneCount = 1;
+        inputFrameSize = videoWidth*videoHeight*2;
+        break;
+    default:
+        ASSERT(0);
+        break;
+    }
     format.fmt.pix_mp.width = videoWidth;
     format.fmt.pix_mp.height = videoHeight;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_FMT, &format);
@@ -281,9 +319,9 @@ int main(int argc, char** argv)
     inputQueueCapacity = reqbufs.count;
 
     for (i=0; i<inputQueueCapacity; i++)
-        inputFrames[i] = static_cast<uint8_t*>(malloc(videoWidth * videoHeight * 3/2)); //
+        inputFrames[i].data = static_cast<uint8_t*>(malloc(inputFrameSize));
     for (i=inputQueueCapacity; i<kMaxFrameQueueLength; i++)
-        inputFrames[i] = NULL;
+        inputFrames[i].data = NULL;
 
     // setup output buffers
     memset(&reqbufs, 0, sizeof(reqbufs));

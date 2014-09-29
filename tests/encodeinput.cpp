@@ -172,7 +172,11 @@ bool EncodeStreamInputFile::getOneFrameInput(VideoEncRawBuffer &inputBuffer)
     if (m_readToEOS)
         return false;
 
-    int ret = fread(m_buffer, sizeof(uint8_t), m_frameSize, m_fp);
+    uint8_t *buffer = m_buffer;
+    if (inputBuffer.data)
+        buffer = inputBuffer.data;
+
+    int ret = fread(buffer, sizeof(uint8_t), m_frameSize, m_fp);
 
     if (ret <= 0) {
         m_readToEOS = true;
@@ -181,7 +185,7 @@ bool EncodeStreamInputFile::getOneFrameInput(VideoEncRawBuffer &inputBuffer)
         fprintf (stderr, "data is not enough to read, maybe resolution is wrong\n");
         return false;
     } else {
-        inputBuffer.data = m_buffer;
+        inputBuffer.data = buffer;
         inputBuffer.size = m_frameSize;
     }
 
