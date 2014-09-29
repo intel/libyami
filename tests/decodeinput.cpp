@@ -128,15 +128,16 @@ bool DecodeStreamInputVP8::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
         assert (framesize < (uint32_t) m_maxFrameSize);
         if (framesize != fread (m_buffer, 1, framesize, m_fp)) {
             fprintf (stderr, "fail to read frame data, quit\n");
-            return -1;
+            return false;
         }
         inputBuffer.data = m_buffer;
         inputBuffer.size = framesize;
     }
     else {
         m_parseToEOS = true;
+	return false;
     }
-    return 1;
+    return true;
 }
 
 DecodeStreamInputRaw::DecodeStreamInputRaw()
