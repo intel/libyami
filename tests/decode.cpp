@@ -232,6 +232,7 @@ int main(int argc, char** argv)
     NativeDisplay nativeDisplay;
     char opt;
 
+    yamiTraceInit();
     while ((opt = getopt(argc, argv, "h:m:i:f:o:w?")) != -1)
     {
         switch (opt) {

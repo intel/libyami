@@ -30,13 +30,16 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <time.h>
+#include "common/lock.h"
 
 int yamiLogFlag;
 FILE* yamiLogFn;
 int isInit = 0;
+static YamiMediaCodec::Lock g_traceLock;
 
 void yamiTraceInit()
 {
+    YamiMediaCodec::AutoLock locker(g_traceLock);
     if(!isInit){
         char* libyamiLogLevel = getenv("LIBYAMI_LOG_LEVEL");
         char* libyamLog = getenv("LIBYAMI_LOG");
@@ -63,8 +66,10 @@ void yamiTraceInit()
                 	yamiMessage(stderr, "Open file %s failed.\n", filename);
             	}
         	}
-        	else
+            else {
             	yamiLogFn = stderr;
+                yamiMessage(stderr, "Libyami_Trace is on stderr\n");
+            }
          }
          else
             yamiLogFlag = 0;

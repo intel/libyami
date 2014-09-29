@@ -48,6 +48,8 @@ int main(int argc, char** argv)
     VideoEncRawBuffer inputBuffer;
     VideoEncOutputBuffer outputBuffer;
 
+    yamiTraceInit();
+
     if (!process_cmdline(argc, argv))
         return -1;
 

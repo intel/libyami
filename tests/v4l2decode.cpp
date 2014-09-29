@@ -262,6 +262,8 @@ int main(int argc, char** argv)
     int32_t ioctlRet = -1;
     char opt;
 
+    yamiTraceInit();
+
     while ((opt = getopt(argc, argv, "h:m:i:?:")) != -1)
     {
         switch (opt) {
