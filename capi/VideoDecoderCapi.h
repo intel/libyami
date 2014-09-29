@@ -21,10 +21,15 @@
 
 #ifndef __VIDEO_DECODER_CAPI_H__
 #define __VIDEO_DECODER_CAPI_H__
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "VideoDecoderDefs.h"
 #include "common/common_def.h"
+#ifdef __ENABLE_X11__
 #include <X11/Xlib.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -46,13 +51,19 @@ Decode_Status decode(DecodeHandler p, VideoDecodeBuffer *buffer);
 
 const VideoRenderBuffer* decodeGetOutput(DecodeHandler p, bool draining);
 
+#ifdef __ENABLE_X11__
 Decode_Status decodeGetOutput_x11(DecodeHandler p, Drawable draw, int64_t *timeStamp
         , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
         , int frameX, int frameY, int frameWidth, int frameHeight);
+#endif
+
+Decode_Status decodeGetOutputRawData(DecodeHandler p, VideoFrameRawData* frame, bool draining);
 
 const VideoFormatInfo* getFormatInfo(DecodeHandler p);
 
 void renderDone(DecodeHandler p, VideoRenderBuffer* buffer);
+
+void renderDoneRawData(DecodeHandler p, VideoFrameRawData* buffer);
 
 void decodeSetNativeDisplay(DecodeHandler p, NativeDisplay * display);
 
