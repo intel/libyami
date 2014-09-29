@@ -167,7 +167,17 @@ bool V4l2Encoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
         inputBuffer->forceKeyFrame = true;
         m_forceKeyFrame = false;
     }
-    inputBuffer->fourcc = VA_FOURCC('I', '4', '2', '0');
+    switch(m_pixelFormat[INPUT]) {
+    case V4L2_PIX_FMT_YUV420M:
+        inputBuffer->fourcc = VA_FOURCC('I', '4', '2', '0');
+        break;
+    case V4L2_PIX_FMT_YUYV:
+        inputBuffer->fourcc = VA_FOURCC_YUY2;
+        break;
+    default:
+        ASSERT(0);
+        break;
+    }
 
     return true;
 }
@@ -303,7 +313,19 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
 
         } else if (format->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
             // ::NegotiateInputFormat
-            ASSERT(format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_YUV420M);
+            ASSERT(format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_YUV420M || format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_YUYV);
+            m_pixelFormat[INPUT] = format->fmt.pix_mp.pixelformat;
+            switch (m_pixelFormat[INPUT]) {
+            case V4L2_PIX_FMT_YUV420M:
+                m_bufferPlaneCount[INPUT] = 3;
+            break;
+            case V4L2_PIX_FMT_YUYV:
+                m_bufferPlaneCount[INPUT] = 1;
+                break;
+            default:
+                ASSERT(0);
+                break;
+            }
             ASSERT(m_encoder);
             m_videoParams.resolution.width = format->fmt.pix_mp.width;
             m_videoParams.resolution.height= format->fmt.pix_mp.height;

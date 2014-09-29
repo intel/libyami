@@ -153,6 +153,13 @@ void VaapiImageRaw::getPlaneResolution(uint32_t width[3], uint32_t height[3])
             }
         }
         break;
+        case VA_FOURCC_YUY2:
+        case VA_FOURCC_UYVY:{
+            width[0] = image->width * 2;
+            height[0] = image->height;
+            width[1] = width[2] = height[1] = height[2] = 0;
+        }
+        break;
         case VA_FOURCC_RGBX:
         case VA_FOURCC_RGBA:
         case VA_FOURCC_BGRX:
