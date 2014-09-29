@@ -137,6 +137,7 @@ void VaapiImageRaw::getPlaneResolution(uint32_t width[3], uint32_t height[3])
     uint32_t fourcc = image->format.fourcc;
     switch (fourcc) {
         case VA_FOURCC_NV12:
+        case VA_FOURCC_I420:
         case VA_FOURCC_YV12:{
             int w = image->width;
             int h = image->height;

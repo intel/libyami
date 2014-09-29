@@ -72,7 +72,7 @@ public:
 
 protected:
     //utils functions for derived class
-    SurfacePtr createSurface();
+    SurfacePtr createSurface(uint32_t fourcc = VA_FOURCC_NV12);
     SurfacePtr createSurface(VideoEncRawBuffer* inBuffer);
     Encode_Status copyCodedBuffer(VideoEncOutputBuffer *, const CodedBufferPtr&) const;
 

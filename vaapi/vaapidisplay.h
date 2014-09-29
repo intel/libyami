@@ -37,6 +37,9 @@
 
 ///abstract for all display, x11, wayland, ozone, android etc.
 namespace YamiMediaCodec{
+#ifndef VA_FOURCC_I420
+#define VA_FOURCC_I420 VA_FOURCC('I','4','2','0')
+#endif
 class NativeDisplayBase;
 class VaapiDisplay
 {

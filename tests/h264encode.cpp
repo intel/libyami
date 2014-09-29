@@ -88,8 +88,11 @@ int main(int argc, char** argv)
 
     while (!input.isEOS())
     {
-        if (input.getOneFrameInput(inputBuffer))
+        memset(&inputBuffer, 0, sizeof(inputBuffer));
+        if (input.getOneFrameInput(inputBuffer)) {
+            inputBuffer.fourcc = VA_FOURCC('I', '4','2','0');
             status = encoder->encode(&inputBuffer);
+         }
         else
             break;
 

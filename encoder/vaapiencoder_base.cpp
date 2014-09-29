@@ -204,21 +204,36 @@ Encode_Status VaapiEncoderBase::getMaxOutSize(uint32_t *maxSize)
     return ENCODE_SUCCESS;
 }
 
-SurfacePtr VaapiEncoderBase::createSurface()
+SurfacePtr VaapiEncoderBase::createSurface(uint32_t fourcc)
 {
     VASurfaceAttrib attrib;
+    VaapiChromaType chroma;
+
     attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
     attrib.type = VASurfaceAttribPixelFormat;
     attrib.value.type = VAGenericValueTypeInteger;
-    attrib.value.value.i = VA_FOURCC_NV12;
-    return VaapiSurface::create(m_display, VAAPI_CHROMA_TYPE_YUV420,
+    attrib.value.value.i = fourcc;
+
+    switch(fourcc) {
+    case VA_FOURCC_NV12:
+    case VA_FOURCC_I420:
+        chroma = VAAPI_CHROMA_TYPE_YUV420;
+    break;
+    case VA_FOURCC_YUY2:
+        chroma = VAAPI_CHROMA_TYPE_YUV422;
+    break;
+    default:
+        ASSERT(0);
+        break;
+    }
+    return VaapiSurface::create(m_display, chroma,
                                 m_videoParamCommon.resolution.width, m_videoParamCommon.resolution.height, &attrib, 1);
 
 }
 
 SurfacePtr VaapiEncoderBase::createSurface(VideoEncRawBuffer* inBuffer)
 {
-    SurfacePtr surface = createSurface();
+    SurfacePtr surface = createSurface(inBuffer->fourcc);
     SurfacePtr nil;
     if (!surface)
         return nil;

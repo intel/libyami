@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     EncodeInputHandler input = createEncodeInput();
     EncodeOutputHandler output;
     Encode_Status status;
-    VideoEncRawBuffer inputBuffer = {0, 0, false, 0, false};
+    VideoEncRawBuffer inputBuffer;
     VideoEncOutputBuffer outputBuffer;
 
     if (!process_cmdline(argc, argv))
@@ -85,6 +85,7 @@ int main(int argc, char** argv)
 
     while (!encodeInputIsEOS(input))
     {
+        memset(&inputBuffer, 0, sizeof(inputBuffer));
         if (getOneFrameInput(input, &inputBuffer)){
             status = encode(encoder, &inputBuffer);}
         else

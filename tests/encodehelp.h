@@ -29,7 +29,7 @@ char *inputFileName = NULL;
 char *outputFileName = NULL;
 char *codec = NULL;
 char *colorspace = NULL;
-int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 0;
+int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 30;
 
 #ifndef __cplusplus
 #ifndef bool

@@ -167,6 +167,7 @@ bool V4l2Encoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
         inputBuffer->forceKeyFrame = true;
         m_forceKeyFrame = false;
     }
+    inputBuffer->fourcc = VA_FOURCC('I', '4', '2', '0');
 
     return true;
 }
