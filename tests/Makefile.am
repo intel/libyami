@@ -61,7 +61,7 @@ decodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
 decodecapi_SOURCES	= decodecapi.c decodeinput.cpp decodeInputCapi.cpp
 
 encodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
-encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCapi.cpp
+encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputCapi.cpp
 else
 decode_LDADD	= $(YAMI_DECODE_LIBS) -lX11
 decode_SOURCES	= decode.cpp decodeinput.cpp
@@ -70,11 +70,11 @@ decode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
 h264encode_LDADD    = $(YAMI_ENCODE_LIBS) -lX11
-h264encode_SOURCES  = h264encode.cpp encodeinput.cpp
+h264encode_SOURCES  = h264encode.cpp encodeinput.cpp encodeInputCamera.cpp
 
 v4l2decode_LDADD = $(V4L2_DECODE_LIBS) -lX11
 v4l2decode_SOURCES = v4l2decode.cpp decodeinput.cpp ../egl/egl_util.c ./egl/gles2_help.c
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
-v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp
+v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp
 endif

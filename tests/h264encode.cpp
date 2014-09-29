@@ -42,7 +42,7 @@ int main(int argc, char** argv)
 {
     IVideoEncoder *encoder = NULL;
     uint32_t maxOutSize = 0;
-    EncodeStreamInput input;
+    EncodeStreamInputFile input;
     EncodeStreamOutput* output;
     Encode_Status status;
     VideoEncRawBuffer inputBuffer;

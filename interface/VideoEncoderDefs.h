@@ -161,9 +161,10 @@ typedef struct VideoEncRawBuffer {
     bool bufAvailable;          //To indicate whether this buffer can be reused
     uint64_t timeStamp;         //reserved
     bool forceKeyFrame;
+    intptr_t id;
 #ifndef __ENABLE_CAPI__
      VideoEncRawBuffer():data(0), fourcc(0), size(0), bufAvailable(false),
-        timeStamp(0), forceKeyFrame(false) {
+        timeStamp(0), forceKeyFrame(false), id(-1) {
     };
 #endif
 }VideoEncRawBuffer;

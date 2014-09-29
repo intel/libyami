@@ -35,11 +35,30 @@
 
 using namespace YamiMediaCodec;
 
-EncodeStreamInput::EncodeStreamInput()
+EncodeStreamInputPtr EncodeStreamInput::create(const char* inputFileName, uint32_t fourcc, int width, int height) {
+    EncodeStreamInputPtr inputPtr;
+    EncodeStreamInput *input = NULL;
+    if (!inputFileName)
+        return inputPtr;
+
+    if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video"))) {
+        input = new EncodeStreamInputCamera;
+    } else {
+        input =  new EncodeStreamInputFile;
+    }
+
+    if (!input)
+        return inputPtr;
+
+    if (!(input->init(inputFileName, fourcc, width, height)))
+        return inputPtr;
+
+    inputPtr.reset(input);
+    return inputPtr;
+}
+
+EncodeStreamInputFile::EncodeStreamInputFile()
     : m_fp(NULL)
-    , m_width(0)
-    , m_height(0)
-    , m_frameSize(0)
     , m_buffer(NULL)
     , m_readToEOS(false)
 {
@@ -110,7 +129,7 @@ bool guessResolution(const char* inputFileName, int& w, int& h)
     return w && h;
 }
 
-bool EncodeStreamInput::init(const char* inputFileName, uint32_t fourcc, int width, int height)
+bool EncodeStreamInputFile::init(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
     if (!width || !height) {
         if (!guessResolution(inputFileName, width, height)) {
@@ -148,7 +167,7 @@ bool EncodeStreamInput::init(const char* inputFileName, uint32_t fourcc, int wid
     return true;
 }
 
-bool EncodeStreamInput::getOneFrameInput(VideoEncRawBuffer &inputBuffer)
+bool EncodeStreamInputFile::getOneFrameInput(VideoEncRawBuffer &inputBuffer)
 {
     if (m_readToEOS)
         return false;
@@ -170,7 +189,7 @@ bool EncodeStreamInput::getOneFrameInput(VideoEncRawBuffer &inputBuffer)
     return true;
 }
 
-EncodeStreamInput::~EncodeStreamInput()
+EncodeStreamInputFile::~EncodeStreamInputFile()
 {
     if(m_fp)
         fclose(m_fp);
