@@ -42,24 +42,27 @@ int main(int argc, char** argv)
 {
     IVideoEncoder *encoder = NULL;
     uint32_t maxOutSize = 0;
-    EncodeStreamInputFile input;
+    EncodeStreamInputPtr input;
     EncodeStreamOutput* output;
     Encode_Status status;
     VideoEncRawBuffer inputBuffer;
     VideoEncOutputBuffer outputBuffer;
+    int encodeFrameCount = 0;
 
     yamiTraceInit();
 
     if (!process_cmdline(argc, argv))
         return -1;
 
-    if (!input.init(inputFileName, inputFourcc, videoWidth, videoHeight)) {
+    DEBUG("inputFourcc: %.4s", &(inputFourcc));
+    input = EncodeStreamInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
+    if (!input) {
         fprintf (stderr, "fail to init input stream\n");
         return -1;
     }
 
-    videoWidth = input.getWidth();
-    videoHeight = input.getHeight();
+    videoWidth = input->getWidth();
+    videoHeight = input->getHeight();
 
     output = EncodeStreamOutput::create(outputFileName, videoWidth, videoHeight);
     if (!output) {
@@ -88,13 +91,14 @@ int main(int argc, char** argv)
         return -1;
     }
 
-    while (!input.isEOS())
+    while (!input->isEOS())
     {
         memset(&inputBuffer, 0, sizeof(inputBuffer));
-        if (input.getOneFrameInput(inputBuffer)) {
-            inputBuffer.fourcc = VA_FOURCC('I', '4','2','0');
+        if (input->getOneFrameInput(inputBuffer)) {
             status = encoder->encode(&inputBuffer);
-         }
+            ASSERT(status == ENCODE_SUCCESS);
+            input->recycleOneFrameInput(inputBuffer);
+        }
         else
             break;
 
@@ -105,6 +109,9 @@ int main(int argc, char** argv)
                 && !output->write(outputBuffer.data, outputBuffer.dataSize))
                 assert(0);
         } while (status != ENCODE_BUFFER_NO_MORE);
+
+        if (frameCount &&  encodeFrameCount++ > frameCount)
+            break;
     }
 
     // drain the output buffer
