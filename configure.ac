@@ -50,6 +50,7 @@ AC_DEFINE([__ENABLE_TESTS__], [1], [Defined to 1 if --enable-tests="yes" ])
 fi
 AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "xyes")
 
+
 AC_ARG_ENABLE(tests-gles,
     [AC_HELP_STRING([--enable-tests-gles], [build tests with opengles/texutre rendering@<:@default=no@:>@])],
     [], [enable_tests_gles="no"])
@@ -86,6 +87,16 @@ AC_DEFINE([__ENABLE_CAPI__], [1], [Defined to 1 if --enable-capi="yes" ])
 fi
 AM_CONDITIONAL(ENABLE_CAPI, test "x$enable_capi" = "xyes")
 
+AC_ARG_ENABLE(x11,
+    [AC_HELP_STRING([--enable-x11], [enable x11@<:@default=yes@:>@])],
+	[], [enable_x11="yes"])
+
+AS_IF([test "x$enable_x11" = "xyes"], 
+[AC_DEFINE([__ENABLE_X11__], [1], [Defined to 0 if --enable-x11="yes" ])],
+[TEST "X$enable_x11" = "xno"], 
+[AC_DEFINE([__ENABLE_X11__], [1], [Defined to 1 if --disable-x11="yes" ])],
+[])
+AM_CONDITIONAL(ENABLE_X11, test "x$enable_x11" = "xyes")
 
 AC_ARG_ENABLE(baytrail,
     [AC_HELP_STRING([--enable-baytrail], [build with baytrail/chromeos support @<:@default=no@:>@])],
@@ -97,7 +108,7 @@ fi
 
 dnl vp8 decoder
 AC_ARG_ENABLE(vp8dec,
-    [AC_HELP_STRING([--enable-vp8dec], [build with vp8 decoder support @<:@default=no@:>@])],
+    [AC_HELP_STRING([--enable-vp8dec], [build with vp8 decoder support @<:@default=yes@:>@])],
     [], [enable_vp8dec="yes"])
 if test "$enable_vp8dec" = "yes"; then
 AC_DEFINE([__BUILD_VP8_DECODER__], [1], [Defined to 1 if --enable-vp8dec="yes" ])
@@ -106,7 +117,7 @@ AM_CONDITIONAL(BUILD_VP8_DECODER, test "x$enable_vp8dec" = "xyes")
 
 dnl jpeg decoder
 AC_ARG_ENABLE(jpegdec,
-    [AC_HELP_STRING([--enable-jpegdec], [build with jpeg decoder support @<:@default=no@:>@])],
+    [AC_HELP_STRING([--enable-jpegdec], [build with jpeg decoder support @<:@default=yes@:>@])],
     [], [enable_jpegdec="yes"])
 if test "$enable_jpegdec" = "yes"; then
 AC_DEFINE([__BUILD_JPEG_DECODER__], [1], [Defined to 1 if --enable-jpegdec="yes" ])
@@ -115,7 +126,7 @@ AM_CONDITIONAL(BUILD_JPEG_DECODER, test "x$enable_jpegdec" = "xyes")
 
 dnl h264 decoder
 AC_ARG_ENABLE(h264dec,
-    [AC_HELP_STRING([--enable-h264dec], [build with h264 decoder support @<:@default=no@:>@])],
+    [AC_HELP_STRING([--enable-h264dec], [build with h264 decoder support @<:@default=yes@:>@])],
     [], [enable_h264dec="yes"])
 if test "$enable_h264dec" = "yes"; then
 AC_DEFINE([__BUILD_H264_DECODER__], [1], [Defined to 1 if --enable-h264dec="yes" ])
@@ -124,7 +135,7 @@ AM_CONDITIONAL(BUILD_H264_DECODER, test "x$enable_h264dec" = "xyes")
 
 dnl h264 encoder
 AC_ARG_ENABLE(h264enc,
-    [AC_HELP_STRING([--enable-h264enc], [build with h264 encoder support @<:@default=no@:>@])],
+    [AC_HELP_STRING([--enable-h264enc], [build with h264 encoder support @<:@default=yes@:>@])],
     [], [enable_h264enc="yes"])
 if test "$enable_h264enc" = "yes"; then
 AC_DEFINE([__BUILD_H264_ENCODER__], [1], [Defined to 1 if --enable-h264enc="yes" ])
@@ -133,7 +144,7 @@ AM_CONDITIONAL(BUILD_H264_ENCODER, test "x$enable_h264enc" = "xyes")
 
 # dnl Doxygen
 AC_ARG_ENABLE(docs,
-              [AC_HELP_STRING([--enable-docs], [build with doxygen support @<:@default=no@:>@])],
+              [AC_HELP_STRING([--enable-docs], [build with doxygen support @<:@default=yes@:>@])],
     [], [enable_docs="yes"])
 if test "$enable_docs" = "yes"; then
     AC_CHECK_TOOL([DOXYGEN], [doxygen], [no])

@@ -58,13 +58,13 @@ CAPI_ENCODE_LIBS = \
 
 if ENABLE_CAPI
 decodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
-decodecapi_SOURCES	= decodecapi.c decodeinput.cpp decodeInputCapi.cpp
+decodecapi_SOURCES	= decodecapi.c decodehelp.h decodeinput.cpp decodeInputCapi.cpp
 
 encodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
 encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCapi.cpp
 else
 decode_LDADD	= $(YAMI_DECODE_LIBS) -lX11
-decode_SOURCES	= decode.cpp decodeinput.cpp
+decode_SOURCES	= decode.cpp decodehelp.h decodeinput.cpp
 if ENABLE_TESTS_GLES
 decode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
@@ -73,7 +73,7 @@ h264encode_LDADD    = $(YAMI_ENCODE_LIBS) -lX11
 h264encode_SOURCES  = h264encode.cpp encodeinput.cpp
 
 v4l2decode_LDADD = $(V4L2_DECODE_LIBS) -lX11
-v4l2decode_SOURCES = v4l2decode.cpp decodeinput.cpp ../egl/egl_util.c ./egl/gles2_help.c
+v4l2decode_SOURCES = v4l2decode.cpp decodeinput.h decodeinput.cpp ../egl/egl_util.c ./egl/gles2_help.c
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
 v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp
