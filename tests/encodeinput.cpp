@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <ctype.h>
+#include "common/log.h"
 
 #include "encodeinput.h"
 
@@ -109,7 +110,7 @@ bool guessResolution(const char* inputFileName, int& w, int& h)
     return w && h;
 }
 
-bool EncodeStreamInput::init(const char* inputFileName, int width, int height)
+bool EncodeStreamInput::init(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
     if (!width || !height) {
         if (!guessResolution(inputFileName, width, height)) {
@@ -119,7 +120,23 @@ bool EncodeStreamInput::init(const char* inputFileName, int width, int height)
     }
     m_width = width;
     m_height = height;
-    m_frameSize = m_width * m_height * 3 / 2;
+    m_fourcc = fourcc;
+    if (!m_fourcc)
+        m_fourcc = VA_FOURCC('I', '4', '2', '0');
+
+    switch (m_fourcc) {
+    case VA_FOURCC_NV12:
+    case VA_FOURCC('I', '4', '2', '0'):
+    case VA_FOURCC_YV12:
+        m_frameSize = m_width * m_height * 3 / 2;
+    break;
+    case VA_FOURCC_YUY2:
+        m_frameSize = m_width * m_height * 2;
+    break;
+    default:
+        ASSERT(0);
+    break;
+    }
 
     m_fp = fopen(inputFileName, "r");
     if (!m_fp) {
@@ -149,6 +166,7 @@ bool EncodeStreamInput::getOneFrameInput(VideoEncRawBuffer &inputBuffer)
         inputBuffer.size = m_frameSize;
     }
 
+    inputBuffer.fourcc = m_fourcc;
     return true;
 }
 

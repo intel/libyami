@@ -24,12 +24,13 @@
 #define __ENCODE_HELP__
 #include "interface/VideoEncoderDefs.h"
 
-const int kIPeriod = 30;
-char *inputFileName = NULL;
-char *outputFileName = NULL;
-char *codec = NULL;
-char *colorspace = NULL;
-int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 30;
+static const int kIPeriod = 30;
+static char *inputFileName = NULL;
+static char *outputFileName = NULL;
+static char *codec = NULL;
+static uint32_t inputFourcc = 0;
+static int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 30;
+static int frameCount = 0;
 
 #ifndef __cplusplus
 #ifndef bool
@@ -55,6 +56,7 @@ static void print_help(const char* app)
     printf("   -f <frame rate> optional\n");
     printf("   -c <codec: AVC|VP8|JPEG> Note: not support now\n");
     printf("   -s <fourcc: NV12|IYUV|YV12> Note: not support now\n");
+    printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
 }
 
 static bool process_cmdline(int argc, char *argv[])
@@ -66,7 +68,7 @@ static bool process_cmdline(int argc, char *argv[])
         return false;
     }
 
-    while ((opt = getopt(argc, argv, "W:H:b:f:c:s:i:o:h:")) != -1)
+    while ((opt = getopt(argc, argv, "W:H:b:f:c:s:i:o:N:h:")) != -1)
     {
         switch (opt) {
         case 'h':
@@ -95,7 +97,11 @@ static bool process_cmdline(int argc, char *argv[])
             codec = optarg;
             break;
         case 's':
-            colorspace = optarg;
+            if (strlen(optarg) == 4)
+                inputFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
+            break;
+        case 'N':
+            frameCount = atoi(optarg);
             break;
         }
     }
@@ -104,6 +110,9 @@ static bool process_cmdline(int argc, char *argv[])
         fprintf(stderr, "can not encode without input file\n");
         return false;
     }
+
+    if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video")) && !frameCount)
+        frameCount = 50;
 
     if (!outputFileName)
         outputFileName = "test.264";

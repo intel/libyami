@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
-    if (!input.init(inputFileName, videoWidth, videoHeight)) {
+    if (!input.init(inputFileName, inputFourcc, videoWidth, videoHeight)) {
         fprintf (stderr, "fail to init input stream\n");
         return -1;
     }

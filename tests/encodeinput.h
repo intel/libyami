@@ -32,7 +32,7 @@ class EncodeStreamInput {
 public:
     EncodeStreamInput();
     ~EncodeStreamInput();
-    bool init(const char* inputFileName, int width, int height);
+    bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
     bool getOneFrameInput(VideoEncRawBuffer &inputBuffer);
     bool isEOS() {return m_readToEOS;}
     int getWidth() { return m_width;}
@@ -40,6 +40,7 @@ public:
 
 private:
     FILE *m_fp;
+    uint32_t m_fourcc;
     int m_width;
     int m_height;
     int m_frameSize;
