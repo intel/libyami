@@ -115,7 +115,7 @@ bool DecodeStreamInputVP8::init()
 {
     if (m_ivfHdrSiz != fread (m_buffer, 1, m_ivfHdrSiz, m_fp)) {
         fprintf (stderr, "fail to read ivf header, quit\n");
-        return -1;
+        return false;
     }
     return true;
 }
@@ -128,7 +128,7 @@ bool DecodeStreamInputVP8::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
         assert (framesize < (uint32_t) m_maxFrameSize);
         if (framesize != fread (m_buffer, 1, framesize, m_fp)) {
             fprintf (stderr, "fail to read frame data, quit\n");
-            return -1;
+            return false;
         }
         inputBuffer.data = m_buffer;
         inputBuffer.size = framesize;
@@ -136,7 +136,7 @@ bool DecodeStreamInputVP8::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     else {
         m_parseToEOS = true;
     }
-    return 1;
+    return true;
 }
 
 DecodeStreamInputRaw::DecodeStreamInputRaw()
