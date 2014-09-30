@@ -131,7 +131,7 @@ bool V4l2Decoder::outputPulse(int32_t index)
     }
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
         // XXX, assumed fourcc here
-        m_outputRawFrames[index].fourcc = VA_FOURCC_RGBX;
+        m_outputRawFrames[index].fourcc = VA_FOURCC_BGRX;
     }
 
     status = m_decoder->getOutput(&m_outputRawFrames[index]);

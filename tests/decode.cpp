@@ -181,7 +181,7 @@ bool renderOutputFrames(bool drain = false)
             glBindTexture(GL_TEXTURE_2D, textureId);
 
             frame.memoryType = renderMode == 3 ? VIDEO_DATA_MEMORY_TYPE_DRM_NAME : VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
-            frame.fourcc = VA_FOURCC_RGBX;
+            frame.fourcc = VA_FOURCC_BGRX; // VAAPI BGRA match MESA ARGB
             frame.width = videoWidth;
             frame.height = videoHeight;
             status = decoder->getOutput(&frame, drain);
