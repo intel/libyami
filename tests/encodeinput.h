@@ -37,21 +37,13 @@ class EncodeStreamInputCamera;
 typedef std::tr1::shared_ptr<EncodeStreamInput> EncodeStreamInputPtr;
 class EncodeStreamInput {
 public:
-    enum CameraDataMode{
-        CAMERA_DATA_MODE_MMAP,
-        // CAMERA_DATA_MODE_DMABUF_MMAP,
-        // CAMERA_DATA_MODE_USRPTR,
-        // CAMERA_DATA_MODE_DMABUF_USRPTR,
-    };
-
     static EncodeStreamInputPtr create(const char* inputFileName, uint32_t fourcc, int width, int height);
     EncodeStreamInput() : m_width(0), m_height(0), m_frameSize(0) {};
     ~EncodeStreamInput() {};
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height) = 0;
-    virtual bool setDataMode(CameraDataMode mode) {return true;};
     virtual bool getOneFrameInput(VideoEncRawBuffer &inputBuffer) = 0;
     virtual bool recycleOneFrameInput(VideoEncRawBuffer &inputBuffer) {return true;};
-    virtual bool isEOS() {return false;}
+    virtual bool isEOS() = 0;
     int getWidth() { return m_width;}
     int getHeight() { return m_height;}
 
@@ -60,7 +52,6 @@ protected:
     int m_width;
     int m_height;
     int m_frameSize;
-    CameraDataMode m_dataMode;
 };
 
 class EncodeStreamInputFile : public EncodeStreamInput {
@@ -79,16 +70,24 @@ protected:
 
 class EncodeStreamInputCamera : public EncodeStreamInput {
 public:
-    EncodeStreamInputCamera() :m_frameBufferCount(5), m_frameBufferSize(0){};
+    enum CameraDataMode{
+        CAMERA_DATA_MODE_MMAP,
+        // CAMERA_DATA_MODE_DMABUF_MMAP,
+        // CAMERA_DATA_MODE_USRPTR,
+        // CAMERA_DATA_MODE_DMABUF_USRPTR,
+    };
+    EncodeStreamInputCamera() :m_frameBufferCount(5), m_frameBufferSize(0), m_dataMode(CAMERA_DATA_MODE_MMAP) {};
     ~EncodeStreamInputCamera();
     virtual bool init(const char* cameraPath, uint32_t fourcc, int width, int height);
     bool setDataMode(CameraDataMode mode = CAMERA_DATA_MODE_MMAP) {m_dataMode = mode; return true;};
 
     virtual bool getOneFrameInput(VideoEncRawBuffer &inputBuffer);
     virtual bool recycleOneFrameInput(VideoEncRawBuffer &inputBuffer);
+    virtual bool isEOS() { return false; }
     // void getSupportedResolution();
 private:
     int m_fd;
+    CameraDataMode m_dataMode;
     std::vector<uint8_t*> m_frameBuffers;
     uint32_t m_frameBufferCount;
     uint32_t m_frameBufferSize;
