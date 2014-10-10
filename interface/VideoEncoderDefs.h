@@ -66,7 +66,6 @@ typedef enum {
     OUTPUT_ONE_NAL = 4,
     OUTPUT_ONE_NAL_WITHOUT_STARTCODE = 8,
     OUTPUT_LENGTH_PREFIXED = 16,
-    OUTPUT_STREAM_HEADER = 32,       // sps/pss in bytestream format OUTPUT_EVERYTHING = OUTPUT_STREAM_HEADER (if needed) + OUTPUT_FRAME_DATA;
     OUTPUT_BUFFER_LAST
 }VideoOutputFormat;
 
@@ -128,6 +127,11 @@ typedef enum {
     BUFFER_SHARING_KBUFHANDLE = 64,
     BUFFER_LAST
 }VideoBufferSharingMode;
+
+typedef enum {
+    AVC_STREAM_FORMAT_AVCC,
+    AVC_STREAM_FORMAT_ANNEXB
+}AVCStreamFormat;
 
 // Output buffer flag
 #define ENCODE_BUFFERFLAG_ENDOFFRAME       0x00000001
@@ -286,6 +290,9 @@ typedef enum {
     VideoConfigTypeIDRRequest,
     VideoConfigTypeSliceNum,
 
+    //format related
+    VideoConfigTypeAVCStreamFormat,
+
     VideoParamsConfigExtension
 }VideoParamConfigType;
 
@@ -403,6 +410,11 @@ struct VideoConfigSliceNum {
     uint32_t size;
     SliceNum sliceNum;
 };
+
+typedef struct VideoConfigAVCStreamFormat {
+    uint32_t size;
+    AVCStreamFormat streamFormat;
+} VideoConfigAVCStreamFormat;
 
 typedef struct {
     uint32_t total_frames;

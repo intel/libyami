@@ -56,7 +56,7 @@ class IVideoEncoder {
      * param [in/out] outBuffer a #VideoEncOutputBuffer of one frame encoded data
      * param [in/out] when there is no output data available, wait or not
      */
-    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) const = 0;
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) = 0;
     /// get encoder params, some config parameter are updated basing on sw/hw implement limition.
     /// for example, update pitches basing on hw alignment
     virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR videoEncParams) = 0;

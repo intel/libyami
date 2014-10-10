@@ -26,11 +26,15 @@
 
 #include "interface/VideoEncoderDefs.h"
 #include "interface/VideoEncoderInterface.h"
+#include "common/lock.h"
 #include "common/log.h"
 #include "vaapiencpicture.h"
 #include "vaapi/vaapibuffer.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapisurface.h"
+
+#include <deque>
+#include <utility>
 
 namespace YamiMediaCodec{
 enum VaapiEncReorderState
@@ -41,6 +45,7 @@ enum VaapiEncReorderState
 };
 
 class VaapiEncoderBase : public IVideoEncoder {
+    typedef std::tr1::shared_ptr<VaapiEncPicture> PicturePtr;
 public:
     VaapiEncoderBase();
     virtual ~VaapiEncoderBase();
@@ -57,7 +62,7 @@ public:
     * If the buffer passed to encoded is not big enough, this API call will return ENCODE_BUFFER_TOO_SMALL
     * and caller should provide a big enough buffer and call again
     */
-    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) const = 0;
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false);
 
     virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR);
     virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR);
@@ -74,7 +79,10 @@ protected:
     //utils functions for derived class
     SurfacePtr createSurface(uint32_t fourcc = VA_FOURCC_NV12);
     SurfacePtr createSurface(VideoEncRawBuffer* inBuffer);
-    Encode_Status copyCodedBuffer(VideoEncOutputBuffer *, const CodedBufferPtr&) const;
+
+    template <class Pic>
+    bool output(const std::tr1::shared_ptr<Pic>&);
+    virtual Encode_Status getCodecConfig(VideoEncOutputBuffer * outBuffer);
 
     //virtual functions
     virtual Encode_Status reorder(const SurfacePtr& , uint64_t timeStamp, bool forceKeyFrame = false) = 0;
@@ -123,7 +131,8 @@ protected:
     uint32_t& minQP() {
         return m_videoParamCommon.rcParams.minQP;
     }
-    virtual bool isBusy() = 0 ;
+
+    bool isBusy();
 
     DisplayPtr m_display;
     ContextPtr m_context;
@@ -137,10 +146,32 @@ private:
     void cleanupVA();
     NativeDisplay m_externalDisplay;
 
+    Lock m_lock;
+    typedef std::deque<PicturePtr> OutputQueue;
+    OutputQueue m_output;
+
     bool updateMaxOutputBufferCount() {
         if (m_maxOutputBuffer < m_videoParamCommon.leastInputCount + 3)
             m_maxOutputBuffer = m_videoParamCommon.leastInputCount + 3;
     }
 };
+
+template <class Pic>
+bool VaapiEncoderBase::output(const std::tr1::shared_ptr<Pic>& pic)
+{
+    bool ret;
+    PicturePtr picture;
+    AutoLock l(m_lock);
+    picture = std::tr1::dynamic_pointer_cast<VaapiEncPicture>(pic);
+    if (picture) {
+        m_output.push_back(picture);
+        ret = true;
+    } else {
+        ERROR("output need a subclass of VaapiEncPicutre");
+        ret = false;
+    }
+    return ret;
+}
+
 }
 #endif /* vaapiencoder_base_h */

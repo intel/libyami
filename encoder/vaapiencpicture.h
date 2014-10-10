@@ -23,7 +23,10 @@
 #ifndef vaapiencpicture_h
 #define vaapiencpicture_h
 
+#include "interface/VideoEncoderDefs.h"
+
 #include "vaapi/vaapipicture.h"
+
 
 namespace YamiMediaCodec{
 class VaapiEncPicture:public VaapiPicture {
@@ -49,6 +52,13 @@ class VaapiEncPicture:public VaapiPicture {
                          uint32_t headerBitSize);
 
     bool encode();
+
+    // give subclass a chance to convert codec buffer to they wanted format.
+    // vp8 hybrid driver may need entropy code the coded buffer
+    // h264 encoder may need convert annexb to avcC
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer);
+
+    CodedBufferPtr m_codedBuffer;
 
   private:
     bool doRender();
@@ -84,7 +94,7 @@ template < class T > bool VaapiEncPicture::newSlice(T * &sliceParam)
 }
 
 template < class T >
-    BufObjectPtr VaapiEncPicture::
+BufObjectPtr VaapiEncPicture::
 createMiscObject(VAEncMiscParameterType miscType, T * &bufPtr)
 {
     VAEncMiscParameterBuffer *misc;
@@ -100,8 +110,8 @@ createMiscObject(VAEncMiscParameterType miscType, T * &bufPtr)
 }
 
 template < class T >
-    bool VaapiEncPicture::newMisc(VAEncMiscParameterType miscType,
-                                  T * &miscParam)
+bool VaapiEncPicture::newMisc(VAEncMiscParameterType miscType,
+                              T * &miscParam)
 {
     BufObjectPtr misc = createMiscObject(miscType, miscParam);
     return addObject(m_miscParams, misc);

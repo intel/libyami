@@ -86,11 +86,23 @@ Encode_Status VaapiEncoderBase::start(void)
     return ENCODE_SUCCESS;
 }
 
+void VaapiEncoderBase::flush(void)
+{
+    AutoLock l(m_lock);
+    m_output.clear();
+}
+
 Encode_Status VaapiEncoderBase::stop(void)
 {
     FUNC_ENTER();
     cleanupVA();
     return ENCODE_SUCCESS;
+}
+
+bool VaapiEncoderBase::isBusy()
+{
+    AutoLock l(m_lock);
+    return m_output.size() >= m_maxOutputBuffer;
 }
 
 Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
@@ -257,21 +269,6 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoEncRawBuffer* inBuffer)
     return surface;
 }
 
-Encode_Status VaapiEncoderBase::copyCodedBuffer(VideoEncOutputBuffer *outBuffer, const CodedBufferPtr& codedBuffer) const
-{
-    uint32_t size = codedBuffer->size();
-    if (size > outBuffer->bufferSize) {
-        outBuffer->dataSize = 0;
-        return ENCODE_BUFFER_TOO_SMALL;
-    }
-    if (size > 0) {
-        codedBuffer->copyInto(outBuffer->data);
-        outBuffer->flag = codedBuffer->getFlags();
-    }
-    outBuffer->dataSize = size;
-    return ENCODE_SUCCESS;
-}
-
 void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
 {
     hrd->buffer_size = m_videoParamCommon.rcParams.bitRate * m_videoParamCommon.rcParams.windowSize/1000;
@@ -372,4 +369,43 @@ bool VaapiEncoderBase::initVA()
     }
     return true;
 }
+
+Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, bool withWait)
+{
+    bool isEmpty;
+    FUNC_ENTER();
+    if (!outBuffer)
+        return ENCODE_INVALID_PARAMS;
+
+    {
+        AutoLock l(m_lock);
+        isEmpty = m_output.empty();
+        INFO("output queue size: %ld\n", m_output.size());
+    }
+
+    if (isEmpty) {
+        if (outBuffer->format == OUTPUT_CODEC_DATA)
+           return getCodecConfig(outBuffer);
+        return ENCODE_BUFFER_NO_MORE;
+    }
+
+    PicturePtr& picture = m_output.front();
+    picture->sync();
+    Encode_Status ret = picture->getOutput(outBuffer);
+    if (ret != ENCODE_SUCCESS)
+        return ret;
+    if (outBuffer->format != OUTPUT_CODEC_DATA) {
+        AutoLock l(m_lock);
+        m_output.pop_front();
+    }
+    return ENCODE_SUCCESS;
+}
+
+Encode_Status VaapiEncoderBase::getCodecConfig(VideoEncOutputBuffer * outBuffer)
+{
+    ASSERT(outBuffer && (outBuffer->format == OUTPUT_CODEC_DATA));
+    outBuffer->dataSize  = 0;
+    return ENCODE_SUCCESS;
+}
+
 }

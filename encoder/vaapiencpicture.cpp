@@ -23,6 +23,7 @@
 #include "config.h"
 #endif
 #include "vaapiencpicture.h"
+#include "vaapicodedbuffer.h"
 
 #include "log.h"
 
@@ -68,4 +69,22 @@ addPackedHeader(VAEncPackedHeaderType packedHeaderType, const void *header,
     }
     return ret;
 }
+
+
+Encode_Status VaapiEncPicture::getOutput(VideoEncOutputBuffer * outBuffer)
+{
+    ASSERT(outBuffer);
+    uint32_t size = m_codedBuffer->size();
+    if (size > outBuffer->bufferSize) {
+        outBuffer->dataSize = 0;
+        return ENCODE_BUFFER_TOO_SMALL;
+    }
+    if (size > 0) {
+        m_codedBuffer->copyInto(outBuffer->data);
+        outBuffer->flag = m_codedBuffer->getFlags();
+    }
+    outBuffer->dataSize = size;
+    return ENCODE_SUCCESS;
+}
+
 }

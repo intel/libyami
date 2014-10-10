@@ -80,6 +80,12 @@ int main(int argc, char** argv)
     setEncoderParameters(&encVideoParams);
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
+
+    VideoConfigAVCStreamFormat streamFormat;
+    streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
+    streamFormat.streamFormat = AVC_STREAM_FORMAT_ANNEXB;
+    encoder->setParameters(VideoConfigTypeAVCStreamFormat, &streamFormat);
+
     status = encoder->start();
     assert(status == ENCODE_SUCCESS);
 

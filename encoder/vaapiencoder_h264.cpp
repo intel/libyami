@@ -32,10 +32,12 @@
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
 #include <algorithm>
+#include <tr1/functional>
 namespace YamiMediaCodec{
 //shortcuts
 typedef VaapiEncoderH264::PicturePtr PicturePtr;
 typedef VaapiEncoderH264::ReferencePtr ReferencePtr;
+typedef VaapiEncoderH264::StreamHeaderPtr StreamHeaderPtr;
 
 using std::list;
 using std::vector;
@@ -219,7 +221,6 @@ bit_writer_write_sps(
     constraint_set2_flag = 0;
     constraint_set3_flag = 0;
 
-    bit_writer_put_bits_uint32 (bitwriter, 0x00000001, 32);   /* start code */
     bit_writer_write_nal_header (bitwriter,
                          VAAPI_ENCODER_H264_NAL_REF_IDC_HIGH, VAAPI_ENCODER_H264_NAL_SPS);
     /* profile_idc */
@@ -413,7 +414,6 @@ bit_writer_write_pps(
     uint32_t pic_init_qs_minus26 = 0;
     uint32_t redundant_pic_cnt_present_flag = 0;
 
-    bit_writer_put_bits_uint32 (bitwriter, 0x00000001, 32);   /* start code */
     bit_writer_write_nal_header (bitwriter,
                          VAAPI_ENCODER_H264_NAL_REF_IDC_HIGH, VAAPI_ENCODER_H264_NAL_PPS);
     /* pic_parameter_set_id */
@@ -477,62 +477,151 @@ bit_writer_write_pps(
 
 class VaapiEncStreamHeaderH264
 {
-  public:
-    void setParamSet(uint8_t* data, uint32_t size)
+    typedef std::vector<uint8_t> Header;
+public:
+    void setSPS(const VAEncSequenceParameterBufferH264* const sequence, VaapiProfile profile)
     {
-        ASSERT(m_raw.empty());
-        if (m_raw.size())
-            return;
-
-        ASSERT(size > 4);
-        ASSERT(data[0] == 0 && data[1] == 0 && data[2] == 0 && data[3] == 1);
-        m_raw.insert(m_raw.end(), data+4, data+size); // skip start code
+        ASSERT(m_sps.empty());
+        BitWriter bs;
+        bit_writer_init (&bs, 128 * 8);
+        bit_writer_write_sps (&bs, sequence, profile);
+        bsToHeader(m_sps, bs);
+        bit_writer_clear (&bs, TRUE);
     }
 
-    bool generateByteStreamWithEmulation()
+    void addPPS(const VAEncPictureParameterBufferH264* const picParam)
     {
-        int i, j;
-        int size;
+        ASSERT(m_sps.size() && m_pps.empty());
+        BitWriter bs;
+        bit_writer_init (&bs, 128 * 8);
+        bit_writer_write_pps (&bs, picParam);
+        bsToHeader(m_pps, bs);
+        bit_writer_clear (&bs, TRUE);
+    }
 
-        if(m_emulation.size())
-            return true;
+    void generateCodecConfig(bool isAVCc)
+    {
+        ASSERT(m_sps.size() && (m_sps.size() > 4)&& m_pps.size() && m_headers.empty());
+        if (isAVCc)
+            generateCodecConfigAVCc();
+        else
+            generateCodecConfigAnnexB();
+    }
 
-        ASSERT(m_raw.size());
-        size = m_raw.size();
-        m_emulation.resize(4+size*3/2);
+    Encode_Status getCodecConfig(VideoEncOutputBuffer *outBuffer)
+    {
+        ASSERT(outBuffer && outBuffer->flag == OUTPUT_CODEC_DATA || outBuffer->flag == OUTPUT_EVERYTHING);
+        if (outBuffer->bufferSize < m_headers.size())
+            return ENCODE_BUFFER_TOO_SMALL;
+        if (m_headers.empty())
+            return ENCODE_NO_REQUEST_DATA;
+        std::copy(m_headers.begin(), m_headers.end(), outBuffer->data);
+        outBuffer->dataSize = m_headers.size();
+        return ENCODE_SUCCESS;
+    }
+private:
+    static void bsToHeader(Header& param, BitWriter& bs)
+    {
+        ASSERT(BIT_WRITER_BIT_SIZE (&bs) % 8 == 0);
+        param.insert(param.end(), BIT_WRITER_DATA (&bs),  BIT_WRITER_DATA (&bs) + BIT_WRITER_BIT_SIZE (&bs)/8);
+    }
 
-        // start code
-        m_emulation[0] = m_emulation[1] = m_emulation[2] = 0;
-        m_emulation[3] = 1;
+    void appendHeaderWithEmulation(Header& h)
+    {
+        Header::iterator s = h.begin();
+        Header::iterator e;
+        uint8_t zeros[] = {0, 0};
+        uint8_t emulation[] = {0, 0, 3};
+        do {
+            e = std::search(s, h.end(), zeros, zeros + N_ELEMENTS(zeros));
+            m_headers.insert(m_headers.end(), s, e);
+            if (e == h.end())
+                break;
+            m_headers.insert(m_headers.end(), emulation, emulation + N_ELEMENTS(emulation));
+            s = e + N_ELEMENTS(zeros);
+         } while (1);
+    }
 
-        for (i=0, j=4; i<size; i++, j++) {
-            m_emulation[j] = m_raw[i];
-            if (!m_raw[i-1] && !m_raw[i]) {
-                m_emulation[++j] = 0x03;
-
-                if (i < size-1)
-                    m_emulation[++j] = m_raw[++i]; // deal with more than 3 zeros
-            }
+    void generateCodecConfigAnnexB()
+    {
+        std::vector<Header*> headers;
+        headers.push_back(&m_sps);
+        headers.push_back(&m_pps);
+        uint8_t sync[] = {0, 0, 0, 1};
+        for (int i = 0; i < headers.size(); i++) {
+            m_headers.insert(m_headers.end(), sync, sync + N_ELEMENTS(sync));
+            appendHeaderWithEmulation(*headers[i]);
         }
-
-        m_emulation.resize(j);
-        return true;
     }
 
-  public:
-    std::vector<uint8_t> m_raw; // neither start code nor nal size
-    std::vector<uint8_t> m_emulation; // prefix with start code, insert emulation byte
+    void generateCodecConfigAVCc()
+    {
+        const uint32_t configurationVersion = 0x01;
+        const uint32_t nalLengthSize = 4;
+        uint8_t profileIdc, profileComp, levelIdc;
+        BitWriter bs;
+        vector<uint8_t>& sps = m_sps;
+        vector<uint8_t>& pps = m_pps;
+        /* skip sps[0], which is the nal_unit_type */
+        profileIdc = sps[1];
+        profileComp = sps[2];
+        levelIdc = sps[3];
+        /* Header */
+        bit_writer_init (&bs, (sps.size() + pps.size() + 64) * 8);
+        bit_writer_put_bits_uint32 (&bs, configurationVersion, 8);
+        bit_writer_put_bits_uint32 (&bs, profileIdc, 8);
+        bit_writer_put_bits_uint32 (&bs, profileComp, 8);
+        bit_writer_put_bits_uint32 (&bs, levelIdc, 8);
+        bit_writer_put_bits_uint32 (&bs, 0x3f, 6);  /* 111111 */
+        bit_writer_put_bits_uint32 (&bs, nalLengthSize - 1, 2);
+        bit_writer_put_bits_uint32 (&bs, 0x07, 3);  /* 111 */
 
+        /* Write SPS */
+        bit_writer_put_bits_uint32 (&bs, 1, 5);     /* SPS count = 1 */
+        assert (BIT_WRITER_BIT_SIZE (&bs) % 8 == 0);
+        bit_writer_put_bits_uint32 (&bs, sps.size(), 16);
+        bit_writer_put_bytes (&bs, &sps[0], sps.size());
+        /* Write PPS */
+        bit_writer_put_bits_uint32 (&bs, 1, 8);     /* PPS count = 1 */
+        bit_writer_put_bits_uint32 (&bs, pps.size(), 16);
+        bit_writer_put_bytes (&bs, &pps[0], pps.size());
+
+        bsToHeader(m_headers, bs);
+        bit_writer_clear (&bs, TRUE);
+    }
+
+
+    Header m_sps;
+    Header m_pps;
+    Header m_headers;
 };
-typedef std::tr1::shared_ptr <VaapiEncStreamHeaderH264> StreamHeaderPtr;
 
 class VaapiEncPictureH264:public VaapiEncPicture
 {
     friend class VaapiEncoderH264;
     friend class VaapiEncoderH264Ref;
+    typedef std::tr1::function<Encode_Status ()> Function;
 
 public:
     virtual ~VaapiEncPictureH264() {}
+
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer)
+    {
+        ASSERT(outBuffer);
+        uint32_t flag = outBuffer->flag;
+        VideoEncOutputBuffer out = *outBuffer;
+
+        std::vector<Function> functions;
+        if (flag == OUTPUT_CODEC_DATA || ((flag == OUTPUT_EVERYTHING) && isIdr()))
+            functions.push_back(std::tr1::bind(&VaapiEncStreamHeaderH264::getCodecConfig, m_headers,&out));
+        if (flag == OUTPUT_EVERYTHING || flag == OUTPUT_FRAME_DATA)
+            functions.push_back(std::tr1::bind(getOutputHelper, this, &out));
+        Encode_Status ret = getOutput(&out, functions);
+        if (ret == ENCODE_SUCCESS)
+            outBuffer->dataSize = out.data - outBuffer->data;
+        return ret;
+    }
+
 private:
     VaapiEncPictureH264(const ContextPtr& context, const SurfacePtr& surface, int64_t timeStamp):
         VaapiEncPicture(context, surface, timeStamp),
@@ -544,10 +633,33 @@ private:
     bool isIdr() const {
         return m_type == VAAPI_PICTURE_TYPE_I && !m_frameNum;
     }
+
+    //getOutput is a virutal function, we need this to help bind
+    static Encode_Status getOutputHelper(VaapiEncPictureH264* p, VideoEncOutputBuffer* out)
+    {
+        return p->VaapiEncPicture::getOutput(out);
+    }
+
+    Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, std::vector<Function>& functions)
+    {
+        ASSERT(outBuffer);
+
+        outBuffer->dataSize = 0;
+
+        Encode_Status ret;
+        for (int i = 0; i < functions.size(); i++) {
+            ret = functions[i]();
+            if (ret != ENCODE_SUCCESS)
+                return ret;
+            outBuffer->bufferSize -= outBuffer->dataSize;
+            outBuffer->data += outBuffer->dataSize;
+        }
+        return ENCODE_SUCCESS;
+    }
+
     uint32_t m_frameNum;
     uint32_t m_poc;
-    StreamHeaderPtr m_sps;
-    StreamHeaderPtr m_pps;
+    StreamHeaderPtr m_headers;
 };
 
 class VaapiEncoderH264Ref
@@ -567,7 +679,8 @@ public:
 VaapiEncoderH264::VaapiEncoderH264():
     m_useCabac(false),
     m_useDct8x8(false),
-    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES)
+    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
+    m_streamFormat(AVC_STREAM_FORMAT_AVCC)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;
@@ -575,13 +688,11 @@ VaapiEncoderH264::VaapiEncoderH264():
     m_videoParamCommon.rcParams.minQP = 1;
 
     m_videoParamAVC.idrInterval = 30;
-    pthread_mutex_init(&m_outputQueueMutex, NULL);
 }
 
 VaapiEncoderH264::~VaapiEncoderH264()
 {
     FUNC_ENTER();
-    pthread_mutex_destroy(&m_outputQueueMutex);
 }
 
 bool VaapiEncoderH264::ensureCodedBufferSize()
@@ -695,6 +806,7 @@ Encode_Status VaapiEncoderH264::getMaxOutSize(uint32_t *maxSize)
 
 Encode_Status VaapiEncoderH264::start()
 {
+    printf("start");
     FUNC_ENTER();
     resetParams();
     return VaapiEncoderBase::start();
@@ -707,11 +819,7 @@ void VaapiEncoderH264::flush()
     m_reorderFrameList.clear();
     m_refList.clear();
 
-    INFO("output queue size: %ld", m_outputQueue.size());
-    pthread_mutex_lock(&m_outputQueueMutex);
-    while (!m_outputQueue.empty())
-        m_outputQueue.pop();
-    pthread_mutex_unlock(&m_outputQueueMutex);
+    VaapiEncoderBase::flush();
 }
 
 Encode_Status VaapiEncoderH264::stop()
@@ -722,7 +830,7 @@ Encode_Status VaapiEncoderH264::stop()
 
 Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
-    Encode_Status status = ENCODE_SUCCESS;
+    Encode_Status status = ENCODE_INVALID_PARAMS;
     AutoLock locker(m_paramLock);
 
     FUNC_ENTER();
@@ -733,8 +841,8 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PT
             VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
             if (avc->size == sizeof(VideoParamsAVC)) {
                 PARAMETER_ASSIGN(*avc, m_videoParamAVC);
-            } else
-                status = ENCODE_INVALID_PARAMS;
+                status = ENCODE_SUCCESS;
+            }
         }
         break;
     case VideoConfigTypeAVCIntraPeriod: {
@@ -742,8 +850,16 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PT
             if (intraPeriod->size == sizeof(VideoConfigAVCIntraPeriod)) {
                 m_videoParamAVC.idrInterval = intraPeriod->idrInterval;
                 m_videoParamCommon.intraPeriod = intraPeriod->intraPeriod;
-            } else
-                status = ENCODE_INVALID_PARAMS;
+                status = ENCODE_SUCCESS;
+            }
+        }
+        break;
+    case VideoConfigTypeAVCStreamFormat: {
+            VideoConfigAVCStreamFormat* format = (VideoConfigAVCStreamFormat*)videoEncParams;
+            if (format->size == sizeof(VideoConfigAVCStreamFormat)) {
+                m_streamFormat = format->streamFormat;
+                status = ENCODE_SUCCESS;
+            }
         }
         break;
     default:
@@ -755,18 +871,32 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PT
 
 Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
+    Encode_Status status = ENCODE_INVALID_PARAMS;
     AutoLock locker(m_paramLock);
 
     FUNC_ENTER();
     if (!videoEncParams)
         return ENCODE_INVALID_PARAMS;
-    if (type == VideoParamsTypeAVC) {
-        VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
-        if (avc->size == sizeof(VideoParamsAVC)) {
-            PARAMETER_ASSIGN(*avc, m_videoParamAVC);
-        } else
-            return ENCODE_INVALID_PARAMS;
-        return ENCODE_SUCCESS;
+    switch (type) {
+    case VideoParamsTypeAVC: {
+            VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
+            if (avc->size == sizeof(VideoParamsAVC)) {
+                PARAMETER_ASSIGN(*avc, m_videoParamAVC);
+                status = ENCODE_SUCCESS;
+            }
+        }
+        break;
+    case VideoConfigTypeAVCStreamFormat: {
+            VideoConfigAVCStreamFormat* format = (VideoConfigAVCStreamFormat*)videoEncParams;
+            if (format->size == sizeof(VideoConfigAVCStreamFormat)) {
+                format->streamFormat = m_streamFormat;
+                status = ENCODE_SUCCESS;
+            }
+        }
+        break;
+    default:
+        status = VaapiEncoderBase::getParameters(type, videoEncParams);
+        break;
     }
 
     // TODO, update video resolution basing on hw requirement
@@ -813,111 +943,6 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
     return ENCODE_SUCCESS;
 }
 
-Encode_Status VaapiEncoderH264::getStreamHeader(VideoEncOutputBuffer *outBuffer, PicturePtr picture)
-{
-    uint8_t *data = outBuffer->data;
-    uint32_t dataSize = 0;
-    AutoLock locker(m_paramLock);
-    StreamHeaderPtr header[2]; // sps/pps
-    int i;
-
-    if (picture) {
-        if (picture->m_type == VAAPI_PICTURE_TYPE_I) {
-            // XXX, when we distinguish IDR from I frame, update here
-            header[0] = picture->m_sps;
-            header[1] = picture->m_pps;
-            ASSERT(header[0]);
-            ASSERT(header[1]);
-        }
-    } else {
-        // when picture is not valid (no output frame available), use sps/pps from decoder
-        header[0] = m_sps;
-        header[1] = m_pps;
-
-        if (!header[0] || ! header[1])
-            return ENCODE_NO_REQUEST_DATA;
-    }
-
-    for (i=0; i<2; i++) {
-        if (!header[i] || !header[i]->m_raw.size()) // it is P or B frame
-            continue;
-        if (!header[i]->m_emulation.size())
-            header[i]->generateByteStreamWithEmulation();
-
-        dataSize += header[i]->m_emulation.size();
-        if (outBuffer->bufferSize < dataSize)
-            return ENCODE_BUFFER_TOO_SMALL;
-        memcpy(data, &header[i]->m_emulation[0], header[i]->m_emulation.size());
-        data += header[i]->m_emulation.size();
-    }
-
-    outBuffer->dataSize = dataSize;
-    return ENCODE_SUCCESS;
-}
-Encode_Status VaapiEncoderH264::getCodecCofnig(VideoEncOutputBuffer *outBuffer, PicturePtr picture)
-{
-    const uint32_t configurationVersion = 0x01;
-    const uint32_t nalLengthSize = 4;
-    uint8_t profileIdc, profileComp, levelIdc;
-    BitWriter bs;
-    AutoLock locker(m_paramLock);
-    StreamHeaderPtr sps, pps;
-
-    if (picture) {
-        sps = picture->m_sps;
-        pps = picture->m_pps;
-    } else {
-        // when picture is not valid (no output frame available), use sps/pps from decoder
-        sps = m_sps;
-        pps = m_pps;
-
-        if (!sps || ! pps || sps->m_raw.size() < 4)
-            return ENCODE_NO_REQUEST_DATA;
-    }
-
-    ASSERT(sps);
-    ASSERT(pps);
-    if (outBuffer->bufferSize < sps->m_raw.size() + pps->m_raw.size() + 64)
-        return ENCODE_BUFFER_TOO_SMALL;
-
-    /* skip sps->m_raw[0], which is the nal_unit_type */
-    profileIdc = sps->m_raw[1];
-    profileComp = sps->m_raw[2];
-    levelIdc = sps->m_raw[3];
-    /* Header */
-    bit_writer_init (&bs, (sps->m_raw.size() + pps->m_raw.size() + 64) * 8);
-    bit_writer_put_bits_uint32 (&bs, configurationVersion, 8);
-    bit_writer_put_bits_uint32 (&bs, profileIdc, 8);
-    bit_writer_put_bits_uint32 (&bs, profileComp, 8);
-    bit_writer_put_bits_uint32 (&bs, levelIdc, 8);
-    bit_writer_put_bits_uint32 (&bs, 0x3f, 6);  /* 111111 */
-    bit_writer_put_bits_uint32 (&bs, nalLengthSize - 1, 2);
-    bit_writer_put_bits_uint32 (&bs, 0x07, 3);  /* 111 */
-
-    /* Write SPS */
-    bit_writer_put_bits_uint32 (&bs, 1, 5);     /* SPS count = 1 */
-    assert (BIT_WRITER_BIT_SIZE (&bs) % 8 == 0);
-    bit_writer_put_bits_uint32 (&bs, sps->m_raw.size(), 16);
-    bit_writer_put_bytes (&bs, &sps->m_raw[0], sps->m_raw.size());
-    /* Write PPS */
-    bit_writer_put_bits_uint32 (&bs, 1, 8);     /* PPS count = 1 */
-    bit_writer_put_bits_uint32 (&bs, pps->m_raw.size(), 16);
-    bit_writer_put_bytes (&bs, &pps->m_raw[0], pps->m_raw.size());
-
-    outBuffer->dataSize = BIT_WRITER_BIT_SIZE (&bs) / 8;
-    memcpy(outBuffer->data, BIT_WRITER_DATA (&bs),outBuffer->dataSize);
-
-    bit_writer_clear (&bs, FALSE);
-    return ENCODE_SUCCESS;
-    /* ERRORS */
-bs_error:
-    {
-        ERROR ("failed to write codec-data");
-        bit_writer_clear (&bs, TRUE);
-        return ENCODE_FAIL;
-    }
-}
-
 // calls immediately after reorder,
 // it makes sure I frame are encoded immediately, so P frames can be pushed to the front of the m_reorderFrameList.
 // it also makes sure input thread and output thread runs in parallel
@@ -931,10 +956,12 @@ Encode_Status VaapiEncoderH264::submitEncode()
         CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
+        picture->m_codedBuffer = codedBuffer;
+
         if (m_reorderFrameList.empty())
             m_reorderState = VAAPI_ENC_REORD_WAIT_FRAMES;
 
-        ret =  encodePicture(picture, codedBuffer);
+        ret =  encodePicture(picture);
         if (ret != ENCODE_SUCCESS) {
             return ret;
         }
@@ -944,80 +971,21 @@ Encode_Status VaapiEncoderH264::submitEncode()
             codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
         }
 
-        pthread_mutex_lock(&m_outputQueueMutex);
-        m_outputQueue.push(std::make_pair(picture, codedBuffer));
-        pthread_mutex_unlock(&m_outputQueueMutex);
+        if (!output(picture))
+            return ENCODE_INVALID_PARAMS;
     }
 
     INFO();
     return ENCODE_SUCCESS;
 }
-/** getOutput suppose to run in a separated thread with other functions, be carefull
- * 1) it update m_outputQueue only for now, we use m_outputQueueMutex for it
- * 2) the rest which are not protected by mutex is generally fine
- *   a). getCodecCofnig() read some sps/pps parameter only, we suppose client doesn't change sps/pps at the same time.
- *   b). read/peek of the m_outputQueue is fine since getOutput is the only place to erase element
- *   c). picture->sync and copyCodecBuffer are fine as well
-*/
-Encode_Status VaapiEncoderH264::getOutput(VideoEncOutputBuffer * outBuffer, bool withWait) const
+
+Encode_Status VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer * outBuffer)
 {
-    PicturePtr picture;
-    CodedBufferPtr codedBuffer;
-    Encode_Status ret;
-    bool isEmpty;
-    uint32_t headerSize = 0;
-
-    FUNC_ENTER();
-    if (!outBuffer)
-        return ENCODE_INVALID_PARAMS;
-
-    ASSERT(outBuffer->format == OUTPUT_CODEC_DATA || outBuffer->format == OUTPUT_STREAM_HEADER
-        || outBuffer->format == OUTPUT_EVERYTHING || outBuffer->format == OUTPUT_FRAME_DATA);
-
-    pthread_mutex_lock(&m_outputQueueMutex);
-    isEmpty = m_outputQueue.empty();
-    pthread_mutex_unlock(&m_outputQueueMutex);
-
-    if (!isEmpty) {
-        picture = m_outputQueue.front().first;
-        codedBuffer = m_outputQueue.front().second;
-    }
-
-    if (outBuffer->format & OUTPUT_CODEC_DATA)
-        return getCodecCofnig(outBuffer, picture);
-    if (outBuffer->format & OUTPUT_STREAM_HEADER)
-        return getStreamHeader(outBuffer, picture);
-
-    if (isEmpty) {
-        return ENCODE_BUFFER_NO_MORE;
-    }
-
-    if (outBuffer->format == OUTPUT_EVERYTHING) {
-        // fill stream header first
-        ret = getStreamHeader(outBuffer, picture);
-        if (ret != ENCODE_SUCCESS)
-            return ret;
-
-        headerSize = outBuffer->dataSize;
-        outBuffer->data += headerSize;
-        outBuffer->bufferSize -= headerSize;
-    }
-
-    picture->sync();
-    ret = copyCodedBuffer(outBuffer, codedBuffer);
-    if (outBuffer->format == OUTPUT_EVERYTHING) {
-        outBuffer->data -= headerSize;
-        outBuffer->dataSize += headerSize;
-    }
-
-    if (ret != ENCODE_SUCCESS)
-        return ret;
-
-    pthread_mutex_lock(&m_outputQueueMutex);
-    m_outputQueue.pop();
-    pthread_mutex_unlock(&m_outputQueueMutex);
-
-    return ENCODE_SUCCESS;
+    ASSERT(outBuffer && outBuffer->flag == OUTPUT_CODEC_DATA || outBuffer->flag == OUTPUT_EVERYTHING);
+    AutoLock locker(m_paramLock);
+    if (!m_headers)
+        return ENCODE_NO_REQUEST_DATA;
+    return m_headers->getCodecConfig(outBuffer);
 }
 
 /* Handle new GOP starts */
@@ -1175,7 +1143,7 @@ bool VaapiEncoderH264::fill(VAEncSequenceParameterBufferH264* seqParam) const
 
 /* Fills in VA picture parameter buffer */
 bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const PicturePtr& picture,
-                            const CodedBufferPtr& codedbuf  , const SurfacePtr& surface) const
+                            const SurfacePtr& surface) const
 {
     VaapiEncoderH264Ref *ref_pic;
     uint32_t i = 0;
@@ -1195,7 +1163,7 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
     for (; i < 16; ++i) {
         picParam->ReferenceFrames[i].picture_id = VA_INVALID_ID;
     }
-    picParam->coded_buf = codedbuf->getID();
+    picParam->coded_buf = picture->m_codedBuffer->getID();
 
     picParam->pic_parameter_set_id = 0;
     picParam->seq_parameter_set_id = 0;
@@ -1222,79 +1190,17 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
 
 bool VaapiEncoderH264::ensureSequenceHeader(const PicturePtr& picture,const VAEncSequenceParameterBufferH264* const sequence)
 {
-    BitWriter bs;
-    uint32_t dataBitSize;
-    uint8_t *data;
-    StreamHeaderPtr sps(new VaapiEncStreamHeaderH264);
-    AutoLock locker(m_paramLock);
-
-    bit_writer_init (&bs, 128 * 8);
-    bit_writer_write_sps (&bs, sequence, profile());
-    assert (BIT_WRITER_BIT_SIZE (&bs) % 8 == 0);
-    dataBitSize = BIT_WRITER_BIT_SIZE (&bs);
-    data = BIT_WRITER_DATA (&bs);
-
-    /* store sps data */
-    sps->setParamSet(data, dataBitSize/8);
-    // we don't depend on driver to insert sps/pps in coded buffer now
-    // if (!picture->addPackedHeader(VAEncPackedHeaderSequence, data, dataBitSize)) goto add_error;
-
-    bit_writer_clear (&bs, TRUE);
-
-    m_sps = sps;
-
+    m_headers.reset(new VaapiEncStreamHeaderH264());
+    m_headers->setSPS(sequence, profile());
     return true;
-    /* ERRORS */
-bs_error:
-    {
-        WARNING ("failed to write SPS NAL unit");
-        bit_writer_clear (&bs, TRUE);
-        return false;
-    }
-add_error:
-    {
-        WARNING ("failed to add sequence header");
-        bit_writer_clear (&bs, TRUE);
-        return false;
-    }
 }
 
 bool VaapiEncoderH264::ensurePictureHeader(const PicturePtr& picture, const VAEncPictureParameterBufferH264* const picParam)
 {
-    BitWriter bs;
-    uint32_t dataBitSize;
-    uint8_t *data;
-    AutoLock locker(m_paramLock);
-    StreamHeaderPtr pps(new VaapiEncStreamHeaderH264);
-
-    bit_writer_init (&bs, 128 * 8);
-    bit_writer_write_pps (&bs, picParam);
-    assert (BIT_WRITER_BIT_SIZE (&bs) % 8 == 0);
-    dataBitSize = BIT_WRITER_BIT_SIZE (&bs);
-    data = BIT_WRITER_DATA (&bs);
-
-    pps->setParamSet(data, dataBitSize/8);
-    // we don't depend on driver to insert sps/pps in coded buffer now
-    // if (!picture->addPackedHeader(VAEncPackedHeaderPicture,data, dataBitSize)) goto add_error;
-    bit_writer_clear (&bs, TRUE);
-
-    m_pps = pps;
+    m_headers->addPPS(picParam);
+    m_headers->generateCodecConfig(m_streamFormat == AVC_STREAM_FORMAT_AVCC);
+    picture->m_headers = m_headers;
     return true;
-
-    /* ERRORS */
-bs_error:
-    {
-        WARNING ("failed to write PPS NAL unit");
-        bit_writer_clear (&bs, TRUE);
-        return false;
-    }
-
-add_error:
-    {
-        WARNING ("failed to add picture param");
-        bit_writer_clear (&bs, TRUE);
-        return false;
-    }
 }
 
 static void fillReferenceList(VAEncSliceParameterBufferH264* slice, const vector<ReferencePtr>& refList, uint32_t index)
@@ -1386,7 +1292,6 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture,
 bool VaapiEncoderH264::ensureSequence(const PicturePtr& picture)
 {
     if (picture->m_type != VAAPI_PICTURE_TYPE_I) {
-        picture->m_sps = m_sps;
         return true;
     }
 
@@ -1401,27 +1306,22 @@ bool VaapiEncoderH264::ensureSequence(const PicturePtr& picture)
         ERROR ("failed to create packed sequence header buffer");
         return false;
     }
-
-    picture->m_sps = m_sps;
     return true;
 }
 
-bool VaapiEncoderH264::ensurePicture (const PicturePtr& picture,
-                                      const CodedBufferPtr& codedBuf, const SurfacePtr& surface)
+bool VaapiEncoderH264::ensurePicture (const PicturePtr& picture, const SurfacePtr& surface)
 {
     VAEncPictureParameterBufferH264 *picParam;
 
-    if (!picture->editPicture(picParam) || !fill(picParam, picture, codedBuf, surface)) {
+    if (!picture->editPicture(picParam) || !fill(picParam, picture, surface)) {
         ERROR("failed to create picture parameter buffer (PPS)");
         return false;
     }
 
-    if (picture->m_type == VAAPI_PICTURE_TYPE_I && !ensurePictureHeader (picture, picParam)) {
+    if (picture->isIdr() && !ensurePictureHeader (picture, picParam)) {
             ERROR ("set picture packed header failed");
             return false;
     }
-
-    picture->m_pps = m_pps;
     return true;
 }
 
@@ -1442,21 +1342,23 @@ bool VaapiEncoderH264::ensureSlices(const PicturePtr& picture)
     return true;
 }
 
-Encode_Status VaapiEncoderH264::encodePicture(const PicturePtr& picture,const CodedBufferPtr& codedBuf)
+Encode_Status VaapiEncoderH264::encodePicture(const PicturePtr& picture)
 {
     Encode_Status ret = ENCODE_FAIL;
     SurfacePtr reconstruct = createSurface();
     if (!reconstruct)
         return ret;
-
-    if (!ensureSequence (picture))
-        return ret;
-    if (!ensureMiscParams (picture.get()))
-        return ret;
-    if (!ensurePicture(picture, codedBuf, reconstruct))
-        return ret;
-    if (!ensureSlices (picture))
-        return ret;
+    {
+        AutoLock locker(m_paramLock);
+        if (!ensureSequence (picture))
+            return ret;
+        if (!ensureMiscParams (picture.get()))
+            return ret;
+        if (!ensurePicture(picture, reconstruct))
+            return ret;
+        if (!ensureSlices (picture))
+            return ret;
+    }
     if (!picture->encode())
         return ret;
 

@@ -128,7 +128,7 @@ bool V4l2Encoder::outputPulse(int32_t index)
     if (m_separatedStreamHeader) {
         outputBuffer->format = OUTPUT_FRAME_DATA;
         if (m_requestStreamHeader) {
-            outputBuffer->format = OUTPUT_STREAM_HEADER;
+            outputBuffer->format = OUTPUT_CODEC_DATA;
         }
     } else
         outputBuffer->format = OUTPUT_EVERYTHING;

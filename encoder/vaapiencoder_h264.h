@@ -51,7 +51,6 @@ public:
     virtual Encode_Status start();
     virtual void flush();
     virtual Encode_Status stop();
-    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) const;
 
     virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR);
     virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR);
@@ -59,25 +58,23 @@ public:
 
 protected:
     virtual Encode_Status reorder(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
-    virtual bool isBusy() { return m_outputQueue.size() >= m_maxOutputBuffer; } ;
 
 private:
     //following code is a template for other encoder implementation
     Encode_Status submitEncode();
-    Encode_Status encodePicture(const PicturePtr&,const CodedBufferPtr&);
+    Encode_Status encodePicture(const PicturePtr&);
     bool fill(VAEncSequenceParameterBufferH264*) const;
-    bool fill(VAEncPictureParameterBufferH264*, const PicturePtr&, const CodedBufferPtr&, const SurfacePtr&) const ;
+    bool fill(VAEncPictureParameterBufferH264*, const PicturePtr&, const SurfacePtr&) const ;
     bool ensureSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferH264* const);
     bool ensurePictureHeader(const PicturePtr&, const VAEncPictureParameterBufferH264* const );
     bool addSliceHeaders (const PicturePtr&,
                           const std::vector<ReferencePtr>& refList0,
                           const std::vector<ReferencePtr>& refList1) const;
     bool ensureSequence(const PicturePtr&);
-    bool ensurePicture (const PicturePtr&,const CodedBufferPtr&, const SurfacePtr&);
+    bool ensurePicture (const PicturePtr&, const SurfacePtr&);
     bool ensureSlices(const PicturePtr&);
     bool ensureCodedBufferSize();
-    Encode_Status getCodecCofnig(VideoEncOutputBuffer *outBuffer, PicturePtr picture);
-    Encode_Status getStreamHeader(VideoEncOutputBuffer *outBuffer, PicturePtr picture);
+    Encode_Status getCodecConfig(VideoEncOutputBuffer *outBuffer);
 
     //reference list related
     bool referenceListUpdate (const PicturePtr&, const SurfacePtr&);
@@ -110,6 +107,7 @@ private:
     uint32_t m_mbHeight;
     bool  m_useCabac;
     bool  m_useDct8x8;
+    AVCStreamFormat m_streamFormat;
 
     /* re-ordering */
     std::list<PicturePtr> m_reorderFrameList;
@@ -124,10 +122,6 @@ private:
     uint32_t m_maxRefList0Count;
     uint32_t m_maxRefList1Count;
 
-    /* output queue */
-    mutable std::queue<std::pair<PicturePtr, CodedBufferPtr> >  m_outputQueue;
-    mutable pthread_mutex_t m_outputQueueMutex;
-
     /* frame, poc */
     uint32_t m_maxFrameNum;
     uint32_t m_log2MaxFrameNum;
@@ -135,8 +129,7 @@ private:
     uint32_t m_log2MaxPicOrderCnt;
     uint32_t m_idrNum;
 
-    StreamHeaderPtr m_sps;
-    StreamHeaderPtr m_pps;
+    StreamHeaderPtr m_headers;
     Lock m_paramLock; // locker for parameters update, for example: m_sps/m_pps/m_maxCodedbufSize (width/height etc)
 };
 }
