@@ -30,9 +30,9 @@
 
 using namespace YamiMediaCodec;
 
-EncodeInputHandler createEncodeInput()
+EncodeInputHandler createEncodeInput(const char * inputFileName, uint32_t fourcc, int width, int height)
 {
-    return new EncodeStreamInput();
+    return EncodeStreamInput::create(inputFileName, fourcc, width, height);
 }
 
 EncodeOutputHandler createEncodeOutput(const char * outputFileName, int width, int height)
@@ -54,9 +54,9 @@ const char * getOutputMimeType(EncodeOutputHandler output)
         return NULL;
 }
 
-bool initInput(EncodeInputHandler input, const char* inputFileName, const int width, const int height)
+bool initInput(EncodeInputHandler input, const char* inputFileName, uint32_t fourcc, const int width, const int height)
 {
-    return ((EncodeStreamInput*)input)->init(inputFileName, width, height);
+    return ((EncodeStreamInput*)input)->init(inputFileName, fourcc, width, height);
 }
 
 int getInputWidth(EncodeInputHandler input)

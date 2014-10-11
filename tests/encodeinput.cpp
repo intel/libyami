@@ -35,11 +35,11 @@
 
 using namespace YamiMediaCodec;
 
-EncodeStreamInputPtr EncodeStreamInput::create(const char* inputFileName, uint32_t fourcc, int width, int height) {
-    EncodeStreamInputPtr inputPtr;
+EncodeStreamInput * EncodeStreamInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
+{
     EncodeStreamInput *input = NULL;
     if (!inputFileName)
-        return inputPtr;
+        return NULL;
 
     if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video"))) {
         input = new EncodeStreamInputCamera;
@@ -48,13 +48,12 @@ EncodeStreamInputPtr EncodeStreamInput::create(const char* inputFileName, uint32
     }
 
     if (!input)
-        return inputPtr;
+        return NULL;
 
     if (!(input->init(inputFileName, fourcc, width, height)))
-        return inputPtr;
+        return NULL;
 
-    inputPtr.reset(input);
-    return inputPtr;
+    return input;
 }
 
 EncodeStreamInputFile::EncodeStreamInputFile()

@@ -21,10 +21,12 @@
 
 #ifndef __VIDEO_ENCODER_CAPI_H__
 #define __VIDEO_ENCODER_CAPI_H__
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "VideoEncoderDefs.h"
 #include "common/common_def.h"
-#include <X11/Xlib.h>
 
 #ifdef __cplusplus
 extern "C" {
