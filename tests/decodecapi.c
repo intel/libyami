@@ -27,48 +27,44 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#ifdef __ENABLE_X11__
 #include <X11/Xlib.h>
-
+#endif
 #include "capi/VideoDecoderCapi.h"
 #include "decodeInputCapi.h"
+#include "decodehelp.h"
 
 int main(int argc, char** argv)
 {
-    char *fileName = NULL;
     DecodeHandler decoder = NULL;
     DecodeInputHandler input = NULL;
     VideoDecodeBuffer inputBuffer;
-    Display *x11Display = NULL;
     VideoConfigBuffer configBuffer;
     const VideoFormatInfo *formatInfo = NULL;
     Decode_Status status;
-    Window window = 0;
-    int64_t timeStamp = 0;
-    int32_t videoWidth = 0, videoHeight = 0;
     NativeDisplay nativeDisplay;
 
-    if (argc <2) {
-        fprintf(stderr, "no input file to decode\n");
+    if (!process_cmdline(argc, argv))
         return -1;
-    }
-    fileName = argv[1];
-    fprintf(stderr, "FileName: %s\n", fileName);
 
-    input = createDecodeInput(fileName);
+    input = createDecodeInput(inputFileName);
 
     if (input == NULL) {
         fprintf(stderr, "fail to init input stream\n");
         return -1;
     }
 
-    x11Display = XOpenDisplay(NULL);
-
     decoder = createDecoder(getMimeType(input));
     assert(decoder != NULL);
 
-    nativeDisplay.type = NATIVE_DISPLAY_X11;
-    nativeDisplay.handle = (intptr_t)x11Display;
-    decodeSetNativeDisplay(decoder, &nativeDisplay);
+#ifdef __ENABLE_X11__
+    if (renderMode > 0) {
+        x11Display = XOpenDisplay(NULL);
+        nativeDisplay.type = NATIVE_DISPLAY_X11;
+        nativeDisplay.handle = (intptr_t)x11Display;
+        decodeSetNativeDisplay(decoder, &nativeDisplay);
+    }
+#endif
 
     memset(&configBuffer,0,sizeof(VideoConfigBuffer));
     configBuffer.profile = VAProfileNone;
@@ -83,38 +79,78 @@ int main(int argc, char** argv)
         else
           break;
 
+
         if (DECODE_FORMAT_CHANGE == status) {
             formatInfo = getFormatInfo(decoder);
             assert(formatInfo != NULL);
             videoWidth = formatInfo->width;
             videoHeight = formatInfo->height;
 
-            if (!window) {
-                window = XCreateSimpleWindow(x11Display, RootWindow(x11Display, DefaultScreen(x11Display))
-                    , 0, 0, videoWidth, videoHeight, 0, 0
-                    , WhitePixel(x11Display, 0));
-                XMapWindow(x11Display, window);
-            }
+#ifdef __ENABLE_X11__
+            if (renderMode > 0) {
+                if (window) {
+                  //todo, resize window;
+                } else {
+                    int screen = DefaultScreen(x11Display);
 
-            // resend the buffer
-            status = decode(decoder, &inputBuffer);
-            assert(status == DECODE_SUCCESS);
-            XSync(x11Display, FALSE);
+                    XSetWindowAttributes x11WindowAttrib;
+                    x11WindowAttrib.event_mask = KeyPressMask;
+                    window = XCreateWindow(x11Display, DefaultRootWindow(x11Display),
+                        0, 0, videoWidth, videoHeight, 0, CopyFromParent, InputOutput,
+                        CopyFromParent, CWEventMask, &x11WindowAttrib);
+                    XMapWindow(x11Display, window);
+                }
+                XSync(x11Display, FALSE);
+             }
+#endif
+             status = decode(decoder, &inputBuffer);
         }
 
-        // render the frame if available
-        do {
-            status = decodeGetOutput_x11(decoder, window, &timeStamp, 0, 0, videoWidth, videoHeight, false, -1, -1, -1, -1);
-        } while (status != RENDER_NO_AVAILABLE_FRAME);
+        renderOutputFrames(decoder, false);
     }
 
-    // drain the output buffer
-    do {
-        status = decodeGetOutput_x11(decoder, window, &timeStamp, 0, 0, videoWidth, videoHeight, TRUE, -1, -1, -1, -1);
-    } while (status != RENDER_NO_AVAILABLE_FRAME);
+    renderOutputFrames(decoder, true);
+
+#ifdef __ENABLE_X11__
+    while (waitBeforeQuit) {
+        XEvent x_event;
+        XNextEvent(x11Display, &x_event);
+        switch (x_event.type) {
+        case KeyPress:
+            waitBeforeQuit = false;
+            break;
+        default:
+            break;
+        }
+    }
+#endif
 
     decodeStop(decoder);
     releaseDecoder(decoder);
-    XDestroyWindow(x11Display, window);
-    releaseDecodeInput(input);
+
+    if(input)
+        releaseDecodeInput(input);
+    if(outFile)
+        fclose(outFile);
+    if (dumpOutputDir)
+        free(dumpOutputDir);
+
+#if __ENABLE_TESTS_GLES__
+    if(textureId)
+        glDeleteTextures(1, &textureId);
+    if(eglContext)
+        eglRelease(eglContext);
+    if(pixmap)
+        XFreePixmap(x11Display, pixmap);
+#endif
+
+#ifdef __ENABLE_X11__
+    if (x11Display && window)
+        XDestroyWindow(x11Display, window);
+    if (x11Display)
+        XCloseDisplay(x11Display);
+#endif
+
+    fprintf(stderr, "decode done\n");
+    return 0;
 }

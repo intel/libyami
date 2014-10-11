@@ -28,8 +28,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <X11/Xlib.h>
 
+#include "common/log.h"
 #include "capi/VideoEncoderCapi.h"
 #include "encodeInputCapi.h"
 #include "VideoEncoderDefs.h"
@@ -39,7 +39,7 @@ int main(int argc, char** argv)
 {
     EncodeHandler encoder = NULL;
     uint32_t maxOutSize = 0;
-    EncodeInputHandler input = createEncodeInput();
+    EncodeInputHandler input;
     EncodeOutputHandler output;
     Encode_Status status;
     VideoEncRawBuffer inputBuffer;
@@ -48,7 +48,10 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
-    if (!initInput(input, inputFileName, videoWidth, videoHeight)) {
+    DEBUG("inputFourcc: %.4s", &(inputFourcc));
+    input = createEncodeInput(inputFileName, inputFourcc, videoWidth, videoHeight);
+
+    if (!input) {
         fprintf (stderr, "fail to init input stream\n");
         return -1;
     }
