@@ -34,10 +34,9 @@ using namespace YamiMediaCodec;
 class EncodeStreamInput;
 class EncodeStreamInputFile;
 class EncodeStreamInputCamera;
-typedef std::tr1::shared_ptr<EncodeStreamInput> EncodeStreamInputPtr;
 class EncodeStreamInput {
-public:
-    static EncodeStreamInputPtr create(const char* inputFileName, uint32_t fourcc, int width, int height);
+public:    
+    static EncodeStreamInput* create(const char* inputFileName, uint32_t fourcc, int width, int height);
     EncodeStreamInput() : m_width(0), m_height(0), m_frameSize(0) {};
     ~EncodeStreamInput() {};
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height) = 0;

@@ -21,9 +21,11 @@
 
 #ifndef VIDEO_ENCODER_INTERFACE_H_
 #define VIDEO_ENCODER_INTERFACE_H_
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "VideoEncoderDefs.h"
-#include <X11/Xlib.h>
 #undef None // work around for compile in chromeos
 
 namespace YamiMediaCodec{

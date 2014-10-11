@@ -22,9 +22,14 @@
 
 #ifndef VIDEO_DECODER_INTERFACE_H_
 #define VIDEO_DECODER_INTERFACE_H_
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "VideoDecoderDefs.h"
+#ifdef __ENABLE_X11__
 #include <X11/Xlib.h>
+#endif
 
 namespace YamiMediaCodec {
 /**
@@ -81,10 +86,11 @@ public:
      * @return RENDER_FAIL when driver fail to do vaPutSurface
      * @return RENDER_INVALID_PARAMETER
      */
+#if __ENABLE_X11__
     virtual Decode_Status getOutput(Drawable draw, int64_t *timeStamp
         , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
         , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1) = 0;
-
+#endif
     /**
      * \brief export one frame to client buffer;
      * there are four type to export one frame (VideoDataMemoryType); after rendering, client return the buffer back by renderDone(VideoFrameRawData*);

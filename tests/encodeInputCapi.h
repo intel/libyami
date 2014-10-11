@@ -32,7 +32,7 @@ extern "C" {
 typedef void* EncodeInputHandler;
 typedef void* EncodeOutputHandler;
 
-EncodeInputHandler createEncodeInput();
+EncodeInputHandler createEncodeInput(const char * inputFileName, uint32_t fourcc, int width, int height);
 
 EncodeOutputHandler createEncodeOutput(const char * outputFileName, int width, int height);
 
@@ -40,7 +40,7 @@ bool encodeInputIsEOS(EncodeInputHandler input);
 
 const char * getOutputMimeType(EncodeOutputHandler output);
 
-bool initInput(EncodeInputHandler input, const char* inputFileName, const int width, const int height);
+bool initInput(EncodeInputHandler input, const char* inputFileName, uint32_t fourcc, const int width, const int height);
 
 int getInputWidth(EncodeInputHandler input);
 
