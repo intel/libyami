@@ -152,6 +152,8 @@ int main(int argc, char** argv)
         fclose(outFile);
     if (dumpOutputDir)
         free(dumpOutputDir);
+    if(I420buf)
+        free(I420buf);
 
 #if __ENABLE_TESTS_GLES__
     if(textureId)

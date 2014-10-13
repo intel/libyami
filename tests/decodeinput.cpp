@@ -135,6 +135,7 @@ bool DecodeStreamInputVP8::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     }
     else {
         m_parseToEOS = true;
+        return false;
     }
     return true;
 }

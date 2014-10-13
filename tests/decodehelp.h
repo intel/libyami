@@ -55,6 +55,10 @@ static Window window = 0;
 #endif
 static int64_t timeStamp = 0;
 static int32_t videoWidth = 0, videoHeight = 0;
+static bool useSoftNV12toI420 = 1;
+static char *I420buf = NULL;
+static int curWidth = 0;
+static int curHeight = 0;
 #if __ENABLE_TESTS_GLES__
 static EGLContextType *eglContext = NULL;
 XID pixmap = 0;
@@ -137,6 +141,51 @@ static bool process_cmdline(int argc, char *argv[])
     return true;
 }
 
+void  NV12toI420(VideoFrameRawData frame, int width, int height)
+{
+    int32_t uvWidth = (width+1)/2;
+    int32_t uvHeight = (height+1)/2;
+    int size = uvWidth * uvHeight * 2;
+    if(curWidth!=width || curHeight!=height) {
+        curWidth = width;
+        curHeight = height;
+        if(I420buf)
+            free(I420buf);
+        I420buf = (char*)malloc(size);
+    }
+
+    int row = 0, plane = 0, planeCount = 2;
+    const char *data = NULL;
+    int ret;
+    int widths[2], heights[2];
+    widths[0] = width;
+    heights[0] = height;
+    widths[1] = widths[0] % 2 ? widths[0]+1 : widths[0];
+    heights[1] = (heights[0] +1 )/2;
+
+    data = (char*) frame.handle + frame.offset[0];
+    for (row = 0; row < heights[0]; row++) {
+        ret = fwrite(data, widths[0], 1, outFile);
+        ASSERT(ret == 1);
+        data += frame.pitch[0];
+    }
+    int i=0,j=0,k=0;
+    int usize = uvHeight*uvWidth;
+    data = (char*) frame.handle + frame.offset[1];
+    for (row = 0; row < heights[1]; row++) {
+        for( i=0;i<widths[1];i++) {
+            if(i%2) {// v data
+                I420buf[usize + k++] = data[i];
+            }
+            else {// u data
+                I420buf[j++] = data[i];
+            }
+        }
+        data += frame.pitch[1];
+    }
+    fwrite(I420buf, size, 1, outFile);
+}
+
 #ifndef __ENABLE_CAPI__
 bool renderOutputFrames(YamiMediaCodec::IVideoDecoder* decoder, bool drain = false)
 #else
@@ -158,17 +207,25 @@ bool renderOutputFrames(DecodeHandler decoder, bool drain)
     if (renderMode > 1 && !eglContext)
         eglContext = eglInit(x11Display, window, VA_FOURCC_RGBA);
 #endif
+
     do {
         switch (renderMode) {
         case 0:
             frame.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
-            frame.fourcc = dumpFourcc;
+            if(useSoftNV12toI420)
+                frame.fourcc = VA_FOURCC_NV12;
+            else
+                frame.fourcc = dumpFourcc;
             frame.width = 0;
             frame.height = 0;
             status = DECODE_GetOutput(decoder, frame, drain);
             if (status == RENDER_SUCCESS) {
                 if (!outFile) {
-                    uint32_t fourcc = frame.fourcc;
+                    uint32_t fourcc = 0;
+                    if(useSoftNV12toI420)
+                        fourcc = dumpFourcc;
+                    else
+                        fourcc = frame.fourcc;
                     char *ch = (char*)&fourcc;
                     char outFileName[256];
                     char* baseFileName = inputFileName;
@@ -191,19 +248,23 @@ bool renderOutputFrames(DecodeHandler decoder, bool drain)
                 widths[0] = videoWidth; //frame.width;
                 heights[0] = videoHeight; // frame.height;
                 DEBUG("current frame: %dx%d", videoWidth, videoHeight);
-                switch (frame.fourcc) {
+                switch (dumpFourcc) {
                 case VA_FOURCC_NV12: {
                     planeCount = 2;
-                    widths[1] = frame.width % 2 ? frame.width+1 : frame.width;
-                    heights[1] = (frame.height +1 )/2;
+                    widths[1] = widths[0] % 2 ? widths[0]+1 : widths[0];
+                    heights[1] = (heights[0] +1 )/2;
                 }
                 break;
                 case VA_FOURCC_I420: {
-                    planeCount = 3;
-                    widths[1] = (frame.width+1) / 2;
-                    heights[1] = (frame.height +1)/2;
-                    widths[2] = (frame.width+1) / 2;
-                    heights[2] = (frame.height +1)/2;
+                    if(useSoftNV12toI420) {
+                        NV12toI420(frame ,widths[0], heights[0]);
+                    }else {
+                        planeCount = 3;
+                        widths[1] = (widths[0]+1) / 2;
+                        heights[1] = (heights[0] +1)/2;
+                        widths[2] = (widths[0]+1) / 2;
+                        heights[2] = (heights[0] +1)/2;
+                    }
                 }
                 break;
                 default:
@@ -211,17 +272,20 @@ bool renderOutputFrames(DecodeHandler decoder, bool drain)
                     break;
                 }
 
-                int plane, row, ret;
-                const char *data = NULL;
+                if(!useSoftNV12toI420) {
+                  int plane, row, ret;
+                  const char *data = NULL;
 
-                for (plane = 0; plane<planeCount; plane++){
-                    data = (char*) frame.handle + frame.offset[plane];
-                    for (row = 0; row < heights[plane]; row++) {
-                        ret = fwrite(data, widths[plane], 1, outFile);
-                        ASSERT(ret == 1);
-                        data += frame.pitch[plane];
-                    }
+                  for (plane = 0; plane<planeCount; plane++){
+                      data = (char*) frame.handle + frame.offset[plane];
+                      for (row = 0; row < heights[plane]; row++) {
+                          ret = fwrite(data, widths[plane], 1, outFile);
+                          ASSERT(ret == 1);
+                          data += frame.pitch[plane];
+                      }
+                  }
                 }
+
 #if __ENABLE_CAPI__
                 renderDoneRawData(decoder, &frame);
 #else
