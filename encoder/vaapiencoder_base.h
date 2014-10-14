@@ -85,8 +85,7 @@ protected:
     virtual Encode_Status getCodecConfig(VideoEncOutputBuffer * outBuffer);
 
     //virtual functions
-    virtual Encode_Status reorder(const SurfacePtr& , uint64_t timeStamp, bool forceKeyFrame = false) = 0;
-    virtual Encode_Status submitEncode() = 0;
+    virtual Encode_Status doEncode(const SurfacePtr& , uint64_t timeStamp, bool forceKeyFrame = false) = 0;
 
     //rate control related things
     void fill(VAEncMiscParameterHRD*) const ;

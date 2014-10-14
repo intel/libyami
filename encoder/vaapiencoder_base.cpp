@@ -121,13 +121,7 @@ Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
     SurfacePtr surface = createSurface(inBuffer);
     if (!surface)
         ret = ENCODE_NO_MEMORY;
-    else
-        ret = reorder(surface, inBuffer->timeStamp, inBuffer->forceKeyFrame);
-
-    if (ret != ENCODE_SUCCESS)
-        return ret;
-    ret = submitEncode();
-    return ret;
+    return doEncode(surface, inBuffer->timeStamp, inBuffer->forceKeyFrame);
 }
 
 Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)

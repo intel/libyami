@@ -946,10 +946,13 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
 // calls immediately after reorder,
 // it makes sure I frame are encoded immediately, so P frames can be pushed to the front of the m_reorderFrameList.
 // it also makes sure input thread and output thread runs in parallel
-Encode_Status VaapiEncoderH264::submitEncode()
+Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
 {
     FUNC_ENTER();
     Encode_Status ret;
+    ret = reorder(surface, timeStamp, forceKeyFrame);
+    if (ret != ENCODE_SUCCESS)
+        return ret;
     if (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
         if (!m_maxCodedbufSize)
             ensureCodedBufferSize();
@@ -966,8 +969,8 @@ Encode_Status VaapiEncoderH264::submitEncode()
             return ret;
         }
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_ENDOFFRAME);
-        INFO("picture->m_type: 0x%x", picture->m_type);
-        if (picture->m_type == VAAPI_PICTURE_TYPE_I) {
+        INFO("picture->m_type: 0x%x\n", picture->m_type);
+        if (picture->isIdr()) {
             codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
         }
 
