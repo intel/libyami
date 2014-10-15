@@ -48,7 +48,7 @@ bool isReadEOS = false;
 bool isEncodeEOS = false;
 bool isOutputEOS = false;
 
-static EncodeStreamInputPtr streamInput;
+static EncodeStreamInput* streamInput;
 
 bool readOneFrameData(int index)
 {
