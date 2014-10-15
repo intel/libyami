@@ -1007,7 +1007,7 @@ Encode_Status VaapiEncoderH264::getOutput(VideoEncOutputBuffer * outBuffer, bool
     ret = copyCodedBuffer(outBuffer, codedBuffer);
     if (outBuffer->format == OUTPUT_EVERYTHING) {
         outBuffer->data -= headerSize;
-        outBuffer->bufferSize += headerSize;
+        outBuffer->dataSize += headerSize;
     }
 
     if (ret != ENCODE_SUCCESS)
