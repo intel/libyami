@@ -146,7 +146,6 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
 
     //picture type and bitrate
     encVideoParams->intraPeriod = kIPeriod;
-    encVideoParams->rcMode = RATE_CONTROL_CBR;
     encVideoParams->rcParams.bitRate = bitRate;
     //encVideoParams->rcParams.initQP = 26;
     //encVideoParams->rcParams.minQP = 1;
@@ -155,6 +154,5 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
  //   encVideoParams->profile = VAProfileVP8Version0_3;
     encVideoParams->rawFormat = RAW_FORMAT_YUV420;
 
-    encVideoParams->level = 31;
 }
 #endif
