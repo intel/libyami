@@ -21,6 +21,8 @@
 
 #ifndef VIDEO_COMMON_DEFS_H_
 #define VIDEO_COMMON_DEFS_H_
+// config.h should NOT be included in header file, especially for the header file used by external
+
 #include <stdint.h>
 
 #ifdef __cplusplus

@@ -22,9 +22,8 @@
 #ifndef __VIDEO_ENCODER_DEF_H__
 #define __VIDEO_ENCODER_DEF_H__
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+// config.h should NOT be included in header file, especially for the header file used by external
+// XXX __ENABLE_CAPI__ still seems ok in this file
 
 #include <va/va.h>
 #include <stdint.h>

@@ -60,7 +60,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     virtual void flush(void);
     virtual void flushOutport(void);
     virtual const VideoRenderBuffer *getOutput(bool draining = false);
-    virtual Decode_Status getOutput(Drawable draw, int64_t *timeStamp
+    virtual Decode_Status getOutput(unsigned long draw, int64_t *timeStamp
         , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
         , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1);
     virtual Decode_Status getOutput(VideoFrameRawData* frame, bool draining = false);

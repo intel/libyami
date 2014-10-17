@@ -21,6 +21,7 @@
 
 #ifndef VIDEO_DECODER_DEFS_H_
 #define VIDEO_DECODER_DEFS_H_
+// config.h should NOT be included in header file, especially for the header file used by external
 
 #include <va/va.h>
 #include <stdint.h>

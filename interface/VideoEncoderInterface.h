@@ -21,9 +21,7 @@
 
 #ifndef VIDEO_ENCODER_INTERFACE_H_
 #define VIDEO_ENCODER_INTERFACE_H_
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+// config.h should NOT be included in header file, especially for the header file used by external
 
 #include "VideoEncoderDefs.h"
 #undef None // work around for compile in chromeos

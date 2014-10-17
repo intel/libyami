@@ -23,6 +23,9 @@
 #include "config.h"
 #endif
 
+#ifdef __ENABLE_X11__
+#include <X11/Xlib.h>
+#endif
 #include "vaapidecoder_base.h"
 #include "common/log.h"
 #include "vaapi/vaapicontext.h"
