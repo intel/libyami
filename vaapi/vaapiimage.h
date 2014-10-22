@@ -85,7 +85,7 @@ public:
 private:
     VaapiImageRaw(const DisplayPtr&, const ImagePtr&, VideoDataMemoryType,
                 uintptr_t handle, RealeaseCallback);
-    void getPlaneResolution(uint32_t width[3], uint32_t height[3]);
+    void getPlaneResolution(uint32_t width[3], uint32_t height[3], uint32_t& planes);
     bool copy(uint8_t* destBase,
               const uint32_t destOffsets[3], const uint32_t destPitches[3],
               const uint8_t* srcBase,
@@ -94,7 +94,7 @@ private:
               const uint32_t destOffsets[3], const uint32_t destPitches[3],
               const uint8_t* srcBase,
               const uint32_t srcOffsets[3], const uint32_t srcPitches[3],
-              const uint32_t width[3], const uint32_t height[3]);
+              const uint32_t width[3], const uint32_t height[3], uint32_t planes);
 
     VideoDataMemoryType m_memoryType;
     ImagePtr m_image;

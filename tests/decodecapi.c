@@ -32,12 +32,14 @@
 #endif
 #include "capi/VideoDecoderCapi.h"
 #include "decodeInputCapi.h"
+#include "decodeOutputCapi.h"
 #include "decodehelp.h"
 
 int main(int argc, char** argv)
 {
     DecodeHandler decoder = NULL;
     DecodeInputHandler input = NULL;
+    DecodeOutputHandler output = NULL;
     VideoDecodeBuffer inputBuffer;
     VideoConfigBuffer configBuffer;
     const VideoFormatInfo *formatInfo = NULL;
@@ -57,14 +59,12 @@ int main(int argc, char** argv)
     decoder = createDecoder(getMimeType(input));
     assert(decoder != NULL);
 
-#ifdef __ENABLE_X11__
-    if (renderMode > 0) {
-        x11Display = XOpenDisplay(NULL);
-        nativeDisplay.type = NATIVE_DISPLAY_X11;
-        nativeDisplay.handle = (intptr_t)x11Display;
-        decodeSetNativeDisplay(decoder, &nativeDisplay);
+    output = createDecodeOutput(decoder, renderMode);
+    assert(output != NULL);
+    if (!configDecodeOutput(output)) {
+        fprintf(stderr, "fail to config decoder output");
+        return -1;
     }
-#endif
 
     memset(&configBuffer,0,sizeof(VideoConfigBuffer));
     configBuffer.profile = VAProfileNone;
@@ -82,36 +82,18 @@ int main(int argc, char** argv)
 
         if (DECODE_FORMAT_CHANGE == status) {
             formatInfo = getFormatInfo(decoder);
-            assert(formatInfo != NULL);
-            videoWidth = formatInfo->width;
-            videoHeight = formatInfo->height;
-
-#ifdef __ENABLE_X11__
-            if (renderMode > 0) {
-                if (window) {
-                  //todo, resize window;
-                } else {
-                    int screen = DefaultScreen(x11Display);
-
-                    XSetWindowAttributes x11WindowAttrib;
-                    x11WindowAttrib.event_mask = KeyPressMask;
-                    window = XCreateWindow(x11Display, DefaultRootWindow(x11Display),
-                        0, 0, videoWidth, videoHeight, 0, CopyFromParent, InputOutput,
-                        CopyFromParent, CWEventMask, &x11WindowAttrib);
-                    XMapWindow(x11Display, window);
-                }
-                XSync(x11Display, FALSE);
-             }
-#endif
-             status = decode(decoder, &inputBuffer);
+            if (!decodeOutputSetVideoSize(output, formatInfo->width, formatInfo->height)) {
+                assert(0 && "set video size failed");
+            }
+            status = decode(decoder, &inputBuffer);
         }
 
-        renderOutputFrames(decoder, false);
+        renderOutputFrames(output, false);
     }
 
-    renderOutputFrames(decoder, true);
+    renderOutputFrames(output, true);
 
-#ifdef __ENABLE_X11__
+#if 0
     while (waitBeforeQuit) {
         XEvent x_event;
         XNextEvent(x11Display, &x_event);
@@ -130,26 +112,11 @@ int main(int argc, char** argv)
 
     if(input)
         releaseDecodeInput(input);
-    if(outFile)
-        fclose(outFile);
+    if (output)
+        releaseDecodeOutput(output);
     if (dumpOutputDir)
         free(dumpOutputDir);
 
-#if __ENABLE_TESTS_GLES__
-    if(textureId)
-        glDeleteTextures(1, &textureId);
-    if(eglContext)
-        eglRelease(eglContext);
-    if(pixmap)
-        XFreePixmap(x11Display, pixmap);
-#endif
-
-#ifdef __ENABLE_X11__
-    if (x11Display && window)
-        XDestroyWindow(x11Display, window);
-    if (x11Display)
-        XCloseDisplay(x11Display);
-#endif
 
     fprintf(stderr, "decode done\n");
     return 0;

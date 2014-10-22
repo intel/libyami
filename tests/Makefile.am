@@ -60,13 +60,16 @@ CAPI_ENCODE_LIBS = \
 
 if ENABLE_CAPI
 decodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
-decodecapi_SOURCES	= decodecapi.c decodehelp.h decodeinput.cpp decodeInputCapi.cpp
+decodecapi_SOURCES	= decodecapi.c decodehelp.h decodeinput.cpp  decodeoutput.cpp decodeInputCapi.cpp decodeOutputCapi.cpp
+if ENABLE_TESTS_GLES
+decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
+endif
 
 encodecapi_LDADD	= $(CAPI_ENCODE_LIBS) -lX11
 encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputCapi.cpp
 else
 yamidecode_LDADD	= $(YAMI_DECODE_LIBS) -lX11
-yamidecode_SOURCES	= decode.cpp decodehelp.h decodeinput.cpp
+yamidecode_SOURCES	= decode.cpp decodehelp.h decodeinput.cpp decodeoutput.cpp
 if ENABLE_TESTS_GLES
 yamidecode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif

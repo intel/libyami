@@ -29,6 +29,7 @@
 
 #include "vaapiimage.h"
 #include "common/log.h"
+#include "common/utils.h"
 #include "vaapiutils.h"
 #include "vaapisurface.h"
 #include <stdlib.h>
@@ -118,8 +119,9 @@ bool VaapiImageRaw::copyFrom(const void* src, uint32_t size)
     uint32_t height[3];
     uint32_t offset[3];
     uint32_t off = 0;
-    getPlaneResolution(width, height);
-    for (int i = 0; i < N_ELEMENTS(offset); i++) {
+    uint32_t planes;
+    getPlaneResolution(width, height, planes);
+    for (int i = 0; i < planes; i++) {
         offset[i] = off;
         off += width[i] * height[i];
     }
@@ -128,76 +130,38 @@ bool VaapiImageRaw::copyFrom(const void* src, uint32_t size)
     VAImagePtr& image =  m_image->m_image;
     uint8_t* dest = reinterpret_cast<uint8_t*>(m_handle);
     return copy(dest, image->offsets, image->pitches,
-        (uint8_t*)src, offset, width, width, height);
+        (uint8_t*)src, offset, width, width, height, planes);
 }
 
-void VaapiImageRaw::getPlaneResolution(uint32_t width[3], uint32_t height[3])
+void VaapiImageRaw::getPlaneResolution(uint32_t width[3], uint32_t height[3], uint32_t& planes)
 {
     VAImagePtr& image = m_image->m_image;
     uint32_t fourcc = image->format.fourcc;
-    switch (fourcc) {
-        case VA_FOURCC_NV12:
-        case VA_FOURCC_I420:
-        case VA_FOURCC_YV12:{
-            int w = image->width;
-            int h = image->height;
-            width[0] = w;
-            height[0] = h;
-            if (fourcc == VA_FOURCC_NV12) {
-                width[1]  = w + (w & 1);
-                height[1] = (h + 1) >> 1;
-                width[2] = height[2] = 0;
-            } else {
-                width[1] = width[2] = (w + 1) >> 1;
-                height[1] = height[2] = (h + 1) >> 1;
-            }
-        }
-        break;
-        case VA_FOURCC_YUY2:
-        case VA_FOURCC_UYVY:{
-            width[0] = image->width * 2;
-            height[0] = image->height;
-            width[1] = width[2] = height[1] = height[2] = 0;
-        }
-        break;
-        case VA_FOURCC_RGBX:
-        case VA_FOURCC_RGBA:
-        case VA_FOURCC_BGRX:
-        case VA_FOURCC_BGRA: {
-            width[0] = image->width * 4;
-            height[0] = image->height;
-            width[1] = width[2] = height[1] = height[2] = 0;
-        }
-        break;
-        default:
-            ASSERT(0 && "do not support this format");
-    }
+    YamiMediaCodec::getPlaneResolution(fourcc, image->width, image->height, width, height, planes);
 }
 
 bool VaapiImageRaw::copy(uint8_t* destBase,
               const uint32_t destOffsets[3], const uint32_t destPitches[3],
               const uint8_t* srcBase,
               const uint32_t srcOffsets[3], const uint32_t srcPitches[3],
-              const uint32_t width[3], const uint32_t height[3])
+              const uint32_t width[3], const uint32_t height[3], uint32_t planes)
 {
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < planes; i++) {
         uint32_t w = width[i];
         uint32_t h = height[i];
-        if (w) {
-            if (w > destPitches[i] || w > srcPitches[i]) {
-                ERROR("can't copy, plane = %d,  width = %d, srcPitch = %d, destPitch = %d",
-                    i, w, srcPitches[i], destPitches[i]);
-                return false;
-            }
-            const uint8_t* src = srcBase + srcOffsets[i];
-            uint8_t* dest = destBase + destOffsets[i];
+        if (w > destPitches[i] || w > srcPitches[i]) {
+            ERROR("can't copy, plane = %d,  width = %d, srcPitch = %d, destPitch = %d",
+                i, w, srcPitches[i], destPitches[i]);
+            return false;
+        }
+        const uint8_t* src = srcBase + srcOffsets[i];
+        uint8_t* dest = destBase + destOffsets[i];
 
 
-            for (int j = 0; j < h; j++) {
-                memcpy(dest, src, w);
-                src += srcPitches[i];
-                dest += destPitches[i];
-            }
+        for (int j = 0; j < h; j++) {
+            memcpy(dest, src, w);
+            src += srcPitches[i];
+            dest += destPitches[i];
         }
     }
     return true;
@@ -213,8 +177,9 @@ bool VaapiImageRaw::copy(uint8_t* destBase, const uint32_t destOffsets[3], const
 
     uint32_t width[3];
     uint32_t height[3];
-    getPlaneResolution(width,height);
-    return copy(destBase, destOffsets, destPitches, srcBase, srcOffsets, srcPitches, width, height);
+    uint32_t planes;
+    getPlaneResolution(width,height, planes);
+    return copy(destBase, destOffsets, destPitches, srcBase, srcOffsets, srcPitches, width, height, planes);
 }
 
 VaapiImageRaw::~VaapiImageRaw()

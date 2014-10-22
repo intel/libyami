@@ -1,11 +1,13 @@
 INCLUDES = -I$(top_srcdir)
 
 libyami_common_source_c = \
-	log.cpp \
-	$(NULL)
+        log.cpp \
+        utils.cpp \
+        $(NULL)
 
 libyami_common_source_h_priv = \
         log.h \
+        utils.h \
 		common_def.h \
 	$(NULL)
 

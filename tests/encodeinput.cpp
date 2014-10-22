@@ -30,6 +30,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include "common/log.h"
+#include "common/utils.h"
 
 #include "encodeinput.h"
 
@@ -126,31 +127,6 @@ bool guessResolution(const char* inputFileName, int& w, int& h)
         }
     }
     return w && h;
-}
-
-uint32_t guessFourcc(const char* fileName)
-{
-    static const char *possibleFourcc[] = {
-            "I420", "NV12", "YV12",
-            "YUY2", "UYVY",
-            "RGBX", "BGRX", "XRGB", "XBGR",
-            "", // end of possible fourcc str
-        };
-    const char** iterFourcc = possibleFourcc;
-
-    if (strlen(fileName)<4)
-        return 0;
-
-    while (strlen(*iterFourcc)) {
-        if (!strcasecmp(*iterFourcc, fileName+(strlen(fileName)-4))) {
-            uint32_t fourcc = VA_FOURCC((*iterFourcc)[0], (*iterFourcc)[1], (*iterFourcc)[2], (*iterFourcc)[3]);
-            DEBUG_FOURCC("guessed input fourcc:", fourcc);
-            return fourcc;
-        }
-        iterFourcc++;
-    }
-
-    return 0;
 }
 
 bool EncodeStreamInputFile::init(const char* inputFileName, uint32_t fourcc, int width, int height)
