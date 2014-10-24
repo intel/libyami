@@ -60,6 +60,8 @@ static char *I420buf = NULL;
 static int curWidth = 0;
 static int curHeight = 0;
 #if __ENABLE_TESTS_GLES__
+#include "egl/gles2_help.h"
+#include "egl/egl_util.h"
 static EGLContextType *eglContext = NULL;
 XID pixmap = 0;
 static GLuint textureId = 0;

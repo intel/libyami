@@ -42,7 +42,7 @@ class VaapiImage : public std::tr1::enable_shared_from_this<VaapiImage>
   private:
     typedef std::tr1::shared_ptr<VAImage> VAImagePtr;
     typedef std::tr1::weak_ptr<VaapiImageRaw> ImageRawWeakPtr;
-    friend VaapiImageRaw;
+    friend class VaapiImageRaw;
   public:
     static ImagePtr create(const DisplayPtr&,
                uint32_t format, uint32_t width, uint32_t height);
