@@ -1,3 +1,5 @@
+INCLUDES = -I$(top_srcdir)
+
 libcodecparser_source_c = \
         bitreader.c \
         bytereader.c \

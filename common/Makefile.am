@@ -1,3 +1,5 @@
+INCLUDES = -I$(top_srcdir)
+
 libyami_common_source_c = \
 	log.cpp \
 	$(NULL)

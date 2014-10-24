@@ -1,3 +1,5 @@
+INCLUDES = -I$(top_srcdir)
+
 if ENABLE_CAPI
 bin_PROGRAMS = decodecapi encodecapi
 else

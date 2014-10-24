@@ -1,3 +1,5 @@
+INCLUDES = -I$(top_srcdir)
+
 libyami_vaapi_source_c = \
         vaapipicture.cpp \
         vaapibuffer.cpp \
