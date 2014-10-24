@@ -4,16 +4,16 @@ AC_PREREQ([2.68])
 
 ## it is interface version for libtool, only change it if you are sure to do so
 m4_define([libyami_lt_current], 0)
-m4_define([libyami_lt_revision], 2)
+m4_define([libyami_lt_revision], 3)
 m4_define([libyami_lt_age], 0)
 m4_define([libyami_lt_version], [libyami_lt_current.libyami_lt_revision.libyami_lt_age])
 
 # package version (lib name suffix), usually sync with git tag
 m4_define([libyami_major_version], 0)
-m4_define([libyami_minor_version], 0)
-m4_define([libyami_micro_version], 2)
+m4_define([libyami_minor_version], 1)
+m4_define([libyami_micro_version], 0)
 m4_define([libyami_version],
-                    [libva_major_version.libva_minor_version.libva_micro_version])
+                    [libyami_major_version.libyami_minor_version.libyami_micro_version])
 
 AC_INIT([libyami], [libyami_version], [halley.zhao@intel.com])
 AC_CONFIG_SRCDIR([vaapi/vaapitypes.h])

@@ -1,0 +1,41 @@
+libyami NEWS -- summary of changes.  2014-10-24
+Copyright (C) 2010-2011 Splitted-Desktop Systems
+Copyright (C) 2011 Collabora
+Copyright (C) 2011-2014 Intel Corporation
+
+
+Libyami 0.1 release note
+Libyami is core video library to accelerate decoding/encoding based on libva.
+Libyami can be treated as development kit for VAAPI. It is developed by C++ language, with simple/efficient APIs, without external dependencies.
+libyami targets two type of usage:
+    - Hardware accelerated codec is the major gap (there is existing media framework ), for example: Chromeos/Android, maybe ffmpeg.
+    - Usage is simple enough that codec is the major interest, for example: remote desktop client/server, video surveillance.
+So far H.264 decode/encode, VP8 and JPEG decode are supported. VP8/JPEG encode support is under development.
+
+There are rich tests/examples in yami for a try. The tests can run without Window system (X11/Wayland etc),
+some modes of video output are supported: including raw data dump and some modes of texture (TFP, drm flink name, dma_buf).
+
+More details see: https://github.com/01org/libyami/wiki
+
+Known issues:
+    some jpeg file similarity <0.99 (~0.98) after decoding
+        https://github.com/01org/libyami/issues/108
+    playback performance through gst-omx is not good:
+        https://github.com/01org/libyami/issues/34
+    Encodeing quality through gst-omx is not good:
+        https://github.com/01org/libyami/issues/36
+
+The future release plan are:
+    Nov: v0.11: V4L2 VDA/VEA
+    Dec: v0.2
+        Vp8 and jpeg encoder(depends on driver release)
+        unified input/output buffer of yami
+    Feb'15: v0.3
+        Vp9 decoder
+        transcoding support with unified input/output buffer
+        camera dma_buf support, camera with jpeg input
+        use yami in ffmpeg for hw codec
+
+    Future:
+        h265 decoder
+        legacy codec: mpeg2 decoder/encoder, vc1 decoder, mpeg4/h263 decoder/encoder
