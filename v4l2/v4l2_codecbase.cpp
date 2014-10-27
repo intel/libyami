@@ -36,6 +36,7 @@
 #include "v4l2_encode.h"
 #include "v4l2_decode.h"
 #include "common/log.h"
+#include <algorithm>
 
 typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
  V4l2CodecPtr V4l2CodecBase::createCodec(const char* name, int32_t flags)
@@ -134,29 +135,39 @@ void V4l2CodecBase::workerThread()
         {
             AutoLock locker(m_frameLock[thread]);
             if (m_framesTodo[thread].empty()) {
-                DEBUG("%s therad wait because m_framesTodo is empty", thread == INPUT ? "INPUT" : "OUTPUT");
+                DEBUG("%s thread wait because m_framesTodo is empty", thread == INPUT ? "INPUT" : "OUTPUT");
                 m_threadCond[thread]->wait(); // wait if no todo frame is available
                 continue;
             }
         }
 
         int index = m_framesTodo[thread].front();
+
+        // for decode, outputPulse may update index
         ret = thread == INPUT ? inputPulse(index) : outputPulse(index);
 
         {
             AutoLock locker(m_frameLock[thread]);
             if (ret) {
-                m_framesTodo[thread].pop_front();
+                if (thread == OUTPUT) {
+                    // decoder output is in random order
+                    // encoder output is FIFO for now since we does additional copy in v4l2_encode; it can be random order if we use a pool for coded buffer.
+                    std::list<int>::iterator itList = std::find(m_framesTodo[OUTPUT].begin(), m_framesTodo[OUTPUT].end(), index);
+                    ASSERT(itList != m_framesTodo[OUTPUT].end());
+                    m_framesTodo[OUTPUT].erase(itList);
+                } else
+                    m_framesTodo[thread].pop_front();
+
                 m_framesDone[thread].push_back(index);
                 setDeviceEvent(0);
                 #ifdef __ENABLE_DEBUG__
                 m_frameCount[thread]++;
                 DEBUG("m_frameCount[%s]: %d", thread == INPUT ? "input" : "output", m_frameCount[thread]);
                 #endif
-                DEBUG("%s therad wake up %s thread after process one frame", thread == INPUT ? "INPUT" : "OUTPUT", thread == INPUT ? "OUTPUT" : "INPUT");
+                DEBUG("%s thread wake up %s thread after process one frame", thread == INPUT ? "INPUT" : "OUTPUT", thread == INPUT ? "OUTPUT" : "INPUT");
                 m_threadCond[!thread]->signal(); // encode/getOutput one frame success, wakeup the other thread
             } else {
-                DEBUG("%s therad wait because operation on yami fails", thread == INPUT ? "INPUT" : "OUTPUT");
+                DEBUG("%s thread wait because operation on yami fails", thread == INPUT ? "INPUT" : "OUTPUT");
                 m_threadCond[thread]->wait(); // wait if encode/getOutput fail (encode hw is busy or no available output)
             }
         }

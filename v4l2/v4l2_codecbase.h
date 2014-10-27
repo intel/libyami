@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <deque>
+#include <list>
 #include <tr1/memory>
 #include "common/condition.h"
 #include <EGL/egl.h>
@@ -69,7 +70,7 @@ class V4l2CodecBase {
     virtual bool acceptInputBuffer(struct v4l2_buffer *qbuf) = 0;
     virtual bool giveOutputBuffer(struct v4l2_buffer *dqbuf) = 0;
     virtual bool inputPulse(int32_t index) = 0;
-    virtual bool outputPulse(int32_t index) = 0;
+    virtual bool outputPulse(int32_t &index) = 0; // index of decode output is decided by libyami, not FIFO of m_framesTodo[OUTPUT]
     virtual bool recycleOutputBuffer(int32_t index) {return true;};
     virtual bool sendEOS() = 0;
     virtual bool hasCodecEvent() {return m_hasEvent;}
@@ -90,12 +91,14 @@ class V4l2CodecBase {
 
     pthread_t m_worker[2];
     // to be processed by codec.
-    // (0:INPUT):filled with input frame data, input worker thread will send them to yami
-    // (1:OUTPUT): empty output buffer, output worker thread will fill it with coded data
-    std::deque<int> m_framesTodo[2];
+    // encoder: (0:INPUT):filled with input frame data, input worker thread will send them to yami
+    //          (1:OUTPUT): empty output buffer, output worker thread will fill it with coded data
+    // decoder: (0:INPUT):filled with compressed frame data, input worker thread will send them to yami
+    //          (1:OUTPUT): frames at codec side under processing; when output worker get one frame from yami, it should be in this set
+    std::list<int> m_framesTodo[2]; // INPUT port FIFO, OUTPUT port in random order
     // processed by codec already, ready for dque
     // (0,INPUT): ready to deque for input buffer.
-    // (1, OUTPUT): filled with coded data.
+    // (1, OUTPUT): filled with coded data (encoder) or decoded frame (decoder).
     std::deque<int> m_framesDone[2];  // ready for deque, processed by codec already for input buffer.
     YamiMediaCodec::Lock m_frameLock[2]; // lock for INPUT/OUTPUT frames respectively
 

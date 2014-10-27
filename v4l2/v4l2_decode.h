@@ -48,7 +48,7 @@ class V4l2Decoder : public V4l2CodecBase
     virtual bool acceptInputBuffer(struct v4l2_buffer *qbuf);
     virtual bool giveOutputBuffer(struct v4l2_buffer *dqbuf);
     virtual bool inputPulse(int32_t index);
-    virtual bool outputPulse(int32_t index);
+    virtual bool outputPulse(int32_t &index);
     virtual bool recycleOutputBuffer(int32_t index);
     virtual bool sendEOS();
 

@@ -118,27 +118,49 @@ bool V4l2Decoder::sendEOS()
     return status == DECODE_SUCCESS;
 }
 
-bool V4l2Decoder::outputPulse(int32_t index)
+bool V4l2Decoder::outputPulse(int32_t &index)
 {
     Decode_Status status = DECODE_SUCCESS;
+    VideoFrameRawData tempFrame, *frame=NULL;
 
     ASSERT(index >= 0 && index < m_maxBufferCount[OUTPUT]);
-
-    m_outputRawFrames[index].memoryType = m_memoryType;
     DEBUG("index: %d", index);
+
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
         if (!m_bufferSpace[OUTPUT])
             return false;
-        ASSERT(m_outputRawFrames[index].handle);
-        m_outputRawFrames[index].fourcc = 0;
+        frame = &m_outputRawFrames[index];
+        ASSERT(frame->handle);
+        frame->fourcc = 0;
     }
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
-        // XXX, assumed fourcc here
-        m_outputRawFrames[index].fourcc = VA_FOURCC_BGRX;
+        if (m_eglImages.empty())
+            return false;
+        frame = &tempFrame;
+        frame->fourcc = VA_FOURCC_BGRX; // XXX, assumed fourcc here
+    }
+    frame->memoryType = m_memoryType;
+
+    status = m_decoder->getOutput(frame);
+    if (status != RENDER_SUCCESS)
+        return false;
+
+    DEBUG("got output frame with timestamp: %ld", frame->timeStamp);
+    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
+        int i;
+        bool found = false;
+        for (i=0; i< m_actualOutBufferCount; i++) {
+            if (frame->internalID == m_outputRawFrames[i].internalID) {
+                index = i; // update deque index
+                m_outputRawFrames[i].timeStamp = frame->timeStamp;
+                found = true;
+            }
+        }
+        ASSERT(found);
     }
 
-    status = m_decoder->getOutput(&m_outputRawFrames[index]);
-    return status == RENDER_SUCCESS;
+    DEBUG("outputPulse: index=%d, timeStamp=%ld, %ld", index, m_outputRawFrames[index].timeStamp, frame->timeStamp);
+    return true;
 }
 
 bool V4l2Decoder::recycleOutputBuffer(int32_t index)
@@ -171,7 +193,7 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 {
     ASSERT(dqbuf);
     int index = dqbuf->index;
-    // ASSERT(dqbuf->index >= 0 && dqbuf->index < m_actualOutBufferCount);
+    ASSERT(dqbuf->index >= 0 && dqbuf->index < m_actualOutBufferCount);
 
     return true;
 }

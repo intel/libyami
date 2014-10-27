@@ -126,7 +126,7 @@ bool V4l2Encoder::sendEOS()
     return status == ENCODE_SUCCESS;
 }
 
-bool V4l2Encoder::outputPulse(int32_t index)
+bool V4l2Encoder::outputPulse(int32_t &index)
 {
     Encode_Status status = ENCODE_SUCCESS;
 
