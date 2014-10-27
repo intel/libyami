@@ -157,7 +157,7 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
     ASSERT(qbuf->length == 1);
     inputBuffer->data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*qbuf->index; // reinterpret_cast<uint8_t*>(qbuf->m.planes[0].m.userptr);
     inputBuffer->size = qbuf->m.planes[0].bytesused; // one plane only
-    inputBuffer->timeStamp = qbuf->timestamp.tv_sec * 1000000 + qbuf->timestamp.tv_usec;
+    inputBuffer->timeStamp = qbuf->timestamp.tv_sec;
     // set buffer unit-mode if possible, nal, frame?
     DEBUG("qbuf->index: %d, inputBuffer: %p, timestamp: %ld", qbuf->index, inputBuffer->data, inputBuffer->timeStamp);
 

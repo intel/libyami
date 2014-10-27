@@ -30,8 +30,6 @@
 #include "VideoCommonDefs.h"
 
 #define STRING_TO_FOURCC(format) ((uint32_t)(((format)[0])|((format)[1]<<8)|((format)[2]<<16)|((format)[3]<<24)))
-#define min(X,Y) (((X) < (Y)) ? (X) : (Y))
-#define max(X,Y) (((X) > (Y)) ? (X) : (Y))
 
 #ifdef __cplusplus
 extern "C" {

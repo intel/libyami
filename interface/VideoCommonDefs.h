@@ -50,7 +50,7 @@ typedef enum {
     NATIVE_DISPLAY_WAYLAND,
 } YamiNativeDisplayType;
 
-typedef struct {
+typedef struct NativeDisplay{
     intptr_t handle;
     YamiNativeDisplayType type;
 } NativeDisplay;
@@ -62,7 +62,7 @@ typedef enum {
     VIDEO_DATA_MEMORY_TYPE_DMA_BUF,
 } VideoDataMemoryType;
 
-typedef struct {
+typedef struct VideoFrameRawData{
     VideoDataMemoryType memoryType;
     uint32_t width;
     uint32_t height;
@@ -72,6 +72,7 @@ typedef struct {
     uint32_t size;
     intptr_t handle;        // planar data has one fd for now, raw data also uses one pointer (+ offset)
     uint32_t internalID; // internal identification for image/surface recycle
+    int64_t timeStamp;
 }VideoFrameRawData;
 
 #ifdef __cplusplus

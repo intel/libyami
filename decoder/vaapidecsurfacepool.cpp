@@ -129,7 +129,9 @@ bool VaapiDecSurfacePool::output(const SurfacePtr& surface, int64_t timeStamp)
         return false;
     assert(it->second == SURFACE_DECODING);
     it->second |= SURFACE_TO_RENDER;
-    VideoRenderBuffer* buffer = m_renderMap[id];;
+    VideoRenderBuffer* buffer = m_renderMap[id];
+    buffer->timeStamp = timeStamp;
+    DEBUG("surface=0x%x is output-able with timeStamp=%ld", surface->getID(), timeStamp);
     m_output.push_back(buffer);
     return true;
 }
@@ -207,6 +209,7 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
     frame->height = image->getHeight();
     frame->internalID = image->getID();
     frame->fourcc = image->getFormat();
+    frame->timeStamp = buffer->timeStamp;
     {
         AutoLock lock(m_exportFramesLock);
         m_exportFrames[image->getID()] = rawImage;

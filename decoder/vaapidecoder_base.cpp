@@ -249,7 +249,7 @@ Decode_Status VaapiDecoderBase::getOutput(VideoFrameRawData* frame, bool drainin
 
 #ifdef __ENABLE_DEBUG__
     renderPictureCount++;
-    DEBUG("getOutput renderPictureCount: %d", renderPictureCount);
+    DEBUG("getOutput renderPictureCount=%d, timeStamp=%ld", renderPictureCount, frame->timeStamp);
 #endif
 
     return RENDER_SUCCESS;
