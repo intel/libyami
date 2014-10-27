@@ -31,6 +31,7 @@
 #include <linux/videodev2.h>
 #include <errno.h>
 #include  <sys/mman.h>
+#include <vector>
 
 #include "common/log.h"
 #include "v4l2/v4l2_wrapper.h"
@@ -58,17 +59,18 @@ int outputPlaneCount = 2;
 int videoWidth = 0;
 int videoHeight = 0;
 
-const uint32_t kMaxFrameQueueLength = 24;
 uint32_t inputQueueCapacity = 0;
 uint32_t outputQueueCapacity = 0;
-uint8_t *inputFrames[kMaxFrameQueueLength];
-struct RawFrameData rawOutputFrames[kMaxFrameQueueLength];
+static std::vector<uint8_t*> inputFrames;
+static std::vector<struct RawFrameData> rawOutputFrames;
 VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 
 static FILE* outfp = NULL;
 static Display * x11Display = NULL;
 static Window window = 0;
 static EGLContextType *context = NULL;
+static std::vector<EGLImageKHR> eglImages;
+static std::vector<GLuint> textureIds;
 
 bool feedOneInputFrame(DecodeStreamInput * input, int fd, int index = -1 /* if index is not -1, simple enque it*/)
 {
@@ -148,28 +150,12 @@ EGLContextType *createEglContext()
 
 bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
 {
-    EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
-    GLuint textureId = 0;
-    int ret = 0;
+    ASSERT(context && textureIds.size());
+    ASSERT(index>=0 && index<textureIds.size());
+    DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
+    drawTextures(context, &textureIds[index], 1);
 
-    if (!context)
-        context = createEglContext();
-
-     ret = YamiV4L2_UseEglImage(fd, context->eglContext.display, context->eglContext.context, index, &eglImage);
-     ASSERT(ret == 0);
-     glGenTextures(1, &textureId );
-     glBindTexture(GL_TEXTURE_2D, textureId);
-     glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
-
-     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-     drawTextures( context, &textureId, 1);
-
-     glDeleteTextures(1, &textureId);
-     eglDestroyImageKHR(context->eglContext.display, eglImage);
-
-     return true;
+    return true;
 }
 
 bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enque it*/)
@@ -358,8 +344,9 @@ int main(int argc, char** argv)
     reqbufs.count = 2;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
-    ASSERT(reqbufs.count>0 && reqbufs.count <= kMaxFrameQueueLength);
+    ASSERT(reqbufs.count>0);
     inputQueueCapacity = reqbufs.count;
+    inputFrames.resize(inputQueueCapacity);
 
     for (i=0; i<inputQueueCapacity; i++) {
         struct v4l2_plane planes[k_inputPlaneCount];
@@ -384,8 +371,6 @@ int main(int argc, char** argv)
         inputFrames[i] = static_cast<uint8_t*>(address);
         DEBUG("inputFrames[%d] = %p", i, inputFrames[i]);
     }
-    for (i=inputQueueCapacity; i<kMaxFrameQueueLength; i++)
-        inputFrames[i] = NULL;
 
     // feed input frames first
     for (i=0; i<inputQueueCapacity; i++) {
@@ -421,10 +406,11 @@ int main(int argc, char** argv)
     reqbufs.count = outputPlaneCount;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
-    ASSERT(reqbufs.count>0 && reqbufs.count <= kMaxFrameQueueLength);
+    ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
 
     if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
+        rawOutputFrames.resize(outputQueueCapacity);
         for (i=0; i<outputQueueCapacity; i++) {
             struct v4l2_plane planes[k_maxOutputPlaneCount];
             struct v4l2_buffer buffer;
@@ -460,8 +446,24 @@ int main(int argc, char** argv)
                 rawOutputFrames[i].pitch[j] = format.fmt.pix_mp.plane_fmt[j].bytesperline;
             }
         }
-        for (i=outputQueueCapacity; i<kMaxFrameQueueLength; i++) {
-            memset(&rawOutputFrames[i], 0, sizeof(rawOutputFrames[i]));
+    } else if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF || memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME) {
+        // setup all textures and eglImages
+        eglImages.resize(outputQueueCapacity);
+        textureIds.resize(outputQueueCapacity);
+
+        if (!context)
+            context = createEglContext();
+        glGenTextures(outputQueueCapacity, &textureIds[0] );
+        for (i=0; i<outputQueueCapacity; i++) {
+             int ret = 0;
+             ret = YamiV4L2_UseEglImage(fd, context->eglContext.display, context->eglContext.context, i, &eglImages[i]);
+             ASSERT(ret == 0);
+             glBindTexture(GL_TEXTURE_2D, textureIds[i]);
+             glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImages[i]);
+
+             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+             DEBUG("textureIds[%d]: 0x%x, eglImages[%d]: 0x%x", i, textureIds[i], i, eglImages[i]);
         }
     }
 
@@ -528,6 +530,13 @@ int main(int argc, char** argv)
 
     if (outfp)
         fclose(outfp);
+
+    if(textureIds.size())
+        glDeleteTextures(textureIds.size(), &textureIds[0]);
+
+    for (i=0; i<eglImages.size(); i++) {
+        eglDestroyImageKHR(context->eglContext.display, eglImages[i]);
+    }
 
     if (context)
         eglRelease(context);
