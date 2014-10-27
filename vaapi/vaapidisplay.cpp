@@ -264,6 +264,8 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
             vaDisplay = vaGetDisplay((Display*)(nativeDisplayObj->nativeHandle()));
         if(vaDisplay || nativeDisplay.type == NATIVE_DISPLAY_X11)
             break;
+        if (vaDisplay)
+            INFO("use vaapi x11 backend");
         // NATIVE_DISPLAY_AUTO continue, no break
     case NATIVE_DISPLAY_DRM:
         nativeDisplayObj.reset (new NativeDisplayDrm());

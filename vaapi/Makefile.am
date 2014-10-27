@@ -28,6 +28,7 @@ libyami_vaapi_ldflags = \
         $(LIBVA_LIBS) \
         $(LIBVA_DRM_LIBS) \
         $(LIBVA_X11_LIBS) \
+		-lX11 \
 	$(NULL)
 
 libyami_vaapi_cppflags = \
