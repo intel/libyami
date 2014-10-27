@@ -24,4 +24,5 @@ endif
 
 if ENABLE_TESTS
 SUBDIRS += tests
+SUBDIRS += testscripts
 endif

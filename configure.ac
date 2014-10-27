@@ -220,6 +220,7 @@ AC_CONFIG_FILES([Makefile
                  v4l2/Makefile
                  capi/Makefile
                  tests/Makefile
+                 testscripts/Makefile
                  doc/Makefile
                  pkgconfig/Makefile])
 
