@@ -39,6 +39,23 @@
 #include <algorithm>
 
 typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
+#define THREAD_NAME(thread) (thread == INPUT ? "INPUT" : "OUTPUT")
+
+#define DEBUG_FRAME_LIST(list, listType, maxSize)  do {         \
+    std::listType<int>::iterator it = list.begin();             \
+    char buf[256];                                              \
+    int i=0;                                                    \
+                                                                \
+    buf[0] = '\0';                                              \
+    while (it != list.end()) {                                  \
+        sprintf(&buf[i], "<%02d>", *it++);                      \
+        i += 4;                                                 \
+    }                                                           \
+    DEBUG("%s size=%d, elements: %s",                           \
+        #list, static_cast<int>(list.size()), buf);             \
+    ASSERT(list.size() <= maxSize);                             \
+} while (0)
+
  V4l2CodecPtr V4l2CodecBase::createCodec(const char* name, int32_t flags)
 {
     V4l2CodecPtr codec;
@@ -57,6 +74,7 @@ V4l2CodecBase::V4l2CodecBase()
     , m_inputThreadCond(m_frameLock[INPUT])
     , m_outputThreadCond(m_frameLock[OUTPUT])
     , m_hasEvent(false)
+    , m_started(false)
 {
     m_streamOn[INPUT] = false;
     m_streamOn[OUTPUT] = false;
@@ -118,24 +136,25 @@ void V4l2CodecBase::workerThread()
     bool ret = true;
     int thread = -1;
 
-    m_codecLock.acquire();
-    if (m_streamOn[INPUT] && !m_threadOn[INPUT])
-        thread = INPUT;
-    else if (m_streamOn[OUTPUT] && !m_threadOn[OUTPUT])
-        thread = OUTPUT;
-    else {
-        ERROR("fail to create v4l2 work thread, unexpected status");
-        return;
+    {
+        AutoLock locker(m_codecLock);
+        if (m_streamOn[INPUT] && !m_threadOn[INPUT])
+            thread = INPUT;
+        else if (m_streamOn[OUTPUT] && !m_threadOn[OUTPUT])
+            thread = OUTPUT;
+        else {
+            ERROR("fail to create v4l2 work thread, unexpected status");
+            return;
+        }
+        INFO("create work thread for %s", THREAD_NAME(thread));
+        m_threadOn[thread] = true;
     }
-    INFO("create work thread for %s", thread == INPUT ? "input" : "output");
-    m_threadOn[thread] = true;
-    m_codecLock.release();
 
     while (m_streamOn[thread]) {
         {
             AutoLock locker(m_frameLock[thread]);
             if (m_framesTodo[thread].empty()) {
-                DEBUG("%s thread wait because m_framesTodo is empty", thread == INPUT ? "INPUT" : "OUTPUT");
+                DEBUG("%s thread wait because m_framesTodo is empty", THREAD_NAME(thread));
                 m_threadCond[thread]->wait(); // wait if no todo frame is available
                 continue;
             }
@@ -162,9 +181,9 @@ void V4l2CodecBase::workerThread()
                 setDeviceEvent(0);
                 #ifdef __ENABLE_DEBUG__
                 m_frameCount[thread]++;
-                DEBUG("m_frameCount[%s]: %d", thread == INPUT ? "input" : "output", m_frameCount[thread]);
+                DEBUG("m_frameCount[%s]: %d", THREAD_NAME(thread), m_frameCount[thread]);
                 #endif
-                DEBUG("%s thread wake up %s thread after process one frame", thread == INPUT ? "INPUT" : "OUTPUT", thread == INPUT ? "OUTPUT" : "INPUT");
+                DEBUG("%s thread wake up %s thread after process one frame", THREAD_NAME(thread), THREAD_NAME(!thread));
                 m_threadCond[!thread]->signal(); // encode/getOutput one frame success, wakeup the other thread
             } else {
                 DEBUG("%s thread wait because operation on yami fails", thread == INPUT ? "INPUT" : "OUTPUT");
@@ -227,6 +246,7 @@ const char* V4l2CodecBase::IoctlCommandString(int command)
 int32_t V4l2CodecBase::ioctl(int command, void* arg)
 {
     int32_t ret = 0;
+    bool boolRet = true;
     int port = -1;
 
     switch (command) {
@@ -241,7 +261,9 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             __u32 type = * ((__u32*)arg);
             if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
                 // XXX, setup X display
-                start();
+                DEBUG("start decoding");
+                boolRet = start();
+                ASSERT(boolRet);
                 port = INPUT;
             } else if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
                 port = OUTPUT;
@@ -274,6 +296,12 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
 
             m_streamOn[port] = false;
             m_threadCond[port]->broadcast();
+
+            // wait until the worker thread exit, some cleanup happend there
+            while (m_threadOn[port]) {
+                DEBUG("%s port got STREAMOFF, wait until the worker thread exit/cleanup", THREAD_NAME(port));
+                usleep(5000);
+            }
         }
         break;
         case VIDIOC_REQBUFS: {
@@ -325,9 +353,10 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 ASSERT(_ret);
             }
 
-            m_frameLock[port].acquire();
-            m_framesTodo[port].push_back(qbuf->index);
-            m_frameLock[port].release();
+            {
+                AutoLock locker(m_frameLock[port]);
+                m_framesTodo[port].push_back(qbuf->index);
+            }
             m_threadCond[port]->signal();
         }
         break;
@@ -363,7 +392,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             m_frameLock[port].acquire();
             m_framesDone[port].pop_front();
             m_frameLock[port].release();
-            DEBUG("%s port dqbuf->index: %d", port == INPUT ? "input" : "output", dqbuf->index);
+            DEBUG("%s port dqbuf->index: %d", THREAD_NAME(port), dqbuf->index);
         }
         break;
         default:
@@ -381,12 +410,16 @@ int32_t V4l2CodecBase::setDeviceEvent(int index)
     int32_t ret = -1;
 
     ASSERT(index == 0 || index == 1);
+    if (index == 1)
+        DEBUG("SetDevicePollInterrupt to unblock pool from client");
     ret = write(m_fd[index], &buf, sizeof(buf));
     if (ret != sizeof(uint64_t)) {
-      ERROR ("SetDevicePollInterrupt(): write() failed");
+      ERROR ("device %s setDeviceEvent(): write() failed", index ? "interrupt" : "event");
       return -1;
     }
 
+    if (index == 1)
+        DEBUG("SetDevicePollInterrupt OK to unblock pool from client");
     return 0;
 }
 
@@ -396,13 +429,15 @@ int32_t V4l2CodecBase::clearDeviceEvent(int index)
     int ret = -1;
 
     ASSERT(index == 0 || index == 1);
+    if (index == 1)
+        DEBUG("ClearDevicePollInterrupt to block pool from client except there is event");
     ret = read(m_fd[index], &buf, sizeof(buf));
     if (ret == -1) {
       if (errno == EAGAIN) {
         // No interrupt flag set, and we're reading nonblocking.  Not an error.
         return 0;
       } else {
-        ERROR("ClearDevicePollInterrupt(): read() failed");
+        ERROR("device %s clearDeviceEvent(): read() failed", index ? "interrupt" : "event");
         return -1;
       }
     }
@@ -436,7 +471,8 @@ int32_t V4l2CodecBase::poll(bool poll_device, bool* event_pending)
     *event_pending = m_hasEvent;
 
     // clear event
-    clearDeviceEvent(0);
+    if (pollfds[1].revents & POLLIN)
+        clearDeviceEvent(0);
 
     return 0;
 }

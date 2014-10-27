@@ -71,9 +71,14 @@ V4l2Decoder::V4l2Decoder()
 
 bool V4l2Decoder::start()
 {
+    Decode_Status status = DECODE_SUCCESS;
+    if (m_started)
+        return true;
     ASSERT(m_decoder);
     ASSERT(m_configBuffer.profile && m_configBuffer.surfaceNumber);
-    m_decoder->start(&m_configBuffer);
+    status = m_decoder->start(&m_configBuffer);
+    ASSERT(status == DECODE_SUCCESS);
+    m_started = true;
 
     return true;
 }
@@ -81,6 +86,8 @@ bool V4l2Decoder::start()
 bool V4l2Decoder::stop()
 {
     m_decoder->stop();
+
+    m_started = false;
     return true;
 }
 
@@ -194,6 +201,10 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     ASSERT(dqbuf);
     int index = dqbuf->index;
     ASSERT(dqbuf->index >= 0 && dqbuf->index < m_actualOutBufferCount);
+    // simple set size data to satify chrome even in texture mode
+    dqbuf->m.planes[0].bytesused = m_videoWidth * m_videoHeight;
+    dqbuf->m.planes[1].bytesused = m_videoWidth * m_videoHeight/2;
+    dqbuf->timestamp.tv_sec = m_outputRawFrames[dqbuf->index].timeStamp;
 
     return true;
 }
@@ -313,7 +324,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
 
         DEBUG();
         const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
-        if (format && outFormat->width && outFormat->height) {
+        if (format && outFormat && outFormat->width && outFormat->height) {
             format->fmt.pix_mp.num_planes = m_bufferPlaneCount[OUTPUT];
             format->fmt.pix_mp.width = outFormat->width;
             format->fmt.pix_mp.height = outFormat->height;
@@ -326,7 +337,8 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             m_maxBufferSize[OUTPUT] = m_videoWidth * m_videoHeight + ((m_videoWidth +1)/2*2) * ((m_videoHeight+1)/2);
         } else {
             ret = -1;
-            errno = EAGAIN;
+            // chromeos accepts EINVAL as not enough input data yet, will try it again.
+            errno = EINVAL;
         }
       }
     break;

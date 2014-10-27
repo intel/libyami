@@ -85,6 +85,7 @@ class V4l2CodecBase {
     bool m_streamOn[2];
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
+    bool m_started;
 
   private:
     bool m_hasEvent;

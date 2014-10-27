@@ -230,6 +230,10 @@ Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int64_t *timeStamp
 const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
 {
     INFO("base: getFormatInfo()");
+
+    if (!m_VAStarted)
+        return NULL;
+
     return &m_videoFormatInfo;
 }
 

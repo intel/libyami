@@ -73,6 +73,15 @@ int32_t YamiV4L2_Open(const char* name, int32_t flags)
         s_codecMap[v4l2Codec->fd()] = v4l2Codec;
     }
     INFO("add encoder(fd: %d) to list", v4l2Codec->fd());
+
+#if 0 // if necessary, some pre-sandbox operation goes here
+    // used for chrome sandbox
+    // preloadDriverHandle = dlopen( preloadDriverName, RTLD_NOW| RTLD_GLOBAL | RTLD_NODELETE); // RTLD_NODELETE??
+    // create VaapiDisplay to make sure vaapi driver are loaded before sandbox,  the display can be reused by future request
+    NativeDisplay nativeDisplay;
+    nativeDisplay.type = NATIVE_DISPLAY_DRM;
+    s_display = YamiMediaCodec::VaapiDisplay::create(nativeDisplay);
+#endif
     return v4l2Codec->fd();
 }
 
