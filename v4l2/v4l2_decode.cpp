@@ -47,8 +47,9 @@ V4l2Decoder::V4l2Decoder()
     m_pixelFormat[OUTPUT] = V4L2_PIX_FMT_NV12M;
     m_bufferPlaneCount[OUTPUT] = 2;
 
-    m_maxBufferCount[INPUT] = 5;
-    m_maxBufferCount[OUTPUT] = 5; // in our implementation, it has few to do with dpb size
+    m_maxBufferCount[INPUT] = 8;
+    m_maxBufferCount[OUTPUT] = 26; // use a bigger # to satify chrome, the effective count is m_actualOutBufferCount
+    m_actualOutBufferCount = m_maxBufferCount[OUTPUT];
 
     m_inputFrames.resize(m_maxBufferCount[INPUT]);
     m_outputRawFrames.resize(m_maxBufferCount[OUTPUT]);
@@ -64,6 +65,8 @@ V4l2Decoder::V4l2Decoder()
     m_bufferSpace[INPUT] = NULL;
     m_maxBufferSize[OUTPUT] = 0;
     m_bufferSpace[OUTPUT] = NULL;
+
+    m_memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 }
 
 bool V4l2Decoder::start()
@@ -100,7 +103,7 @@ bool V4l2Decoder::inputPulse(int32_t index)
         status = m_decoder->decode(inputBuffer);
     }
 
-    return status == DECODE_SUCCESS;
+    return true; // always return true for decode; simply ignored unsupported nal
 }
 
 bool V4l2Decoder::sendEOS()
@@ -168,7 +171,7 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 {
     ASSERT(dqbuf);
     int index = dqbuf->index;
-    ASSERT(dqbuf->index >= 0 && dqbuf->index < m_maxBufferCount[OUTPUT]);
+    // ASSERT(dqbuf->index >= 0 && dqbuf->index < m_actualOutBufferCount);
 
     return true;
 }
@@ -375,21 +378,61 @@ void* V4l2Decoder::mmap (void* addr, size_t length,
     }
 }
 
+bool V4l2Decoder::populateOutputFrames(EGLDisplay eglDisplay, EGLContext eglContext)
+{
+    int i;
+    VideoFrameRawData frame;
+    Decode_Status status = DECODE_SUCCESS;
+
+    DEBUG("m_videoWidth=%d, m_videoHeight=%d", m_videoWidth, m_videoHeight);
+    // negotiate the count of exported frame (image pool) size,
+    // for native target fourcc (NV12), it is decided by surface pool size
+    // for non-native target fourcc, it is decided (guessed) by the life time of texture/frame rendering
+    m_actualOutBufferCount = 0;
+    frame.memoryType = m_memoryType;
+    frame.fourcc = VA_FOURCC_BGRX;
+    status = m_decoder->populateOutputHandles(&frame, m_actualOutBufferCount);
+    ASSERT(status == RENDER_SUCCESS && m_actualOutBufferCount);
+    ASSERT(m_maxBufferCount[OUTPUT] >= m_actualOutBufferCount);
+    DEBUG("m_actualOutBufferCount: %d", m_actualOutBufferCount);
+
+    // populate all possible exported frames
+    for (i=0; i<m_maxBufferCount[OUTPUT] ; i++) {
+        m_outputRawFrames[i].memoryType = m_memoryType;
+        m_outputRawFrames[i].fourcc = VA_FOURCC_BGRX; // VAAPI BGRA match MESA ARGB
+        m_outputRawFrames[i].width = m_videoWidth;
+        m_outputRawFrames[i].height = m_videoHeight;
+        m_outputRawFrames[i].handle = -1;
+        m_outputRawFrames[i].internalID = 0;
+    }
+    status = m_decoder->populateOutputHandles(&m_outputRawFrames[0], m_actualOutBufferCount /* actual count only*/);
+    ASSERT(status == RENDER_SUCCESS);
+
+    // binding EGLimage for each frame
+    m_eglImages.resize(m_actualOutBufferCount);
+    for (i=0; i<m_eglImages.size(); i++) {
+        m_eglImages[i]  = createEglImageFromHandle(eglDisplay, eglContext, m_outputRawFrames[i].memoryType, m_outputRawFrames[i].handle,
+            m_outputRawFrames[i].width, m_outputRawFrames[i].height, m_outputRawFrames[i].pitch[0]);
+
+        m_decoder->renderDone(&m_outputRawFrames[i]);
+        ASSERT(m_eglImages[i]);
+    }
+
+    return true;
+}
+
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
 {
     EGLImageKHR image = EGL_NO_IMAGE_KHR;
 
+    // EGLImage is requested before the first frame (associated with it) is ready; we can't create EGLImage when it is requested for the first time.
+    if (m_eglImages.empty())
+        populateOutputFrames(eglDisplay, eglContext);
+
     ASSERT(m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
-    DEBUG("width: %d, height: %d, pitch: %d", m_outputRawFrames[bufferIndex].width, m_outputRawFrames[bufferIndex].height, m_outputRawFrames[bufferIndex].pitch[0]);
-    *(EGLImageKHR*)eglImage = EGL_NO_IMAGE_KHR;
-
-
-    image = createEglImageFromHandle(eglDisplay, eglContext, m_outputRawFrames[bufferIndex].memoryType, m_outputRawFrames[bufferIndex].handle,
-        m_outputRawFrames[bufferIndex].width, m_outputRawFrames[bufferIndex].height, m_outputRawFrames[bufferIndex].pitch[0]);
-    if (image == EGL_NO_IMAGE_KHR)
-      return -1;
-
-    *(EGLImageKHR*)eglImage = image;
+    ASSERT(bufferIndex>=0 && bufferIndex<m_maxBufferCount[OUTPUT]);
+    bufferIndex = std::min(bufferIndex, m_actualOutBufferCount);
+    *(EGLImageKHR*)eglImage = m_eglImages[bufferIndex];
 
     return 0;
 }

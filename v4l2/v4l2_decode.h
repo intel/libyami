@@ -53,9 +53,15 @@ class V4l2Decoder : public V4l2CodecBase
     virtual bool sendEOS();
 
   private:
+    bool populateOutputFrames(EGLDisplay eglDisplay, EGLContext eglContext);
+
+  private:
     DecoderPtr m_decoder;
     VideoConfigBuffer m_configBuffer;
     // VideoFormatInfo m_videoFormatInfo;
+    // chrome requires m_maxBufferCount[OUTPUT] to be big enough (dpb size + some extra ones), it is correct when we export YUV buffer direcly
+    // however, we convert YUV frame to temporary RGBX frame; so the RGBX frame pool is not necessary to be that big.
+    uint32_t m_actualOutBufferCount;
 
     uint32_t m_maxBufferSize[2];
     uint8_t *m_bufferSpace[2];
@@ -65,5 +71,7 @@ class V4l2Decoder : public V4l2CodecBase
 
     uint32_t m_videoWidth;
     uint32_t m_videoHeight;
+
+    std::vector <EGLImageKHR> m_eglImages;
 };
 #endif

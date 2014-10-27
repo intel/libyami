@@ -27,6 +27,8 @@
 #include <tr1/memory>
 #include "common/condition.h"
 #include <EGL/egl.h>
+#define EGL_EGLEXT_PROTOTYPES
+#include "EGL/eglext.h"
 #include "interface/VideoCommonDefs.h"
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
