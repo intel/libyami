@@ -255,6 +255,16 @@ Decode_Status VaapiDecoderBase::getOutput(VideoFrameRawData* frame, bool drainin
     return RENDER_SUCCESS;
 }
 
+Decode_Status VaapiDecoderBase::populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount)
+{
+    if (!m_surfacePool)
+        return RENDER_NO_AVAILABLE_FRAME;
+
+    if (!m_surfacePool->populateOutputHandles(frames, frameCount))
+        return RENDER_NO_AVAILABLE_FRAME;
+    return RENDER_SUCCESS;
+}
+
 void VaapiDecoderBase::renderDone(VideoRenderBuffer * renderBuf)
 {
     INFO("base: renderDone()");
@@ -344,6 +354,7 @@ Decode_Status
 
     m_configBuffer.surfaceNumber = numSurface;
     m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_configBuffer);
+    DEBUG("surface pool is created");
     if (!m_surfacePool)
         return DECODE_FAIL;
     std::vector<VASurfaceID> surfaces;
@@ -379,6 +390,7 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
 {
     INFO("base: terminate VA");
     m_surfacePool.reset();
+    DEBUG("surface pool is reset");
     m_context.reset();
     m_display.reset();
     m_externalDisplay.type = NATIVE_DISPLAY_AUTO;

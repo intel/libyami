@@ -64,6 +64,7 @@ class VaapiDecoderBase:public IVideoDecoder {
         , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
         , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1);
     virtual Decode_Status getOutput(VideoFrameRawData* frame, bool draining = false);
+    virtual Decode_Status populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount);
     virtual const VideoFormatInfo *getFormatInfo(void);
     virtual void renderDone(VideoRenderBuffer * renderBuf);
     virtual void renderDone(VideoFrameRawData* frame);

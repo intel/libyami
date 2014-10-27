@@ -33,7 +33,7 @@
 #include <assert.h>
 
 namespace YamiMediaCodec{
-#define IMAGE_POOL_SIZE 8
+const uint32_t IMAGE_POOL_SIZE = 8;
 
 DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoConfigBuffer* config)
 {
@@ -163,8 +163,12 @@ private:
 
 bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
 {
+    if (!frame)
+        return false;
+
     VideoRenderBuffer *buffer = getOutput();
-    if (!frame || !buffer)
+
+    if (!buffer)
         return false;
 
     SurfacePtr surface;
@@ -216,6 +220,62 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
     }
     return true;
 }
+
+bool VaapiDecSurfacePool::populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount)
+{
+    int i;
+    if (!frameCount) { // output frame count negotiation
+        ASSERT(frames);
+        if (frames[0].fourcc && frames[0].fourcc != VA_FOURCC_NV12)
+            frameCount = IMAGE_POOL_SIZE;
+        else //  export the video frame as its internal format
+            frameCount = m_renderBuffers.size();
+        return true;
+    }
+
+    ASSERT(frameCount);
+    // if necessary, create the image pool for fourcc conversion
+    if (frames[0].fourcc && frames[0].fourcc != VA_FOURCC_NV12) {
+        if (!m_imagePool) {
+            DEBUG_FOURCC("create image pool with fourcc", frames[0].fourcc);
+            ASSERT(frames[0].fourcc && frames[0].width && frames[0].height);
+            m_imagePool = VaapiImagePool::create(m_display, frames[0].fourcc, frames[0].width, frames[0].height, frameCount);
+        }
+        ASSERT(m_imagePool);
+    } else {
+        // TODO, export the video frame with native format, mesa hasn't support planar YUV texture yet
+        ASSERT(0);
+    }
+
+    VideoDataMemoryType memoryType = frames[0].memoryType;
+    ASSERT(memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
+    for (i=0; i<frameCount; i++) {
+        ImagePtr image = m_imagePool->acquireWithWait();
+        ASSERT(image);
+        ImageRawPtr rawImage = image->map(frames[i].memoryType);
+        ASSERT(rawImage);
+        if (!rawImage)
+            return false;
+        if (!rawImage->getHandle(frames[i].handle, frames[i].offset, frames[i].pitch)) {
+            ASSERT(0);
+            return false;
+        }
+
+        frames[i].width = image->getWidth();
+        frames[i].height = image->getHeight();
+        frames[i].internalID = image->getID();
+        frames[i].fourcc = image->getFormat();
+
+        {
+            AutoLock lock(m_exportFramesLock);
+            m_exportFrames[image->getID()] = rawImage; // hold a reference of rawImage until an associate EGLImage is created and bound to a texture
+        }
+    }
+
+    // assume texture binding (between video frame and texture) is kept even after vaReleaseBufferHandle().
+   return true;
+}
+
 void VaapiDecSurfacePool::flush()
 {
     AutoLock lock(m_lock);

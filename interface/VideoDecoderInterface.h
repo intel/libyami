@@ -93,6 +93,14 @@ public:
      */
     virtual Decode_Status getOutput(VideoFrameRawData* frame, bool draining = false) = 0;
 
+    /**
+    * in chromeos v4l2vda, it creates all EGLImage from output frames at initialization time, not create/destroy each frame texture on the fly.
+    * @param[in] frames the exported handles (and attributes) for all output frames. return frameCount when frames is NULL
+    * @param[in/out] frameCount. the size of frame in frames
+    * make sure to recycle (renderDone()) these frames.
+    */
+    virtual Decode_Status populateOutputHandles(VideoFrameRawData *frames, unsigned int &frameCount) = 0;
+
     /** \brief retrieve updated stream information after decoder has parsed the video stream.
     * client usually calls it when libyami return DECODE_FORMAT_CHANGE in decode().
     */
