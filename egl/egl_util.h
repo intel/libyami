@@ -22,16 +22,16 @@
 
 #ifndef __EGL_UTIL_H__
 #define __EGL_UTIL_H__
-#include "EGL/egl.h"
+#include <EGL/egl.h>
 #define EGL_EGLEXT_PROTOTYPES
-#include "EGL/eglext.h"
+#include <EGL/eglext.h>
 
+#include "VideoCommonDefs.h"
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-EGLImageKHR createEglImageFromDrmBuffer(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t drmName, int width, int height, int pitch);
-EGLImageKHR createEglImageFromDmaBuf(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t dmaBuf, int width, int height, int pitch);
+EGLImageKHR createEglImageFromHandle(EGLDisplay eglDisplay, EGLContext eglContext, VideoDataMemoryType type, uint32_t dmaBuf, int width, int height, int pitch);
 
 #ifdef __cplusplus
 }

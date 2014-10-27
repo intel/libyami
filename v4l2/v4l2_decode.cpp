@@ -384,16 +384,8 @@ int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, u
     *(EGLImageKHR*)eglImage = EGL_NO_IMAGE_KHR;
 
 
-    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME) {
-        image = createEglImageFromDrmBuffer(eglDisplay, eglContext, m_outputRawFrames[bufferIndex].handle,
-            m_outputRawFrames[bufferIndex].width, m_outputRawFrames[bufferIndex].height, m_outputRawFrames[bufferIndex].pitch[0]);
-    }
-#if __ENABLE_DMABUF__
-    else if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
-        image = createEglImageFromDmaBuf(eglDisplay, eglContext, m_outputRawFrames[bufferIndex].handle,
-            m_outputRawFrames[bufferIndex].width, m_outputRawFrames[bufferIndex].height, m_outputRawFrames[bufferIndex].pitch[0]);
-    }
-#endif
+    image = createEglImageFromHandle(eglDisplay, eglContext, m_outputRawFrames[bufferIndex].memoryType, m_outputRawFrames[bufferIndex].handle,
+        m_outputRawFrames[bufferIndex].width, m_outputRawFrames[bufferIndex].height, m_outputRawFrames[bufferIndex].pitch[0]);
     if (image == EGL_NO_IMAGE_KHR)
       return -1;
 

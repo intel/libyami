@@ -30,7 +30,7 @@
 #include "libdrm/drm_fourcc.h"
 #endif
 
-EGLImageKHR createEglImageFromDrmBuffer(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t drmName, int width, int height, int pitch)
+static EGLImageKHR createEglImageFromDrmBuffer(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t drmName, int width, int height, int pitch)
 {
     EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
     EGLint attribs[] = {
@@ -49,7 +49,7 @@ EGLImageKHR createEglImageFromDrmBuffer(EGLDisplay eglDisplay, EGLContext eglCon
     return eglImage;
 }
 
-EGLImageKHR createEglImageFromDmaBuf(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t dmaBuf, int width, int height, int pitch)
+static EGLImageKHR createEglImageFromDmaBuf(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t dmaBuf, int width, int height, int pitch)
 {
     EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
 #if __ENABLE_DMABUF__
@@ -72,3 +72,13 @@ EGLImageKHR createEglImageFromDmaBuf(EGLDisplay eglDisplay, EGLContext eglContex
 #endif
 }
 
+EGLImageKHR createEglImageFromHandle(EGLDisplay eglDisplay, EGLContext eglContext, VideoDataMemoryType type, uint32_t handle, int width, int height, int pitch)
+{
+    EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
+    if (type == VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
+        eglImage = createEglImageFromDrmBuffer(eglDisplay, eglContext, handle, width, height, pitch);
+    else if (type == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
+        eglImage = createEglImageFromDmaBuf(eglDisplay, eglContext, handle, width, height, pitch);
+
+    return eglImage;
+}

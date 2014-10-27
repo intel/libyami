@@ -343,7 +343,7 @@ private:
     XID m_pixmap;
 };
 
-typedef EGLImageKHR (*CreateEglImage)(EGLDisplay, EGLContext, uint32_t, int, int, int);
+typedef EGLImageKHR (*CreateEglImage)(EGLDisplay, EGLContext, VideoDataMemoryType, uint32_t, int, int, int);
 
 class DecodeStreamOutputDmabuf: public DecodeStreamOutputEgl
 {
@@ -437,7 +437,7 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
     Decode_Status status = m_decoder->getOutput(&frame, drain);
     if (status == RENDER_SUCCESS) {
         EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
-        eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, frame.handle, frame.width, frame.height, frame.pitch[0]);
+        eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, frame.memoryType, frame.handle, frame.width, frame.height, frame.pitch[0]);
         if (eglImage != EGL_NO_IMAGE_KHR) {
             glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -478,10 +478,10 @@ DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode)
             output = new DecodeStreamOutputPixelMap(decoder);
             break;
         case 3:
-            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DRM_NAME, createEglImageFromDrmBuffer);
+            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DRM_NAME, createEglImageFromHandle);
             break;
         case 4:
-            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DMA_BUF, createEglImageFromDmaBuf);
+            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DMA_BUF, createEglImageFromHandle);
             break;
 #endif //__ENABLE_TESTS_GLES__
         default:
