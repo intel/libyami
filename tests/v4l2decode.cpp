@@ -521,6 +521,27 @@ int main(int argc, char** argv)
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
 
+    if(textureIds.size())
+        glDeleteTextures(textureIds.size(), &textureIds[0]);
+
+    for (i=0; i<eglImages.size(); i++) {
+        eglDestroyImageKHR(context->eglContext.display, eglImages[i]);
+    }
+    /*
+    there is still randomly fail in mesa; no good idea for it. seems mesa bug
+    0  0x00007ffff079c343 in _mesa_symbol_table_dtor () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
+    1  0x00007ffff073c55d in glsl_symbol_table::~glsl_symbol_table() () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
+    2  0x00007ffff072a4d5 in ?? () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
+    3  0x00007ffff072a4bd in ?? () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
+    4  0x00007ffff064b48f in _mesa_reference_shader () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
+    5  0x00007ffff0649397 in ?? () from /usr/lib/x86_64-linux-gnu/libdricore9.2.1.so.1
+    6  0x000000000040624d in releaseShader (program=0x77cd90) at ./egl/gles2_help.c:158
+    7  eglRelease (context=0x615920) at ./egl/gles2_help.c:310
+    8  0x0000000000402ca8 in main (argc=<optimized out>, argv=<optimized out>) at v4l2decode.cpp:531
+    */
+    if (context)
+        eglRelease(context);
+
     // close device
     ioctlRet = YamiV4L2_Close(fd);
     ASSERT(ioctlRet != -1);
@@ -530,16 +551,6 @@ int main(int argc, char** argv)
 
     if (outfp)
         fclose(outfp);
-
-    if(textureIds.size())
-        glDeleteTextures(textureIds.size(), &textureIds[0]);
-
-    for (i=0; i<eglImages.size(); i++) {
-        eglDestroyImageKHR(context->eglContext.display, eglImages[i]);
-    }
-
-    if (context)
-        eglRelease(context);
 
     if (x11Display && window)
         XDestroyWindow(x11Display, window);
