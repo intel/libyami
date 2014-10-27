@@ -72,7 +72,6 @@ class V4l2CodecBase {
     virtual bool inputPulse(int32_t index) = 0;
     virtual bool outputPulse(int32_t &index) = 0; // index of decode output is decided by libyami, not FIFO of m_framesTodo[OUTPUT]
     virtual bool recycleOutputBuffer(int32_t index) {return true;};
-    virtual bool sendEOS() = 0;
     virtual bool hasCodecEvent() {return m_hasEvent;}
     virtual void setCodecEvent();
     virtual void clearCodecEvent();

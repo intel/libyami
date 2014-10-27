@@ -71,6 +71,7 @@ static Window window = 0;
 static EGLContextType *context = NULL;
 static std::vector<EGLImageKHR> eglImages;
 static std::vector<GLuint> textureIds;
+static bool isReadEOS=false;
 
 bool feedOneInputFrame(DecodeStreamInput * input, int fd, int index = -1 /* if index is not -1, simple enque it*/)
 {
@@ -95,12 +96,20 @@ bool feedOneInputFrame(DecodeStreamInput * input, int fd, int index = -1 /* if i
     } else {
         buf.index = index;
     }
-    if (!input->getNextDecodeUnit(inputBuffer))
+
+    if (isReadEOS)
         return false;
-    ASSERT(inputBuffer.size <= k_maxInputBufferSize);
-    memcpy(inputFrames[buf.index], inputBuffer.data, inputBuffer.size);
-    buf.m.planes[0].bytesused = inputBuffer.size;
-    buf.m.planes[0].m.mem_offset = 0;
+
+    if (!input->getNextDecodeUnit(inputBuffer)) {
+        // send empty buffer for EOS
+        buf.m.planes[0].bytesused = 0;
+        isReadEOS = true;
+    } else {
+        ASSERT(inputBuffer.size <= k_maxInputBufferSize);
+        memcpy(inputFrames[buf.index], inputBuffer.data, inputBuffer.size);
+        buf.m.planes[0].bytesused = inputBuffer.size;
+        buf.m.planes[0].m.mem_offset = 0;
+    }
 
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
@@ -489,11 +498,7 @@ int main(int argc, char** argv)
             break;
     } while (YamiV4L2_Poll(fd, true, &event_pending) == 0);
 
-    // stop input port to drain
-    type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMOFF, &type);
-    ASSERT(ioctlRet != -1);
-    // drain
+    // drain output buffer
     int retry = 3;
     while (takeOneOutputFrame(fd) || (--retry)>0) { // output drain
         usleep(10000);
@@ -514,6 +519,11 @@ int main(int argc, char** argv)
     reqbufs.memory = V4L2_MEMORY_MMAP;
     reqbufs.count = 0;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
+    ASSERT(ioctlRet != -1);
+
+    // stop input port
+    type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
 
     // stop output port

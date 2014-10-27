@@ -50,7 +50,6 @@ class V4l2Decoder : public V4l2CodecBase
     virtual bool inputPulse(int32_t index);
     virtual bool outputPulse(int32_t &index);
     virtual bool recycleOutputBuffer(int32_t index);
-    virtual bool sendEOS();
 
   private:
     bool populateOutputFrames(EGLDisplay eglDisplay, EGLContext eglContext);

@@ -107,16 +107,12 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
     }
     if (!readOneFrameData(buf.index)) {
         ASSERT(isReadEOS);
-        dqCountAfterEOS++;
-        return false;
     }
 
     if (isReadEOS) {
         // send EOS to device
-        buf.m.planes[0].m.userptr = 0;
-        buf.m.planes[1].m.userptr = 0;
-        buf.m.planes[2].m.userptr = 0;
-
+        buf.m.planes[0].m.userptr = buf.m.planes[1].m.userptr = buf.m.planes[2].m.userptr = 0;
+        buf.m.planes[0].bytesused = buf.m.planes[1].bytesused = buf.m.planes[2].bytesused = 0;
     } else {
         switch (inputFourcc) {
         case VA_FOURCC('I', '4', '2', '0'):

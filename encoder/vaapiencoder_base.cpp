@@ -115,6 +115,7 @@ Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
 
     if (!inBuffer->data && !inBuffer->size) {
         // XXX handle EOS when there is B frames
+        inBuffer->bufAvailable = true;
         return ENCODE_SUCCESS;
     }
 

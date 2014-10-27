@@ -193,11 +193,6 @@ void V4l2CodecBase::workerThread()
         DEBUG("fd: %d", m_fd[0]);
     }
 
-    if(thread == INPUT) {
-        sendEOS();
-        m_threadCond[OUTPUT]->signal();
-    }
-
     m_threadOn[thread] = false;
 }
 

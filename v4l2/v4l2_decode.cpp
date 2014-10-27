@@ -113,18 +113,6 @@ bool V4l2Decoder::inputPulse(int32_t index)
     return true; // always return true for decode; simply ignored unsupported nal
 }
 
-bool V4l2Decoder::sendEOS()
-{
-    Decode_Status status = DECODE_SUCCESS;
-    VideoDecodeBuffer inputBuffer;
-
-    inputBuffer.data = NULL;
-    inputBuffer.size = 0;
-    status = m_decoder->decode(&inputBuffer);
-
-    return status == DECODE_SUCCESS;
-}
-
 bool V4l2Decoder::outputPulse(int32_t &index)
 {
     Decode_Status status = DECODE_SUCCESS;
@@ -187,8 +175,11 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
     ASSERT(m_bufferSpace[INPUT]);
     ASSERT(qbuf->index >= 0 && qbuf->index < m_maxBufferCount[INPUT]);
     ASSERT(qbuf->length == 1);
-    inputBuffer->data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*qbuf->index; // reinterpret_cast<uint8_t*>(qbuf->m.planes[0].m.userptr);
     inputBuffer->size = qbuf->m.planes[0].bytesused; // one plane only
+    if (!inputBuffer->size) // EOS
+        inputBuffer->data = NULL;
+    else
+        inputBuffer->data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*qbuf->index;
     inputBuffer->timeStamp = qbuf->timestamp.tv_sec;
     // set buffer unit-mode if possible, nal, frame?
     DEBUG("qbuf->index: %d, inputBuffer: %p, timestamp: %ld", qbuf->index, inputBuffer->data, inputBuffer->timeStamp);
