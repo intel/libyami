@@ -75,6 +75,7 @@ V4l2CodecBase::V4l2CodecBase()
     , m_outputThreadCond(m_frameLock[OUTPUT])
     , m_hasEvent(false)
     , m_started(false)
+    , m_eosState(EosStateNormal)
 {
     m_streamOn[INPUT] = false;
     m_streamOn[OUTPUT] = false;
@@ -100,6 +101,13 @@ V4l2CodecBase::~V4l2CodecBase()
 
     INFO("codec is released, m_fd[0]: %d", m_fd[0]);
 }
+
+void V4l2CodecBase::setEosState(EosState eosState)
+{
+    AutoLock locker(m_codecLock);
+    m_eosState = eosState;
+}
+
 
 bool V4l2CodecBase::open(const char* name, int32_t flags)
 {
@@ -167,6 +175,16 @@ void V4l2CodecBase::workerThread()
 
         {
             AutoLock locker(m_frameLock[thread]);
+            // wait until EOS is processed on OUTPUT port
+            if (thread == INPUT && m_eosState == EosStateInput) {
+                m_threadCond[!thread]->signal();
+                while (m_eosState == EosStateInput) {
+                    m_threadCond[thread]->wait();
+                }
+                DEBUG("flush-debug flush done, INPUT thread continue");
+                setEosState(EosStateNormal);
+            }
+
             if (ret) {
                 if (thread == OUTPUT) {
                     // decoder output is in random order
@@ -186,11 +204,29 @@ void V4l2CodecBase::workerThread()
                 DEBUG("%s thread wake up %s thread after process one frame", THREAD_NAME(thread), THREAD_NAME(!thread));
                 m_threadCond[!thread]->signal(); // encode/getOutput one frame success, wakeup the other thread
             } else {
-                DEBUG("%s thread wait because operation on yami fails", thread == INPUT ? "INPUT" : "OUTPUT");
+                if (thread == OUTPUT && m_eosState == EosStateOutput) {
+                    m_threadCond[!thread]->signal();
+                    DEBUG("flush-debug, wakeup INPUT thread out of EOS waiting");
+                }
+                DEBUG("%s thread wait because operation on yami fails", THREAD_NAME(thread));
                 m_threadCond[thread]->wait(); // wait if encode/getOutput fail (encode hw is busy or no available output)
             }
         }
         DEBUG("fd: %d", m_fd[0]);
+    }
+
+    // VDA flush goes here, clear frames
+    {
+        AutoLock locker(m_frameLock[thread]);
+        m_framesTodo[thread].clear();
+        m_framesDone[thread].clear();
+        if (thread == OUTPUT) {
+            int i;
+            for (i=0; i<m_maxBufferCount[OUTPUT]; i++)
+                recycleOutputBuffer(i);
+            DEBUG("recycle all output buffer to make sure internal surface/image are released");
+        }
+        DEBUG("%s worker thread exit", THREAD_NAME(thread));
     }
 
     m_threadOn[thread] = false;

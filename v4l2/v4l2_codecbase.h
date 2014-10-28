@@ -85,6 +85,16 @@ class V4l2CodecBase {
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
+    enum EosState{
+        EosStateNormal,
+        EosStateInput,
+        EosStateOutput,
+    };
+    // EOS state is detected(EosStateInput) or transit to EosStateOutput in subclass (V4l2Decoder/V4l2Encoder).
+    // it is cleared in base class (V4l2Codec) after input thread unblock, and used for special synchronization between INPUT and OUTPUT thread
+    // so, we keep its operation func in base class with lock (and m_eosState private).
+    virtual EosState eosState() { return m_eosState; };
+    virtual void setEosState(EosState eosState);
 
   private:
     bool m_hasEvent;
@@ -108,6 +118,8 @@ class V4l2CodecBase {
     YamiMediaCodec::Condition *m_threadCond[2];
 
     YamiMediaCodec::Lock m_codecLock;
+    EosState  m_eosState;
+
     bool open(const char* name, int32_t flags);
 
 #ifdef __ENABLE_DEBUG__

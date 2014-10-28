@@ -110,6 +110,11 @@ bool V4l2Decoder::inputPulse(int32_t index)
         status = m_decoder->decode(inputBuffer);
     }
 
+    if (!inputBuffer->size) {
+        setEosState(EosStateInput);
+        DEBUG("flush-debug going into flusing state");
+    }
+
     return true; // always return true for decode; simply ignored unsupported nal
 }
 
@@ -137,6 +142,11 @@ bool V4l2Decoder::outputPulse(int32_t &index)
     frame->memoryType = m_memoryType;
 
     status = m_decoder->getOutput(frame);
+    if (status == RENDER_NO_AVAILABLE_FRAME && eosState() == EosStateInput) {
+        setEosState(EosStateOutput);
+        DEBUG("flush-debug flush done on OUTPUT thread");
+    }
+
     if (status != RENDER_SUCCESS)
         return false;
 
