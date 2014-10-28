@@ -39,6 +39,9 @@
 #include "./egl/gles2_help.h"
 #include "interface/VideoCommonDefs.h"
 
+static char *fileName = NULL;
+static char *dumpOutputDir = NULL;
+
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
 #endif
@@ -121,8 +124,17 @@ bool dumpOneVideoFrame(int32_t index)
 {
     int row;
 
-    if (!outfp)
-        outfp = fopen("out.raw", "w+");
+    if (!outfp) {
+        char outFileName[256];
+        char* baseFileName = fileName;
+        char *s = strrchr(fileName, '/');
+        if (s)
+            baseFileName = s+1;
+        // V4L2 reports fourcc as NM12 (planar NV12), use hard code here
+        sprintf(outFileName, "%s/%s_%dx%d.NV12", dumpOutputDir, baseFileName, rawOutputFrames[index].width, rawOutputFrames[index].height);
+        DEBUG("outFileName: %s", outFileName);
+        outfp = fopen(outFileName, "w+");
+    }
 
     if (!outfp)
         return false;
@@ -240,6 +252,7 @@ static void print_help(const char* app)
 {
     printf("%s <options>\n", app);
     printf("   -i media file to decode\n");
+    printf("   -o dumped output dir\n");
     printf("   -m <render mode>\n");
     printf("      0: dump video frame to file\n");
     printf("      1: texture: export video frame as drm name (RGBX) + texture from drm name\n");
@@ -249,7 +262,6 @@ static void print_help(const char* app)
 
 int main(int argc, char** argv)
 {
-    char *fileName = NULL;
     int renderMode = 1;
     DecodeStreamInput *input;
     int32_t fd = -1;
@@ -259,7 +271,7 @@ int main(int argc, char** argv)
 
     yamiTraceInit();
 
-    while ((opt = getopt(argc, argv, "h:m:i:?:")) != -1)
+    while ((opt = getopt(argc, argv, "h:m:i:o:?:")) != -1)
     {
         switch (opt) {
         case 'h':
@@ -267,7 +279,11 @@ int main(int argc, char** argv)
             print_help (argv[0]);
             return false;
         case 'i':
-            fileName = optarg;
+            fileName = strdup(optarg);
+            break;
+        case 'o':
+            if (optarg)
+                dumpOutputDir = strdup(optarg);
             break;
         case 'm':
             renderMode = atoi(optarg);
@@ -282,6 +298,9 @@ int main(int argc, char** argv)
         return -1;
     }
     fprintf(stderr, "input file: %s, renderMode: %d", fileName, renderMode);
+
+    if (!dumpOutputDir)
+        dumpOutputDir = strdup ("./");
 
     switch (renderMode) {
     case 0:
@@ -559,8 +578,14 @@ int main(int argc, char** argv)
     if(input)
         delete input;
 
+    if (fileName)
+        free(fileName);
+
     if (outfp)
         fclose(outfp);
+
+    if (dumpOutputDir)
+        free(dumpOutputDir);
 
     if (x11Display && window)
         XDestroyWindow(x11Display, window);
