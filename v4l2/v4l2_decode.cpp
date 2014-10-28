@@ -76,6 +76,11 @@ bool V4l2Decoder::start()
         return true;
     ASSERT(m_decoder);
     ASSERT(m_configBuffer.profile && m_configBuffer.surfaceNumber);
+
+    NativeDisplay nativeDisplay;
+    nativeDisplay.type = NATIVE_DISPLAY_DRM;
+    nativeDisplay.handle = 0;
+    m_decoder->setNativeDisplay(&nativeDisplay);
     status = m_decoder->start(&m_configBuffer);
     ASSERT(status == DECODE_SUCCESS);
     m_started = true;

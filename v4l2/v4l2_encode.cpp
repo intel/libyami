@@ -66,6 +66,12 @@ bool V4l2Encoder::start()
 
     status = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
     ASSERT(status == ENCODE_SUCCESS);
+
+    NativeDisplay nativeDisplay;
+    nativeDisplay.type = NATIVE_DISPLAY_DRM;
+    nativeDisplay.handle = 0;
+    m_encoder->setNativeDisplay(&nativeDisplay);
+
     status = m_encoder->start();
     ASSERT(status == ENCODE_SUCCESS);
     status = m_encoder->getParameters(VideoParamsTypeCommon, &m_videoParams);
