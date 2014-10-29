@@ -56,17 +56,17 @@ libyami_decoder_la_LIBADD = \
 
 libyami_decoder_ldflags = \
         $(LIBYAMI_LT_LDFLAGS) \
-        $(LIBVA_LIBS)        \
-        $(LIBVA_X11_LIBS)    \
         -ldl                 \
         $(NULL)
 
 libyami_decoder_cppflags = \
         $(LIBVA_CFLAGS) \
-        $(LIBVA_X11_CFLAGS) \
         $(LIBVA_DRM_CFLAGS) \
         -fpermissive \
 	$(NULL)
+if ENABLE_X11
+libyami_decoder_cppflags += $(LIBVA_X11_CFLAGS)
+endif
 
 
 lib_LTLIBRARIES	               = libyami_decoder.la

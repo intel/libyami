@@ -39,17 +39,17 @@ libyami_encoder_la_LIBADD = \
 
 libyami_encoder_ldflags = \
         $(LIBYAMI_LT_LDFLAGS) \
-        $(LIBVA_LIBS)        \
-        $(LIBVA_X11_LIBS)    \
         -ldl                 \
         $(NULL)
 
 libyami_encoder_cppflags = \
         $(LIBVA_CFLAGS) \
-        $(LIBVA_X11_CFLAGS) \
+        $(LIBVA_DRM_CFLAGS) \
         -fpermissive \
 	$(NULL)
-
+if ENABLE_X11
+libyami_encoder_cppflags += $(LIBVA_X11_CFLAGS)
+endif
 
 lib_LTLIBRARIES			  = libyami_encoder.la
 libyami_encoderincludedir      = $(includedir)/libyami_encoder

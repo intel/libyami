@@ -87,6 +87,7 @@ class NativeDisplayBase {
     DISALLOW_COPY_AND_ASSIGN(NativeDisplayBase);
 };
 
+#if __ENABLE_X11__
 class NativeDisplayX11 : public NativeDisplayBase{
   public:
     NativeDisplayX11() :NativeDisplayBase(){ };
@@ -114,7 +115,7 @@ class NativeDisplayX11 : public NativeDisplayBase{
         return false;
     }
 };
-
+#endif
 class NativeDisplayDrm : public NativeDisplayBase{
   public:
     NativeDisplayDrm() :NativeDisplayBase(){ };
@@ -258,6 +259,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
 
     switch (nativeDisplay.type) {
     case NATIVE_DISPLAY_AUTO:
+#if __ENABLE_X11__
     case NATIVE_DISPLAY_X11:
         nativeDisplayObj.reset (new NativeDisplayX11());
         if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
@@ -267,6 +269,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
         if (vaDisplay)
             INFO("use vaapi x11 backend");
         // NATIVE_DISPLAY_AUTO continue, no break
+#endif
     case NATIVE_DISPLAY_DRM:
         nativeDisplayObj.reset (new NativeDisplayDrm());
         if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))

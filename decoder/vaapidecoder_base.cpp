@@ -213,10 +213,15 @@ Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int64_t *timeStamp
         || frameX < 0 || frameY < 0 || frameWidth <= 0 || frameHeight <= 0)
         return RENDER_INVALID_PARAMETER;
 
+#if __ENABLE_X11__
     vaStatus = vaPutSurface(m_display->getID(), renderBuffer->surface,
             draw, drawX, drawY, drawWidth, drawHeight,
             frameX, frameY, frameWidth, frameHeight,
             NULL,0,0);
+#else
+    vaStatus = VA_STATUS_ERROR_OPERATION_FAILED;
+    ERROR("vaPutSurface is not supported when libva-x11 backend is disable during build (--disable-x11)");
+#endif
 
     if (vaStatus != VA_STATUS_SUCCESS)
         return RENDER_FAIL;
