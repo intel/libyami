@@ -73,6 +73,11 @@ int main(int argc, char** argv)
     encoder = createVideoEncoder(output->getMimeType());
     assert(encoder != NULL);
 
+    NativeDisplay nativeDisplay;
+    nativeDisplay.type = NATIVE_DISPLAY_DRM;
+    nativeDisplay.handle = -1;
+    encoder->setNativeDisplay(&nativeDisplay);
+
     //configure encoding parameters
     VideoParamsCommon encVideoParams;
     encVideoParams.size = sizeof(VideoParamsCommon);

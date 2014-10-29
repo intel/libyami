@@ -66,6 +66,15 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    if (renderMode == 0) {
+        NativeDisplay nativeDisplay;
+        nativeDisplay.type = NATIVE_DISPLAY_DRM;
+        nativeDisplay.handle = 0;
+        decodeSetNativeDisplay(decoder, &nativeDisplay);
+    } else {
+        // TODO, XXX, NativeDisplay should set here, not output->setVideoSize().
+    }
+
     memset(&configBuffer,0,sizeof(VideoConfigBuffer));
     configBuffer.profile = VAProfileNone;
 
