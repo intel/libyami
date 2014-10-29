@@ -58,6 +58,12 @@ bool V4l2Encoder::start()
 {
     Encode_Status status = ENCODE_SUCCESS;
     ASSERT(m_encoder);
+
+    VideoConfigAVCStreamFormat streamFormat;
+    streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
+    streamFormat.streamFormat = AVC_STREAM_FORMAT_ANNEXB;
+    m_encoder->setParameters(VideoConfigTypeAVCStreamFormat, &streamFormat);
+
     status = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
     ASSERT(status == ENCODE_SUCCESS);
     status = m_encoder->start();
