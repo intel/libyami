@@ -161,6 +161,52 @@ private:
     VideoRenderBuffer* m_buffer;
 };
 
+bool VaapiDecSurfacePool::ensureImagePool(VideoFrameRawData &frame)
+{
+    if (m_imagePool)
+        return true;
+
+    if (!frame.width || !frame.height) {
+        frame.width = m_surfaces[0]->getWidth();
+        frame.height = m_surfaces[0]->getHeight();
+    }
+
+    DEBUG_FOURCC("create image pool with fourcc", frame.fourcc);
+    m_imagePool = VaapiImagePool::create(m_display, frame.fourcc, frame.width, frame.height, IMAGE_POOL_SIZE);
+
+    ASSERT(m_imagePool);
+    return m_imagePool;
+}
+
+bool VaapiDecSurfacePool::exportFrame(ImagePtr image, VideoFrameRawData &frame, int64_t timeStamp)
+{
+    if (!image)
+        return false;
+
+    VideoDataMemoryType memoryType = frame.memoryType;
+    ImageRawPtr rawImage = image->map(memoryType);
+
+    if (!rawImage)
+        return false;
+    if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
+        return rawImage->copyTo((uint8_t *)frame.handle, frame.offset, frame.pitch);
+    }
+    if (!rawImage->getHandle(frame.handle, frame.offset, frame.pitch))
+        return false;
+
+    frame.width = image->getWidth();
+    frame.height = image->getHeight();
+    frame.internalID = image->getID();
+    frame.fourcc = image->getFormat();
+    frame.timeStamp = timeStamp;
+    {
+        AutoLock lock(m_exportFramesLock);
+        m_exportFrames[image->getID()] = rawImage;
+    }
+
+    return true;
+}
+
 bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
 {
     if (!frame)
@@ -180,17 +226,9 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
         return false;
 
     if (frame->fourcc && image->getFormat() != frame->fourcc) {
-        if (!m_imagePool) {
-            int width = frame->width;
-            int height = frame->height;
-            if (!width || !height) {
-                width = surface->getWidth();
-                height = surface->getHeight();
-            }
-            DEBUG_FOURCC("create image pool with fourcc", frame->fourcc);
-            m_imagePool = VaapiImagePool::create(m_display, frame->fourcc, width, height, IMAGE_POOL_SIZE);
-        }
-        ASSERT(m_imagePool);
+        if (!m_imagePool && !!ensureImagePool(*frame))
+            return false;
+
         image = m_imagePool->acquireWithWait();
         ASSERT(image);
         if (!surface->getImage(image)) {
@@ -199,26 +237,7 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
         }
     }
 
-    VideoDataMemoryType memoryType = frame->memoryType;
-    ImageRawPtr rawImage = image->map(frame->memoryType);
-    if (!rawImage)
-        return false;
-    if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
-        return rawImage->copyTo((uint8_t *)frame->handle, frame->offset, frame->pitch);
-    }
-    if (!rawImage->getHandle(frame->handle, frame->offset, frame->pitch))
-        return false;
-
-    frame->width = image->getWidth();
-    frame->height = image->getHeight();
-    frame->internalID = image->getID();
-    frame->fourcc = image->getFormat();
-    frame->timeStamp = buffer->timeStamp;
-    {
-        AutoLock lock(m_exportFramesLock);
-        m_exportFrames[image->getID()] = rawImage;
-    }
-    return true;
+    return exportFrame(image, *frame, buffer->timeStamp);
 }
 
 bool VaapiDecSurfacePool::populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount)
@@ -236,40 +255,20 @@ bool VaapiDecSurfacePool::populateOutputHandles(VideoFrameRawData *frames, uint3
     ASSERT(frameCount);
     // if necessary, create the image pool for fourcc conversion
     if (frames[0].fourcc && frames[0].fourcc != VA_FOURCC_NV12) {
-        if (!m_imagePool) {
-            DEBUG_FOURCC("create image pool with fourcc", frames[0].fourcc);
-            ASSERT(frames[0].fourcc && frames[0].width && frames[0].height);
-            m_imagePool = VaapiImagePool::create(m_display, frames[0].fourcc, frames[0].width, frames[0].height, frameCount);
+        if (!m_imagePool && !ensureImagePool(frames[0])) {
+            return false;
         }
-        ASSERT(m_imagePool);
     } else {
         // TODO, export the video frame with native format, mesa hasn't support planar YUV texture yet
         ASSERT(0);
     }
 
-    VideoDataMemoryType memoryType = frames[0].memoryType;
-    ASSERT(memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
     for (i=0; i<frameCount; i++) {
         ImagePtr image = m_imagePool->acquireWithWait();
         ASSERT(image);
-        ImageRawPtr rawImage = image->map(frames[i].memoryType);
-        ASSERT(rawImage);
-        if (!rawImage)
+        ASSERT(frames[i].memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || frames[i].memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
+        if (!exportFrame(image, frames[i]))
             return false;
-        if (!rawImage->getHandle(frames[i].handle, frames[i].offset, frames[i].pitch)) {
-            ASSERT(0);
-            return false;
-        }
-
-        frames[i].width = image->getWidth();
-        frames[i].height = image->getHeight();
-        frames[i].internalID = image->getID();
-        frames[i].fourcc = image->getFormat();
-
-        {
-            AutoLock lock(m_exportFramesLock);
-            m_exportFrames[image->getID()] = rawImage; // hold a reference of rawImage until an associate EGLImage is created and bound to a texture
-        }
     }
 
     // assume texture binding (between video frame and texture) is kept even after vaReleaseBufferHandle().

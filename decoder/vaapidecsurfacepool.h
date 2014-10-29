@@ -82,6 +82,8 @@ public:
 
 
 private:
+    bool ensureImagePool(VideoFrameRawData &frame);
+    bool exportFrame(ImagePtr image, VideoFrameRawData &frame, int64_t timeStamp=-1);
     enum SurfaceState{
         SURFACE_FREE      = 0x00000000,
         SURFACE_DECODING  = 0x00000001,
