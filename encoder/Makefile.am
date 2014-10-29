@@ -35,7 +35,7 @@ endif
 libyami_encoder_la_LIBADD = \
 		$(top_builddir)/common/libyami_common.la \
 		$(top_builddir)/vaapi/libyami_vaapi.la \
-		$(top_builddir)/codecparsers/libcodecparser.la
+		$(top_builddir)/codecparsers/libyami_codecparser.la
 
 libyami_encoder_ldflags = \
         $(LIBYAMI_LT_LDFLAGS) \
