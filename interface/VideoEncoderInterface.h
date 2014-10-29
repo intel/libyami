@@ -46,6 +46,8 @@ class IVideoEncoder {
 
     /// continue encoding with new data in @param[in] inBuffer
     virtual Encode_Status encode(VideoEncRawBuffer * inBuffer) = 0;
+    /// continue encoding with new data in @param[in] frame
+    virtual Encode_Status encode(VideoFrameRawData* frame) = 0;
     /**
      * \brief return one frame encoded data to client;
      * when withWait is false, ENCODE_BUFFER_NO_MORE will be returned if there is no available frame. \n

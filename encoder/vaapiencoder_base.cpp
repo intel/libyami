@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include "common/common_def.h"
+#include "common/utils.h"
 #include "scopedlogger.h"
 #include "vaapicodedbuffer.h"
 #include "vaapi/vaapidisplay.h"
@@ -105,24 +106,39 @@ bool VaapiEncoderBase::isBusy()
     return m_output.size() >= m_maxOutputBuffer;
 }
 
+
 Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
 {
+    FUNC_ENTER();
+
+    if (!inBuffer || !inBuffer->data && !inBuffer->size) {
+        // XXX handle EOS when there is B frames
+        inBuffer->bufAvailable = true;
+        return ENCODE_SUCCESS;
+    }
+    VideoFrameRawData frame;
+    if (!fillFrameRawData(&frame, inBuffer->fourcc, width(), height(), inBuffer->data))
+        return ENCODE_INVALID_PARAMS;
+    if (inBuffer->forceKeyFrame)
+        frame.flags |= VIDEO_FRAME_FLAGS_KEY;
+    frame.timeStamp = inBuffer->timeStamp;
+    return encode(&frame);
+}
+
+Encode_Status VaapiEncoderBase::encode(VideoFrameRawData* frame)
+{
+    if (!frame || !frame->width || !frame->height || !frame->fourcc)
+        return ENCODE_INVALID_PARAMS;
+
     FUNC_ENTER();
     Encode_Status ret;
 
     if (isBusy())
         return ENCODE_IS_BUSY;
-
-    if (!inBuffer->data && !inBuffer->size) {
-        // XXX handle EOS when there is B frames
-        inBuffer->bufAvailable = true;
-        return ENCODE_SUCCESS;
-    }
-
-    SurfacePtr surface = createSurface(inBuffer);
+    SurfacePtr surface = createSurface(frame);
     if (!surface)
-        ret = ENCODE_NO_MEMORY;
-    return doEncode(surface, inBuffer->timeStamp, inBuffer->forceKeyFrame);
+        return ENCODE_NO_MEMORY;
+    return doEncode(surface, frame->timeStamp, frame->flags & VIDEO_FRAME_FLAGS_KEY);
 }
 
 Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
@@ -241,9 +257,9 @@ SurfacePtr VaapiEncoderBase::createSurface(uint32_t fourcc)
 
 }
 
-SurfacePtr VaapiEncoderBase::createSurface(VideoEncRawBuffer* inBuffer)
+SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
 {
-    SurfacePtr surface = createSurface(inBuffer->fourcc);
+    SurfacePtr surface = createSurface(frame->fourcc);
     SurfacePtr nil;
     if (!surface)
         return nil;
@@ -259,11 +275,11 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoEncRawBuffer* inBuffer)
         return nil;
     }
 
-    if (!raw->copyFrom(inBuffer->data, inBuffer->size)) {
+    uint8_t* src = reinterpret_cast<uint8_t*>(frame->handle);
+    if (!raw->copyFrom(src, frame->offset, frame->pitch)) {
         ERROR("copyfrom in buffer failed");
         return nil;
     }
-    inBuffer->bufAvailable = true;
     return surface;
 }
 

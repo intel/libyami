@@ -77,9 +77,9 @@ private:
 public:
     static ImageRawPtr create(const DisplayPtr&, const ImagePtr&, VideoDataMemoryType);
     VideoDataMemoryType getMemoryType();
-    bool copyTo(void* dest, const uint32_t offsets[3], const uint32_t pitches[3]);
-    bool copyFrom(const void* src, const uint32_t offsets[3], const uint32_t pitches[3]);
-    bool copyFrom(const void* src, uint32_t size);
+    bool copyTo(uint8_t* dest, const uint32_t offsets[3], const uint32_t pitches[3]);
+    bool copyFrom(const uint8_t* src, const uint32_t offsets[3], const uint32_t pitches[3]);
+    bool copyFrom(const uint8_t* src, uint32_t size);
     bool getHandle(intptr_t& handle, uint32_t offsets[3], uint32_t pitches[3]);
     ~VaapiImageRaw();
 private:

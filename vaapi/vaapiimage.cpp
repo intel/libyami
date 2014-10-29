@@ -91,7 +91,7 @@ bool VaapiImageRaw::getHandle(intptr_t& handle, uint32_t offsets[3], uint32_t pi
     return true;
 }
 
-bool VaapiImageRaw::copyTo(void* dest, const uint32_t offsets[3], const uint32_t pitches[3])
+bool VaapiImageRaw::copyTo(uint8_t* dest, const uint32_t offsets[3], const uint32_t pitches[3])
 {
     if (!dest)
         return false;
@@ -100,7 +100,7 @@ bool VaapiImageRaw::copyTo(void* dest, const uint32_t offsets[3], const uint32_t
         (uint8_t*)m_handle, image->offsets, image->pitches);
 }
 
-bool VaapiImageRaw::copyFrom(const void* src, const uint32_t offsets[3], const uint32_t pitches[3])
+bool VaapiImageRaw::copyFrom(const uint8_t* src, const uint32_t offsets[3], const uint32_t pitches[3])
 {
     if (!src)
         return false;
@@ -110,7 +110,7 @@ bool VaapiImageRaw::copyFrom(const void* src, const uint32_t offsets[3], const u
         src, offsets, pitches);
 }
 
-bool VaapiImageRaw::copyFrom(const void* src, uint32_t size)
+bool VaapiImageRaw::copyFrom(const uint8_t* src, uint32_t size)
 {
     if (!src || !size)
         return false;

@@ -74,8 +74,11 @@ typedef struct VideoFrameRawData{
     uint32_t size;
     intptr_t handle;        // planar data has one fd for now, raw data also uses one pointer (+ offset)
     uint32_t internalID; // internal identification for image/surface recycle
-    int64_t timeStamp;
+    int64_t  timeStamp;
+    uint32_t flags;             //see VIDEO_FRAME_FLAGS_XXX
 }VideoFrameRawData;
+
+#define VIDEO_FRAME_FLAGS_KEY 1
 
 #ifdef __cplusplus
 }

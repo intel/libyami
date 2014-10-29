@@ -135,4 +135,26 @@ float CalcFps::fps(uint32_t frameCount)
     return fps;
 }
 
+bool fillFrameRawData(VideoFrameRawData* frame, uint32_t fourcc, uint32_t width, uint32_t height, uint8_t* data)
+{
+    memset(frame, 0, sizeof(*frame));
+    uint32_t planes;
+    uint32_t w[3], h[3];
+    if (!getPlaneResolution(fourcc, width, height, w, h, planes))
+        return false;
+    frame->fourcc = fourcc;
+    frame->width = width;
+    frame->height = height;
+    frame->handle = reinterpret_cast<intptr_t>(data);
+    frame->memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
+
+    uint32_t offset = 0;
+    for (int i = 0; i < planes; i++) {
+        frame->pitch[i] = w[i];
+        frame->offset[i] = offset;
+        offset += w[i] * h[i];
+    }
+    return true;
+}
+
 };

@@ -22,6 +22,8 @@
 #ifndef utils_h
 #define utils_h
 
+#include "interface/VideoCommonDefs.h"
+
 #include <stdint.h>
 
 
@@ -34,6 +36,8 @@ namespace YamiMediaCodec{
 uint32_t guessFourcc(const char* fileName);
 
 bool getPlaneResolution(uint32_t fourcc, uint32_t pixelWidth, uint32_t pixelHeight, uint32_t byteWidth[3], uint32_t byteHeight[3],  uint32_t& planes);
+
+bool fillFrameRawData(VideoFrameRawData* frame, uint32_t fourcc, uint32_t width, uint32_t height, uint8_t* data);
 
 class CalcFps
 {
