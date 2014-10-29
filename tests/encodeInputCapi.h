@@ -46,7 +46,7 @@ int getInputWidth(EncodeInputHandler input);
 
 int getInputHeight(EncodeInputHandler input);
 
-bool getOneFrameInput(EncodeInputHandler input, VideoEncRawBuffer *inputBuffer);
+bool getOneFrameInput(EncodeInputHandler input, VideoFrameRawData *inputBuffer);
 
 bool writeOutput(EncodeOutputHandler output, void* data, int size);
 

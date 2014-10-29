@@ -199,6 +199,7 @@ bool VaapiDecSurfacePool::exportFrame(ImagePtr image, VideoFrameRawData &frame, 
     frame.internalID = image->getID();
     frame.fourcc = image->getFormat();
     frame.timeStamp = timeStamp;
+    frame.flags = VIDEO_FRAME_FLAGS_KEY;
     {
         AutoLock lock(m_exportFramesLock);
         ExportFrame frm;

@@ -73,7 +73,7 @@ int getInputHeight(EncodeInputHandler input)
     return 0;
 }
 
-bool getOneFrameInput(EncodeInputHandler input, VideoEncRawBuffer *inputBuffer)
+bool getOneFrameInput(EncodeInputHandler input, VideoFrameRawData *inputBuffer)
 {
     if(input)
         return ((EncodeStreamInput*)input)->getOneFrameInput(*inputBuffer);

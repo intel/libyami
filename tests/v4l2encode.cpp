@@ -32,6 +32,7 @@
 #include  <sys/mman.h>
 
 #include "common/log.h"
+#include "common/utils.h"
 #include "v4l2/v4l2_wrapper.h"
 #include "encodehelp.h"
 #include "encodeinput.h"
@@ -42,7 +43,7 @@ uint32_t inputFrameSize = 0;
 const uint32_t kMaxFrameQueueLength = 8;
 uint32_t inputQueueCapacity = 0;
 uint32_t outputQueueCapacity = 0;
-VideoEncRawBuffer inputFrames[kMaxFrameQueueLength];
+VideoFrameRawData inputFrames[kMaxFrameQueueLength];
 uint8_t *outputFrames[kMaxFrameQueueLength];
 bool isReadEOS = false;
 bool isEncodeEOS = false;
@@ -52,7 +53,6 @@ static EncodeStreamInput* streamInput;
 
 bool readOneFrameData(int index)
 {
-    VideoEncRawBuffer buffer;
     static int encodeFrameCount = 0;
 
     if (!streamInput)
@@ -61,9 +61,6 @@ bool readOneFrameData(int index)
         return false;
 
     ASSERT(index>=0 && index<inputQueueCapacity);
-    uint8_t *backupDataPtr = inputFrames[index].data;
-    memset(&buffer, 0, sizeof(buffer));
-    inputFrames[index].data = backupDataPtr;
 
     bool ret = streamInput->getOneFrameInput(inputFrames[index]);
     if (!ret || (frameCount && encodeFrameCount++>=frameCount)) {
@@ -72,6 +69,25 @@ bool readOneFrameData(int index)
     }
 
     return ret;
+}
+
+void fillV4L2Buffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
+{
+    buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type
+    buf.memory = V4L2_MEMORY_USERPTR;
+
+    uint32_t width[3];
+    uint32_t height[3];
+    uint32_t planes;
+    bool ret;
+    ret = getPlaneResolution(frame.fourcc, frame.width, frame.height, width, height,  planes);
+    ASSERT(ret && "get planes resolution failed");
+    unsigned long data = (unsigned long)frame.handle;
+    buf.length = planes;
+    for (int i = 0; i < planes; i++) {
+        buf.m.planes[i].bytesused = width[i] * height[i];
+        buf.m.planes[i].m.userptr = data + frame.offset[i];
+    }
 }
 
 bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enque it*/)
@@ -83,10 +99,7 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
 
     memset(&buf, 0, sizeof(buf));
     memset(&planes, 0, sizeof(planes));
-    buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type
-    buf.memory = V4L2_MEMORY_USERPTR;
     buf.m.planes = planes;
-    buf.length = inputFramePlaneCount;
 
     if (index == -1) {
         ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_DQBUF, &buf);
@@ -114,25 +127,7 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
         buf.m.planes[0].m.userptr = buf.m.planes[1].m.userptr = buf.m.planes[2].m.userptr = 0;
         buf.m.planes[0].bytesused = buf.m.planes[1].bytesused = buf.m.planes[2].bytesused = 0;
     } else {
-        switch (inputFourcc) {
-        case VA_FOURCC('I', '4', '2', '0'):
-            buf.m.planes[0].bytesused = videoWidth*videoHeight;
-            buf.m.planes[1].bytesused = videoWidth*videoHeight/4;
-            buf.m.planes[2].bytesused = videoWidth*videoHeight/4;
-            buf.m.planes[0].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index].data);
-            buf.m.planes[1].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index].data + videoWidth*videoHeight);
-            buf.m.planes[2].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index].data + videoWidth*videoHeight*5/4);
-            buf.length = 3;
-        break;
-        case VA_FOURCC_YUY2:
-            buf.m.planes[0].bytesused = videoWidth*videoHeight*2;
-            buf.m.planes[0].m.userptr = reinterpret_cast<unsigned long>(inputFrames[buf.index].data);
-            buf.length = 1;
-        break;
-        default:
-            ASSERT(0);
-        break;
-        }
+        fillV4L2Buffer(buf, inputFrames[buf.index]);
     }
 
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
@@ -315,9 +310,9 @@ int main(int argc, char** argv)
     inputQueueCapacity = reqbufs.count;
 
     for (i=0; i<inputQueueCapacity; i++)
-        inputFrames[i].data = static_cast<uint8_t*>(malloc(inputFrameSize));
+        inputFrames[i].handle = reinterpret_cast<intptr_t>(malloc(inputFrameSize));
     for (i=inputQueueCapacity; i<kMaxFrameQueueLength; i++)
-        inputFrames[i].data = NULL;
+        inputFrames[i].handle = 0;
 
     // setup output buffers
     memset(&reqbufs, 0, sizeof(reqbufs));

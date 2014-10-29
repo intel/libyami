@@ -35,13 +35,13 @@ class EncodeStreamInput;
 class EncodeStreamInputFile;
 class EncodeStreamInputCamera;
 class EncodeStreamInput {
-public:    
+public:
     static EncodeStreamInput* create(const char* inputFileName, uint32_t fourcc, int width, int height);
     EncodeStreamInput() : m_width(0), m_height(0), m_frameSize(0) {};
     ~EncodeStreamInput() {};
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height) = 0;
-    virtual bool getOneFrameInput(VideoEncRawBuffer &inputBuffer) = 0;
-    virtual bool recycleOneFrameInput(VideoEncRawBuffer &inputBuffer) {return true;};
+    virtual bool getOneFrameInput(VideoFrameRawData &inputBuffer) = 0;
+    virtual bool recycleOneFrameInput(VideoFrameRawData &inputBuffer) {return true;};
     virtual bool isEOS() = 0;
     int getWidth() { return m_width;}
     int getHeight() { return m_height;}
@@ -58,7 +58,7 @@ public:
     EncodeStreamInputFile();
     ~EncodeStreamInputFile();
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
-    virtual bool getOneFrameInput(VideoEncRawBuffer &inputBuffer);
+    virtual bool getOneFrameInput(VideoFrameRawData &inputBuffer);
     virtual bool isEOS() {return m_readToEOS;}
 
 protected:
@@ -80,8 +80,8 @@ public:
     virtual bool init(const char* cameraPath, uint32_t fourcc, int width, int height);
     bool setDataMode(CameraDataMode mode = CAMERA_DATA_MODE_MMAP) {m_dataMode = mode; return true;};
 
-    virtual bool getOneFrameInput(VideoEncRawBuffer &inputBuffer);
-    virtual bool recycleOneFrameInput(VideoEncRawBuffer &inputBuffer);
+    virtual bool getOneFrameInput(VideoFrameRawData &inputBuffer);
+    virtual bool recycleOneFrameInput(VideoFrameRawData &inputBuffer);
     virtual bool isEOS() { return false; }
     // void getSupportedResolution();
 private:

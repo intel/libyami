@@ -34,7 +34,9 @@
 #include <sys/ioctl.h>
 #include <linux/videodev2.h>
 #include "common/log.h"
+#include "common/utils.h"
 #include "encodeinput.h"
+
 
 #define IOCTL_CHECK_RET(fd, cmd, cmdStr, arg, retVal)  do {     \
         int ret = 0;                                            \
@@ -289,28 +291,24 @@ bool EncodeStreamInputCamera::enqueFrame(int32_t index)
     return true;
 }
 
-bool EncodeStreamInputCamera::getOneFrameInput(VideoEncRawBuffer &inputBuffer)
+bool EncodeStreamInputCamera::getOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     int frameIndex = dequeFrame();
     ASSERT(frameIndex>=0 && frameIndex<m_frameBufferCount);
 
     memset(&inputBuffer, 0, sizeof(inputBuffer));
-    inputBuffer.data = m_frameBuffers[frameIndex];
-    inputBuffer.fourcc = m_fourcc;
-    inputBuffer.bufAvailable = 0;
-    inputBuffer.size = m_frameBufferSize;
-    inputBuffer.timeStamp = 0;
-    inputBuffer.id = frameIndex;
+    bool ret = fillFrameRawData(&inputBuffer, m_fourcc, m_width, m_height, m_frameBuffers[frameIndex]);
+    inputBuffer.internalID = frameIndex;
 
     return true;
 }
 
-bool EncodeStreamInputCamera::recycleOneFrameInput(VideoEncRawBuffer &inputBuffer)
+bool EncodeStreamInputCamera::recycleOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     INFO();
 
-    ASSERT(inputBuffer.id>=0 && inputBuffer.id<m_frameBufferCount);
-    bool ret = enqueFrame(inputBuffer.id);
+    ASSERT(inputBuffer.internalID >= 0 && inputBuffer.internalID < m_frameBufferCount);
+    bool ret = enqueFrame(inputBuffer.internalID);
     ASSERT(ret);
     return ret;
 }

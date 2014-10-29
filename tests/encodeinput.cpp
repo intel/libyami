@@ -171,30 +171,28 @@ bool EncodeStreamInputFile::init(const char* inputFileName, uint32_t fourcc, int
     return true;
 }
 
-bool EncodeStreamInputFile::getOneFrameInput(VideoEncRawBuffer &inputBuffer)
+bool EncodeStreamInputFile::getOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     if (m_readToEOS)
         return false;
 
     uint8_t *buffer = m_buffer;
-    if (inputBuffer.data)
-        buffer = inputBuffer.data;
+    if (inputBuffer.handle)
+        buffer = reinterpret_cast<uint8_t*>(inputBuffer.handle);
 
     int ret = fread(buffer, sizeof(uint8_t), m_frameSize, m_fp);
 
     if (ret <= 0) {
         m_readToEOS = true;
         return false;
-    } else if (ret < m_frameSize) {
-        fprintf (stderr, "data is not enough to read, maybe resolution is wrong\n");
-        return false;
-    } else {
-        inputBuffer.data = buffer;
-        inputBuffer.size = m_frameSize;
     }
 
-    inputBuffer.fourcc = m_fourcc;
-    return true;
+    if (ret < m_frameSize) {
+        fprintf (stderr, "data is not enough to read, maybe resolution is wrong\n");
+        return false;
+    }
+
+    return fillFrameRawData(&inputBuffer, m_fourcc, m_width, m_height, buffer);
 }
 
 EncodeStreamInputFile::~EncodeStreamInputFile()

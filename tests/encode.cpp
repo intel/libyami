@@ -46,7 +46,7 @@ int main(int argc, char** argv)
     EncodeStreamInput* input;
     EncodeStreamOutput* output;
     Encode_Status status;
-    VideoEncRawBuffer inputBuffer;
+    VideoFrameRawData inputBuffer;
     VideoEncOutputBuffer outputBuffer;
     int encodeFrameCount = 0;
 

@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     EncodeInputHandler input;
     EncodeOutputHandler output;
     Encode_Status status;
-    VideoEncRawBuffer inputBuffer;
+    VideoFrameRawData inputBuffer;
     VideoEncOutputBuffer outputBuffer;
 
     if (!process_cmdline(argc, argv))

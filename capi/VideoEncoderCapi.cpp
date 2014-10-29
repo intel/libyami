@@ -50,7 +50,7 @@ void encodeStop(EncodeHandler p)
         ((IVideoEncoder*)p)->stop();
 }
 
-Encode_Status encode(EncodeHandler p, VideoEncRawBuffer * inBuffer)
+Encode_Status encode(EncodeHandler p, VideoFrameRawData * inBuffer)
 {
     if(p)
         return ((IVideoEncoder*)p)->encode(inBuffer);
