@@ -187,8 +187,10 @@ AC_SUBST(pkgconfigdir)
 
 PKG_CHECK_MODULES(LIBVA, [libva])
 PKG_CHECK_MODULES(LIBVA_DRM, [libva-drm])
+if test "$enable_x11" = "yes"; then
 PKG_CHECK_MODULES(LIBVA_X11, [libva-x11],
 	         [AC_DEFINE([HAVE_VA_X11], [1], [Defined to 1 if VA/X11 API is enabled])])
+fi
 if test "$enable_v4l2" = "yes"; then
 PKG_CHECK_MODULES(LIBV4L2, [libv4l2])
 fi

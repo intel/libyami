@@ -192,7 +192,7 @@ const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
     return buffer;
 }
 
-Decode_Status VaapiDecoderBase::getOutput(Drawable draw, int64_t *timeStamp
+Decode_Status VaapiDecoderBase::getOutput(unsigned long draw, int64_t *timeStamp
     , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
     , int frameX, int frameY, int frameWidth, int frameHeight)
 {
