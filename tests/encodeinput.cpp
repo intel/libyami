@@ -33,6 +33,7 @@
 #include "common/utils.h"
 
 #include "encodeinput.h"
+#include "encodeInputDecoder.h"
 
 using namespace YamiMediaCodec;
 
@@ -42,7 +43,10 @@ EncodeStreamInput * EncodeStreamInput::create(const char* inputFileName, uint32_
     if (!inputFileName)
         return NULL;
 
-    if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video"))) {
+    DecodeStreamInput* decodeInput = DecodeStreamInput::create(inputFileName);
+    if (decodeInput) {
+        input = new EncodeStreamInputDecoder(decodeInput);
+    } else if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video"))) {
         input = new EncodeStreamInputCamera;
     } else {
         input =  new EncodeStreamInputFile;

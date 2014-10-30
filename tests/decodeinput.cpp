@@ -48,7 +48,7 @@ DecodeStreamInput::~DecodeStreamInput()
         free(m_buffer);
 }
 
-bool DecodeStreamInput::initInput(char* fileName)
+bool DecodeStreamInput::initInput(const char* fileName)
 {
     m_fp = fopen(fileName, "r");
     if (!m_fp) {
@@ -60,13 +60,13 @@ bool DecodeStreamInput::initInput(char* fileName)
     return init();
 }
 
-DecodeStreamInput* DecodeStreamInput::create(char* fileName)
+DecodeStreamInput* DecodeStreamInput::create(const char* fileName)
 {
     DecodeStreamInput* input = NULL;
     IVideoDecoder* decoder;
     if(fileName==NULL)
         return NULL;
-    char *ext = strrchr(fileName,'.');
+    const char *ext = strrchr(fileName,'.');
     if(ext==NULL)
         return NULL;
     ext++;//h264;264;jsv;avc;26l;jvt;ivf

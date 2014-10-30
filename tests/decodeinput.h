@@ -33,8 +33,8 @@ public:
     static const int CacheBufferSize = 4 * MaxNaluSize;
     DecodeStreamInput();
     virtual ~DecodeStreamInput();
-    static DecodeStreamInput * create(char* fileName);
-    bool initInput(char* fileName);
+    static DecodeStreamInput * create(const char* fileName);
+    bool initInput(const char* fileName);
     virtual bool isEOS() {return m_parseToEOS;}
     virtual const char * getMimeType() = 0;
     virtual bool init() = 0;

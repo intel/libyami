@@ -36,6 +36,7 @@ endif
 YAMI_ENCODE_LIBS = \
 	$(YAMI_COMMON_LIBS)                             \
 	$(top_builddir)/encoder/libyami_encoder.la      \
+	$(YAMI_DECODE_LIBS)								\
 	$(NULL)
 
 V4L2_DECODE_LIBS = \
@@ -69,7 +70,7 @@ decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
 encodecapi_LDADD	= $(CAPI_ENCODE_LIBS)
-encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputCapi.cpp
+encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp encodeInputCapi.cpp decodeinput.cpp
 else
 yamidecode_LDADD	= $(YAMI_DECODE_LIBS)
 yamidecode_SOURCES	= decode.cpp decodehelp.h decodeinput.cpp decodeoutput.cpp
@@ -78,11 +79,11 @@ yamidecode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
 yamiencode_LDADD    = $(YAMI_ENCODE_LIBS)
-yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp
+yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp decodeinput.cpp
 
 v4l2decode_LDADD = $(V4L2_DECODE_LIBS)
 v4l2decode_SOURCES = v4l2decode.cpp decodehelp.h decodeinput.cpp ../egl/egl_util.c ./egl/gles2_help.c
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
-v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp
+v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp decodeinput.cpp
 endif

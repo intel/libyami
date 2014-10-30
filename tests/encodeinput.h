@@ -19,6 +19,9 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+#ifndef encodeinput_h
+#define  encodeinput_h
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -132,3 +135,5 @@ private:
 };
 
 bool createOutputBuffer(VideoEncOutputBuffer* outputBuffer, int maxOutSize);
+
+#endif
