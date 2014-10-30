@@ -62,7 +62,7 @@ CAPI_ENCODE_LIBS = \
 
 
 if ENABLE_CAPI
-decodecapi_LDADD	= $(CAPI_ENCODE_LIBS)
+decodecapi_LDADD	= $(CAPI_DECODE_LIBS)
 decodecapi_SOURCES	= decodecapi.c decodehelp.h decodeinput.cpp  decodeoutput.cpp decodeInputCapi.cpp decodeOutputCapi.cpp
 if ENABLE_TESTS_GLES
 decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
