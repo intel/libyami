@@ -36,11 +36,9 @@
 #include "common/log.h"
 #include "v4l2/v4l2_wrapper.h"
 #include "decodeinput.h"
+#include "decodehelp.h"
 #include "./egl/gles2_help.h"
 #include "interface/VideoCommonDefs.h"
-
-static char *fileName = NULL;
-static char *dumpOutputDir = NULL;
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
@@ -129,8 +127,8 @@ bool dumpOneVideoFrame(int32_t index)
 
     if (!outfp) {
         char outFileName[256];
-        char* baseFileName = fileName;
-        char *s = strrchr(fileName, '/');
+        char* baseFileName = inputFileName;
+        char *s = strrchr(inputFileName, '/');
         if (s)
             baseFileName = s+1;
         // V4L2 reports fourcc as NM12 (planar NV12), use hard code here
@@ -251,56 +249,26 @@ bool handleResolutionChange(int32_t fd)
     return true;
 }
 
-static void print_help(const char* app)
-{
-    printf("%s <options>\n", app);
-    printf("   -i media file to decode\n");
-    printf("   -o dumped output dir\n");
-    printf("   -m <render mode>\n");
-    printf("      0: dump video frame to file\n");
-    printf("      1: texture: export video frame as drm name (RGBX) + texture from drm name\n");
-    printf("      2: texture: export video frame as dma_buf(RGBX) + texutre from dma_buf\n");
-    printf("      3: texture: export video frame as dma_buf(NV12) + texture from dma_buf\n");
-}
-
 int main(int argc, char** argv)
 {
-    int renderMode = 1;
     DecodeStreamInput *input;
     int32_t fd = -1;
     int32_t i = 0;
     int32_t ioctlRet = -1;
     char opt;
 
+    renderMode = 3; // set default render mode to 3
+
     yamiTraceInit();
 
-    while ((opt = getopt(argc, argv, "h:m:i:o:?:")) != -1)
-    {
-        switch (opt) {
-        case 'h':
-        case '?':
-            print_help (argv[0]);
-            return false;
-        case 'i':
-            fileName = strdup(optarg);
-            break;
-        case 'o':
-            if (optarg)
-                dumpOutputDir = strdup(optarg);
-            break;
-        case 'm':
-            renderMode = atoi(optarg);
-            break;
-        default:
-            print_help(argv[0]);
-            break;
-        }
-    }
-    if (!fileName) {
-        fprintf(stderr, "no input media file specified\n");
+    if (!process_cmdline(argc, argv))
+        return -1;
+
+    if (!inputFileName) {
+        ERROR("no input media file specified\n");
         return -1;
     }
-    fprintf(stderr, "input file: %s, renderMode: %d", fileName, renderMode);
+    ERROR("input file: %s, renderMode: %d", inputFileName, renderMode);
 
     if (!dumpOutputDir)
         dumpOutputDir = strdup ("./");
@@ -309,20 +277,20 @@ int main(int argc, char** argv)
     case 0:
         memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;
     break;
-    case 1:
+    case 3:
         memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
     break;
-    case 2:
+    case 4:
         memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
     break;
     default:
-        ASSERT("");
+        ASSERT(0);
     break;
     }
 
-    input = DecodeStreamInput::create(fileName);
+    input = DecodeStreamInput::create(inputFileName);
     if (input==NULL) {
-        fprintf(stderr, "fail to init input stream\n");
+        ERROR("fail to init input stream\n");
         return -1;
     }
 
@@ -596,9 +564,6 @@ int main(int argc, char** argv)
     if(input)
         delete input;
 
-    if (fileName)
-        free(fileName);
-
     if (outfp)
         fclose(outfp);
 
@@ -610,6 +575,6 @@ int main(int argc, char** argv)
     if (x11Display)
         XCloseDisplay(x11Display);
 
-    fprintf(stderr, "decode done\n");
+    fprintf(stdout, "decode done\n");
 }
 

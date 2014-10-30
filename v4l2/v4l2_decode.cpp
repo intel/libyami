@@ -375,7 +375,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     }
 
     if (ret == -1 && errno != EAGAIN) {
-        ERROR("ioctl failed");
+        // ERROR("ioctl failed");
         WARNING("ioctl command: %s failed", IoctlCommandString(command));
     }
 
