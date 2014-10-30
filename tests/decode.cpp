@@ -110,22 +110,8 @@ int main(int argc, char** argv)
 
     // drain the output buffer
     renderOutputFrames(output, true);
+    possibleWait(input->getMimeType());
 
-#if 0
-#ifdef __ENABLE_X11__
-    while (waitBeforeQuit) {
-        XEvent x_event;
-        XNextEvent(x11Display, &x_event);
-        switch (x_event.type) {
-        case KeyPress:
-            waitBeforeQuit = false;
-            break;
-        default:
-            break;
-        }
-    }
-#endif
-#endif
     decoder->stop();
     releaseVideoDecoder(decoder);
 

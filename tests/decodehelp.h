@@ -46,16 +46,16 @@ extern "C" {
 #endif
 char *dumpOutputDir = NULL;
 uint32_t dumpFourcc = VA_FOURCC_I420;
-int renderMode = 1;
-bool waitBeforeQuit = false;
 char *inputFileName = NULL;
+static int renderMode = 1;
+static int32_t waitBeforeQuit = 1;
 
 
 static void print_help(const char* app)
 {
     printf("%s <options>\n", app);
     printf("   -i media file to decode\n");
-    printf("   -w wait before quit\n");
+    printf("   -w wait before quit: 0:no-wait, 1:auto(jpeg wait), 2:wait\n");
     printf("   -f dumped fourcc [*]\n");
     printf("   -o dumped output dir\n");
     printf("   -m <render mode>\n");
@@ -83,7 +83,7 @@ static bool process_cmdline(int argc, char *argv[])
             inputFileName = optarg;
             break;
         case 'w':
-            waitBeforeQuit = true;
+            waitBeforeQuit = atoi(optarg);
             break;
         case 'm':
             renderMode = atoi(optarg);
@@ -119,6 +119,26 @@ static bool process_cmdline(int argc, char *argv[])
         return -1;
     }
 #endif
+    return true;
+}
+
+static bool possibleWait(const char* mimeType)
+{
+    // waitBeforeQuit 0:no-wait, 1:auto(jpeg wait), 2:wait
+    switch(waitBeforeQuit) {
+    case 0:
+        break;
+    case 1:
+        if (renderMode == 0 || strcmp(mimeType, "image/jpeg"))
+            break;
+    case 2:
+        fprintf(stdout, "press any key to continue ...");
+        getchar();
+        break;
+    default:
+        break;
+    }
+
     return true;
 }
 

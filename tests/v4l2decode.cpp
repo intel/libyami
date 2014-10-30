@@ -510,6 +510,7 @@ int main(int argc, char** argv)
     }
 
     // YamiV4L2_Munmap(void* addr, size_t length)
+    possibleWait(input->getMimeType());
 
     // release queued input/output buffer
     memset(&reqbufs, 0, sizeof(reqbufs));
