@@ -136,7 +136,7 @@ bool V4l2Decoder::outputPulse(int32_t &index)
             return false;
         frame = &m_outputRawFrames[index];
         ASSERT(frame->handle);
-        frame->fourcc = 0;
+        frame->fourcc = VA_FOURCC_NV12;
     }
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
         if (m_eglImages.empty())
@@ -273,7 +273,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             // ::CreateInputBuffers
             ASSERT(format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_H264
                 || format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_VP8
-                || format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_JPEG); // XXX V4L2_PIX_FMT_MJPEG
+                || format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_MJPEG);
             ASSERT(format->fmt.pix_mp.num_planes == 1);
             ASSERT(format->fmt.pix_mp.plane_fmt[0].sizeimage);
             switch (format->fmt.pix_mp.pixelformat) {
@@ -286,12 +286,23 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                     m_configBuffer.size = 0;
                 }
                 break;
-                case V4L2_PIX_FMT_VP8:
-                    m_decoder.reset(createVideoDecoder("video/vp8"), releaseVideoDecoder);
+                case V4L2_PIX_FMT_VP8: {
+                    m_decoder.reset(createVideoDecoder("video/x-vnd.on2.vp8"), releaseVideoDecoder);
                     m_configBuffer.profile = VAProfileVP8Version0_3;
-                    m_configBuffer.surfaceNumber = 20;
+                    m_configBuffer.surfaceNumber = 8;
                     m_configBuffer.data = NULL;
                     m_configBuffer.size = 0;
+                }
+                break;
+                case V4L2_PIX_FMT_MJPEG: {
+                    m_decoder.reset(createVideoDecoder("image/jpeg"), releaseVideoDecoder);
+                    memset(&m_configBuffer, 0, sizeof(m_configBuffer));
+                    m_configBuffer.profile = VAProfileJPEGBaseline;
+                    m_configBuffer.surfaceNumber = 4;
+                    m_configBuffer.data = NULL;
+                    m_configBuffer.size = 0;
+                }
+                break;
                 default:
                     ret = -1;
                 break;

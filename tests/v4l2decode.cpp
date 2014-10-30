@@ -75,6 +75,7 @@ static EGLContextType *context = NULL;
 static std::vector<EGLImageKHR> eglImages;
 static std::vector<GLuint> textureIds;
 static bool isReadEOS=false;
+static int32_t stagingBufferInDevice = 0;
 
 bool feedOneInputFrame(DecodeStreamInput * input, int fd, int index = -1 /* if index is not -1, simple enque it*/)
 {
@@ -96,6 +97,7 @@ bool feedOneInputFrame(DecodeStreamInput * input, int fd, int index = -1 /* if i
         ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_DQBUF, &buf);
         if (ioctlRet == -1)
             return true;
+        stagingBufferInDevice --;
     } else {
         buf.index = index;
     }
@@ -117,6 +119,7 @@ bool feedOneInputFrame(DecodeStreamInput * input, int fd, int index = -1 /* if i
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
 
+    stagingBufferInDevice ++;
     return true;
 }
 
@@ -338,10 +341,23 @@ int main(int argc, char** argv)
     ASSERT(ioctlRet != -1);
 
     // set input/output data format
+    uint32_t codecFormat = 0;
+    const char* mimeType = input->getMimeType();
+    if (!strcmp(mimeType, "video/h264"))
+        codecFormat = V4L2_PIX_FMT_H264;
+    else if (!strcmp(mimeType, "video/x-vnd.on2.vp8"))
+        codecFormat = V4L2_PIX_FMT_VP8;
+    else if (!strcmp(mimeType, "image/jpeg"))
+        codecFormat = V4L2_PIX_FMT_MJPEG;
+    else {
+        ERROR("unsupported mimetype");
+        return -1;
+    }
+
     struct v4l2_format format;
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_H264;
+    format.fmt.pix_mp.pixelformat = codecFormat;
     format.fmt.pix_mp.num_planes = 1;
     format.fmt.pix_mp.plane_fmt[0].sizeimage = k_maxInputBufferSize;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_FMT, &format);
@@ -403,7 +419,7 @@ int main(int argc, char** argv)
     // feed input frames first
     for (i=0; i<inputQueueCapacity; i++) {
         if (!feedOneInputFrame(input, fd, i)) {
-            ASSERT(0);
+            break;
         }
     }
 
@@ -511,6 +527,8 @@ int main(int argc, char** argv)
 
         takeOneOutputFrame(fd);
         if (!feedOneInputFrame(input, fd)) {
+            if (stagingBufferInDevice == 0)
+                break;
             dqCountAfterEOS++;
         }
         if (dqCountAfterEOS == inputQueueCapacity)  // input drain
