@@ -108,7 +108,6 @@ void V4l2CodecBase::setEosState(EosState eosState)
     m_eosState = eosState;
 }
 
-
 bool V4l2CodecBase::open(const char* name, int32_t flags)
 {
     m_fd[0] = eventfd(0, EFD_SEMAPHORE | EFD_CLOEXEC); // event for codec library, block on read(), one event per read()
@@ -326,11 +325,11 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             }
 
             m_streamOn[port] = false;
-            m_threadCond[port]->broadcast();
 
             // wait until the worker thread exit, some cleanup happend there
             while (m_threadOn[port]) {
                 DEBUG("%s port got STREAMOFF, wait until the worker thread exit/cleanup", THREAD_NAME(port));
+                m_threadCond[port]->broadcast();
                 usleep(5000);
             }
         }
