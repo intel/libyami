@@ -226,7 +226,7 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
         return false;
 
     if (frame->fourcc && image->getFormat() != frame->fourcc) {
-        if (!m_imagePool && !!ensureImagePool(*frame))
+        if (!m_imagePool && !ensureImagePool(*frame))
             return false;
 
         image = m_imagePool->acquireWithWait();
