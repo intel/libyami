@@ -281,17 +281,25 @@ bool DecodeStreamOutputX11::setVideoSize(int width, int height)
     return DecodeStreamOutput::setVideoSize(width, height);
 }
 
-
 bool DecodeStreamOutputX11::init()
 {
+    extern int renderMode;
     m_display = XOpenDisplay(NULL);
     if (!m_display)
         return false;
-    NativeDisplay nativeDisplay;
-    nativeDisplay.type = NATIVE_DISPLAY_X11;
-    nativeDisplay.handle = (intptr_t)m_display;
-    m_decoder->setNativeDisplay(&nativeDisplay);
 
+    NativeDisplay nativeDisplay;
+    if (renderMode == 0) {
+        nativeDisplay.type = NATIVE_DISPLAY_DRM;
+        nativeDisplay.handle = 0;
+        m_decoder->setNativeDisplay(&nativeDisplay);
+    } else {
+        nativeDisplay.type = NATIVE_DISPLAY_X11;
+        nativeDisplay.handle = (intptr_t)m_display;
+        m_decoder->setNativeDisplay(&nativeDisplay);
+    }
+
+    return true;
 }
 
 DecodeStreamOutputX11::DecodeStreamOutputX11(IVideoDecoder* decoder):DecodeStreamOutput(decoder)

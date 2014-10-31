@@ -268,7 +268,7 @@ int main(int argc, char** argv)
         ERROR("no input media file specified\n");
         return -1;
     }
-    ERROR("input file: %s, renderMode: %d", inputFileName, renderMode);
+    INFO("input file: %s, renderMode: %d", inputFileName, renderMode);
 
     if (!dumpOutputDir)
         dumpOutputDir = strdup ("./");
@@ -284,7 +284,7 @@ int main(int argc, char** argv)
         memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
     break;
     default:
-        ASSERT(0);
+        ASSERT(0 && "unsupported render mode, -m [0,3,4] are supported");
     break;
     }
 

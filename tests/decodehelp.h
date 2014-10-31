@@ -47,7 +47,7 @@ extern "C" {
 char *dumpOutputDir = NULL;
 uint32_t dumpFourcc = VA_FOURCC_I420;
 char *inputFileName = NULL;
-static int renderMode = 1;
+int renderMode = 1;
 static int32_t waitBeforeQuit = 1;
 
 
