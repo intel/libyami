@@ -74,15 +74,6 @@ int main(int argc, char** argv)
     memset(&configBuffer,0,sizeof(VideoConfigBuffer));
     configBuffer.profile = VAProfileNone;
 
-    if (renderMode == 0) {
-        NativeDisplay nativeDisplay;
-        nativeDisplay.type = NATIVE_DISPLAY_DRM;
-        nativeDisplay.handle = 0;
-        decoder->setNativeDisplay(&nativeDisplay);
-    } else {
-        // TODO, XXX, NativeDisplay should set here, not output->setVideoSize().
-    }
-
     status = decoder->start(&configBuffer);
     assert(status == DECODE_SUCCESS);
 
