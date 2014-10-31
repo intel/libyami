@@ -201,7 +201,9 @@ bool VaapiDecSurfacePool::exportFrame(ImagePtr image, VideoFrameRawData &frame, 
     frame.timeStamp = timeStamp;
     {
         AutoLock lock(m_exportFramesLock);
-        m_exportFrames[image->getID()] = rawImage;
+        ExportFrame frm;
+        frm.rawImage = rawImage;
+        m_exportFrames[image->getID()] = frm;
     }
 
     return true;
@@ -221,6 +223,23 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
     VaapiSurface *srf = m_surfaceMap[buffer->surface];
     ASSERT(srf);
     surface.reset(srf, SurfaceRecyclerRender(shared_from_this(), buffer));
+
+    if (frame->memoryType == VIDEO_DATA_MEMORY_TYPE_SURFACE_ID) {
+        frame->handle = (intptr_t) surface->getDisplay()->getID();
+        frame->width = surface->getWidth();
+        frame->height = surface->getHeight();
+        frame->internalID = surface->getID();
+        frame->fourcc = 0; // XXX improve VaapiSurface to retireve real fourcc 
+        frame->timeStamp = buffer->timeStamp;
+        {
+            AutoLock lock(m_exportFramesLock);
+            ExportFrame frm;
+            frm.surface = surface;
+            m_exportFrames[surface->getID()] = frm;
+        }
+        return true;
+    }
+
     ImagePtr image = VaapiImage::derive(surface);
     if (!image)
         return false;
