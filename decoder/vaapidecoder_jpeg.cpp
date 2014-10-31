@@ -328,12 +328,10 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
         return DECODE_FORMAT_CHANGE;
     }
 
-    if (!m_picture) {
-        m_picture = createPicture(m_currentPTS);
-
-        if (!m_picture)
-            return false;
-    }
+    m_picture = createPicture(m_currentPTS);
+    ASSERT(m_picture);
+    if (!m_picture)
+        return false;
 
     if (!m_picture) {
         ERROR("failed to allocate picture");
