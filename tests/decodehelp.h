@@ -72,7 +72,7 @@ static bool process_cmdline(int argc, char *argv[])
 {
     char opt;
 
-    while ((opt = getopt(argc, argv, "h:m:i:f:o:w?")) != -1)
+    while ((opt = getopt(argc, argv, "h:m:i:f:o:w:?")) != -1)
     {
         switch (opt) {
         case 'h':
@@ -113,12 +113,6 @@ static bool process_cmdline(int argc, char *argv[])
     if (!dumpOutputDir)
         dumpOutputDir = strdup ("./");
 
-#ifndef __ENABLE_TESTS_GLES__
-    if (renderMode > 1) {
-        fprintf(stderr, "renderMode=%d is not supported, please rebuild with --enable-tests-gles option\n", renderMode);
-        return -1;
-    }
-#endif
     return true;
 }
 

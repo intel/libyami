@@ -50,6 +50,11 @@ int main(int argc, char** argv)
     yamiTraceInit();
     if (!process_cmdline(argc, argv))
         return -1;
+    if (renderMode > 1) {
+        fprintf(stderr, "renderMode=%d is not supported, please rebuild with --enable-tests-gles option\n", renderMode);
+        return -1;
+    }
+
     input = DecodeStreamInput::create(inputFileName);
 
     if (input==NULL) {
