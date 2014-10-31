@@ -123,7 +123,12 @@ private:
 
     ImagePoolPtr m_imagePool;
 
-    typedef std::map<VAImageID, ImageRawPtr> ExportFrameMap;
+    class ExportFrame {
+      public:
+        ImageRawPtr rawImage;
+        SurfacePtr  surface;
+    };
+    typedef std::map<VAImageID, ExportFrame> ExportFrameMap;
     ExportFrameMap m_exportFrames;
     Lock m_exportFramesLock;
 

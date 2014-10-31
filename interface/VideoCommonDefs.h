@@ -60,6 +60,8 @@ typedef enum {
     VIDEO_DATA_MEMORY_TYPE_RAW_COPY,     // copy data to client provided buffer
     VIDEO_DATA_MEMORY_TYPE_DRM_NAME,
     VIDEO_DATA_MEMORY_TYPE_DMA_BUF,
+    VIDEO_DATA_MEMORY_TYPE_SURFACE_ID,  // it can be used for surface sharing of transcoding, benefits suppressed rendering as well.
+                                        //it is discouraged to use it for video rendering.
 } VideoDataMemoryType;
 
 typedef struct VideoFrameRawData{
