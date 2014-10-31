@@ -50,6 +50,17 @@ protected:
     IVideoDecoder* m_decoder;
 };
 
+class DecodeStreamOutputNull: public DecodeStreamOutput
+{
+friend DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode);
+public:
+    virtual Decode_Status renderOneFrame(bool drain);
+    ~DecodeStreamOutputNull() {};
+
+private:
+    DecodeStreamOutputNull(IVideoDecoder* decoder):DecodeStreamOutput(decoder) {};
+};
+
 class ColorConvert;
 class DecodeStreamOutputRaw : public DecodeStreamOutput
 {
