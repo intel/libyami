@@ -59,6 +59,7 @@ static void print_help(const char* app)
     printf("   -f dumped fourcc [*]\n");
     printf("   -o dumped output dir\n");
     printf("   -m <render mode>\n");
+    printf("     -1: skip video rendering\n");
     printf("      0: dump video frame to file\n");
     printf("      1: render to X window [*]\n");
     printf("      2: texture: render to Pixmap + texture from Pixmap [*]\n");

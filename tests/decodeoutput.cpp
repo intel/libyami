@@ -53,6 +53,22 @@ DecodeStreamOutput::DecodeStreamOutput(IVideoDecoder* decoder)
 
 }
 
+Decode_Status DecodeStreamOutputNull::renderOneFrame(bool drain)
+{
+    VideoFrameRawData frame;
+    frame.memoryType = VIDEO_DATA_MEMORY_TYPE_SURFACE_ID;
+    frame.width = 0;
+    frame.height = 0;
+    frame.fourcc = 0;
+
+    Decode_Status status = m_decoder->getOutput(&frame, drain);
+    if (status != RENDER_SUCCESS)
+        return status;
+
+    m_decoder->renderDone(&frame);
+    return status;
+}
+
 struct ColorConvert
 {
     ColorConvert(uint32_t destFourcc)
@@ -473,6 +489,8 @@ DecodeStreamOutputDmabuf::DecodeStreamOutputDmabuf(IVideoDecoder* decoder, Video
 
 DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode)
 {
+    if (mode == -1)
+        return new DecodeStreamOutputNull(decoder);
     if (mode == 0)
         return new DecodeStreamOutputFileDump(decoder);
 #ifdef __ENABLE_X11__
