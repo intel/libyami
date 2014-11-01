@@ -48,24 +48,30 @@ bool DecodeStreamOutput::setVideoSize(int width, int height)
 }
 
 DecodeStreamOutput::DecodeStreamOutput(IVideoDecoder* decoder)
-    :m_decoder(decoder), m_width(0), m_height(0)
+    :m_decoder(decoder), m_width(0), m_height(0), m_renderFrames(0)
 {
 
 }
 
+Decode_Status DecodeStreamOutput::processOneFrame(bool drain) 
+{
+    Decode_Status status = renderOneFrame(drain);
+
+    if (status == RENDER_SUCCESS)
+        m_renderFrames++;
+
+    m_decoder->renderDone(&m_frame);
+    return status;
+}
+
 Decode_Status DecodeStreamOutputNull::renderOneFrame(bool drain)
 {
-    VideoFrameRawData frame;
-    frame.memoryType = VIDEO_DATA_MEMORY_TYPE_SURFACE_ID;
-    frame.width = 0;
-    frame.height = 0;
-    frame.fourcc = 0;
+    m_frame.memoryType = VIDEO_DATA_MEMORY_TYPE_SURFACE_ID;
+    m_frame.width = 0;
+    m_frame.height = 0;
+    m_frame.fourcc = 0;
 
-    Decode_Status status = m_decoder->getOutput(&frame, drain);
-    if (status != RENDER_SUCCESS)
-        return status;
-
-    m_decoder->renderDone(&frame);
+    Decode_Status status = m_decoder->getOutput(&m_frame, drain);
     return status;
 }
 
@@ -142,21 +148,19 @@ private:
 
 Decode_Status DecodeStreamOutputRaw::renderOneFrame(bool drain)
 {
-    VideoFrameRawData frame;
-    frame.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
-    frame.width = 0;
-    frame.height = 0;
-    frame.fourcc = m_srcFourcc;
+    m_frame.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
+    m_frame.width = 0;
+    m_frame.height = 0;
+    m_frame.fourcc = m_srcFourcc;
 
-    Decode_Status status = m_decoder->getOutput(&frame, drain);
+    Decode_Status status = m_decoder->getOutput(&m_frame, drain);
     if (status != RENDER_SUCCESS)
         return status;
     assert(m_convert && "need set dest fourcc first");
-    VideoFrameRawData* converted = m_convert->convert(&frame);
+    VideoFrameRawData* converted = m_convert->convert(&m_frame);
     if (!converted || !render(converted)) {
         status = RENDER_FAIL;
     }
-    m_decoder->renderDone(&frame);
     return status;
 }
 
@@ -453,15 +457,14 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
 {
     glBindTexture(GL_TEXTURE_2D, m_textureId);
 
-    VideoFrameRawData frame;
-    frame.memoryType = m_memoryType;
-    frame.fourcc = VA_FOURCC_BGRX; // VAAPI BGRA match MESA ARGB
-    frame.width = m_width;
-    frame.height = m_height;
-    Decode_Status status = m_decoder->getOutput(&frame, drain);
+    m_frame.memoryType = m_memoryType;
+    m_frame.fourcc = VA_FOURCC_BGRX; // VAAPI BGRA match MESA ARGB
+    m_frame.width = m_width;
+    m_frame.height = m_height;
+    Decode_Status status = m_decoder->getOutput(&m_frame, drain);
     if (status == RENDER_SUCCESS) {
         EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
-        eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, frame.memoryType, frame.handle, frame.width, frame.height, frame.pitch[0]);
+        eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle, m_frame.width, m_frame.height, m_frame.pitch[0]);
         if (eglImage != EGL_NO_IMAGE_KHR) {
             glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -472,8 +475,6 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
         } else {
             ERROR("fail to create EGLImage from dma_buf");
         }
-
-        m_decoder->renderDone(&frame);
     }
     return status;
 }
@@ -529,7 +530,7 @@ bool renderOutputFrames(DecodeStreamOutput* output, bool drain)
 {
     Decode_Status status;
     do {
-        status = output->renderOneFrame(drain);
+        status = output->processOneFrame(drain);
     } while (status != RENDER_NO_AVAILABLE_FRAME && status > 0);
 }
 

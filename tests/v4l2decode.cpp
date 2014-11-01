@@ -34,6 +34,7 @@
 #include <vector>
 
 #include "common/log.h"
+#include "common/utils.h"
 #include "v4l2/v4l2_wrapper.h"
 #include "decodeinput.h"
 #include "decodehelp.h"
@@ -74,6 +75,7 @@ static std::vector<EGLImageKHR> eglImages;
 static std::vector<GLuint> textureIds;
 static bool isReadEOS=false;
 static int32_t stagingBufferInDevice = 0;
+static uint32_t renderFrameCount = 0;
 
 bool feedOneInputFrame(DecodeStreamInput * input, int fd, int index = -1 /* if index is not -1, simple enque it*/)
 {
@@ -186,7 +188,6 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
     struct v4l2_plane planes[k_maxOutputPlaneCount]; // YUV output, in fact, we use NV12 of 2 planes
     int ioctlRet = -1;
     bool ret = true;
-    static int outputFrameCount = 0;
 
     memset(&buf, 0, sizeof(buf));
     memset(&planes, 0, sizeof(planes));
@@ -200,7 +201,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
         if (ioctlRet == -1)
             return false;
 
-        outputFrameCount++;
+        renderFrameCount++;
         if (memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
             ret = displayOneVideoFrameEGL(fd, buf.index);
         else
@@ -212,7 +213,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
 
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
-    INFO("outputFrameCount: %d", outputFrameCount);
+    INFO("renderFrameCount: %d", renderFrameCount);
     return true;
 }
 
@@ -256,6 +257,7 @@ int main(int argc, char** argv)
     int32_t i = 0;
     int32_t ioctlRet = -1;
     char opt;
+    YamiMediaCodec::CalcFps calcFps;
 
     renderMode = 3; // set default render mode to 3
 
@@ -294,6 +296,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    renderFrameCount = 0;
+    calcFps.setAnchor();
     // open device
     fd = YamiV4L2_Open("decoder", 0);
     ASSERT(fd!=-1);
@@ -509,6 +513,7 @@ int main(int argc, char** argv)
         usleep(10000);
     }
 
+    calcFps.fps(renderFrameCount);
     // YamiV4L2_Munmap(void* addr, size_t length)
     possibleWait(input->getMimeType());
 

@@ -30,6 +30,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <sys/time.h>
 #include <va/va.h>
 
 namespace YamiMediaCodec{
@@ -103,6 +104,35 @@ bool getPlaneResolution(uint32_t fourcc, uint32_t pixelWidth, uint32_t pixelHeig
         }
     }
     return true;
+}
+
+/// return system clock in ms
+uint64_t getSystemTime()
+{
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL))
+        return 0;
+    return tv.tv_usec/1000+tv.tv_sec*1000;
+}
+
+void CalcFps::setAnchor()
+{
+    m_timeStart = getSystemTime();
+}
+
+float CalcFps::fps(uint32_t frameCount)
+{
+    if (!m_timeStart) {
+        fprintf(stderr, "anchor point isn't set, please call setAnchor first\n");
+        return 0.0f;
+    }
+
+    uint64_t sysTime = getSystemTime() - m_timeStart;
+    float fps = frameCount*1000.0/sysTime;
+    fprintf(stdout, "rendered frame count: %d in %ld ms; fps=%.2f\n",
+            frameCount, sysTime, fps);
+
+    return fps;
 }
 
 };

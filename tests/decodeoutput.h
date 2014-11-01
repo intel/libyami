@@ -41,12 +41,17 @@ public:
     static DecodeStreamOutput* create(IVideoDecoder* decoder, int mode);
     virtual bool setVideoSize(int width, int height);
     virtual Decode_Status renderOneFrame(bool drain) = 0;
+    Decode_Status processOneFrame(bool drain);
+    uint32_t renderFrameCount() { return m_renderFrames; };
+
     virtual ~DecodeStreamOutput() {};
 
 protected:
     DecodeStreamOutput(IVideoDecoder* decoder);
+    VideoFrameRawData m_frame;
     int m_width;
     int m_height;
+    uint32_t m_renderFrames;
     IVideoDecoder* m_decoder;
 };
 
