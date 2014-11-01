@@ -93,6 +93,9 @@ typedef enum {
     // indicate whether video decoder buffer contains secure data
     IS_SECURE_DATA = 0x8000,
 
+    // indicate the input data is a NAL unit for h264
+    IS_NAL_UNIT = IS_SECURE_DATA << 1, // 0x10000
+
 } VIDEO_BUFFER_FLAG;
 
 typedef struct {
