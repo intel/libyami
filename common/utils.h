@@ -35,7 +35,17 @@ uint32_t guessFourcc(const char* fileName);
 
 bool getPlaneResolution(uint32_t fourcc, uint32_t pixelWidth, uint32_t pixelHeight, uint32_t byteWidth[3], uint32_t byteHeight[3],  uint32_t& planes);
 
+class CalcFps
+{
+  public:
+    CalcFps() { m_timeStart = 0;};
+    void setAnchor();
+    float fps(uint32_t frameCount);
+
+  private:
+    uint64_t m_timeStart;
 };
 
+};
 
 #endif
