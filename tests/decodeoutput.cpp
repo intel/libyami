@@ -236,7 +236,12 @@ bool DecodeStreamOutputFileDump::render(VideoFrameRawData* frame)
     uint32_t planes;
     if (!m_fp)
         return false;
-    if (!getPlaneResolution(frame->fourcc, frame->width, frame->height, width, height, planes))
+
+    /* XXX
+     * use the video resolution from DECODE_FORMAT_CHANGE, since vp8 changes resolution dynamically.
+     * the decent fix should happen in libyami by adding crop region to surface/image, and update in frame.width/height
+     */
+    if (!getPlaneResolution(frame->fourcc, m_width /* frame->width */, m_height /* frame->height */, width, height, planes))
         return false;
     for (int i = 0; i < planes; i++) {
         uint8_t* data = reinterpret_cast<uint8_t*>(frame->handle);
@@ -463,8 +468,13 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
     m_frame.height = m_height;
     Decode_Status status = m_decoder->getOutput(&m_frame, drain);
     if (status == RENDER_SUCCESS) {
-        EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
-        eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle, m_frame.width, m_frame.height, m_frame.pitch[0]);
+     /* XXX
+     * use the video resolution from DECODE_FORMAT_CHANGE, since VASurface/VAImage width/height may be greater than video frame size
+     * the decent fix should happen in libyami by adding crop region to surface/image, and update in frame.width/height
+     */
+       EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
+        eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle,
+                m_width /* m_frame.width */, m_height /* m_frame.height */, m_frame.pitch[0]);
         if (eglImage != EGL_NO_IMAGE_KHR) {
             glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
