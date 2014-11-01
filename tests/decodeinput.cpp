@@ -228,7 +228,7 @@ bool DecodeStreamInputRaw::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 
     inputBuffer.data = m_buffer + m_lastReadOffset;
     inputBuffer.size = offset;
-    // inputBuffer.flag = ;
+    inputBuffer.flag = IS_NAL_UNIT;
     // inputBuffer.timeStamp = ; // ignore timestamp
     if (!m_parseToEOS)
        inputBuffer.size += StartCodeSize; // one inputBuffer is start and end with start code

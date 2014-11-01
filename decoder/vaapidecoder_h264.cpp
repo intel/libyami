@@ -1501,23 +1501,28 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
             if (size < 4)
                 break;
 
-            /* skip the un-used bit before start code */
-            ofs = scanForStartCode(buf, 0, size, &startCode);
-            if (ofs < 0)
-                break;
+            if (buffer->flag & IS_NAL_UNIT) {
+                bufSize = buffer->size;
+                size = 0;
+            } else {
+                /* skip the un-used bit before start code */
+                ofs = scanForStartCode(buf, 0, size, &startCode);
+                if (ofs < 0)
+                    break;
 
-            buf += ofs;
-            size -= ofs;
+                buf += ofs;
+                size -= ofs;
 
-            /* find the length of the nal */
-            ofs =
-                (size < 7) ? -1 : scanForStartCode(buf, 3, size - 3, NULL);
-            if (ofs < 0) {
-                ofs = size - 3;
+                /* find the length of the nal */
+                ofs =
+                    (size < 7) ? -1 : scanForStartCode(buf, 3, size - 3, NULL);
+                if (ofs < 0) {
+                    ofs = size - 3;
+                }
+
+                bufSize = ofs + 3;
+                size -= (ofs + 3);
             }
-
-            bufSize = ofs + 3;
-            size -= (ofs + 3);
 
             result = h264_parser_identify_nalu_unchecked(&m_parser,
                                                          buf, 0, bufSize,
