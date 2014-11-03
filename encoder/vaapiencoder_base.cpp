@@ -162,6 +162,9 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PT
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
+            //dirty work around, force rcmod before we support more
+            m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
+            //end
         } else
             ret = ENCODE_INVALID_PARAMS;
         m_maxCodedbufSize = 0; // resolution may change, recalculate max codec buffer size when it is requested
