@@ -510,13 +510,14 @@ public:
 
     Encode_Status getCodecConfig(VideoEncOutputBuffer *outBuffer)
     {
-        ASSERT(outBuffer && outBuffer->flag == OUTPUT_CODEC_DATA || outBuffer->flag == OUTPUT_EVERYTHING);
+        ASSERT(outBuffer && outBuffer->format == OUTPUT_CODEC_DATA || outBuffer->format == OUTPUT_EVERYTHING);
         if (outBuffer->bufferSize < m_headers.size())
             return ENCODE_BUFFER_TOO_SMALL;
         if (m_headers.empty())
             return ENCODE_NO_REQUEST_DATA;
         std::copy(m_headers.begin(), m_headers.end(), outBuffer->data);
         outBuffer->dataSize = m_headers.size();
+        outBuffer->flag |= ENCODE_BUFFERFLAG_CODECCONFIG;
         return ENCODE_SUCCESS;
     }
 private:
@@ -608,17 +609,21 @@ public:
     virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer)
     {
         ASSERT(outBuffer);
-        uint32_t flag = outBuffer->flag;
+        VideoOutputFormat format = outBuffer->format;
+        //make a local copy of out Buffer;
         VideoEncOutputBuffer out = *outBuffer;
+        out.flag = 0;
 
         std::vector<Function> functions;
-        if (flag == OUTPUT_CODEC_DATA || ((flag == OUTPUT_EVERYTHING) && isIdr()))
+        if (format == OUTPUT_CODEC_DATA || ((format == OUTPUT_EVERYTHING) && isIdr()))
             functions.push_back(std::tr1::bind(&VaapiEncStreamHeaderH264::getCodecConfig, m_headers,&out));
-        if (flag == OUTPUT_EVERYTHING || flag == OUTPUT_FRAME_DATA)
+        if (format == OUTPUT_EVERYTHING || format == OUTPUT_FRAME_DATA)
             functions.push_back(std::tr1::bind(getOutputHelper, this, &out));
         Encode_Status ret = getOutput(&out, functions);
-        if (ret == ENCODE_SUCCESS)
+        if (ret == ENCODE_SUCCESS) {
             outBuffer->dataSize = out.data - outBuffer->data;
+            outBuffer->flag = out.flag;
+        }
         return ret;
     }
 
@@ -680,7 +685,7 @@ VaapiEncoderH264::VaapiEncoderH264():
     m_useCabac(false),
     m_useDct8x8(false),
     m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
-    m_streamFormat(AVC_STREAM_FORMAT_AVCC)
+    m_streamFormat(AVC_STREAM_FORMAT_ANNEXB)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;

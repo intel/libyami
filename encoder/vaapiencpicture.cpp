@@ -81,7 +81,7 @@ Encode_Status VaapiEncPicture::getOutput(VideoEncOutputBuffer * outBuffer)
     }
     if (size > 0) {
         m_codedBuffer->copyInto(outBuffer->data);
-        outBuffer->flag = m_codedBuffer->getFlags();
+        outBuffer->flag |= m_codedBuffer->getFlags();
     }
     outBuffer->dataSize = size;
     return ENCODE_SUCCESS;
