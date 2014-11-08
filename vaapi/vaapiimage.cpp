@@ -374,13 +374,21 @@ VAImageID VaapiImage::getID()
     return m_image->image_id;
 }
 
+
 uint32_t VaapiImage::getWidth()
 {
+    if (m_surface)
+        return m_surface->getWidth();
+
     return m_image->width;
 }
 
 uint32_t VaapiImage::getHeight()
 {
+    if (m_surface)
+        return m_surface->getHeight();
+
     return m_image->height;
 }
+
 }

@@ -99,8 +99,9 @@ VaapiSurface::VaapiSurface(const DisplayPtr& display,
                            VaapiChromaType chromaType,
                            uint32_t width,
                            uint32_t height, uint32_t externalBufHandle)
-:m_display(display), m_chromaType(chromaType), m_width(width),
-m_height(height),m_externalBufHandle(externalBufHandle), m_ID(id)
+    : m_display(display), m_chromaType(chromaType)
+    , m_allocWidth(width), m_allocHeight(height), m_width(width), m_height(height)
+    , m_externalBufHandle(externalBufHandle), m_ID(id)
 {
 
 }
@@ -134,6 +135,16 @@ uint32_t VaapiSurface::getWidth(void)
 uint32_t VaapiSurface::getHeight(void)
 {
     return m_height;
+}
+
+bool VaapiSurface::resize(uint32_t width, uint32_t height)
+{
+    if (width>m_allocWidth || height>m_allocHeight)
+        return false;
+
+    m_width = width;
+    m_height = height;
+    return true;
 }
 
 uint32_t VaapiSurface::getExtBufHandle(void)

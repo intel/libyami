@@ -66,6 +66,7 @@ class VaapiSurface
     VASurfaceID getID(void) const;
     uint32_t getWidth(void);
     uint32_t getHeight(void);
+    bool resize(uint32_t width, uint32_t height);
     uint32_t getExtBufHandle();
     DisplayPtr getDisplay();
 
@@ -87,6 +88,8 @@ class VaapiSurface
     DisplayPtr m_display;
     VaapiChromaType m_chromaType;
     VASurfaceID m_ID;
+    uint32_t m_allocWidth;
+    uint32_t m_allocHeight;
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_fourcc;

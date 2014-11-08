@@ -459,6 +459,12 @@ bool VaapiDecoderVP8::allocNewPicture()
     if (!m_currentPicture)
         return false;
 
+    SurfacePtr surface = m_currentPicture->getSurface();
+    if (!surface->resize(m_frameHdr.width, m_frameHdr.height)) {
+        ASSERT(0 && "frame size is bigger than internal surface resolution");
+        return false;
+    }
+
     DEBUG ("alloc new picture: %p with surface ID: %x",
          m_currentPicture.get(), m_currentPicture->getSurfaceID());
 
