@@ -466,7 +466,7 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
     Decode_Status status = m_decoder->getOutput(&m_frame, drain);
     if (status == RENDER_SUCCESS) {
        EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
-        ASSERT(m_width == frame->width && m_height == frame->height);
+        ASSERT(m_width == m_frame.width && m_height == m_frame.height);
         eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle,
                 m_frame.width, m_frame.height, m_frame.pitch[0]);
         if (eglImage != EGL_NO_IMAGE_KHR) {
