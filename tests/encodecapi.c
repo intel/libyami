@@ -44,6 +44,7 @@ int main(int argc, char** argv)
     Encode_Status status;
     VideoFrameRawData inputBuffer;
     VideoEncOutputBuffer outputBuffer;
+    int encodeFrameCount = 0;
 
     if (!process_cmdline(argc, argv))
         return -1;
@@ -101,7 +102,9 @@ int main(int argc, char** argv)
     {
         memset(&inputBuffer, 0, sizeof(inputBuffer));
         if (getOneFrameInput(input, &inputBuffer)){
-            status = encode(encoder, &inputBuffer);}
+            status = encode(encoder, &inputBuffer);
+            recycleOneFrameInput(input, &inputBuffer);
+        }
         else
             break;
 
@@ -112,6 +115,9 @@ int main(int argc, char** argv)
               && !writeOutput(output, outputBuffer.data, outputBuffer.dataSize))
                 assert(0);
         } while (status != ENCODE_BUFFER_NO_MORE);
+
+        if (frameCount &&  encodeFrameCount++ > frameCount)
+            break;
     }
 
     // drain the output buffer

@@ -48,6 +48,8 @@ int getInputHeight(EncodeInputHandler input);
 
 bool getOneFrameInput(EncodeInputHandler input, VideoFrameRawData *inputBuffer);
 
+bool recycleOneFrameInput(EncodeInputHandler input, VideoFrameRawData *inputBuffer);
+
 bool writeOutput(EncodeOutputHandler output, void* data, int size);
 
 void releaseEncodeInput(EncodeInputHandler input);
