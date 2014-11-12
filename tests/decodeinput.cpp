@@ -79,8 +79,9 @@ DecodeStreamInput* DecodeStreamInput::create(const char* fileName)
             input = new DecodeStreamInputH264();
         }
     else if((strcasecmp(ext,"ivf")==0) ||
-            (strcasecmp(ext,"vp8")==0)) {
-            input = new DecodeStreamInputVP8();
+            (strcasecmp(ext,"vp8")==0) ||
+            (strcasecmp(ext,"vp9")==0)) {
+            input = new DecodeStreamInputVPX();
         }
     else if(strcasecmp(ext,"jpg")==0 ||
             strcasecmp(ext,"jpeg")==0 ||
@@ -98,32 +99,48 @@ DecodeStreamInput* DecodeStreamInput::create(const char* fileName)
     return input;
 }
 
-DecodeStreamInputVP8::DecodeStreamInputVP8()
-    : m_ivfHdrSiz(32)
-    , m_ivfFrmHdrSize(12)
+struct IvfHeader {
+    uint32_t tag;
+    uint32_t version;
+    uint32_t fourcc;
+    uint32_t dummy[5];
+};
+
+DecodeStreamInputVPX::DecodeStreamInputVPX()
+    : m_ivfFrmHdrSize(12)
     , m_maxFrameSize(256*1024)
+    , m_mimeType("unknown")
 {
 }
 
-DecodeStreamInputVP8::~DecodeStreamInputVP8()
+DecodeStreamInputVPX::~DecodeStreamInputVPX()
 {
 }
 
-const char * DecodeStreamInputVP8::getMimeType()
+const char * DecodeStreamInputVPX::getMimeType()
 {
-    return "video/x-vnd.on2.vp8";
+    return m_mimeType;
 }
 
-bool DecodeStreamInputVP8::init()
+bool DecodeStreamInputVPX::init()
 {
-    if (m_ivfHdrSiz != fread (m_buffer, 1, m_ivfHdrSiz, m_fp)) {
+    IvfHeader header;
+    size_t size = sizeof(header);
+    assert(size == 32);
+    if (size != fread (&header, 1, size, m_fp)) {
         fprintf (stderr, "fail to read ivf header, quit\n");
         return false;
     }
+    if (header.tag != 'FIKD')
+        return false;
+    if (header.fourcc == '08PV')
+        m_mimeType = "video/x-vnd.on2.vp8";
+    else if (header.fourcc == '09PV')
+        m_mimeType = "video/x-vnd.on2.vp9";
     return true;
 }
 
-bool DecodeStreamInputVP8::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
+bool DecodeStreamInputVPX::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 {
     if(m_ivfFrmHdrSize == fread (m_buffer, 1, m_ivfFrmHdrSize, m_fp)) {
         int framesize = 0;

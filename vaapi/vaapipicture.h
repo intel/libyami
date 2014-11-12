@@ -42,6 +42,7 @@ public:
 
     inline VASurfaceID getSurfaceID() const;
     inline SurfacePtr getSurface() const;
+    inline void setSurface(const SurfacePtr&);
     inline bool sync();
 
     VaapiPictureType        m_type;
@@ -123,6 +124,11 @@ VASurfaceID VaapiPicture::getSurfaceID() const
 SurfacePtr VaapiPicture::getSurface() const
 {
     return m_surface;
+}
+
+void VaapiPicture::setSurface(const SurfacePtr& surface)
+{
+    m_surface = surface;
 }
 
 bool VaapiPicture::sync()

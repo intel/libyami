@@ -47,16 +47,16 @@ public:
     bool m_parseToEOS;
 };
 
-class DecodeStreamInputVP8 :public DecodeStreamInput
+class DecodeStreamInputVPX :public DecodeStreamInput
 {
 public:
-    DecodeStreamInputVP8();
-    ~DecodeStreamInputVP8();
+    DecodeStreamInputVPX();
+    ~DecodeStreamInputVPX();
     const char * getMimeType();
     bool init();
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
 private:
-    const int m_ivfHdrSiz;
+    const char* m_mimeType;
     const int m_ivfFrmHdrSize;
     const int m_maxFrameSize;
 };

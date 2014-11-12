@@ -31,6 +31,9 @@
 #if __BUILD_VP8_DECODER__
 #include "vaapidecoder_vp8.h"
 #endif
+#if __BUILD_VP9_DECODER__
+#include "vaapidecoder_vp9.h"
+#endif
 #if __BUILD_JPEG_DECODER__
 #include "vaapidecoder_jpeg.h"
 #endif
@@ -48,7 +51,10 @@ static const DecoderEntry g_decoderEntries[] = {
     DEFINE_DECODER_ENTRY("image/jpeg", Jpeg),
 #endif
 #if __BUILD_VP8_DECODER__
-    DEFINE_DECODER_ENTRY("video/x-vnd.on2.vp8", VP8)
+    DEFINE_DECODER_ENTRY("video/x-vnd.on2.vp8", VP8),
+#endif
+#if __BUILD_VP9_DECODER__
+    DEFINE_DECODER_ENTRY("video/x-vnd.on2.vp9", VP9)
 #endif
 };
 

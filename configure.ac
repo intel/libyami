@@ -127,6 +127,15 @@ AC_DEFINE([__BUILD_VP8_DECODER__], [1], [Defined to 1 if --enable-vp8dec="yes" ]
 fi
 AM_CONDITIONAL(BUILD_VP8_DECODER, test "x$enable_vp8dec" = "xyes")
 
+dnl vp9 decoder
+AC_ARG_ENABLE(vp9dec,
+    [AC_HELP_STRING([--enable-vp9dec], [build with vp9 decoder support @<:@default=no@:>@])],
+    [], [enable_vp9dec="no"])
+if test "$enable_vp9dec" = "yes"; then
+AC_DEFINE([__BUILD_VP9_DECODER__], [1], [Defined to 1 if --enable-vp9dec="yes" ])
+fi
+AM_CONDITIONAL(BUILD_VP9_DECODER, test "x$enable_vp9dec" = "xyes")
+
 dnl jpeg decoder
 AC_ARG_ENABLE(jpegdec,
     [AC_HELP_STRING([--enable-jpegdec], [build with jpeg decoder support @<:@default=yes@:>@])],

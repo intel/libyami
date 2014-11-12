@@ -9,6 +9,7 @@ libyami_codecparser_source_c = \
         vc1parser.c \
         dboolhuff.c \
         vp8parser.c \
+        vp9parser.c \
         jpegparser.c \
         parserutils.c \
         nalreader.c \
@@ -23,6 +24,7 @@ libyami_codecparser_source_h_priv = \
         mpeg4parser.h \
         vc1parser.h \
         vp8parser.h \
+        vp9parser.h \
         jpegparser.h \
         parserutils.h \
         nalreader.h \
