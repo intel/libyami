@@ -102,19 +102,7 @@ int main(int argc, char** argv)
 
     renderOutputFrames(output, true);
 
-#if 0
-    while (waitBeforeQuit) {
-        XEvent x_event;
-        XNextEvent(x11Display, &x_event);
-        switch (x_event.type) {
-        case KeyPress:
-            waitBeforeQuit = false;
-            break;
-        default:
-            break;
-        }
-    }
-#endif
+    possibleWait(getMimeType(input));
 
     decodeStop(decoder);
     releaseDecoder(decoder);
