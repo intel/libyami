@@ -33,7 +33,9 @@
 #include "v4l2_decode.h"
 #include "interface/VideoDecoderHost.h"
 #include "common/log.h"
+#if !__ENABLE_V4L2_GLX__
 #include "egl/egl_util.h"
+#endif
 
 V4l2Decoder::V4l2Decoder()
     : m_videoWidth(0)
@@ -78,8 +80,14 @@ bool V4l2Decoder::start()
     ASSERT(m_configBuffer.profile && m_configBuffer.surfaceNumber);
 
     NativeDisplay nativeDisplay;
+#if __ENABLE_V4L2_GLX__
+    ASSERT(m_x11Display);
+    nativeDisplay.type = NATIVE_DISPLAY_X11;
+    nativeDisplay.handle = (intptr_t)m_x11Display;
+#else
     nativeDisplay.type = NATIVE_DISPLAY_DRM;
     nativeDisplay.handle = 0;
+#endif
     m_decoder->setNativeDisplay(&nativeDisplay);
     status = m_decoder->start(&m_configBuffer);
     ASSERT(status == DECODE_SUCCESS);
@@ -131,6 +139,11 @@ bool V4l2Decoder::outputPulse(int32_t &index)
     ASSERT(index >= 0 && index < m_maxBufferCount[OUTPUT]);
     DEBUG("index: %d", index);
 
+#if __ENABLE_V4L2_GLX__
+    int64_t timeStamp = -1;
+    DEBUG("renders to Pixmap=0x%x", m_pixmaps[index]);
+    status = m_decoder->getOutput(m_pixmaps[index], &timeStamp, 0, 0, m_videoWidth, m_videoHeight);
+#else
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
         if (!m_bufferSpace[OUTPUT])
             return false;
@@ -147,6 +160,8 @@ bool V4l2Decoder::outputPulse(int32_t &index)
     frame->memoryType = m_memoryType;
 
     status = m_decoder->getOutput(frame);
+#endif
+
     if (status == RENDER_NO_AVAILABLE_FRAME && eosState() == EosStateInput) {
         setEosState(EosStateOutput);
         DEBUG("flush-debug flush done on OUTPUT thread");
@@ -155,6 +170,9 @@ bool V4l2Decoder::outputPulse(int32_t &index)
     if (status != RENDER_SUCCESS)
         return false;
 
+#if __ENABLE_V4L2_GLX__
+    m_outputRawFrames[index].timeStamp = timeStamp;
+#else
     DEBUG("got output frame with timestamp: %ld", frame->timeStamp);
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
         int i;
@@ -168,18 +186,20 @@ bool V4l2Decoder::outputPulse(int32_t &index)
         }
         ASSERT(found);
     }
+#endif
 
-    DEBUG("outputPulse: index=%d, timeStamp=%ld, %ld", index, m_outputRawFrames[index].timeStamp, frame->timeStamp);
+    DEBUG("outputPulse: index=%d, timeStamp=%ld", index, m_outputRawFrames[index].timeStamp);
     return true;
 }
 
 bool V4l2Decoder::recycleOutputBuffer(int32_t index)
 {
+#if !__ENABLE_V4L2_GLX__
     ASSERT(index >= 0 && index < m_maxBufferCount[OUTPUT]);
     DEBUG("index: %d, handle: 0x%x", index, m_outputRawFrames[index].handle);
     if (m_outputRawFrames[index].handle)
         m_decoder->renderDone(&m_outputRawFrames[index]);
-
+#endif
     return true;
 }
 
@@ -429,6 +449,22 @@ void* V4l2Decoder::mmap (void* addr, size_t length,
     }
 }
 
+#if __ENABLE_V4L2_GLX__
+int32_t V4l2Decoder::usePixmap(int bufferIndex, Pixmap pixmap)
+{
+    int i;
+
+    if (m_pixmaps.empty()) {
+        m_pixmaps.resize(m_maxBufferCount[OUTPUT]);
+        memset(&m_pixmaps[0], 0, sizeof(Pixmap)*m_pixmaps.size());
+    }
+
+    ASSERT(bufferIndex>=-1 && bufferIndex<m_maxBufferCount[OUTPUT]);
+    m_pixmaps[bufferIndex] = pixmap;
+
+    return 0;
+}
+#else
 bool V4l2Decoder::populateOutputFrames(EGLDisplay eglDisplay, EGLContext eglContext)
 {
     int i;
@@ -487,4 +523,4 @@ int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, u
 
     return 0;
 }
-
+#endif

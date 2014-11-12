@@ -151,10 +151,33 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length)
     return 0;
 }
 
+#if __ENABLE_V4L2_GLX__
+int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
+{
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+     bool ret = true;
+
+     ASSERT(v4l2Codec);
+     ret &= v4l2Codec->setXDisplay(x11Display);
+
+     return ret;
+}
+
+int32_t YamiV4L2_UsePixmap(int fd, int bufferIndex, Pixmap pixmap)
+{
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+     bool ret = true;
+
+     ASSERT(v4l2Codec);
+     ret &= v4l2Codec->usePixmap(bufferIndex, pixmap);
+
+     return ret;
+}
+#else
 int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int bufferIndex, void* eglImage)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
     ASSERT(v4l2Codec);
     return v4l2Codec->useEglImage(eglDisplay, eglContext, bufferIndex, eglImage);
 }
-
+#endif

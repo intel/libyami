@@ -40,7 +40,11 @@ class V4l2Decoder : public V4l2CodecBase
     virtual int32_t ioctl(int request, void* arg);
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset);
+#if __ENABLE_V4L2_GLX__
+    virtual int32_t usePixmap(int buffer_index, Pixmap pixmap);
+#else
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image);
+#endif
 
   protected:
     virtual bool start();
@@ -52,7 +56,9 @@ class V4l2Decoder : public V4l2CodecBase
     virtual bool recycleOutputBuffer(int32_t index);
 
   private:
+#if !__ENABLE_V4L2_GLX__
     bool populateOutputFrames(EGLDisplay eglDisplay, EGLContext eglContext);
+#endif
 
   private:
     DecoderPtr m_decoder;
@@ -70,7 +76,10 @@ class V4l2Decoder : public V4l2CodecBase
 
     uint32_t m_videoWidth;
     uint32_t m_videoHeight;
-
+#if __ENABLE_V4L2_GLX__
+    std::vector <Pixmap> m_pixmaps;
+#else
     std::vector <EGLImageKHR> m_eglImages;
+#endif
 };
 #endif

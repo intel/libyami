@@ -27,9 +27,13 @@
 #include <list>
 #include <tr1/memory>
 #include "common/condition.h"
+#if __ENABLE_V4L2_GLX__
+#include <X11/Xlib.h>
+#else
 #include <EGL/egl.h>
 #define EGL_EGLEXT_PROTOTYPES
 #include "EGL/eglext.h"
+#endif
 #include "interface/VideoCommonDefs.h"
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
@@ -59,8 +63,12 @@ class V4l2CodecBase {
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset) {return NULL;};
     // virtual int32_t munmap(void* addr, size_t length) {return 0;};
+#if __ENABLE_V4L2_GLX__
+    bool setXDisplay(Display *x11Display) { m_x11Display = x11Display; };
+    virtual int32_t usePixmap(int bufferIndex, Pixmap pixmap) {return 0;};
+#else
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
-
+#endif
     void workerThread();
     int32_t fd() { return m_fd[0];};
 
@@ -85,6 +93,10 @@ class V4l2CodecBase {
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
+#if __ENABLE_V4L2_GLX__
+    Display *m_x11Display;
+#endif
+
     enum EosState{
         EosStateNormal,
         EosStateInput,

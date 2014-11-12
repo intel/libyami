@@ -76,6 +76,9 @@ V4l2CodecBase::V4l2CodecBase()
     , m_hasEvent(false)
     , m_started(false)
     , m_eosState(EosStateNormal)
+#if __ENABLE_V4L2_GLX__
+    , m_x11Display(NULL)
+#endif
 {
     m_streamOn[INPUT] = false;
     m_streamOn[OUTPUT] = false;
