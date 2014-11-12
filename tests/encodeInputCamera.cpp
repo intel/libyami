@@ -92,6 +92,13 @@ bool EncodeStreamInputCamera::initDevice(const char *cameraDevicePath)
     fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
     IOCTL_CHECK_RET(m_fd, VIDIOC_S_FMT, "VIDIOC_S_FMT", fmt, false);
     DEBUG("video resolution: %dx%d = %dx%d", m_width, m_height, fmt.fmt.pix.width, fmt.fmt.pix.height);
+    IOCTL_CHECK_RET(m_fd, VIDIOC_G_FMT, "VIDIOC_G_FMT", fmt, false);
+    if (m_width != fmt.fmt.pix.width || m_height != fmt.fmt.pix.height) {
+        ERROR("not supported resolution(%dx%d), use %dx%d from camera\n", m_width, m_height, fmt.fmt.pix.width, fmt.fmt.pix.height);
+        m_width = fmt.fmt.pix.width;
+        m_height = fmt.fmt.pix.height;
+    }
+
 
     switch (m_dataMode) {
     case CAMERA_DATA_MODE_MMAP:
