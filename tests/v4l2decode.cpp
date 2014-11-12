@@ -38,7 +38,11 @@
 #include "v4l2/v4l2_wrapper.h"
 #include "decodeinput.h"
 #include "decodehelp.h"
+#if __ENABLE_V4L2_GLX__
+#include "./glx/glx_help.h"
+#else
 #include "./egl/gles2_help.h"
+#endif
 #include "interface/VideoCommonDefs.h"
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
@@ -69,9 +73,15 @@ VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 
 static FILE* outfp = NULL;
 static Display * x11Display = NULL;
-static Window window = 0;
-static EGLContextType *context = NULL;
+static Window x11Window = 0;
+#if __ENABLE_V4L2_GLX__
+static GLXContextType *glxContext;
+std::vector <Pixmap> pixmaps;
+std::vector <GLXPixmap> glxPixmaps;
+#else
+static EGLContextType *eglContext = NULL;
 static std::vector<EGLImageKHR> eglImages;
+#endif
 static std::vector<GLuint> textureIds;
 static bool isReadEOS=false;
 static int32_t stagingBufferInDevice = 0;
@@ -154,33 +164,28 @@ bool dumpOneVideoFrame(int32_t index)
     return true;
 }
 
-EGLContextType *createEglContext()
+#if __ENABLE_V4L2_GLX__
+static bool displayOneVideoFrameGLX(int32_t fd, int32_t index)
 {
-    EGLContextType *eglContext = NULL;
-    x11Display = XOpenDisplay(NULL);
-    if (!x11Display)
-        return NULL;
-
-    ASSERT(videoWidth && videoHeight);
-    window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
-        , 0, 0, videoWidth, videoHeight, 0, 0
-        , WhitePixel(x11Display, 0));
-    XMapWindow(x11Display, window);
-    XSync(x11Display, false);
-    eglContext = eglInit(x11Display, window, 0 /*VA_FOURCC_RGBA*/);
-
-    return eglContext;
-}
-
-bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
-{
-    ASSERT(context && textureIds.size());
+    ASSERT(glxContext && textureIds.size());
     ASSERT(index>=0 && index<textureIds.size());
     DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
-    drawTextures(context, &textureIds[index], 1);
 
-    return true;
+    int ret = drawTexture(glxContext, textureIds[index]);
+    return ret == 0;
 }
+#else
+bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
+{
+    ASSERT(eglContext && textureIds.size());
+    ASSERT(index>=0 && index<textureIds.size());
+    DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
+    int ret = drawTextures(eglContext, &textureIds[index], 1);
+
+    return ret == 0;
+}
+#endif
+
 
 bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enque it*/)
 {
@@ -202,10 +207,14 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
             return false;
 
         renderFrameCount++;
+#if __ENABLE_V4L2_GLX__
+        ret = displayOneVideoFrameGLX(fd, buf.index);
+#else
         if (memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
             ret = displayOneVideoFrameEGL(fd, buf.index);
         else
             ret = dumpOneVideoFrame(buf.index);
+#endif
         ASSERT(ret);
     } else {
         buf.index = index;
@@ -262,6 +271,7 @@ int main(int argc, char** argv)
     renderMode = 3; // set default render mode to 3
 
     yamiTraceInit();
+    XInitThreads();
 
     if (!process_cmdline(argc, argv))
         return -1;
@@ -275,6 +285,7 @@ int main(int argc, char** argv)
     if (!dumpOutputDir)
         dumpOutputDir = strdup ("./");
 
+#if !__ENABLE_V4L2_GLX__
     switch (renderMode) {
     case 0:
         memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;
@@ -289,6 +300,7 @@ int main(int argc, char** argv)
         ASSERT(0 && "unsupported render mode, -m [0,3,4] are supported");
     break;
     }
+#endif
 
     input = DecodeStreamInput::create(inputFileName);
     if (input==NULL) {
@@ -302,6 +314,11 @@ int main(int argc, char** argv)
     fd = YamiV4L2_Open("decoder", 0);
     ASSERT(fd!=-1);
 
+    x11Display = XOpenDisplay(NULL);
+    ASSERT(x11Display);
+#if __ENABLE_V4L2_GLX__
+    ioctlRet = YamiV4L2_SetXDisplay(fd, x11Display);
+#endif
     // set output frame memory type
     YamiV4L2_FrameMemoryType(fd, memoryType);
 
@@ -425,6 +442,29 @@ int main(int argc, char** argv)
     ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
 
+    x11Window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
+        , 0, 0, videoWidth, videoHeight, 0, 0
+        , WhitePixel(x11Display, 0));
+    XMapWindow(x11Display, x11Window);
+#if __ENABLE_V4L2_GLX__
+    pixmaps.resize(outputQueueCapacity);
+    glxPixmaps.resize(outputQueueCapacity);
+    textureIds.resize(outputQueueCapacity);
+
+    if (!glxContext) {
+        glxContext = glxInit(x11Display, x11Window);
+    }
+    ASSERT(glxContext);
+
+    glGenTextures(outputQueueCapacity, &textureIds[0] );
+    for (i=0; i<outputQueueCapacity; i++) {
+        int ret = createPixmapForTexture(glxContext, textureIds[i], videoWidth, videoHeight, &pixmaps[i], &glxPixmaps[i]);
+        DEBUG("textureIds[%d]: 0x%x, pixmaps[%d]=0x%lx, glxPixmaps[%d]: 0x%lx", i, textureIds[i], i, pixmaps[i], i, glxPixmaps[i]);
+        ASSERT(ret == 0);
+        ret = YamiV4L2_UsePixmap(fd, i, pixmaps[i]);
+        ASSERT(ret == 0);
+    }
+#else
     if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
         rawOutputFrames.resize(outputQueueCapacity);
         for (i=0; i<outputQueueCapacity; i++) {
@@ -467,12 +507,13 @@ int main(int argc, char** argv)
         eglImages.resize(outputQueueCapacity);
         textureIds.resize(outputQueueCapacity);
 
-        if (!context)
-            context = createEglContext();
+        if (!eglContext)
+            eglContext = eglInit(x11Display, x11Window, 0 /*VA_FOURCC_RGBA*/);
+
         glGenTextures(outputQueueCapacity, &textureIds[0] );
         for (i=0; i<outputQueueCapacity; i++) {
              int ret = 0;
-             ret = YamiV4L2_UseEglImage(fd, context->eglContext.display, context->eglContext.context, i, &eglImages[i]);
+             ret = YamiV4L2_UseEglImage(fd, eglContext->eglContext.display, eglContext->eglContext.context, i, &eglImages[i]);
              ASSERT(ret == 0);
              glBindTexture(GL_TEXTURE_2D, textureIds[i]);
              glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImages[i]);
@@ -482,6 +523,7 @@ int main(int argc, char** argv)
              DEBUG("textureIds[%d]: 0x%x, eglImages[%d]: 0x%x", i, textureIds[i], i, eglImages[i]);
         }
     }
+#endif
 
     // feed output frames first
     for (i=0; i<outputQueueCapacity; i++) {
@@ -544,9 +586,13 @@ int main(int argc, char** argv)
 
     if(textureIds.size())
         glDeleteTextures(textureIds.size(), &textureIds[0]);
+    ASSERT(glGetError() == GL_NO_ERROR);
 
+#if __ENABLE_V4L2_GLX__
+    glxRelease(glxContext, &pixmaps[0], &glxPixmaps[0], pixmaps.size());
+#else
     for (i=0; i<eglImages.size(); i++) {
-        eglDestroyImageKHR(context->eglContext.display, eglImages[i]);
+        eglDestroyImageKHR(eglContext->eglContext.display, eglImages[i]);
     }
     /*
     there is still randomly fail in mesa; no good idea for it. seems mesa bug
@@ -560,8 +606,9 @@ int main(int argc, char** argv)
     7  eglRelease (context=0x615920) at ./egl/gles2_help.c:310
     8  0x0000000000402ca8 in main (argc=<optimized out>, argv=<optimized out>) at v4l2decode.cpp:531
     */
-    if (context)
-        eglRelease(context);
+    if (eglContext)
+        eglRelease(eglContext);
+#endif
 
     // close device
     ioctlRet = YamiV4L2_Close(fd);
@@ -576,8 +623,8 @@ int main(int argc, char** argv)
     if (dumpOutputDir)
         free(dumpOutputDir);
 
-    if (x11Display && window)
-        XDestroyWindow(x11Display, window);
+    if (x11Display && x11Window)
+        XDestroyWindow(x11Display, x11Window);
     if (x11Display)
         XCloseDisplay(x11Display);
 

@@ -1,5 +1,5 @@
 /*
- *  gles2_help.c - gles2_help.h - utility to set up gles2 drawing context
+ *  gles2_help.c - gles2_help.c - utility to set up gles2 drawing context
  *
  *  Copyright (C) 2014 Intel Corporation
  *    Author: Zhao, Halley<halley.zhao@intel.com>
@@ -19,6 +19,9 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #include "gles2_help.h"
 #include <stdio.h>
@@ -202,7 +205,7 @@ drawTextures(EGLContextType *context, GLuint *textureIds, int texCount)
 
 
     if (!context)
-        return;
+        return -1;
     GLProgram *glProgram = context->glProgram;
 
     ASSERT(texCount == glProgram->texCount);
@@ -227,6 +230,11 @@ drawTextures(EGLContextType *context, GLuint *textureIds, int texCount)
     glUseProgram(0);
 
     eglSwapBuffers(context->eglContext.display, context->eglContext.surface);
+    int glError = glGetError();
+    if (glError != GL_NO_ERROR)
+        return glError;
+
+    return 0;
 }
 
 EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc)

@@ -42,9 +42,12 @@ YAMI_ENCODE_LIBS = \
 V4L2_DECODE_LIBS = \
 	$(YAMI_DECODE_LIBS)                         \
 	$(top_builddir)/v4l2/libyami_v4l2.la        \
-	$(LIBEGL_LIBS)                              \
-	$(LIBGLES2_LIBS)                            \
 	$(NULL)
+if ENABLE_V4L2_GLX
+V4L2_DECODE_LIBS += $(LIBGL_LIBS)
+else
+V4L2_DECODE_LIBS += $(LIBEGL_LIBS) $(LIBGLES2_LIBS)
+endif
 
 V4L2_ENCODE_LIBS = \
 	$(YAMI_ENCODE_LIBS)                         \
@@ -82,7 +85,12 @@ yamiencode_LDADD    = $(YAMI_ENCODE_LIBS)
 yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp decodeinput.cpp
 
 v4l2decode_LDADD = $(V4L2_DECODE_LIBS)
-v4l2decode_SOURCES = v4l2decode.cpp decodehelp.h decodeinput.cpp ../egl/egl_util.c ./egl/gles2_help.c
+v4l2decode_SOURCES = v4l2decode.cpp decodehelp.h decodeinput.cpp
+if ENABLE_V4L2_GLX
+v4l2decode_SOURCES += ./glx/glx_help.c
+else
+v4l2decode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
+endif
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
 v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp decodeinput.cpp
