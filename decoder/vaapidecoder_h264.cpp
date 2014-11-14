@@ -935,8 +935,10 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
 
         m_mbWidth = mbWidth;
         m_mbHeight = mbHeight;
-        m_configBuffer.width = mbWidth * 16;
-        m_configBuffer.height = mbHeight * 16;
+        m_configBuffer.surfaceWidth = mbWidth * 16;
+        m_configBuffer.surfaceHeight = mbHeight * 16;
+        m_configBuffer.width = sps->width;
+        m_configBuffer.height = sps->height;
         resetContext = true;
     }
 

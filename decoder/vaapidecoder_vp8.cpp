@@ -101,6 +101,8 @@ Decode_Status VaapiDecoderVP8::ensureContext()
         INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d", m_configBuffer.width, m_configBuffer.height, m_frameHdr.width, m_frameHdr.height);
         m_configBuffer.width = m_frameHdr.width;
         m_configBuffer.height = m_frameHdr.height;
+        m_configBuffer.surfaceWidth = m_configBuffer.width;
+        m_configBuffer.surfaceHeight = m_configBuffer.height;
         DEBUG("USE_NATIVE_GRAPHIC_BUFFER: %d",
               m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER);
         if (m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER) {

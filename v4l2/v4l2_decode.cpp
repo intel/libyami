@@ -155,6 +155,8 @@ bool V4l2Decoder::outputPulse(int32_t &index)
         if (m_eglImages.empty())
             return false;
         frame = &tempFrame;
+        frame->width = 0;
+        frame->height = 0;
         frame->fourcc = VA_FOURCC_BGRX; // XXX, assumed fourcc here
     }
     frame->memoryType = m_memoryType;
@@ -487,8 +489,8 @@ bool V4l2Decoder::populateOutputFrames(EGLDisplay eglDisplay, EGLContext eglCont
     for (i=0; i<m_maxBufferCount[OUTPUT] ; i++) {
         m_outputRawFrames[i].memoryType = m_memoryType;
         m_outputRawFrames[i].fourcc = VA_FOURCC_BGRX; // VAAPI BGRA match MESA ARGB
-        m_outputRawFrames[i].width = m_videoWidth;
-        m_outputRawFrames[i].height = m_videoHeight;
+        m_outputRawFrames[i].width = 0;
+        m_outputRawFrames[i].height = 0;
         m_outputRawFrames[i].handle = -1;
         m_outputRawFrames[i].internalID = 0;
     }

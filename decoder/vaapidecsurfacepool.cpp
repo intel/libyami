@@ -46,9 +46,10 @@ DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoCo
     assert(!(config->flag & WANT_RAW_OUTPUT));
     for (size_t i = 0; i < size; ++i) {
         SurfacePtr s = VaapiSurface::create(display, VAAPI_CHROMA_TYPE_YUV420,
-                                   config->width,config->height,NULL,0);
+                                   config->surfaceWidth,config->surfaceHeight,NULL,0);
         if (!s)
             return pool;
+        s->resize(config->width, config->height);
         surfaces.push_back(s);
     }
     pool.reset(new VaapiDecSurfacePool(display, surfaces));
@@ -171,7 +172,7 @@ bool VaapiDecSurfacePool::ensureImagePool(VideoFrameRawData &frame)
         frame.height = m_surfaces[0]->getHeight();
     }
 
-    DEBUG_FOURCC("create image pool with fourcc", frame.fourcc);
+    DEBUG("create image pool with fourcc:%.4s, size=%dx%d", &frame.fourcc, frame.width, frame.height);
     m_imagePool = VaapiImagePool::create(m_display, frame.fourcc, frame.width, frame.height, IMAGE_POOL_SIZE);
 
     ASSERT(m_imagePool);

@@ -535,6 +535,8 @@ Decode_Status VaapiDecoderJpeg::start(VideoConfigBuffer * buffer)
 
         m_configBuffer.width = buffer->width;
         m_configBuffer.height = buffer->height;
+        m_configBuffer.surfaceWidth = m_configBuffer.width;
+        m_configBuffer.surfaceHeight = m_configBuffer.height;
         m_configBuffer.profile = buffer->profile;
 
         VaapiDecoderBase::start(buffer);
