@@ -73,8 +73,6 @@ bool readOneFrameData(int index)
 
 void fillV4L2Buffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
 {
-    buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type
-    buf.memory = V4L2_MEMORY_USERPTR;
 
     uint32_t width[3];
     uint32_t height[3];
@@ -83,7 +81,6 @@ void fillV4L2Buffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
     ret = getPlaneResolution(frame.fourcc, frame.width, frame.height, width, height,  planes);
     ASSERT(ret && "get planes resolution failed");
     unsigned long data = (unsigned long)frame.handle;
-    buf.length = planes;
     for (int i = 0; i < planes; i++) {
         buf.m.planes[i].bytesused = width[i] * height[i];
         buf.m.planes[i].m.userptr = data + frame.offset[i];
@@ -100,6 +97,9 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
     memset(&buf, 0, sizeof(buf));
     memset(&planes, 0, sizeof(planes));
     buf.m.planes = planes;
+    buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type
+    buf.memory = V4L2_MEMORY_USERPTR;
+    buf.length = inputFramePlaneCount;
 
     if (index == -1) {
         ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_DQBUF, &buf);

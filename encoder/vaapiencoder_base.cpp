@@ -119,6 +119,7 @@ Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
     VideoFrameRawData frame;
     if (!fillFrameRawData(&frame, inBuffer->fourcc, width(), height(), inBuffer->data))
         return ENCODE_INVALID_PARAMS;
+    inBuffer->bufAvailable = true;
     if (inBuffer->forceKeyFrame)
         frame.flags |= VIDEO_FRAME_FLAGS_KEY;
     frame.timeStamp = inBuffer->timeStamp;
