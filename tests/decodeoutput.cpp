@@ -237,7 +237,7 @@ bool DecodeStreamOutputFileDump::render(VideoFrameRawData* frame)
     if (!m_fp)
         return false;
 
-    ASSERT(m_width >= frame->width && m_height >= frame->height);
+    ASSERT(m_width == frame->width && m_height == frame->height);
     if (!getPlaneResolution(frame->fourcc, frame->width, frame->height, width, height, planes))
         return false;
     for (int i = 0; i < planes; i++) {

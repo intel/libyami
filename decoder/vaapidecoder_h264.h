@@ -369,9 +369,6 @@ class VaapiDecoderH264:public VaapiDecoderBase {
     bool m_isAVC;
     bool m_resetContext;
     DISALLOW_COPY_AND_ASSIGN(VaapiDecoderH264);
-    //temporary work around, remove this if after crop added.
-    uint32_t m_width;
-    uint32_t m_height;
 };
 
 uint32_t getMaxDecFrameBuffering(H264SPS * sps, uint32_t views);

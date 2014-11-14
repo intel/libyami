@@ -938,13 +938,6 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
         m_configBuffer.width = mbWidth * 16;
         m_configBuffer.height = mbHeight * 16;
         resetContext = true;
-        //it's just a temporary work around.
-        //remove this if we support crop.
-        if (sps->frame_crop_left_offset || sps->frame_crop_top_offset)
-            return DECODE_PARSER_FAIL;
-        m_width = sps->width;
-        m_height = sps->height;
-
     }
 
     if (!resetContext && m_hasContext)
@@ -1105,7 +1098,6 @@ bool VaapiDecoderH264::storeDecodedPicture(const PicturePtr pic)
 Decode_Status VaapiDecoderH264::decodeCurrentPicture()
 {
     Decode_Status status;
-    SurfacePtr surface;
 
     if (!m_currentPicture)
         return DECODE_SUCCESS;
@@ -1116,13 +1108,6 @@ Decode_Status VaapiDecoderH264::decodeCurrentPicture()
 
     if (!markingPicture(m_currentPicture))
         goto error;
-
-    //remove this after we support crop
-    surface = m_currentPicture->getSurface();
-    if (!surface || !surface->resize(m_width, m_height)) {
-        goto error;
-    }
-    //end
 
     if (!m_currentPicture->decode())
         goto error;
@@ -1383,9 +1368,6 @@ VaapiDecoderH264::VaapiDecoderH264()
 
     m_mbWidth = 0;
     m_mbHeight = 0;
-
-    m_width = 0;
-    m_height = 0;
 
     m_gotSPS = false;
     m_gotPPS = false;
