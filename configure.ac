@@ -15,6 +15,9 @@ m4_define([libyami_micro_version], 0)
 m4_define([libyami_version],
                     [libyami_major_version.libyami_minor_version.libyami_micro_version])
 
+# libva minimun version requirement
+m4_define([va_api_version], [0.36])
+
 AC_INIT([libyami], [libyami_version], [halley.zhao@intel.com])
 AC_CONFIG_SRCDIR([vaapi/vaapitypes.h])
 AC_CONFIG_HEADERS([config.h])
@@ -194,7 +197,11 @@ AC_TYPE_UINT8_T
 pkgconfigdir=${libdir}/pkgconfig
 AC_SUBST(pkgconfigdir)
 
-PKG_CHECK_MODULES(LIBVA, [libva])
+# Check for libva (vaapi version)
+VA_API_VERSION=va_api_version
+PKG_CHECK_MODULES([LIBVA], [libva >= $VA_API_VERSION])
+AC_SUBST(LIBVA_VERSION)
+
 PKG_CHECK_MODULES(LIBVA_DRM, [libva-drm])
 if test "$enable_x11" = "yes" -o "$enable_v4l2_glx" = "yes"; then
 PKG_CHECK_MODULES(LIBVA_X11, [libva-x11],
