@@ -69,8 +69,8 @@ int main(int argc, char** argv)
     assert(decoder != NULL);
 
     output = DecodeStreamOutput::create(decoder, renderMode);
-    if (!configDecodeOutput(output)) {
-        fprintf(stderr, "failed to config decode output");
+    if (!output || !configDecodeOutput(output)) {
+        fprintf(stderr, "failed to config decode output of mode: %d\n", renderMode);
         return -1;
     }
 
