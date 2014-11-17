@@ -82,7 +82,10 @@ DecodeStreamInput* DecodeStreamInput::create(const char* fileName)
             (strcasecmp(ext,"vp8")==0)) {
             input = new DecodeStreamInputVP8();
         }
-    else if(strcasecmp(ext,"jpg")==0) {
+    else if(strcasecmp(ext,"jpg")==0 ||
+            strcasecmp(ext,"jpeg")==0 ||
+            strcasecmp(ext,"mjpg")==0 ||
+            strcasecmp(ext,"mjpeg")==0) {
             input = new DecodeStreamInputJPEG();
         }
     else

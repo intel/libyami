@@ -310,21 +310,24 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
     m_width = m_frameHdr.width;
     profile = convertToVaProfile(VAAPI_PROFILE_JPEG_BASELINE);
 
-    if (!m_hasContext) {
+    if (!m_hasContext
+        || m_configBuffer.profile != profile
+        || m_configBuffer.width != m_width
+        || m_configBuffer.height != m_height) {
         m_configBuffer.surfaceNumber = 2;
         m_configBuffer.profile = profile;
         m_configBuffer.width = m_width;
         m_configBuffer.height = m_height;
-        VaapiDecoderBase::start(&m_configBuffer);
-        m_hasContext = TRUE;
-        return DECODE_FORMAT_CHANGE;
-    } else if (m_configBuffer.profile != profile ||
-               m_configBuffer.width != m_width ||
-               m_configBuffer.height != m_height) {
-        m_configBuffer.profile = profile;
-        m_configBuffer.width = m_width;
-        m_configBuffer.height = m_height;
-        VaapiDecoderBase::reset(&m_configBuffer);
+        m_configBuffer.surfaceWidth = m_configBuffer.width;
+        m_configBuffer.surfaceHeight = m_configBuffer.height;
+        DEBUG("JPEG size %dx%d", m_width, m_height);
+        if (!m_hasContext) {
+            VaapiDecoderBase::start(&m_configBuffer);
+            m_hasContext = true;
+        } else {
+            VaapiDecoderBase::reset(&m_configBuffer);
+        }
+
         return DECODE_FORMAT_CHANGE;
     }
 
