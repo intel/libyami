@@ -307,8 +307,10 @@ bool DecodeStreamOutputX11::init()
 {
     extern int renderMode;
     m_display = XOpenDisplay(NULL);
-    if (!m_display)
+    if (!m_display) {
+        fprintf(stderr, "Failed to XOpenDisplay during DecodeStreamOutputX11::%s\n", __FUNCTION__);
         return false;
+    }
 
     NativeDisplay nativeDisplay;
     if (renderMode == 0) {

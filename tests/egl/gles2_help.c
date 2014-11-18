@@ -162,14 +162,15 @@ releaseShader(GLProgram *program)
     free(program);
 }
 
+#define MAX_RECT_SIZE 100
+#define MIN_RECT_SIZE 10
+
 int
 drawTextures(EGLContextType *context, GLenum target, GLuint *textureIds, int texCount)
 {
     unsigned int i;
-    const int maxRectSize = 100;
-    const int minRectSize = 10;
-    static int rectSize1 = maxRectSize;
-    static int rectSize2 = minRectSize;
+    static int rectSize1 = MAX_RECT_SIZE;
+    static int rectSize2 = MIN_RECT_SIZE;
     static int direction = 1;
     const GLfloat positions[4][2] = {
         { -rectSize1/100.f, -rectSize1/100.f},
