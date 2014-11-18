@@ -180,7 +180,11 @@ bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
     ASSERT(eglContext && textureIds.size());
     ASSERT(index>=0 && index<textureIds.size());
     DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
-    int ret = drawTextures(eglContext, &textureIds[index], 1);
+
+    GLenum target = GL_TEXTURE_2D;
+    if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
+        target = GL_TEXTURE_EXTERNAL_OES;
+    int ret = drawTextures(eglContext, target, &textureIds[index], 1);
 
     return ret == 0;
 }
@@ -210,7 +214,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
 #if __ENABLE_V4L2_GLX__
         ret = displayOneVideoFrameGLX(fd, buf.index);
 #else
-        if (memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
+        if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF || memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
             ret = displayOneVideoFrameEGL(fd, buf.index);
         else
             ret = dumpOneVideoFrame(buf.index);
@@ -515,11 +519,15 @@ int main(int argc, char** argv)
              int ret = 0;
              ret = YamiV4L2_UseEglImage(fd, eglContext->eglContext.display, eglContext->eglContext.context, i, &eglImages[i]);
              ASSERT(ret == 0);
-             glBindTexture(GL_TEXTURE_2D, textureIds[i]);
-             glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImages[i]);
 
-             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+             GLenum target = GL_TEXTURE_2D;
+             if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
+                 target = GL_TEXTURE_EXTERNAL_OES;
+             glBindTexture(target, textureIds[i]);
+             glEGLImageTargetTexture2DOES(target, eglImages[i]);
+
+             glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+             glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
              DEBUG("textureIds[%d]: 0x%x, eglImages[%d]: 0x%x", i, textureIds[i], i, eglImages[i]);
         }
     }

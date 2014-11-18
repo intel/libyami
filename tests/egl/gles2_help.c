@@ -166,7 +166,7 @@ releaseShader(GLProgram *program)
 #define MIN_RECT_SIZE 10
 
 int
-drawTextures(EGLContextType *context, GLuint *textureIds, int texCount)
+drawTextures(EGLContextType *context, GLenum target, GLuint *textureIds, int texCount)
 {
     unsigned int i;
     static int rectSize1 = MAX_RECT_SIZE;
@@ -221,7 +221,7 @@ drawTextures(EGLContextType *context, GLuint *textureIds, int texCount)
 
     for (i = 0; i < glProgram->texCount; i++) {
         glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, textureIds[i]);
+        glBindTexture(target, textureIds[i]);
         glUniform1i(glProgram->uniformTex[i], i);
     }
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);

@@ -432,7 +432,7 @@ Decode_Status DecodeStreamOutputPixelMap::renderOneFrame(bool drain)
     int64_t timeStamp;
     Decode_Status status = m_decoder->getOutput(m_pixmap, &timeStamp, 0, 0, m_width, m_height, drain);
     if (status == RENDER_SUCCESS) {
-        drawTextures(m_eglContext, &m_textureId, 1);
+        drawTextures(m_eglContext, GL_TEXTURE_2D, &m_textureId, 1);
     }
     return status;
 }
@@ -459,7 +459,10 @@ bool DecodeStreamOutputDmabuf::setVideoSize(int width, int height)
 
 Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
 {
-    glBindTexture(GL_TEXTURE_2D, m_textureId);
+    GLenum target = GL_TEXTURE_2D;
+    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
+        target = GL_TEXTURE_EXTERNAL_OES;
+    glBindTexture(target, m_textureId);
 
     m_frame.memoryType = m_memoryType;
     m_frame.fourcc = VA_FOURCC_BGRX; // VAAPI BGRA match MESA ARGB
@@ -472,10 +475,10 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
         eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle,
                 m_frame.width, m_frame.height, m_frame.pitch[0]);
         if (eglImage != EGL_NO_IMAGE_KHR) {
-            glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, eglImage);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            drawTextures(m_eglContext, &m_textureId, 1);
+            glEGLImageTargetTexture2DOES(target, eglImage);
+            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            drawTextures(m_eglContext, target, &m_textureId, 1);
 
             eglDestroyImageKHR(m_eglContext->eglContext.display, eglImage);
         } else {
