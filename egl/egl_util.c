@@ -56,15 +56,16 @@ static EGLImageKHR createEglImageFromDmaBuf(EGLDisplay eglDisplay, EGLContext eg
     EGLint attribs[] = {
       EGL_WIDTH, width,
       EGL_HEIGHT, height,
-      EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_RGBX8888,
+      EGL_LINUX_DRM_FOURCC_EXT, DRM_FORMAT_XRGB8888,
       EGL_DMA_BUF_PLANE0_FD_EXT, dmaBuf,
       EGL_DMA_BUF_PLANE0_OFFSET_EXT, 0,
       EGL_DMA_BUF_PLANE0_PITCH_EXT, pitch,
       EGL_NONE
     };
 
-    eglImage = eglCreateImageKHR(eglDisplay, eglContext,
+    eglImage = eglCreateImageKHR(eglDisplay, EGL_NO_CONTEXT,
                      EGL_LINUX_DMA_BUF_EXT, NULL, attribs);
+    ASSERT(eglImage != EGL_NO_IMAGE_KHR);
     return eglImage;
 #else
     ERROR("dma_buf is enabled with --enable-dmabuf option");

@@ -163,7 +163,7 @@ releaseShader(GLProgram *program)
 }
 
 int
-drawTextures(EGLContextType *context, GLuint *textureIds, int texCount)
+drawTextures(EGLContextType *context, GLenum target, GLuint *textureIds, int texCount)
 {
     unsigned int i;
     const int maxRectSize = 100;
@@ -220,7 +220,7 @@ drawTextures(EGLContextType *context, GLuint *textureIds, int texCount)
 
     for (i = 0; i < glProgram->texCount; i++) {
         glActiveTexture(GL_TEXTURE0 + i);
-        glBindTexture(GL_TEXTURE_2D, textureIds[i]);
+        glBindTexture(target, textureIds[i]);
         glUniform1i(glProgram->uniformTex[i], i);
     }
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);

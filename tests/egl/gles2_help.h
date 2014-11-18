@@ -62,7 +62,7 @@ extern "C" {
 EGLContextType* eglInit(Display *x11Display, XID window, uint32_t fourcc);
 void eglRelease(EGLContextType *context);
 GLuint createTextureFromPixmap(EGLContextType *context, XID pixmap);
-int drawTextures(EGLContextType *context, GLuint *textureIds, int texCount);
+int drawTextures(EGLContextType *context, GLenum target, GLuint *textureIds, int texCount);
 
 #ifdef __cplusplus
 }
