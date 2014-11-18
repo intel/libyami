@@ -11,7 +11,7 @@ m4_define([libyami_lt_version], [libyami_lt_current.libyami_lt_revision.libyami_
 # package version (lib name suffix), usually sync with git tag
 m4_define([libyami_major_version], 0)
 m4_define([libyami_minor_version], 1)
-m4_define([libyami_micro_version], 0)
+m4_define([libyami_micro_version], 3)
 m4_define([libyami_version],
                     [libyami_major_version.libyami_minor_version.libyami_micro_version])
 
@@ -25,8 +25,8 @@ AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([aux])
 AM_INIT_AUTOMAKE([foreign])
 
-LIBYAMI_LT_VERSION="libyami_lt_current:libyami_lt_revision:libyami_lt_age"
-LIBYAMI_LT_LDFLAGS="-version-info $LIBYAMI_LT_VERSION"
+LIBYAMI_LT_VERSION="libyami_major_version:libyami_minor_version:libyami_micro_version"
+LIBYAMI_LT_LDFLAGS="-version-number $LIBYAMI_LT_VERSION"
 # "-release" option should be avoid, that create lib name like libyami-1.s0.xxx
 AC_SUBST(LIBYAMI_LT_VERSION)
 AC_SUBST(LIBYAMI_LT_LDFLAGS)
