@@ -1,18 +1,23 @@
 #!/bin/sh
 
-if [ $# -lt 1 ]; then
-echo
-echo "We need one argument"
-echo "./unit_test.sh  mediafile refyuv"
-echo "mediafile: dir|file"
-echo "refyuv:    use for psnr"
-echo "## Examples of usage:"
-echo "./unit_test.sh  /path/to/h264/dir/"
-echo "./unit_test.sh  /path/to/vp8/dir/"
-echo "./unit_test.sh  /path/to/jpeg-file/dir/ /path/to/jpeg/ref/yuv/"
-echo
-exit 0
-fi
+print_help()
+{
+    echo "Usage: unit_test.sh [mediafile] [refyuv]  "
+    echo "Use md5 or psnr to test the validity of yami codec"
+    echo ""
+    echo "mediafile: dir|file"
+    echo "refyuv:    use for psnr"
+    echo ""
+    echo "## Examples of usage:"
+    echo "unit_test.sh  /path/to/h264/dir/"
+    echo "unit_test.sh  /path/to/vp8/dir/"
+    echo "unit_test.sh  /path/to/jpeg-file/dir/ /path/to/jpeg/ref/yuv/"
+    echo "unit_test.sh  --encode /path/to/yuv/dir/ "
+    echo "unit_test.sh  http/web/path/"
+    echo "unit_test.sh  git clone/web/path/"
+    echo
+    exit 0
+}
 
 verify_md5()
 {
@@ -60,13 +65,14 @@ unit_test_md5()
     echo "Unit test md5 result:" >> ${RESULT_LOG_FILE}
     i=0
     j=0
+    failnumber=0
     echo "start test md5..."
     if [ -d ${testfilepath} ];then
         for file in $filelist
         do
             echo ----------------------------------------------------
             echo ${testfilepath}${file}
-            ./../../tests/yamidecode -i ${testfilepath}${file}  -m 0 -f I420 -o ${outputpath}
+            ${yamipath}/tests/yamidecode -i ${testfilepath}${file}  -m 0 -f I420 -o ${outputpath}
             mv ${file}* ${file}
             currentmd5=`md5sum ${file} | awk '{print $1}'`
             verify_md5 ${file} ${currentmd5}
@@ -74,7 +80,7 @@ unit_test_md5()
             echo ${i}---${testfilepath}${file}
         done
     else
-        ./../../tests/yamidecode -i ${testfilepath}  -m 0 -f I420 -o ${outputpath}
+        ${yamipath}/tests/yamidecode -i ${testfilepath}  -m 0 -f I420 -o ${outputpath}
         file=${testfilepath##*/}
         mv ${file}* ${file}
         currentmd5=`md5sum ${file} | awk '{print $1}'`
@@ -89,7 +95,6 @@ unit_test_md5()
     if [ -f ${tmpass} ];then
         cat ${tmpass} >> ${RESULT_LOG_FILE}
     fi
-    cat ${RESULT_LOG_FILE}
     echo "The test result is saved to ${RESULT_LOG_FILE} "
 }
 
@@ -104,13 +109,24 @@ get_w_h()
 
 unit_test_psnr()
 {
-    outputpath="${scriptpath}/yuv/"
-    rm -rf ${outputpath}
-    mkdir -p ${outputpath}
     testfilepath=$1
+    codec=$2
+    rm_output=$3
+    echo "rm_output=${rm_output}"
+    outputpath="${scriptpath}/yuv/"
+    if [ ${rm_output} = 1 ];then
+        rm -rf ${outputpath}
+    else
+        rm "${outputpath}jpg_psnr.txt"
+    fi
+    mkdir -p ${outputpath}
     cd ${outputpath}
     filelist=`ls ${testfilepath}`
-    echo  "Unit test psnr result:" >> ${RESULT_LOG_FILE}
+    if [ ${codec} = "decode" ];then
+        echo  "Unit test jpeg result:" >> ${RESULT_LOG_FILE}
+    else
+        echo  "Unit test h264 encode result:" >> ${RESULT_LOG_FILE}
+    fi
     i=0
     echo "start test psnr..."
     if [ -d ${testfilepath} ];then
@@ -118,38 +134,52 @@ unit_test_psnr()
         do
             echo ----------------------------------------------------
             echo ${testfilepath}${file}
-            ./../../tests/yamidecode -i ${testfilepath}${file}  -m 0 -o ${outputpath} -f I420
-            fileyuv=`ls ${file}*`
-            get_w_h ${fileyuv}
-            refyuvfile=${refyuv}${file}.yuv
-            ./../psnr -i ${refyuvfile} -o ${outputpath}${fileyuv} -W ${WIDTH} -H ${HEIGHT}
+            if [ ${codec} = "decode" ];then
+                ${yamipath}/tests/yamidecode -i ${testfilepath}${file}  -m 0 -o ${outputpath} -f I420
+                fileyuv=`ls ${file}*`
+                get_w_h ${fileyuv}
+                tmpfile=${file%%.*}
+                refyuvfile=`ls ${refyuv}${tmpfile}*`
+                ${yamipath}/testscripts/psnr -i ${refyuvfile} -o ${outputpath}${fileyuv} -W ${WIDTH} -H ${HEIGHT}
+            else
+                get_w_h ${file}
+                ${yamipath}/tests/yamiencode -i ${testfilepath}${file} -s I420 -W ${WIDTH} -H ${HEIGHT} -c AVC -o ./${file}.264
+                ${yamipath}/tests/yamidecode -i ${file}.264  -m 0 -o ${outputpath} -f I420
+                refyuvfile=`ls ${outputpath}${file}.264_*`
+                ${yamipath}/testscripts/psnr -i ${testfilepath}${file} -o ${refyuvfile} -W ${WIDTH} -H ${HEIGHT}
+            fi
             i=$(($i+1))
             echo ${i}---${testfilepath}${file}
         done
     else
-        ./../../tests/yamidecode -i ${testfilepath}  -m 0 -o ${outputpath} -f I420
         file=${testfilepath##*/}
-        fileyuv=`ls ${file}*`
-        get_w_h ${fileyuv}
-        ./../psnr -i ${refyuv} -o ${outputpath}${fileyuv} -W ${WIDTH} -H ${HEIGHT}
+        if [ ${codec} = "decode" ];then
+            ${yamipath}/tests/yamidecode -i ${testfilepath}  -m 0 -o ${outputpath} -f I420
+            file=${testfilepath##*/}
+            fileyuv=`ls ${file}*`
+            get_w_h ${fileyuv}
+            ${yamipath}/testscripts/psnr -i ${refyuv} -o ${outputpath}${fileyuv} -W ${WIDTH} -H ${HEIGHT}
+        else
+            get_w_h ${file}
+            ${yamipath}/tests/yamiencode -i ${testfilepath} -s I420 -W ${WIDTH} -H ${HEIGHT} -c AVC -o ./${file}.264
+            ${yamipath}/tests/yamidecode -i ${file}.264  -m 0 -o ${outputpath} -f I420
+            refyuvfile=`ls ${outputpath}${file}.264_*`
+            ${yamipath}/testscripts/psnr -i ${testfilepath} -o ${refyuvfile} -W ${WIDTH} -H ${HEIGHT}
+        fi
         i=1
     fi
+    failcount=0
+    openfile=`ls ${testfilepath} | wc -l `
     psnr_result="${outputpath}jpg_psnr.txt"
     if [ -f $psnr_result ];then
-        failcount=`wc -l ${psnr_result} | awk '{print $1}' `
-    else
-        failcount=0
-    fi
-    openfile=`ls ${testfilepath} | wc -l `
-
-    echo "open file ${openfile},   actual test ${i},    fail: ${failcount}  " >> ${RESULT_LOG_FILE}
-    if [ $failcount -gt 0 ];then
-        echo "the netx is the file of failed:" >> ${RESULT_LOG_FILE}
+        passcount=`grep "pass" ${psnr_result} |wc -l `
+        failcount=$((${i}-${passcount}))
+        echo "open file ${openfile},   actual test ${i},    pass: ${passcount}    fail: ${failcount}  " >> ${RESULT_LOG_FILE}
         cat ${outputpath}/jpg_psnr.txt >> ${RESULT_LOG_FILE}
+    else
+        echo "open file ${openfile},   actual test ${i},    create ${psnr_result} fail  " >> ${RESULT_LOG_FILE}
     fi
-    cat ${RESULT_LOG_FILE}
-    cd ${scriptpath}
-    echo "The unit jpg test result is saved to ${RESULT_LOG_FILE}"
+    echo "The unit test result is saved to ${RESULT_LOG_FILE}"
 }
 
 get_webfile()
@@ -166,22 +196,139 @@ get_webfile()
     fi
 }
 
+git_clone_video()
+{
+    if test -e bat_video_content/video_auto_pull ; then
+        if ! (cd bat_video_content && tsocks git pull ) ; then
+            echo "git pull failed, (re)move bat_video_content/video_auto_pull to disable pulling"
+            exit 1
+        fi
+    fi
+
+    if ! test -e bat_video_content ; then
+        echo "No bat_video_content checkout, press enter to download one with git or CTRL+C to abort"
+        read tmp
+        if ! git clone $1 ; then
+            rm -rf bat_video_content
+            echo "Failed to get a bat_video_content checkout"
+            exit 1
+        fi
+        touch bat_video_content/video_auto_pull
+    fi
+
+    mediafile=${scriptpath}/bat_video_content/
+    refyuv=${scriptpath}/bat_video_content/yuv/
+}
+
+is_git_path()
+{
+    git=`echo $1 | cut -c 1-3`
+    if [ ${git} = "git" ];then
+        return 1
+    else
+        return 0
+    fi
+}
+
+get_encodestream_test()
+{
+    outputpath="${scriptpath}/yuv/"
+    rm -rf ${outputpath}
+    mkdir -p ${outputpath}
+    cd ${outputpath}
+    mediapath=$1
+    encodestream="AUD_MW_E.264 BA_MW_D.264 CI_MW_D.264 FREXT01_JVC_D.264 HCAMFF1_HHI.264 MIDR_MW_D.264 NL1_Sony_D.jsv SVA_BA2_D.264"
+    for file in $encodestream
+        do
+            ${yamipath}/tests/yamidecode -i ${mediapath}${file}  -m 0 -o ${outputpath} -f I420
+            fileyuv=`ls ${file}*`
+            if [ $? -ne 0 ];then
+                exit 0
+            fi
+            unit_test_psnr ${outputpath}${fileyuv} "encode" 0
+        done
+    rm -rf ${outputpath}
+}
+
+recursion_dir()
+{
+    mediafile=$1
+    filelist=`ls ${mediafile}`
+    if [ -d ${mediafile} ];then
+        for file1 in $filelist
+        do
+            if [ -d ${mediafile}${file1} ];then
+                if [ ${file1} = "h264" ];then
+                    isrecursion=1
+                    unit_test_md5 ${mediafile}${file1}/
+                    get_encodestream_test ${mediafile}${file1}/
+                else
+                    if [ ${file1} = "vp8" ];then
+                        isrecursion=1
+                        unit_test_md5 ${mediafile}${file1}/
+                    else
+                        if [ ${file1} = "jpg" ];then
+                            isrecursion=1
+                            refyuv=${mediafile}/yuv/
+                            unit_test_psnr ${mediafile}${file1}/ "decode" 1
+                        fi
+                    fi
+                fi
+            fi
+        done
+        if [ ${isrecursion} -eq 0 ]; then
+            unit_test_md5 ${mediafile}
+        fi
+    else
+        unit_test_md5 ${mediafile}
+    fi
+}
+
+if [ $# -eq 0 ]; then
+    print_help
+else
+    if [ $# -eq 1 ]; then
+        if [ $1 = "-h" -o $1 = "--help" ]; then
+            print_help
+        fi
+    fi
+fi
+
+
 mediafile=$1
 refyuv=$2
 
 scriptpath=$(cd "$(dirname "$0")"; pwd)
-echo $scriptpath
+yamipath=${scriptpath%/*}
+failnumber=0
 DAY=`date +"%Y-%m-%d-%H-%M"`
 logfilename="test_result-"${DAY}".log"
 if [ ! -d "${scriptpath}/log/" ];then
     mkdir -p "${scriptpath}/log/"
 fi
 export RESULT_LOG_FILE=${scriptpath}/log/${logfilename}
-failnumber=0
 
-get_webfile ${mediafile}
-if [ $# -eq 1 ]; then
-    unit_test_md5 ${mediafile}
+is_git_path ${mediafile}
+if [ $? = 1 ];then
+    git_clone_video ${mediafile}
+    recursion_dir ${mediafile}
 else
-    unit_test_psnr ${mediafile}
+    isrecursion=0
+    get_webfile ${mediafile}
+    if [ -d ${mediafile} ];then
+        mediafile=$(cd "$mediafile"; pwd)
+    fi
+    if [ $# -eq 1 ]; then
+        recursion_dir ${mediafile}/
+    else
+        if [ $1 = "--encode" ]; then
+            mediafile=$2
+            unit_test_psnr ${mediafile}/ "encode" 1
+        else
+            unit_test_psnr ${mediafile}/ "decode" 1
+        fi
+    fi
 fi
+
+cat ${RESULT_LOG_FILE}
+echo "The unit jpg test result is saved to ${RESULT_LOG_FILE}"

@@ -4,7 +4,7 @@
 #include <string.h>
 #include<unistd.h>
 
-#define NORMAL_PSNR 40
+#define NORMAL_PSNR 35
 static unsigned char *bufferyuv1 = NULL;
 static unsigned char *bufferyuv2 = NULL;
 
@@ -40,16 +40,25 @@ psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresul
     int sizey = width*height;
     int sizeuv = uvWidth*uvHeight;
 
+    fppsnrresult = fopen(psnrresult,"ab+");
+    if (NULL==fppsnrresult)
+    {
+        printf("open result psnr fail\n");
+        return -1;
+    }
+
     fpraw1=fopen(filename1,"rb");
     if (NULL==fpraw1)
     {
         printf("open ref yuv fail\n");
+        fprintf(fppsnrresult,"open %s fail\n",filename1);
         return -1;
     }
     fpraw2=fopen(filename2,"rb");
     if (NULL==fpraw2)
     {
         printf("open decode yuv fail\n");
+        fprintf(fppsnrresult,"open %s fail\n",filename2);
         return -1;
     }
     fpeachpsnr=fopen(eachpsnr,"wb");
@@ -57,12 +66,7 @@ psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresul
     if (NULL==fpeachpsnr)
     {
         printf("open record psnr fail\n");
-        return -1;
-    }
-    fppsnrresult = fopen(psnrresult,"ab+");
-    if (NULL==fppsnrresult)
-    {
-        printf("open result psnr fail\n");
+        fprintf(fppsnrresult,"open %s fail\n",eachpsnr);
         return -1;
     }
 
@@ -145,13 +149,15 @@ psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresul
     double avgv = psnrsumv/framecount;
     printf(" %s: %f  %f  %f\n\n ",filename2,avgy,avgu,avgv);
     fprintf(fpeachpsnr,"[%dx%d] frame = %d\n",width,height,framecount);
-    fprintf(fpeachpsnr,"Average of psnr  %f  %f  %f\n ",avgy,avgu,avgv);
+    fprintf(fpeachpsnr,"Average of psnr  %f  %f  %f\n",avgy,avgu,avgv);
     char *path = NULL ;
     if (path = strrchr (filename2, '/'))
         path++;
     strcpy(videofile,path);
     if(avgy<NORMAL_PSNR || avgu<NORMAL_PSNR || avgv<NORMAL_PSNR)
-        fprintf(fppsnrresult,"%s: Y:%f  U:%f  V:%f    fail\n ",videofile,avgy,avgu,avgv);
+        fprintf(fppsnrresult,"%s: Y:%f  U:%f  V:%f    fail\n",videofile,avgy,avgu,avgv);
+    else
+        fprintf(fppsnrresult,"%s: Y:%f  U:%f  V:%f    pass\n",videofile,avgy,avgu,avgv);
     fclose(fpraw1);
     fclose(fpraw2);
     fclose(fpeachpsnr);
