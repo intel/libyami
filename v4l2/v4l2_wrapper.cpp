@@ -173,6 +173,20 @@ int32_t YamiV4L2_UsePixmap(int fd, int bufferIndex, Pixmap pixmap)
 
      return ret;
 }
+
+int32_t YamiV4L2_Stop(int32_t fd)
+{
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+    bool ret = true;
+
+    ASSERT(v4l2Codec);
+    ret &= v4l2Codec->stop();
+    INFO("stop codec(fd:%d) , ret: %d", fd, ret);
+    ASSERT(ret);
+
+    return ret ? 0 : -1;
+}
+
 #else
 int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int bufferIndex, void* eglImage)
 {

@@ -47,6 +47,8 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length);
 int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display);
 /// pixmap=0 means the previous set rendering target becomes invalid, stop rendering to it.
 int32_t YamiV4L2_UsePixmap(int fd, int bufferIndex, Pixmap pixmap);
+/// terminate vaapi before XFreePixmap work around a strange X11 exception; otherwise there is "BadDrawable" exception though the Pixmap is valid.
+int32_t YamiV4L2_Stop(int32_t fd);
 #else
 int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int buffer_index, void* egl_image);
 #endif

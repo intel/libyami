@@ -63,6 +63,7 @@ class V4l2CodecBase {
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset) {return NULL;};
     // virtual int32_t munmap(void* addr, size_t length) {return 0;};
+    virtual bool stop() = 0;
 #if __ENABLE_V4L2_GLX__
     bool setXDisplay(Display *x11Display) { m_x11Display = x11Display; };
     virtual int32_t usePixmap(int bufferIndex, Pixmap pixmap) {return 0;};
@@ -74,7 +75,6 @@ class V4l2CodecBase {
 
   protected:
     virtual bool start() = 0;
-    virtual bool stop() = 0;
     virtual bool acceptInputBuffer(struct v4l2_buffer *qbuf) = 0;
     virtual bool giveOutputBuffer(struct v4l2_buffer *dqbuf) = 0;
     virtual bool inputPulse(int32_t index) = 0;
