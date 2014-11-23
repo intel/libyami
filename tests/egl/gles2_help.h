@@ -59,7 +59,7 @@ typedef struct {
 extern "C" {
 #endif /* __cplusplus */
 
-EGLContextType* eglInit(Display *x11Display, XID window, uint32_t fourcc);
+EGLContextType* eglInit(Display *x11Display, XID window, uint32_t fourcc, int isExternalTexture);
 void eglRelease(EGLContextType *context);
 GLuint createTextureFromPixmap(EGLContextType *context, XID pixmap);
 int drawTextures(EGLContextType *context, GLenum target, GLuint *textureIds, int texCount);

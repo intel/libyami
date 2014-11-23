@@ -55,12 +55,19 @@ static const char *fragShaderText_rgba =
   "uniform sampler2D tex0;\n"
   "varying vec2 v_texcoord;\n"
   "void main() {\n"
-  "   gl_FragColor.r = texture2D(tex0, v_texcoord).r;\n"
-  "   gl_FragColor.g = texture2D(tex0, v_texcoord).g;\n"
-  "   gl_FragColor.b = texture2D(tex0, v_texcoord).b;\n"
+  "   gl_FragColor = texture2D(tex0, v_texcoord);\n"
   "   gl_FragColor.a = 1.0;\n"
   "}\n";
-// "   gl_FragColor = texture2D(tex0, v_texcoord);\n"
+static const char *fragShaderText_rgba_ext =
+  "#extension GL_OES_EGL_image_external : require\n"
+  "precision mediump float;\n"
+  "uniform samplerExternalOES tex0;\n"
+  "varying vec2 v_texcoord;\n"
+  "void main() {\n"
+  "   gl_FragColor = texture2D(tex0, v_texcoord);\n"
+  "   gl_FragColor.a = 1.0;\n"
+  "}\n";
+
 static const char *vertexShaderText_rgba =
   "attribute vec4 pos;\n"
   "attribute vec2 texcoord;\n"
@@ -238,7 +245,7 @@ drawTextures(EGLContextType *context, GLenum target, GLuint *textureIds, int tex
     return 0;
 }
 
-EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc)
+EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc, int isExternalTexture)
 {
     EGLContextType *context = NULL;
     GLProgram *glProgram = NULL;
@@ -304,7 +311,10 @@ EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc)
         XGetGeometry(x11Display, x11Window, &root, &x, &y, &width, &height, &borderWidth, &depth);
         glViewport(0, 0, width, height);
     }
-    glProgram = createShaders(vertexShaderText_rgba, fragShaderText_rgba, 1);
+    if (isExternalTexture)
+        glProgram = createShaders(vertexShaderText_rgba, fragShaderText_rgba_ext, 1);
+    else
+        glProgram = createShaders(vertexShaderText_rgba, fragShaderText_rgba, 1);
     CHECK_HANDLE_RET(glProgram, NULL, "createShaders", NULL);
     context->glProgram = glProgram;
 

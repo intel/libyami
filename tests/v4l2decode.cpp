@@ -512,7 +512,7 @@ int main(int argc, char** argv)
         textureIds.resize(outputQueueCapacity);
 
         if (!eglContext)
-            eglContext = eglInit(x11Display, x11Window, 0 /*VA_FOURCC_RGBA*/);
+            eglContext = eglInit(x11Display, x11Window, 0 /*VA_FOURCC_RGBA*/, memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
 
         glGenTextures(outputQueueCapacity, &textureIds[0] );
         for (i=0; i<outputQueueCapacity; i++) {
