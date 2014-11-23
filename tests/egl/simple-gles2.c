@@ -118,7 +118,7 @@ int main() {
     XMapWindow(x11Display, x11Window);
     XSync(x11Display, 0);
 
-    context = eglInit(x11Display, x11Window, 0);
+    context = eglInit(x11Display, x11Window, 0, 0);
     // GLuint textureId = createTestTexture();
     XID pixmap = createPixmap(x11Display, x11Window);
     GLuint textureId = createTextureFromPixmap(context, pixmap);

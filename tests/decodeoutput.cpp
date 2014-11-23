@@ -355,11 +355,12 @@ Decode_Status DecodeStreamOutputXWindow::renderOneFrame(bool drain)
 class DecodeStreamOutputEgl : public DecodeStreamOutputX11
 {
 public:
-    virtual bool setVideoSize(int width, int height);
+    virtual bool setVideoSize(int width, int height) = 0;
     DecodeStreamOutputEgl(IVideoDecoder* decoder);
     virtual ~DecodeStreamOutputEgl();
 
 protected:
+    bool setVideoSize(int width, int height, bool externalTexture);
     EGLContextType *m_eglContext;
     GLuint m_textureId;
 };
@@ -388,12 +389,12 @@ private:
 };
 
 
-bool DecodeStreamOutputEgl::setVideoSize(int width, int height)
+bool DecodeStreamOutputEgl::setVideoSize(int width, int height, bool externalTexture)
 {
     if (!DecodeStreamOutputX11::setVideoSize(width, height))
         return false;
     if (!m_eglContext)
-        m_eglContext = eglInit(m_display, m_window, VA_FOURCC_RGBA);
+        m_eglContext = eglInit(m_display, m_window, VA_FOURCC_RGBA, externalTexture);
     return m_eglContext;
 }
 
@@ -412,7 +413,7 @@ DecodeStreamOutputEgl::~DecodeStreamOutputEgl()
 
 bool DecodeStreamOutputPixelMap::setVideoSize(int width, int height)
 {
-    if (!DecodeStreamOutputEgl::setVideoSize(width, height))
+    if (!DecodeStreamOutputEgl::setVideoSize(width, height, false))
         return false;
     if (!m_pixmap) {
         int screen = DefaultScreen(m_display);
@@ -448,7 +449,7 @@ DecodeStreamOutputPixelMap::~DecodeStreamOutputPixelMap()
 
 bool DecodeStreamOutputDmabuf::setVideoSize(int width, int height)
 {
-    if (!DecodeStreamOutputEgl::setVideoSize(width, height))
+    if (!DecodeStreamOutputEgl::setVideoSize(width, height, m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF))
         return false;
     if (!m_textureId)
         glGenTextures(1, &m_textureId);
