@@ -524,7 +524,7 @@ int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, u
 
     ASSERT(m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
     ASSERT(bufferIndex>=0 && bufferIndex<m_maxBufferCount[OUTPUT]);
-    bufferIndex = std::min(bufferIndex, m_actualOutBufferCount);
+    bufferIndex = std::min(bufferIndex, m_actualOutBufferCount-1);
     *(EGLImageKHR*)eglImage = m_eglImages[bufferIndex];
 
     return 0;
