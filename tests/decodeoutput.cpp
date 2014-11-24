@@ -375,16 +375,14 @@ private:
     XID m_pixmap;
 };
 
-typedef EGLImageKHR (*CreateEglImage)(EGLDisplay, EGLContext, VideoDataMemoryType, uint32_t, int, int, int);
-
+// supports either Linux dma_buf handle or DRM flink name
 class DecodeStreamOutputDmabuf: public DecodeStreamOutputEgl
 {
 public:
     virtual bool setVideoSize(int width, int height);
     virtual Decode_Status renderOneFrame(bool drain);
-    DecodeStreamOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryType memoryType, CreateEglImage create);
+    DecodeStreamOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryType memoryType);
 private:
-    CreateEglImage m_createEglImage;
     VideoDataMemoryType m_memoryType;
 
 };
@@ -472,7 +470,7 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
     if (status == RENDER_SUCCESS) {
        EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
         ASSERT(m_width == m_frame.width && m_height == m_frame.height);
-        eglImage = m_createEglImage(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle,
+        eglImage = createEglImageFromHandle(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle,
                 m_frame.width, m_frame.height, m_frame.pitch[0]);
         if (eglImage != EGL_NO_IMAGE_KHR) {
             glEGLImageTargetTexture2DOES(target, eglImage);
@@ -488,8 +486,8 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
     return status;
 }
 
-DecodeStreamOutputDmabuf::DecodeStreamOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryType memoryType, CreateEglImage create)
-    :DecodeStreamOutputEgl(decoder), m_memoryType(memoryType), m_createEglImage(create)
+DecodeStreamOutputDmabuf::DecodeStreamOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryType memoryType)
+    :DecodeStreamOutputEgl(decoder), m_memoryType(memoryType)
 {
 }
 
@@ -514,10 +512,10 @@ DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode)
             output = new DecodeStreamOutputPixelMap(decoder);
             break;
         case 3:
-            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DRM_NAME, createEglImageFromHandle);
+            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DRM_NAME);
             break;
         case 4:
-            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DMA_BUF, createEglImageFromHandle);
+            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
             break;
 #endif //__ENABLE_TESTS_GLES__
         default:
