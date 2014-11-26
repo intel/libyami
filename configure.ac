@@ -212,11 +212,11 @@ if test "$enable_v4l2" = "yes"; then
 PKG_CHECK_MODULES(LIBV4L2, [libv4l2])
 fi
 
-if test "$enable_v4l2" = "yes" -o "$enable_tests_gles" = "yes"; then
+if test ["$enable_v4l2" = "yes" -a "$enable_v4l2_glx" = "no"] -o "$enable_tests_gles" = "yes"; then
     PKG_CHECK_MODULES(LIBEGL, [egl])
 fi
 
-if test ["$enable_v4l2" = "yes" -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
+if test ["$enable_v4l2" = "yes" -a "$enable_v4l2_glx" = "no"  -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
     PKG_CHECK_MODULES(LIBGLES2, [glesv2])
 fi
 
