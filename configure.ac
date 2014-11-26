@@ -84,7 +84,7 @@ AM_CONDITIONAL(ENABLE_V4L2, test "x$enable_v4l2" = "xyes")
 
 AC_ARG_ENABLE(v4l2-glx,
     [AC_HELP_STRING([--enable-v4l2-glx], [use glx/tfp in v4l2 wrapper@<:@default=no@:>@])],
-    [], [enable_v4l2i_glx="no"])
+    [], [enable_v4l2_glx="no"])
 
 if test "$enable_v4l2_glx" = "yes"; then
 AC_DEFINE([__ENABLE_V4L2_GLX__], [1], [Defined to 1 if --enable-v4l2-glx="yes" ])
@@ -213,11 +213,11 @@ if test "$enable_v4l2" = "yes"; then
 PKG_CHECK_MODULES(LIBV4L2, [libv4l2])
 fi
 
-if test "$enable_v4l2" = "yes" -o "$enable_tests_gles" = "yes"; then
+if test ["$enable_v4l2" = "yes" -a "$enable_v4l2_glx" = "no"] -o "$enable_tests_gles" = "yes"; then
     PKG_CHECK_MODULES(LIBEGL, [egl])
 fi
 
-if test ["$enable_v4l2" = "yes" -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
+if test ["$enable_v4l2" = "yes" -a "$enable_v4l2_glx" = "no"  -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
     PKG_CHECK_MODULES(LIBGLES2, [glesv2])
 fi
 
