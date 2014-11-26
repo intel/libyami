@@ -111,10 +111,11 @@ get_w_h()
 
 single_psnr()
 {
+    standardpsnr=$1
     ${yamipath}/tests/yamidecode -i ${testfilename}  -m 0 -o ${outputpath} -f I420
     fileyuv=`ls ${outfile}*`
     get_w_h ${fileyuv}
-    ${yamipath}/testscripts/psnr -i ${refyuvfile} -o ${outputpath}${fileyuv} -W ${WIDTH} -H ${HEIGHT}
+    ${yamipath}/testscripts/psnr -i ${refyuvfile} -o ${outputpath}${fileyuv} -W ${WIDTH} -H ${HEIGHT} -s ${standardpsnr}
 }
 
 encode_and_psnr()
@@ -124,7 +125,7 @@ encode_and_psnr()
     refyuvfile=${testfilepath}${file}
     testfilename=${outputpath}${file}.264
     outfile=${file}.264_
-    single_psnr
+    single_psnr ${encodepsnr}
 }
 
 print_psnr_result()
@@ -174,7 +175,7 @@ unit_test_psnr()
                 refyuvfile=`ls ${refyuv}${tmpfile}*`
                 testfilename=${testfilepath}${file}
                 outfile=${file}
-                single_psnr
+                single_psnr ${decodepsnr}
             else
                 encode_and_psnr
             fi
@@ -188,7 +189,7 @@ unit_test_psnr()
             refyuvfile=${refyuv}
             testfilename=${testfilepath}${file}
             outfile=${file}
-            single_psnr
+            single_psnr ${decodepsnr}
         else
             encode_and_psnr
         fi
@@ -396,6 +397,8 @@ fi
 mediafile=$1
 refyuv=$2
 
+decodepsnr=40
+encodepsnr=35
 scriptpath=$(cd "$(dirname "$0")"; pwd)
 yamipath=${scriptpath%/*}
 failnumber=0

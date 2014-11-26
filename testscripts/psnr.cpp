@@ -18,7 +18,7 @@ static void print_help(const char* app)
 }
 
 int
-psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresult, int width, int height)
+psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresult, int width, int height, int standardpsnr)
 {
     int size1,size2;
     char videofile[512] = {0};
@@ -154,7 +154,7 @@ psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresul
     if (path = strrchr (filename2, '/'))
         path++;
     strcpy(videofile,path);
-    if(avgy<NORMAL_PSNR || avgu<NORMAL_PSNR || avgv<NORMAL_PSNR)
+    if(avgy<standardpsnr || avgu<standardpsnr || avgv<standardpsnr)
         fprintf(fppsnrresult,"%s: Y:%f  U:%f  V:%f    fail\n",videofile,avgy,avgu,avgv);
     else
         fprintf(fppsnrresult,"%s: Y:%f  U:%f  V:%f    pass\n",videofile,avgy,avgu,avgv);
@@ -176,9 +176,10 @@ int main(int argc, char *argv[])
     char eachpsnr[256] = {0};
     char psnrresult[256] = {0};
     int width=0,height=0;
+    int standardpsnr = NORMAL_PSNR;
     char opt;
     char *path = NULL;
-    while ((opt = getopt(argc, argv, "h:W:H:i:o:?")) != -1)
+    while ((opt = getopt(argc, argv, "h:W:H:i:o:s:?")) != -1)
     {
         switch (opt) {
             case 'h':
@@ -203,6 +204,9 @@ int main(int argc, char *argv[])
             case 'H':
                 height = atoi(optarg);;
                 break;
+            case 's':
+                standardpsnr = atoi(optarg);;
+                break;
             default:
                 print_help(argv[0]);
                 break;
@@ -218,5 +222,5 @@ int main(int argc, char *argv[])
         return -1;
     }
     printf(" filename1 %s\n filename2 %s\n result    %s \n",filename1,filename2,psnrresult);
-    return psnr_calculate(filename1,filename2,eachpsnr,psnrresult,width,height);
+    return psnr_calculate(filename1,filename2,eachpsnr,psnrresult,width,height,standardpsnr);
 }
