@@ -99,15 +99,13 @@ SurfacePtr VaapiDecSurfacePool::acquireWithWait()
 {
     SurfacePtr surface;
     AutoLock lock(m_lock);
-    if (m_flushing) {
-        ERROR("uppper layer bug, only support flush in decode thread");
-        return surface;
-    }
-    while (m_freed.empty())
+    while (m_freed.empty() && !m_flushing) {
+        DEBUG("wait because there is no available surface from pool");
         m_cond.wait();
+    }
 
     if (m_flushing) {
-        ERROR("uppper layer bug, only support flush in decode thread");
+        DEBUG("input flushing, return nil surface");
         return surface;
     }
 
@@ -294,6 +292,17 @@ bool VaapiDecSurfacePool::populateOutputHandles(VideoFrameRawData *frames, uint3
 
     // assume texture binding (between video frame and texture) is kept even after vaReleaseBufferHandle().
    return true;
+}
+
+void VaapiDecSurfacePool::setWaitable(bool waitable)
+{
+    m_flushing = !waitable;
+
+    if (!waitable) {
+        m_cond.signal();
+        if (m_imagePool)
+            m_imagePool->setWaitable(false);
+    }
 }
 
 void VaapiDecSurfacePool::flush()

@@ -439,6 +439,8 @@ Decode_Status VaapiDecoderBase::flagNativeBuffer(void *pBuffer)
 
 void VaapiDecoderBase::releaseLock()
 {
+    // seems it is only used upon end of playback, no necessary to setWaitable(true) -- next start() will create a new surface pool
+    m_surfacePool->setWaitable(false);
 }
 
 SurfacePtr VaapiDecoderBase::createSurface()

@@ -331,6 +331,10 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
 
             // wait until the worker thread exit, some cleanup happend there
             while (m_threadOn[port]) {
+                if (port == INPUT) {
+                    DEBUG("INPUT port got STREAMOFF, release internal lock");
+                    releaseCodecLock();
+                }
                 DEBUG("%s port got STREAMOFF, wait until the worker thread exit/cleanup", THREAD_NAME(port));
                 m_threadCond[port]->broadcast();
                 usleep(5000);

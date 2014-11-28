@@ -75,6 +75,11 @@ V4l2Decoder::V4l2Decoder()
     m_memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 }
 
+void V4l2Decoder::releaseCodecLock()
+{
+    m_decoder->releaseLock();
+}
+
 bool V4l2Decoder::start()
 {
     Decode_Status status = DECODE_SUCCESS;

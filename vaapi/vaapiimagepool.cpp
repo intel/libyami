@@ -74,6 +74,13 @@ private:
     ImagePoolPtr m_pool;
 };
 
+void VaapiImagePool::setWaitable(bool waitable)
+{
+    m_flushing = !waitable;
+    if (!waitable)
+        m_cond.signal();
+}
+
 ImagePtr VaapiImagePool::acquireWithWait()
 {
     ImagePtr image;
@@ -83,7 +90,7 @@ ImagePtr VaapiImagePool::acquireWithWait()
         ERROR("flushing, no new image available");
         return image;
     }
-    while (m_freeIndex.empty())
+    while (m_freeIndex.empty() && !m_flushing)
         m_cond.wait();
 
     if (m_flushing) {

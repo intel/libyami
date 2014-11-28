@@ -56,6 +56,9 @@ public:
     ///after flush is called, acquireWithWait always return null image,until all ImagePtr are returned.
     void flush();
 
+    /// set image acquire waitable or not, also wake up the previous wait when it is set to false
+    void setWaitable(bool waitable);
+
 private:
 
     VaapiImagePool(std::vector<ImagePtr>);

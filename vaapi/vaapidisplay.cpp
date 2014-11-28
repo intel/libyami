@@ -264,10 +264,11 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
         nativeDisplayObj.reset (new NativeDisplayX11());
         if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
             vaDisplay = vaGetDisplay((Display*)(nativeDisplayObj->nativeHandle()));
-        if(vaDisplay || nativeDisplay.type == NATIVE_DISPLAY_X11)
-            break;
         if (vaDisplay)
             INFO("use vaapi x11 backend");
+        if(vaDisplay || nativeDisplay.type == NATIVE_DISPLAY_X11)
+            break;
+        INFO("try to init va with x11 display (%p) but failed", (Display*)(nativeDisplayObj->nativeHandle()));
         // NATIVE_DISPLAY_AUTO continue, no break
 #endif
     case NATIVE_DISPLAY_DRM:
