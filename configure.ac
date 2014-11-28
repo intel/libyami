@@ -11,7 +11,8 @@ m4_define([libyami_lt_version], [libyami_lt_current.libyami_lt_revision.libyami_
 # package version (lib name suffix), usually sync with git tag
 m4_define([libyami_major_version], 0)
 m4_define([libyami_minor_version], 1)
-m4_define([libyami_micro_version], 3)
+# even number of micro_version means a release after full validation cycle
+m4_define([libyami_micro_version], 4)
 m4_define([libyami_version],
                     [libyami_major_version.libyami_minor_version.libyami_micro_version])
 

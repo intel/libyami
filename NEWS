@@ -1,10 +1,55 @@
-libyami NEWS -- summary of changes.  2014-10-24
+libyami NEWS -- summary of changes.  2014-11-28
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2014 Intel Corporation
 
+libyami 0.1.4 release
+=====================
+
+features update
+---------------
+    -   Additional fixes(most are thread race condition) for v4l2 wrapper (egl/gles)
+    -   Add glx support in v4l2 wrapper
+    -   Basic transcoding support: encoder test accepts input data from decoder output
+    -   Testscript is added, it supports one-run-for-all: with a folder including h264/vp8/jpeg/raw-ref,
+        we can test them in one run. It serves as BAT (basic acceptance test) for pull request merge.
+    -   Report fps in decode test, support decoding only test (skip rendering)
+    -   Vp8/jpeg are supported in v4l2 decoder as well
+    -   Decode test can be built/run without X11
+    -   Code refinement for decoder test output and encoder classes
+    -   dma_buf fixes, when video frame is exported as dma_buf, it renders well as texture
+    -   with additional patch for chrome:
+        V4L2VDA/V4L2VEA pass chrome video unit test
+        video playback in browser draft ok
+    -   for v4l2 wrapper, see: https://github.com/halleyzhao/yami-share/blob/master/Yami_V4L2_wrapper_for_Chrome.pdf
+
+known issues
+---------------
+    -   this release is fully tested by validation team
+    -   some jpeg file similarity <0.99 (~0.98) after decoding
+            https://github.com/01org/libyami/issues/108
+
+future release plan:
+====================
+    Dec: v0.2
+        jpeg encoder
+        vp9 decoder
+        vp8 encoder (depends on driver availability)
+        initial ffmpeg support
+
+    Feb'15: v0.3
+        unified input/output buffer of yami
+        transcoding support with unified input/output buffer
+        camera dma_buf support, camera with jpeg input
+        use yami in ffmpeg for hw codec
+
+    Future:
+        h265 decoder
+
 
 Libyami 0.1 release note
+===========================
+
 Libyami is core video library to accelerate decoding/encoding based on libva.
 Libyami can be treated as development kit for VAAPI. It is developed by C++ language, with simple/efficient APIs, without external dependencies.
 libyami targets two type of usage:
@@ -25,17 +70,4 @@ Known issues:
     Encodeing quality through gst-omx is not good:
         https://github.com/01org/libyami/issues/36
 
-The future release plan are:
-    Nov: v0.11: V4L2 VDA/VEA
-    Dec: v0.2
-        Vp8 and jpeg encoder(depends on driver release)
-        unified input/output buffer of yami
-    Feb'15: v0.3
-        Vp9 decoder
-        transcoding support with unified input/output buffer
-        camera dma_buf support, camera with jpeg input
-        use yami in ffmpeg for hw codec
-
-    Future:
-        h265 decoder
-        legacy codec: mpeg2 decoder/encoder, vc1 decoder, mpeg4/h263 decoder/encoder
+       legacy codec: mpeg2 decoder/encoder, vc1 decoder, mpeg4/h263 decoder/encoder
