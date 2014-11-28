@@ -121,6 +121,10 @@ public:
 
     /// set native display
     virtual void  setNativeDisplay( NativeDisplay * display = NULL) = 0;
+
+    /// escape decode thread from potential waiting
+    virtual void releaseLock(void) = 0;
+
     /// obsolete, make all cached video frame output-able, it can be done by getOutput(draining=true) as well
     virtual void flushOutport(void) = 0;
     /// not interest for now, may be used by Android to accept external video frame memory from gralloc
@@ -129,8 +133,6 @@ public:
     virtual Decode_Status  getClientNativeWindowBuffer(void *bufferHeader, void *nativeBufferHandle) = 0;
     /// not interest for now, may be used by Android to accept external video frame memory from gralloc
     virtual Decode_Status flagNativeBuffer(void * pBuffer) = 0;
-    /// not interest for now, may be used by Android
-    virtual void releaseLock(void) = 0;
 };
 }
 #endif                          /* VIDEO_DECODER_INTERFACE_H_ */
