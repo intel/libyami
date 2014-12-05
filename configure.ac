@@ -49,15 +49,14 @@ AC_ARG_ENABLE(tests,
     [AC_HELP_STRING([--enable-tests], [build tests @<:@default=no@:>@])],
     [], [enable_tests="no"])
 
-if test "$enable_tests" = "yes"; then
-AC_DEFINE([__ENABLE_TESTS__], [1], [Defined to 1 if --enable-tests="yes" ])
-fi
-AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "xyes")
-
-
 AC_ARG_ENABLE(tests-gles,
     [AC_HELP_STRING([--enable-tests-gles], [build tests with opengles/texutre rendering@<:@default=no@:>@])],
     [], [enable_tests_gles="no"])
+
+if test "$enable_tests" = "yes" -o "$enable_tests_gles" = "yes"; then
+AC_DEFINE([__ENABLE_TESTS__], [1], [Defined to 1 if --enable-tests="yes" ])
+fi
+AM_CONDITIONAL(ENABLE_TESTS, test "x$enable_tests" = "xyes" -o "x$enable_tests_gles" = "xyes")
 
 if test "$enable_tests_gles" = "yes"; then
 AC_DEFINE([__ENABLE_TESTS_GLES__], [1], [Defined to 1 if --enable-tests-gles="yes" ])
@@ -77,14 +76,14 @@ AC_ARG_ENABLE(v4l2,
     [AC_HELP_STRING([--enable-v4l2], [wrapper of v4l2 interface@<:@default=no@:>@])],
     [], [enable_v4l2="no"])
 
-if test "$enable_v4l2" = "yes"; then
-AC_DEFINE([__ENABLE_V4L2__], [1], [Defined to 1 if --enable-v4l2="yes" ])
-fi
-AM_CONDITIONAL(ENABLE_V4L2, test "x$enable_v4l2" = "xyes")
-
 AC_ARG_ENABLE(v4l2-glx,
     [AC_HELP_STRING([--enable-v4l2-glx], [use glx/tfp in v4l2 wrapper@<:@default=no@:>@])],
     [], [enable_v4l2_glx="no"])
+
+if test "$enable_v4l2" = "yes" -o "$enable_v4l2_glx" = "yes"; then
+AC_DEFINE([__ENABLE_V4L2__], [1], [Defined to 1 if --enable-v4l2="yes" or --enable-v4l2-glx="yes" ])
+fi
+AM_CONDITIONAL(ENABLE_V4L2, test "x$enable_v4l2" = "xyes" -o "x$enable_v4l2_glx" = "xyes")
 
 if test "$enable_v4l2_glx" = "yes"; then
 AC_DEFINE([__ENABLE_V4L2_GLX__], [1], [Defined to 1 if --enable-v4l2-glx="yes" ])
