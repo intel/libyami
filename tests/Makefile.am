@@ -64,10 +64,18 @@ CAPI_ENCODE_LIBS = \
 	$(top_builddir)/capi/libyami_capi.la		\
 	$(NULL)
 
+DECODE_INPUT_SOURCES = \
+	decodeinput.cpp \
+	$(NULL)
+
+if ENABLE_AVFORMAT
+DECODE_INPUT_SOURCES += decodeinputavformat.cpp
+YAMI_DECODE_LIBS += $(LIBAVFORMAT_LIBS)
+endif
 
 if ENABLE_CAPI
 decodecapi_LDADD	= $(CAPI_DECODE_LIBS)
-decodecapi_SOURCES	= decodecapi.c decodehelp.h decodeinput.cpp  decodeoutput.cpp decodeInputCapi.cpp decodeOutputCapi.cpp
+decodecapi_SOURCES	= decodecapi.c decodehelp.h  decodeInputCapi.cpp decodeOutputCapi.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp
 if ENABLE_TESTS_GLES
 decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
@@ -76,13 +84,13 @@ encodecapi_LDADD	= $(CAPI_ENCODE_LIBS)
 encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp encodeInputCapi.cpp decodeinput.cpp
 else
 yamidecode_LDADD	= $(YAMI_DECODE_LIBS)
-yamidecode_SOURCES	= decode.cpp decodehelp.h decodeinput.cpp decodeoutput.cpp
+yamidecode_SOURCES	= decode.cpp decodehelp.h $(DECODE_INPUT_SOURCES) decodeoutput.cpp
 if ENABLE_TESTS_GLES
 yamidecode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
 yamiencode_LDADD    = $(YAMI_ENCODE_LIBS)
-yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp decodeinput.cpp
+yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
 
 v4l2decode_LDADD = $(V4L2_DECODE_LIBS)
 v4l2decode_SOURCES = v4l2decode.cpp decodehelp.h decodeinput.cpp
@@ -93,5 +101,5 @@ v4l2decode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
-v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp decodeinput.cpp
+v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
 endif

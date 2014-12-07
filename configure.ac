@@ -110,6 +110,17 @@ AS_IF([test "x$enable_x11" = "xyes"],
 [])
 AM_CONDITIONAL(ENABLE_X11, test "x$enable_x11" = "xyes")
 
+AC_ARG_ENABLE(avformat,
+    [AC_HELP_STRING([--enable-avformat], [enable avformat@<:@default=no@:>@])],
+    [], [enable_avformat="no"])
+
+AS_IF([test "x$enable_avformat" = "xyes"],
+[AC_DEFINE([__ENABLE_AVFORMAT__], [1], [Defined to 0 if --enable-avformat="yes" ])],
+[TEST "X$enable_avformat" = "xno"],
+[AC_DEFINE([__ENABLE_AVFORMAT__], [1], [Defined to 1 if --disable-avformat="yes" ])],
+[])
+AM_CONDITIONAL(ENABLE_AVFORMAT, test "x$enable_avformat" = "xyes")
+
 AC_ARG_ENABLE(baytrail,
     [AC_HELP_STRING([--enable-baytrail], [build with baytrail/chromeos support @<:@default=no@:>@])],
     [], [enable_baytrail="no"])
@@ -217,6 +228,7 @@ PKG_CHECK_MODULES(LIBVA_X11, [libva-x11],
 	         [AC_DEFINE([HAVE_VA_X11], [1], [Defined to 1 if VA/X11 API is enabled])])
 PKG_CHECK_MODULES(X11, [x11])
 fi
+
 if test "$enable_v4l2" = "yes"; then
 PKG_CHECK_MODULES(LIBV4L2, [libv4l2])
 fi
@@ -236,6 +248,10 @@ fi
 
 if test "$enable_v4l2_glx" = "yes"; then
 PKG_CHECK_MODULES(LIBGL, [gl])
+fi
+
+if test "$enable_avformat" = "yes"; then
+PKG_CHECK_MODULES(LIBAVFORMAT, [libavformat])
 fi
 
 # Checks for library functions.

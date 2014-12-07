@@ -1,8 +1,8 @@
 /*
- *  decodeinput.h - decode test input
+ *  decodeinputavformat.h - decode input using avformat
  *
  *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Changzhi Wei<changzhix.wei@intel.com>
+ *    Author: XuGuagnxin <Guangxin.Xu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -19,24 +19,32 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-#ifndef decodeinput_h
-#define decodeinput_h
 
-#include <stdio.h>
-#include "VideoDecoderDefs.h"
-#include "VideoDecoderInterface.h"
+#ifndef decodeinputavformat_h
+#define decodeinputavformat_h
 
-class DecodeInput {
+#include "decodeinput.h"
+extern "C" {
+#include <libavformat/avformat.h>
+}
+
+class DecodeInputAvFormat : public DecodeInput
+{
 public:
-    virtual ~DecodeInput() {}
-    static DecodeInput * create(const char* fileName);
-    virtual bool isEOS() = 0;
-    virtual const char * getMimeType() = 0;
-    virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer) = 0;
+    DecodeInputAvFormat();
+    virtual ~DecodeInputAvFormat();
+    virtual bool isEOS() { return m_isEos; }
+    virtual const char * getMimeType();
+    virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
 
 protected:
-    virtual bool initInput(const char* fileName) = 0;
-
+    virtual bool initInput(const char* fileName);
+private:
+    AVFormatContext* m_format;
+    int m_videoId;
+    AVCodecID m_codecId;
+    AVPacket m_packet;
+    bool m_isEos;
 };
-#endif
 
+#endif

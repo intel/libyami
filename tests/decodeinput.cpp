@@ -29,6 +29,10 @@
 #include "decodeinput.h"
 #include "common/log.h"
 
+#ifdef __ENABLE_AVFORMAT__
+#include "decodeinputavformat.h"
+#endif
+
 using namespace YamiMediaCodec;
 
 class MyDecodeInput : public DecodeInput{
@@ -126,8 +130,13 @@ DecodeInput* DecodeInput::create(const char* fileName)
             strcasecmp(ext,"mjpeg")==0) {
             input = new DecodeInputJPEG();
         }
-    else
-        return NULL;
+    else {
+#ifdef __ENABLE_AVFORMAT__
+            input = new DecodeInputAvFormat();
+#else
+            return NULL;
+#endif
+        }
 
     if(!input->initInput(fileName)) {
         delete input;
