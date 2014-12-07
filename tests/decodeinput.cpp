@@ -31,7 +31,7 @@
 
 using namespace YamiMediaCodec;
 
-DecodeStreamInput::DecodeStreamInput()
+DecodeInput::DecodeInput()
     : m_fp(NULL)
     , m_buffer(NULL)
     , m_readToEOS(false)
@@ -39,7 +39,7 @@ DecodeStreamInput::DecodeStreamInput()
 {
 }
 
-DecodeStreamInput::~DecodeStreamInput()
+DecodeInput::~DecodeInput()
 {
     if(m_fp)
         fclose(m_fp);
@@ -48,7 +48,7 @@ DecodeStreamInput::~DecodeStreamInput()
         free(m_buffer);
 }
 
-bool DecodeStreamInput::initInput(const char* fileName)
+bool DecodeInput::initInput(const char* fileName)
 {
     m_fp = fopen(fileName, "r");
     if (!m_fp) {
@@ -60,9 +60,9 @@ bool DecodeStreamInput::initInput(const char* fileName)
     return init();
 }
 
-DecodeStreamInput* DecodeStreamInput::create(const char* fileName)
+DecodeInput* DecodeInput::create(const char* fileName)
 {
-    DecodeStreamInput* input = NULL;
+    DecodeInput* input = NULL;
     IVideoDecoder* decoder;
     if(fileName==NULL)
         return NULL;
@@ -76,18 +76,18 @@ DecodeStreamInput* DecodeStreamInput::create(const char* fileName)
         strcasecmp(ext,"avc")==0 ||
         strcasecmp(ext,"26l")==0 ||
         strcasecmp(ext,"jvt")==0 ) {
-            input = new DecodeStreamInputH264();
+            input = new DecodeInputH264();
         }
     else if((strcasecmp(ext,"ivf")==0) ||
             (strcasecmp(ext,"vp8")==0) ||
             (strcasecmp(ext,"vp9")==0)) {
-            input = new DecodeStreamInputVPX();
+            input = new DecodeInputVPX();
         }
     else if(strcasecmp(ext,"jpg")==0 ||
             strcasecmp(ext,"jpeg")==0 ||
             strcasecmp(ext,"mjpg")==0 ||
             strcasecmp(ext,"mjpeg")==0) {
-            input = new DecodeStreamInputJPEG();
+            input = new DecodeInputJPEG();
         }
     else
         return NULL;
@@ -106,23 +106,23 @@ struct IvfHeader {
     uint32_t dummy[5];
 };
 
-DecodeStreamInputVPX::DecodeStreamInputVPX()
+DecodeInputVPX::DecodeInputVPX()
     : m_ivfFrmHdrSize(12)
     , m_maxFrameSize(256*1024)
     , m_mimeType("unknown")
 {
 }
 
-DecodeStreamInputVPX::~DecodeStreamInputVPX()
+DecodeInputVPX::~DecodeInputVPX()
 {
 }
 
-const char * DecodeStreamInputVPX::getMimeType()
+const char * DecodeInputVPX::getMimeType()
 {
     return m_mimeType;
 }
 
-bool DecodeStreamInputVPX::init()
+bool DecodeInputVPX::init()
 {
     IvfHeader header;
     size_t size = sizeof(header);
@@ -140,7 +140,7 @@ bool DecodeStreamInputVPX::init()
     return true;
 }
 
-bool DecodeStreamInputVPX::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
+bool DecodeInputVPX::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 {
     if(m_ivfFrmHdrSize == fread (m_buffer, 1, m_ivfFrmHdrSize, m_fp)) {
         int framesize = 0;
@@ -160,17 +160,17 @@ bool DecodeStreamInputVPX::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     return true;
 }
 
-DecodeStreamInputRaw::DecodeStreamInputRaw()
+DecodeInputRaw::DecodeInputRaw()
     : m_lastReadOffset(0)
     , m_availableData(0)
 {
 }
 
-DecodeStreamInputRaw::~DecodeStreamInputRaw()
+DecodeInputRaw::~DecodeInputRaw()
 {
 }
 
-bool DecodeStreamInputRaw::init()
+bool DecodeInputRaw::init()
 {
     int32_t offset = -1;
     // locates to the first start code
@@ -183,7 +183,7 @@ bool DecodeStreamInputRaw::init()
     return true;
 }
 
-bool DecodeStreamInputRaw::ensureBufferData()
+bool DecodeInputRaw::ensureBufferData()
 {
     int readCount = 0;
 
@@ -209,7 +209,7 @@ bool DecodeStreamInputRaw::ensureBufferData()
     return true;
 }
 
-int32_t DecodeStreamInputRaw::scanForStartCode(const uint8_t * data,
+int32_t DecodeInputRaw::scanForStartCode(const uint8_t * data,
                  uint32_t offset, uint32_t size)
 {
     uint32_t i;
@@ -227,7 +227,7 @@ int32_t DecodeStreamInputRaw::scanForStartCode(const uint8_t * data,
     return -1;
 }
 
-bool DecodeStreamInputRaw::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
+bool DecodeInputRaw::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 {
     bool gotOneNalu= false;
     int32_t offset = -1;
@@ -258,43 +258,43 @@ bool DecodeStreamInputRaw::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     return true;
 }
 
-DecodeStreamInputH264::DecodeStreamInputH264()
+DecodeInputH264::DecodeInputH264()
 {
     StartCodeSize = 3;
 }
 
-DecodeStreamInputH264::~DecodeStreamInputH264()
+DecodeInputH264::~DecodeInputH264()
 {
 
 }
 
-const char *DecodeStreamInputH264::getMimeType()
+const char *DecodeInputH264::getMimeType()
 {
     return "video/h264";
 }
 
-bool DecodeStreamInputH264::isSyncWord(const uint8_t* buf)
+bool DecodeInputH264::isSyncWord(const uint8_t* buf)
 {
     return buf[0] == 0 && buf[1] == 0 && buf[2] == 1;
 }
 
-DecodeStreamInputJPEG::DecodeStreamInputJPEG()
+DecodeInputJPEG::DecodeInputJPEG()
 {
     StartCodeSize = 2;
     m_countSOI = 0;
 }
 
-DecodeStreamInputJPEG::~DecodeStreamInputJPEG()
+DecodeInputJPEG::~DecodeInputJPEG()
 {
 
 }
 
-const char *DecodeStreamInputJPEG::getMimeType()
+const char *DecodeInputJPEG::getMimeType()
 {
     return "image/jpeg";
 }
 
-bool DecodeStreamInputJPEG::isSyncWord(const uint8_t* buf)
+bool DecodeInputJPEG::isSyncWord(const uint8_t* buf)
 {
     if (buf[0] != 0xff)
         return false;

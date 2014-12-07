@@ -27,13 +27,13 @@
 #include "VideoDecoderDefs.h"
 #include "VideoDecoderInterface.h"
 
-class DecodeStreamInput {
+class DecodeInput {
 public:
     static const int MaxNaluSize = 1024*1024; // assume max nalu size is 1M
     static const int CacheBufferSize = 4 * MaxNaluSize;
-    DecodeStreamInput();
-    virtual ~DecodeStreamInput();
-    static DecodeStreamInput * create(const char* fileName);
+    DecodeInput();
+    virtual ~DecodeInput();
+    static DecodeInput * create(const char* fileName);
     bool initInput(const char* fileName);
     virtual bool isEOS() {return m_parseToEOS;}
     virtual const char * getMimeType() = 0;
@@ -47,11 +47,11 @@ public:
     bool m_parseToEOS;
 };
 
-class DecodeStreamInputVPX :public DecodeStreamInput
+class DecodeInputVPX :public DecodeInput
 {
 public:
-    DecodeStreamInputVPX();
-    ~DecodeStreamInputVPX();
+    DecodeInputVPX();
+    ~DecodeInputVPX();
     const char * getMimeType();
     bool init();
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
@@ -61,11 +61,11 @@ private:
     const int m_maxFrameSize;
 };
 
-class DecodeStreamInputRaw:public DecodeStreamInput
+class DecodeInputRaw:public DecodeInput
 {
 public:
-    DecodeStreamInputRaw();
-    ~DecodeStreamInputRaw();
+    DecodeInputRaw();
+    ~DecodeInputRaw();
     bool init();
     bool ensureBufferData();
     int32_t scanForStartCode(const uint8_t * data, uint32_t offset, uint32_t size);
@@ -79,20 +79,20 @@ public:
     uint32_t StartCodeSize;
 };
 
-class DecodeStreamInputH264:public DecodeStreamInputRaw
+class DecodeInputH264:public DecodeInputRaw
 {
 public:
-    DecodeStreamInputH264();
-    ~DecodeStreamInputH264();
+    DecodeInputH264();
+    ~DecodeInputH264();
     const char * getMimeType();
     bool isSyncWord(const uint8_t* buf);
 };
 
-class DecodeStreamInputJPEG:public DecodeStreamInputRaw
+class DecodeInputJPEG:public DecodeInputRaw
 {
 public:
-    DecodeStreamInputJPEG();
-    ~DecodeStreamInputJPEG();
+    DecodeInputJPEG();
+    ~DecodeInputJPEG();
     const char * getMimeType();
     bool isSyncWord(const uint8_t* buf);
 private:

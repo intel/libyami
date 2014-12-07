@@ -34,14 +34,14 @@
 
 using namespace YamiMediaCodec;
 
-class EncodeStreamInput;
-class EncodeStreamInputFile;
-class EncodeStreamInputCamera;
-class EncodeStreamInput {
+class EncodeInput;
+class EncodeInputFile;
+class EncodeInputCamera;
+class EncodeInput {
 public:
-    static EncodeStreamInput* create(const char* inputFileName, uint32_t fourcc, int width, int height);
-    EncodeStreamInput() : m_width(0), m_height(0), m_frameSize(0) {};
-    ~EncodeStreamInput() {};
+    static EncodeInput* create(const char* inputFileName, uint32_t fourcc, int width, int height);
+    EncodeInput() : m_width(0), m_height(0), m_frameSize(0) {};
+    ~EncodeInput() {};
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height) = 0;
     virtual bool getOneFrameInput(VideoFrameRawData &inputBuffer) = 0;
     virtual bool recycleOneFrameInput(VideoFrameRawData &inputBuffer) {return true;};
@@ -56,10 +56,10 @@ protected:
     int m_frameSize;
 };
 
-class EncodeStreamInputFile : public EncodeStreamInput {
+class EncodeInputFile : public EncodeInput {
 public:
-    EncodeStreamInputFile();
-    ~EncodeStreamInputFile();
+    EncodeInputFile();
+    ~EncodeInputFile();
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
     virtual bool getOneFrameInput(VideoFrameRawData &inputBuffer);
     virtual bool isEOS() {return m_readToEOS;}
@@ -70,7 +70,7 @@ protected:
     bool m_readToEOS;
 };
 
-class EncodeStreamInputCamera : public EncodeStreamInput {
+class EncodeInputCamera : public EncodeInput {
 public:
     enum CameraDataMode{
         CAMERA_DATA_MODE_MMAP,
@@ -78,8 +78,8 @@ public:
         // CAMERA_DATA_MODE_USRPTR,
         // CAMERA_DATA_MODE_DMABUF_USRPTR,
     };
-    EncodeStreamInputCamera() :m_frameBufferCount(5), m_frameBufferSize(0), m_dataMode(CAMERA_DATA_MODE_MMAP) {};
-    ~EncodeStreamInputCamera();
+    EncodeInputCamera() :m_frameBufferCount(5), m_frameBufferSize(0), m_dataMode(CAMERA_DATA_MODE_MMAP) {};
+    ~EncodeInputCamera();
     virtual bool init(const char* cameraPath, uint32_t fourcc, int width, int height);
     bool setDataMode(CameraDataMode mode = CAMERA_DATA_MODE_MMAP) {m_dataMode = mode; return true;};
 
@@ -105,11 +105,11 @@ private:
 
 };
 
-class EncodeStreamOutput {
+class EncodeOutput {
 public:
-    EncodeStreamOutput();
-    ~EncodeStreamOutput();
-    static  EncodeStreamOutput* create(const char* outputFileName, int width , int height);
+    EncodeOutput();
+    ~EncodeOutput();
+    static  EncodeOutput* create(const char* outputFileName, int width , int height);
     virtual bool write(void* data, int size);
     virtual const char* getMimeType() = 0;
 protected:
@@ -117,15 +117,15 @@ protected:
     FILE *m_fp;
 };
 
-class EncodeStreamOutputH264 : public EncodeStreamOutput
+class EncodeOutputH264 : public EncodeOutput
 {
     virtual const char* getMimeType();
 };
 
-class EncodeStreamOutputVP8 : public EncodeStreamOutput {
+class EncodeOutputVP8 : public EncodeOutput {
 public:
-    EncodeStreamOutputVP8();
-    ~EncodeStreamOutputVP8();
+    EncodeOutputVP8();
+    ~EncodeOutputVP8();
     virtual const char* getMimeType();
     virtual bool write(void* data, int size);
 protected:

@@ -228,7 +228,8 @@ struct _Vp9Parser
 {
   BOOL      lossless_flag;
   Vp9Segmentation segmentation[VP9_MAX_SEGMENTS];
-  //private data
+
+  /* private data */
   void*     priv;
 };
 

@@ -49,7 +49,7 @@ bool isReadEOS = false;
 bool isEncodeEOS = false;
 bool isOutputEOS = false;
 
-static EncodeStreamInput* streamInput;
+static EncodeInput* streamInput;
 
 bool readOneFrameData(int index)
 {
@@ -212,7 +212,7 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
-    streamInput = EncodeStreamInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
+    streamInput = EncodeInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
     ASSERT(streamInput);
 
     // open device

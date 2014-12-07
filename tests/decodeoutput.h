@@ -35,19 +35,19 @@
 
 using namespace YamiMediaCodec;
 
-class DecodeStreamOutput
+class DecodeOutput
 {
 public:
-    static DecodeStreamOutput* create(IVideoDecoder* decoder, int mode);
+    static DecodeOutput* create(IVideoDecoder* decoder, int mode);
     virtual bool setVideoSize(int width, int height);
     virtual Decode_Status renderOneFrame(bool drain) = 0;
     Decode_Status processOneFrame(bool drain);
     uint32_t renderFrameCount() { return m_renderFrames; };
 
-    virtual ~DecodeStreamOutput() {};
+    virtual ~DecodeOutput() {};
 
 protected:
-    DecodeStreamOutput(IVideoDecoder* decoder);
+    DecodeOutput(IVideoDecoder* decoder);
     VideoFrameRawData m_frame;
     int m_width;
     int m_height;
@@ -55,30 +55,30 @@ protected:
     IVideoDecoder* m_decoder;
 };
 
-class DecodeStreamOutputNull: public DecodeStreamOutput
+class DecodeOutputNull: public DecodeOutput
 {
-friend DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode);
+friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
     virtual Decode_Status renderOneFrame(bool drain);
-    ~DecodeStreamOutputNull() {};
+    ~DecodeOutputNull() {};
 
 private:
-    DecodeStreamOutputNull(IVideoDecoder* decoder):DecodeStreamOutput(decoder) {};
+    DecodeOutputNull(IVideoDecoder* decoder):DecodeOutput(decoder) {};
 };
 
 class ColorConvert;
-class DecodeStreamOutputRaw : public DecodeStreamOutput
+class DecodeOutputRaw : public DecodeOutput
 {
-friend DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode);
+friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
     virtual Decode_Status renderOneFrame(bool drain);
-    ~DecodeStreamOutputRaw();
+    ~DecodeOutputRaw();
 
 protected:
     virtual bool render(VideoFrameRawData* frame) = 0;
     void setFourcc(uint32_t fourcc);
     uint32_t getFourcc();
-    DecodeStreamOutputRaw(IVideoDecoder* decoder);
+    DecodeOutputRaw(IVideoDecoder* decoder);
 
 private:
     ColorConvert* m_convert;
@@ -87,16 +87,16 @@ private:
     bool m_enableSoftI420Convert;
 };
 
-class DecodeStreamOutputFileDump : public DecodeStreamOutputRaw
+class DecodeOutputFileDump : public DecodeOutputRaw
 {
-friend DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode);
+friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
     bool config(const char* dir, const char* source, const char* dest, uint32_t fourcc);
     virtual bool setVideoSize(int width, int height);
-    ~DecodeStreamOutputFileDump();
+    ~DecodeOutputFileDump();
 
 protected:
-    DecodeStreamOutputFileDump(IVideoDecoder* decoder);
+    DecodeOutputFileDump(IVideoDecoder* decoder);
     virtual bool render(VideoFrameRawData* frame);
 
 private:
@@ -108,7 +108,7 @@ private:
 
 
 //help functions
-bool renderOutputFrames(DecodeStreamOutput* output, bool drain = false);
-bool configDecodeOutput(DecodeStreamOutput* output);
+bool renderOutputFrames(DecodeOutput* output, bool drain = false);
+bool configDecodeOutput(DecodeOutput* output);
 
 #endif //decodeoutput_h

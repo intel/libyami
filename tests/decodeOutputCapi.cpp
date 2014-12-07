@@ -35,7 +35,7 @@ DecodeOutputHandler createDecodeOutput(DecodeHandler decoder, int renderMode)
     if (!decoder)
         return NULL;
     IVideoDecoder* dec = reinterpret_cast<IVideoDecoder*>(decoder);
-    DecodeStreamOutput* out = DecodeStreamOutput::create(dec, renderMode);
+    DecodeOutput* out = DecodeOutput::create(dec, renderMode);
     return reinterpret_cast<DecodeOutputHandler>(out);
 }
 
@@ -43,7 +43,7 @@ bool decodeOutputSetVideoSize(DecodeOutputHandler output, int width , int height
 {
     if (!output)
         return false;
-    DecodeStreamOutput* out = reinterpret_cast<DecodeStreamOutput*>(output);
+    DecodeOutput* out = reinterpret_cast<DecodeOutput*>(output);
     return out->setVideoSize(width, height);
 }
 
@@ -51,7 +51,7 @@ bool renderOutputFrames(DecodeOutputHandler output, bool drain)
 {
     if (!output)
         return false;
-    DecodeStreamOutput* out = reinterpret_cast<DecodeStreamOutput*>(output);
+    DecodeOutput* out = reinterpret_cast<DecodeOutput*>(output);
     return renderOutputFrames(out, drain);
 }
 
@@ -59,7 +59,7 @@ void releaseDecodeOutput(DecodeOutputHandler output)
 {
     if (!output)
         return;
-    DecodeStreamOutput* out = reinterpret_cast<DecodeStreamOutput*>(output);
+    DecodeOutput* out = reinterpret_cast<DecodeOutput*>(output);
     delete out;
 }
 
@@ -67,6 +67,6 @@ bool configDecodeOutput(DecodeOutputHandler output)
 {
     if (!output)
         return false;
-    DecodeStreamOutput* out = reinterpret_cast<DecodeStreamOutput*>(output);
+    DecodeOutput* out = reinterpret_cast<DecodeOutput*>(output);
     return configDecodeOutput(out);
 }

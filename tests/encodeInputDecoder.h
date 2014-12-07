@@ -29,17 +29,17 @@
 
 using namespace YamiMediaCodec;
 
-class EncodeStreamInputDecoder : public  EncodeStreamInput {
+class EncodeInputDecoder : public  EncodeInput {
 public:
-    EncodeStreamInputDecoder(DecodeStreamInput* input):m_input(input), m_decoder(NULL), m_isEOS(false){}
-    ~EncodeStreamInputDecoder();
+    EncodeInputDecoder(DecodeInput* input):m_input(input), m_decoder(NULL), m_isEOS(false){}
+    ~EncodeInputDecoder();
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
     virtual bool getOneFrameInput(VideoFrameRawData &inputBuffer);
     virtual bool recycleOneFrameInput(VideoFrameRawData &inputBuffer);
     virtual bool isEOS();
 private:
     bool decodeOneFrame();
-    DecodeStreamInput* m_input;
+    DecodeInput* m_input;
     IVideoDecoder* m_decoder;
     bool m_isEOS;
 };

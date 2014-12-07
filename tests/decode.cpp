@@ -41,8 +41,8 @@ using namespace YamiMediaCodec;
 int main(int argc, char** argv)
 {
     IVideoDecoder *decoder = NULL;
-    DecodeStreamInput *input;
-    DecodeStreamOutput *output;
+    DecodeInput *input;
+    DecodeOutput *output;
     VideoDecodeBuffer inputBuffer;
     VideoConfigBuffer configBuffer;
     const VideoFormatInfo *formatInfo = NULL;
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
         return -1;
     }
 #endif
-    input = DecodeStreamInput::create(inputFileName);
+    input = DecodeInput::create(inputFileName);
 
     if (input==NULL) {
         fprintf(stderr, "fail to init input stream\n");
@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     decoder = createVideoDecoder(input->getMimeType());
     assert(decoder != NULL);
 
-    output = DecodeStreamOutput::create(decoder, renderMode);
+    output = DecodeOutput::create(decoder, renderMode);
     if (!output || !configDecodeOutput(output)) {
         fprintf(stderr, "failed to config decode output of mode: %d\n", renderMode);
         return -1;

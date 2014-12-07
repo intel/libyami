@@ -43,8 +43,8 @@ int main(int argc, char** argv)
 {
     IVideoEncoder *encoder = NULL;
     uint32_t maxOutSize = 0;
-    EncodeStreamInput* input;
-    EncodeStreamOutput* output;
+    EncodeInput* input;
+    EncodeOutput* output;
     Encode_Status status;
     VideoFrameRawData inputBuffer;
     VideoEncOutputBuffer outputBuffer;
@@ -56,7 +56,7 @@ int main(int argc, char** argv)
         return -1;
 
     DEBUG("inputFourcc: %.4s", &(inputFourcc));
-    input = EncodeStreamInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
+    input = EncodeInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
     if (!input) {
         fprintf (stderr, "fail to init input stream\n");
         return -1;
@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     videoWidth = input->getWidth();
     videoHeight = input->getHeight();
 
-    output = EncodeStreamOutput::create(outputFileName, videoWidth, videoHeight);
+    output = EncodeOutput::create(outputFileName, videoWidth, videoHeight);
     if (!output) {
         fprintf (stderr, "fail to init ouput stream\n");
         return -1;

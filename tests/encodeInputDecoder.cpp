@@ -28,7 +28,7 @@
 #include "encodeInputDecoder.h"
 #include "assert.h"
 
-EncodeStreamInputDecoder::~EncodeStreamInputDecoder()
+EncodeInputDecoder::~EncodeInputDecoder()
 {
     if (m_decoder) {
         m_decoder->stop();
@@ -37,7 +37,7 @@ EncodeStreamInputDecoder::~EncodeStreamInputDecoder()
     delete m_input;
 }
 
-bool EncodeStreamInputDecoder::init(const char* /*inputFileName*/, uint32_t /*fourcc*/, int /* width */, int /*height*/)
+bool EncodeInputDecoder::init(const char* /*inputFileName*/, uint32_t /*fourcc*/, int /* width */, int /*height*/)
 {
     assert(m_input && "invalid input");
     m_decoder = createVideoDecoder(m_input->getMimeType());
@@ -58,7 +58,7 @@ bool EncodeStreamInputDecoder::init(const char* /*inputFileName*/, uint32_t /*fo
     return true;
 }
 
-bool EncodeStreamInputDecoder::decodeOneFrame()
+bool EncodeInputDecoder::decodeOneFrame()
 {
     if (!m_input || !m_decoder)
         return false;
@@ -82,7 +82,7 @@ bool EncodeStreamInputDecoder::decodeOneFrame()
     return true;
 }
 
-bool EncodeStreamInputDecoder::getOneFrameInput(VideoFrameRawData &inputBuffer)
+bool EncodeInputDecoder::getOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     if (!m_decoder)
         return false;
@@ -108,7 +108,7 @@ bool EncodeStreamInputDecoder::getOneFrameInput(VideoFrameRawData &inputBuffer)
     return status == RENDER_SUCCESS;
 }
 
-bool EncodeStreamInputDecoder::recycleOneFrameInput(VideoFrameRawData &inputBuffer)
+bool EncodeInputDecoder::recycleOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     if (!m_decoder)
         return false;
@@ -116,7 +116,7 @@ bool EncodeStreamInputDecoder::recycleOneFrameInput(VideoFrameRawData &inputBuff
     return true;
 }
 
-bool EncodeStreamInputDecoder::isEOS()
+bool EncodeInputDecoder::isEOS()
 {
     return m_isEOS;
 }

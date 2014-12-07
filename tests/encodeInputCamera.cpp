@@ -50,7 +50,7 @@
         }                                                       \
     }while(0)
 
-bool EncodeStreamInputCamera::initDevice(const char *cameraDevicePath)
+bool EncodeInputCamera::initDevice(const char *cameraDevicePath)
 {
     struct v4l2_capability cap;
     struct v4l2_format fmt;
@@ -113,7 +113,7 @@ bool EncodeStreamInputCamera::initDevice(const char *cameraDevicePath)
     return true;
 }
 
-bool EncodeStreamInputCamera::initMmap(void)
+bool EncodeInputCamera::initMmap(void)
 {
     struct v4l2_requestbuffers rqbufs;
     int index;
@@ -158,7 +158,7 @@ bool EncodeStreamInputCamera::initMmap(void)
     return true;
 }
 
-bool EncodeStreamInputCamera::startCapture(void)
+bool EncodeInputCamera::startCapture(void)
 {
     unsigned int i;
     enum v4l2_buf_type type;
@@ -190,7 +190,7 @@ bool EncodeStreamInputCamera::startCapture(void)
 }
 
 
-bool EncodeStreamInputCamera::init(const char* cameraPath, uint32_t fourcc, int width, int height)
+bool EncodeInputCamera::init(const char* cameraPath, uint32_t fourcc, int width, int height)
 {
     bool ret = true;
     if (!width || !height) {
@@ -211,7 +211,7 @@ bool EncodeStreamInputCamera::init(const char* cameraPath, uint32_t fourcc, int 
     return true;
 }
 
-int32_t EncodeStreamInputCamera::dequeFrame(void)
+int32_t EncodeInputCamera::dequeFrame(void)
 {
     struct v4l2_buffer buf;
     int ret = 0;
@@ -275,7 +275,7 @@ int32_t EncodeStreamInputCamera::dequeFrame(void)
     return buf.index;
 }
 
-bool EncodeStreamInputCamera::enqueFrame(int32_t index)
+bool EncodeInputCamera::enqueFrame(int32_t index)
 {
     assert(index >=0 && index < m_frameBufferCount);
     struct v4l2_buffer buf;
@@ -298,7 +298,7 @@ bool EncodeStreamInputCamera::enqueFrame(int32_t index)
     return true;
 }
 
-bool EncodeStreamInputCamera::getOneFrameInput(VideoFrameRawData &inputBuffer)
+bool EncodeInputCamera::getOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     int frameIndex = dequeFrame();
     ASSERT(frameIndex>=0 && frameIndex<m_frameBufferCount);
@@ -310,7 +310,7 @@ bool EncodeStreamInputCamera::getOneFrameInput(VideoFrameRawData &inputBuffer)
     return true;
 }
 
-bool EncodeStreamInputCamera::recycleOneFrameInput(VideoFrameRawData &inputBuffer)
+bool EncodeInputCamera::recycleOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     INFO();
 
@@ -320,7 +320,7 @@ bool EncodeStreamInputCamera::recycleOneFrameInput(VideoFrameRawData &inputBuffe
     return ret;
 }
 
-bool EncodeStreamInputCamera::stopCapture(void)
+bool EncodeInputCamera::stopCapture(void)
 {
     enum v4l2_buf_type type;
 
@@ -338,7 +338,7 @@ bool EncodeStreamInputCamera::stopCapture(void)
     return true;
 }
 
-bool EncodeStreamInputCamera::uninitDevice()
+bool EncodeInputCamera::uninitDevice()
 {
     unsigned int i;
 
@@ -365,7 +365,7 @@ bool EncodeStreamInputCamera::uninitDevice()
     return true;
 }
 
-EncodeStreamInputCamera::~EncodeStreamInputCamera()
+EncodeInputCamera::~EncodeInputCamera()
 {
     bool ret = true;
 

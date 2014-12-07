@@ -87,7 +87,7 @@ static bool isReadEOS=false;
 static int32_t stagingBufferInDevice = 0;
 static uint32_t renderFrameCount = 0;
 
-bool feedOneInputFrame(DecodeStreamInput * input, int fd, int index = -1 /* if index is not -1, simple enque it*/)
+bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index is not -1, simple enque it*/)
 {
 
     VideoDecodeBuffer inputBuffer;
@@ -265,7 +265,7 @@ bool handleResolutionChange(int32_t fd)
 
 int main(int argc, char** argv)
 {
-    DecodeStreamInput *input;
+    DecodeInput *input;
     int32_t fd = -1;
     int32_t i = 0;
     int32_t ioctlRet = -1;
@@ -306,7 +306,7 @@ int main(int argc, char** argv)
     }
 #endif
 
-    input = DecodeStreamInput::create(inputFileName);
+    input = DecodeInput::create(inputFileName);
     if (input==NULL) {
         ERROR("fail to init input stream\n");
         return -1;

@@ -31,13 +31,13 @@ using namespace YamiMediaCodec;
 
 DecodeInputHandler createDecodeInput(char *fileName)
 {
-    return DecodeStreamInput::create(fileName);
+    return DecodeInput::create(fileName);
 }
 
 const char * getMimeType(DecodeInputHandler input)
 {
     if(input)
-        return ((DecodeStreamInput*)input)->getMimeType();
+        return ((DecodeInput*)input)->getMimeType();
     else
         return NULL;
 }
@@ -45,13 +45,13 @@ const char * getMimeType(DecodeInputHandler input)
 bool decodeInputIsEOS(DecodeInputHandler input)
 {
     if(input)
-        return ((DecodeStreamInput*)input)->isEOS();
+        return ((DecodeInput*)input)->isEOS();
 }
 
 bool getNextDecodeUnit(DecodeInputHandler input, VideoDecodeBuffer *inputbuffer)
 {
     if(input)
-        return ((DecodeStreamInput*)input)->getNextDecodeUnit(*inputbuffer);
+        return ((DecodeInput*)input)->getNextDecodeUnit(*inputbuffer);
     else
         return false;
 }
@@ -59,5 +59,5 @@ bool getNextDecodeUnit(DecodeInputHandler input, VideoDecodeBuffer *inputbuffer)
 void releaseDecodeInput(DecodeInputHandler input)
 {
     if(input)
-        delete (DecodeStreamInput*)input;
+        delete (DecodeInput*)input;
 }

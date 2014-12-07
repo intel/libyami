@@ -40,20 +40,20 @@
 #include "egl/egl_util.h"
 #endif
 
-bool DecodeStreamOutput::setVideoSize(int width, int height)
+bool DecodeOutput::setVideoSize(int width, int height)
 {
     m_width = width;
     m_height = height;
     return true;
 }
 
-DecodeStreamOutput::DecodeStreamOutput(IVideoDecoder* decoder)
+DecodeOutput::DecodeOutput(IVideoDecoder* decoder)
     :m_decoder(decoder), m_width(0), m_height(0), m_renderFrames(0)
 {
 
 }
 
-Decode_Status DecodeStreamOutput::processOneFrame(bool drain)
+Decode_Status DecodeOutput::processOneFrame(bool drain)
 {
     Decode_Status status = renderOneFrame(drain);
 
@@ -64,7 +64,7 @@ Decode_Status DecodeStreamOutput::processOneFrame(bool drain)
     return status;
 }
 
-Decode_Status DecodeStreamOutputNull::renderOneFrame(bool drain)
+Decode_Status DecodeOutputNull::renderOneFrame(bool drain)
 {
     m_frame.memoryType = VIDEO_DATA_MEMORY_TYPE_SURFACE_ID;
     m_frame.width = 0;
@@ -146,7 +146,7 @@ private:
     std::vector<uint8_t> m_data;
 };
 
-Decode_Status DecodeStreamOutputRaw::renderOneFrame(bool drain)
+Decode_Status DecodeOutputRaw::renderOneFrame(bool drain)
 {
     m_frame.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
     m_frame.width = 0;
@@ -164,7 +164,7 @@ Decode_Status DecodeStreamOutputRaw::renderOneFrame(bool drain)
     return status;
 }
 
-void DecodeStreamOutputRaw::setFourcc(uint32_t fourcc)
+void DecodeOutputRaw::setFourcc(uint32_t fourcc)
 {
     delete m_convert;
     m_destFourcc = fourcc;
@@ -176,24 +176,24 @@ void DecodeStreamOutputRaw::setFourcc(uint32_t fourcc)
     m_convert = new ColorConvert(m_destFourcc);
 }
 
-uint32_t DecodeStreamOutputRaw::getFourcc()
+uint32_t DecodeOutputRaw::getFourcc()
 {
     return m_destFourcc;
 }
 
-DecodeStreamOutputRaw::DecodeStreamOutputRaw(IVideoDecoder* decoder)
-    :DecodeStreamOutput(decoder), m_convert(m_convert),
+DecodeOutputRaw::DecodeOutputRaw(IVideoDecoder* decoder)
+    :DecodeOutput(decoder), m_convert(m_convert),
     m_srcFourcc(0), m_destFourcc(0),
     m_enableSoftI420Convert(true)
 {
 }
 
-DecodeStreamOutputRaw::~DecodeStreamOutputRaw()
+DecodeOutputRaw::~DecodeOutputRaw()
 {
     delete m_convert;
 }
 
-bool DecodeStreamOutputFileDump::config(const char* dir, const char* source, const char* dest, uint32_t fourcc)
+bool DecodeOutputFileDump::config(const char* dir, const char* source, const char* dest, uint32_t fourcc)
 {
     if (!fourcc && dest)
         fourcc == guessFourcc(dest);
@@ -213,7 +213,7 @@ bool DecodeStreamOutputFileDump::config(const char* dir, const char* source, con
     return true;
 }
 
-bool DecodeStreamOutputFileDump::setVideoSize(int width, int height)
+bool DecodeOutputFileDump::setVideoSize(int width, int height)
 {
     if (!m_fp) {
         if (m_appendSize) {
@@ -224,12 +224,12 @@ bool DecodeStreamOutputFileDump::setVideoSize(int width, int height)
         std::string name = m_name.str();
         m_fp = fopen(name.c_str(), "wb");
     }
-    if (!DecodeStreamOutputRaw::setVideoSize(width, height))
+    if (!DecodeOutputRaw::setVideoSize(width, height))
         return false;
     return m_fp;
 }
 
-bool DecodeStreamOutputFileDump::render(VideoFrameRawData* frame)
+bool DecodeOutputFileDump::render(VideoFrameRawData* frame)
 {
     uint32_t width[3];
     uint32_t height[3];
@@ -251,13 +251,13 @@ bool DecodeStreamOutputFileDump::render(VideoFrameRawData* frame)
     return true;
 }
 
-DecodeStreamOutputFileDump::DecodeStreamOutputFileDump(IVideoDecoder* decoder)
-    :DecodeStreamOutputRaw(decoder), m_fp(NULL), m_appendSize(false)
+DecodeOutputFileDump::DecodeOutputFileDump(IVideoDecoder* decoder)
+    :DecodeOutputRaw(decoder), m_fp(NULL), m_appendSize(false)
 {
 
 }
 
-DecodeStreamOutputFileDump::~DecodeStreamOutputFileDump()
+DecodeOutputFileDump::~DecodeOutputFileDump()
 {
     if (m_fp)
         fclose(m_fp);
@@ -265,27 +265,27 @@ DecodeStreamOutputFileDump::~DecodeStreamOutputFileDump()
 
 
 #ifdef __ENABLE_X11__
-class DecodeStreamOutputX11 : public DecodeStreamOutput
+class DecodeOutputX11 : public DecodeOutput
 {
 public:
     virtual bool setVideoSize(int width, int height);
-    DecodeStreamOutputX11(IVideoDecoder* decoder);
-    virtual ~DecodeStreamOutputX11();
+    DecodeOutputX11(IVideoDecoder* decoder);
+    virtual ~DecodeOutputX11();
     bool init();
 protected:
     Display* m_display;
     Window   m_window;
 };
 
-class DecodeStreamOutputXWindow : public DecodeStreamOutputX11
+class DecodeOutputXWindow : public DecodeOutputX11
 {
 public:
     virtual Decode_Status renderOneFrame(bool drain);
-    DecodeStreamOutputXWindow(IVideoDecoder* decoder);
+    DecodeOutputXWindow(IVideoDecoder* decoder);
 };
 
 
-bool DecodeStreamOutputX11::setVideoSize(int width, int height)
+bool DecodeOutputX11::setVideoSize(int width, int height)
 {
     if (m_window) {
         //todo, resize window;
@@ -300,15 +300,15 @@ bool DecodeStreamOutputX11::setVideoSize(int width, int height)
         XMapWindow(m_display, m_window);
     }
     XSync(m_display, false);
-    return DecodeStreamOutput::setVideoSize(width, height);
+    return DecodeOutput::setVideoSize(width, height);
 }
 
-bool DecodeStreamOutputX11::init()
+bool DecodeOutputX11::init()
 {
     extern int renderMode;
     m_display = XOpenDisplay(NULL);
     if (!m_display) {
-        fprintf(stderr, "Failed to XOpenDisplay during DecodeStreamOutputX11::%s\n", __FUNCTION__);
+        fprintf(stderr, "Failed to XOpenDisplay during DecodeOutputX11::%s\n", __FUNCTION__);
         return false;
     }
 
@@ -326,11 +326,11 @@ bool DecodeStreamOutputX11::init()
     return true;
 }
 
-DecodeStreamOutputX11::DecodeStreamOutputX11(IVideoDecoder* decoder):DecodeStreamOutput(decoder)
+DecodeOutputX11::DecodeOutputX11(IVideoDecoder* decoder):DecodeOutput(decoder)
 {
 }
 
-DecodeStreamOutputX11::~DecodeStreamOutputX11()
+DecodeOutputX11::~DecodeOutputX11()
 {
     if (m_window)
         XDestroyWindow(m_display, m_window);
@@ -339,12 +339,12 @@ DecodeStreamOutputX11::~DecodeStreamOutputX11()
 
 }
 
-DecodeStreamOutputXWindow::DecodeStreamOutputXWindow(IVideoDecoder* decoder)
-    :DecodeStreamOutputX11(decoder)
+DecodeOutputXWindow::DecodeOutputXWindow(IVideoDecoder* decoder)
+    :DecodeOutputX11(decoder)
 {
 }
 
-Decode_Status DecodeStreamOutputXWindow::renderOneFrame(bool drain)
+Decode_Status DecodeOutputXWindow::renderOneFrame(bool drain)
 {
     int64_t timeStamp;
     return  m_decoder->getOutput(m_window, &timeStamp, 0, 0, m_width, m_height, drain);
@@ -352,12 +352,12 @@ Decode_Status DecodeStreamOutputXWindow::renderOneFrame(bool drain)
 
 #ifdef __ENABLE_TESTS_GLES__
 
-class DecodeStreamOutputEgl : public DecodeStreamOutputX11
+class DecodeOutputEgl : public DecodeOutputX11
 {
 public:
     virtual bool setVideoSize(int width, int height) = 0;
-    DecodeStreamOutputEgl(IVideoDecoder* decoder);
-    virtual ~DecodeStreamOutputEgl();
+    DecodeOutputEgl(IVideoDecoder* decoder);
+    virtual ~DecodeOutputEgl();
 
 protected:
     bool setVideoSize(int width, int height, bool externalTexture);
@@ -365,45 +365,45 @@ protected:
     GLuint m_textureId;
 };
 
-class DecodeStreamOutputPixelMap : public DecodeStreamOutputEgl
+class DecodeOutputPixelMap : public DecodeOutputEgl
 {
 public:
     virtual bool setVideoSize(int width, int height);
-    DecodeStreamOutputPixelMap(IVideoDecoder* decoder);
+    DecodeOutputPixelMap(IVideoDecoder* decoder);
     Decode_Status renderOneFrame(bool drain);
-    virtual ~DecodeStreamOutputPixelMap();
+    virtual ~DecodeOutputPixelMap();
 private:
     XID m_pixmap;
 };
 
 // supports either Linux dma_buf handle or DRM flink name
-class DecodeStreamOutputDmabuf: public DecodeStreamOutputEgl
+class DecodeOutputDmabuf: public DecodeOutputEgl
 {
 public:
     virtual bool setVideoSize(int width, int height);
     virtual Decode_Status renderOneFrame(bool drain);
-    DecodeStreamOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryType memoryType);
+    DecodeOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryType memoryType);
 private:
     VideoDataMemoryType m_memoryType;
 
 };
 
 
-bool DecodeStreamOutputEgl::setVideoSize(int width, int height, bool externalTexture)
+bool DecodeOutputEgl::setVideoSize(int width, int height, bool externalTexture)
 {
-    if (!DecodeStreamOutputX11::setVideoSize(width, height))
+    if (!DecodeOutputX11::setVideoSize(width, height))
         return false;
     if (!m_eglContext)
         m_eglContext = eglInit(m_display, m_window, VA_FOURCC_RGBA, externalTexture);
     return m_eglContext;
 }
 
-DecodeStreamOutputEgl::DecodeStreamOutputEgl(IVideoDecoder* decoder)
-    :DecodeStreamOutputX11(decoder),m_eglContext(NULL),m_textureId(0)
+DecodeOutputEgl::DecodeOutputEgl(IVideoDecoder* decoder)
+    :DecodeOutputX11(decoder),m_eglContext(NULL),m_textureId(0)
 {
 }
 
-DecodeStreamOutputEgl::~DecodeStreamOutputEgl()
+DecodeOutputEgl::~DecodeOutputEgl()
 {
     if(m_textureId)
         glDeleteTextures(1, &m_textureId);
@@ -411,9 +411,9 @@ DecodeStreamOutputEgl::~DecodeStreamOutputEgl()
         eglRelease(m_eglContext);
 }
 
-bool DecodeStreamOutputPixelMap::setVideoSize(int width, int height)
+bool DecodeOutputPixelMap::setVideoSize(int width, int height)
 {
-    if (!DecodeStreamOutputEgl::setVideoSize(width, height, false))
+    if (!DecodeOutputEgl::setVideoSize(width, height, false))
         return false;
     if (!m_pixmap) {
         int screen = DefaultScreen(m_display);
@@ -426,7 +426,7 @@ bool DecodeStreamOutputPixelMap::setVideoSize(int width, int height)
     return m_textureId;
 }
 
-Decode_Status DecodeStreamOutputPixelMap::renderOneFrame(bool drain)
+Decode_Status DecodeOutputPixelMap::renderOneFrame(bool drain)
 {
     int64_t timeStamp;
     Decode_Status status = m_decoder->getOutput(m_pixmap, &timeStamp, 0, 0, m_width, m_height, drain);
@@ -436,27 +436,27 @@ Decode_Status DecodeStreamOutputPixelMap::renderOneFrame(bool drain)
     return status;
 }
 
-DecodeStreamOutputPixelMap::DecodeStreamOutputPixelMap(IVideoDecoder* decoder)
-    :DecodeStreamOutputEgl(decoder),m_pixmap(0)
+DecodeOutputPixelMap::DecodeOutputPixelMap(IVideoDecoder* decoder)
+    :DecodeOutputEgl(decoder),m_pixmap(0)
 {
 }
 
-DecodeStreamOutputPixelMap::~DecodeStreamOutputPixelMap()
+DecodeOutputPixelMap::~DecodeOutputPixelMap()
 {
     if(m_pixmap)
         XFreePixmap(m_display, m_pixmap);
 }
 
-bool DecodeStreamOutputDmabuf::setVideoSize(int width, int height)
+bool DecodeOutputDmabuf::setVideoSize(int width, int height)
 {
-    if (!DecodeStreamOutputEgl::setVideoSize(width, height, m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF))
+    if (!DecodeOutputEgl::setVideoSize(width, height, m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF))
         return false;
     if (!m_textureId)
         glGenTextures(1, &m_textureId);
     return m_textureId;
 }
 
-Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
+Decode_Status DecodeOutputDmabuf::renderOneFrame(bool drain)
 {
     GLenum target = GL_TEXTURE_2D;
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
@@ -487,8 +487,8 @@ Decode_Status DecodeStreamOutputDmabuf::renderOneFrame(bool drain)
     return status;
 }
 
-DecodeStreamOutputDmabuf::DecodeStreamOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryType memoryType)
-    :DecodeStreamOutputEgl(decoder), m_memoryType(memoryType)
+DecodeOutputDmabuf::DecodeOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryType memoryType)
+    :DecodeOutputEgl(decoder), m_memoryType(memoryType)
 {
 }
 
@@ -496,27 +496,27 @@ DecodeStreamOutputDmabuf::DecodeStreamOutputDmabuf(IVideoDecoder* decoder, Video
 
 #endif //__ENABLE_X11__
 
-DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode)
+DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode)
 {
     if (mode == -1)
-        return new DecodeStreamOutputNull(decoder);
+        return new DecodeOutputNull(decoder);
     if (mode == 0)
-        return new DecodeStreamOutputFileDump(decoder);
+        return new DecodeOutputFileDump(decoder);
 #ifdef __ENABLE_X11__
-    DecodeStreamOutputX11* output;
+    DecodeOutputX11* output;
     switch (mode) {
         case 1:
-            output = new DecodeStreamOutputXWindow(decoder);
+            output = new DecodeOutputXWindow(decoder);
             break;
 #ifdef __ENABLE_TESTS_GLES__
         case 2:
-            output = new DecodeStreamOutputPixelMap(decoder);
+            output = new DecodeOutputPixelMap(decoder);
             break;
         case 3:
-            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DRM_NAME);
+            output = new DecodeOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DRM_NAME);
             break;
         case 4:
-            output = new DecodeStreamOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
+            output = new DecodeOutputDmabuf(decoder, VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
             break;
 #endif //__ENABLE_TESTS_GLES__
         default:
@@ -534,7 +534,7 @@ DecodeStreamOutput* DecodeStreamOutput::create(IVideoDecoder* decoder, int mode)
 
 
 
-bool renderOutputFrames(DecodeStreamOutput* output, bool drain)
+bool renderOutputFrames(DecodeOutput* output, bool drain)
 {
     Decode_Status status;
     do {
@@ -546,10 +546,10 @@ bool renderOutputFrames(DecodeStreamOutput* output, bool drain)
 extern char *dumpOutputDir;
 extern uint32_t dumpFourcc;
 extern char *inputFileName;
-bool configDecodeOutput(DecodeStreamOutput* output)
+bool configDecodeOutput(DecodeOutput* output)
 {
     bool ret = true;
-    DecodeStreamOutputFileDump* dump = dynamic_cast<DecodeStreamOutputFileDump*>(output);
+    DecodeOutputFileDump* dump = dynamic_cast<DecodeOutputFileDump*>(output);
     if (dump) {
         ret = dump->config(dumpOutputDir, inputFileName, NULL, dumpFourcc);
     }

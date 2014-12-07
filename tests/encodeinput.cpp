@@ -37,19 +37,19 @@
 
 using namespace YamiMediaCodec;
 
-EncodeStreamInput * EncodeStreamInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
+EncodeInput * EncodeInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
-    EncodeStreamInput *input = NULL;
+    EncodeInput *input = NULL;
     if (!inputFileName)
         return NULL;
 
-    DecodeStreamInput* decodeInput = DecodeStreamInput::create(inputFileName);
+    DecodeInput* decodeInput = DecodeInput::create(inputFileName);
     if (decodeInput) {
-        input = new EncodeStreamInputDecoder(decodeInput);
+        input = new EncodeInputDecoder(decodeInput);
     } else if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video"))) {
-        input = new EncodeStreamInputCamera;
+        input = new EncodeInputCamera;
     } else {
-        input =  new EncodeStreamInputFile;
+        input =  new EncodeInputFile;
     }
 
     if (!input)
@@ -61,7 +61,7 @@ EncodeStreamInput * EncodeStreamInput::create(const char* inputFileName, uint32_
     return input;
 }
 
-EncodeStreamInputFile::EncodeStreamInputFile()
+EncodeInputFile::EncodeInputFile()
     : m_fp(NULL)
     , m_buffer(NULL)
     , m_readToEOS(false)
@@ -133,7 +133,7 @@ bool guessResolution(const char* inputFileName, int& w, int& h)
     return w && h;
 }
 
-bool EncodeStreamInputFile::init(const char* inputFileName, uint32_t fourcc, int width, int height)
+bool EncodeInputFile::init(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
     if (!width || !height) {
         if (!guessResolution(inputFileName, width, height)) {
@@ -175,7 +175,7 @@ bool EncodeStreamInputFile::init(const char* inputFileName, uint32_t fourcc, int
     return true;
 }
 
-bool EncodeStreamInputFile::getOneFrameInput(VideoFrameRawData &inputBuffer)
+bool EncodeInputFile::getOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     if (m_readToEOS)
         return false;
@@ -199,7 +199,7 @@ bool EncodeStreamInputFile::getOneFrameInput(VideoFrameRawData &inputBuffer)
     return fillFrameRawData(&inputBuffer, m_fourcc, m_width, m_height, buffer);
 }
 
-EncodeStreamInputFile::~EncodeStreamInputFile()
+EncodeInputFile::~EncodeInputFile()
 {
     if(m_fp)
         fclose(m_fp);
@@ -208,19 +208,19 @@ EncodeStreamInputFile::~EncodeStreamInputFile()
         free(m_buffer);
 }
 
-EncodeStreamOutput::EncodeStreamOutput():m_fp(NULL)
+EncodeOutput::EncodeOutput():m_fp(NULL)
 {
 }
 
-EncodeStreamOutput::~EncodeStreamOutput()
+EncodeOutput::~EncodeOutput()
 {
     if (m_fp)
         fclose(m_fp);
 }
 
-EncodeStreamOutput* EncodeStreamOutput::create(const char* outputFileName, int width , int height)
+EncodeOutput* EncodeOutput::create(const char* outputFileName, int width , int height)
 {
-    EncodeStreamOutput * output = NULL;
+    EncodeOutput * output = NULL;
     if(outputFileName==NULL)
         return NULL;
     const char *ext = strrchr(outputFileName,'.');
@@ -233,11 +233,11 @@ EncodeStreamOutput* EncodeStreamOutput::create(const char* outputFileName, int w
         strcasecmp(ext,"avc")==0 ||
         strcasecmp(ext,"26l")==0 ||
         strcasecmp(ext,"jvt")==0 ) {
-            output = new EncodeStreamOutputH264();
+            output = new EncodeOutputH264();
     }
     else if((strcasecmp(ext,"ivf")==0) ||
             (strcasecmp(ext,"vp8")==0)) {
-            output = new EncodeStreamOutputVP8();
+            output = new EncodeOutputVP8();
     }
     else
         return NULL;
@@ -249,7 +249,7 @@ EncodeStreamOutput* EncodeStreamOutput::create(const char* outputFileName, int w
     return output;
 }
 
-bool EncodeStreamOutput::init(const char* outputFileName, int width , int height)
+bool EncodeOutput::init(const char* outputFileName, int width , int height)
 {
     m_fp = fopen(outputFileName, "w+");
     if (!m_fp) {
@@ -259,17 +259,17 @@ bool EncodeStreamOutput::init(const char* outputFileName, int width , int height
     return true;
 }
 
-bool EncodeStreamOutput::write(void* data, int size)
+bool EncodeOutput::write(void* data, int size)
 {
     return fwrite(data, 1, size, m_fp) == size;
 }
 
-const char* EncodeStreamOutputH264::getMimeType()
+const char* EncodeOutputH264::getMimeType()
 {
     return "video/h264";
 }
 
-const char* EncodeStreamOutputVP8::getMimeType()
+const char* EncodeOutputVP8::getMimeType()
 {
     return "video/x-vnd.on2.vp8";
 }
@@ -300,33 +300,33 @@ static void get_ivf_file_header(uint8_t *header, int width, int height,int count
     setUint32(header+28, 0);                    /* unused */
 }
 
-bool EncodeStreamOutputVP8::init(const char* outputFileName, int width , int height)
+bool EncodeOutputVP8::init(const char* outputFileName, int width , int height)
 {
-    if (!EncodeStreamOutput::init(outputFileName, width, height))
+    if (!EncodeOutput::init(outputFileName, width, height))
         return false;
     uint8_t header[32];
     get_ivf_file_header(header, width, height, m_frameCount);
-    return EncodeStreamOutput::write(header, sizeof(header));
+    return EncodeOutput::write(header, sizeof(header));
 }
 
-bool EncodeStreamOutputVP8::write(void* data, int size)
+bool EncodeOutputVP8::write(void* data, int size)
 {
     uint8_t header[12];
     memset(header, 0, sizeof(header));
     setUint32(header, size);
-    if (!EncodeStreamOutput::write(&header, sizeof(header)))
+    if (!EncodeOutput::write(&header, sizeof(header)))
         return false;
-    if (!EncodeStreamOutput::write(data, size))
+    if (!EncodeOutput::write(data, size))
         return false;
     m_frameCount++;
     return true;
 }
-EncodeStreamOutputVP8::EncodeStreamOutputVP8():m_frameCount(0){}
+EncodeOutputVP8::EncodeOutputVP8():m_frameCount(0){}
 
-EncodeStreamOutputVP8::~EncodeStreamOutputVP8()
+EncodeOutputVP8::~EncodeOutputVP8()
 {
     if (m_fp && !fseek(m_fp, 24,SEEK_SET)) {
-        EncodeStreamOutput::write(&m_frameCount, sizeof(m_frameCount));
+        EncodeOutput::write(&m_frameCount, sizeof(m_frameCount));
     }
 }
 
