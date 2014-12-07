@@ -31,39 +31,76 @@
 
 using namespace YamiMediaCodec;
 
-DecodeInput::DecodeInput()
-    : m_fp(NULL)
-    , m_buffer(NULL)
-    , m_readToEOS(false)
-    , m_parseToEOS(false)
+class MyDecodeInput : public DecodeInput{
+public:
+    static const int MaxNaluSize = 1024*1024; // assume max nalu size is 1M
+    static const int CacheBufferSize = 4 * MaxNaluSize;
+    MyDecodeInput();
+    virtual ~MyDecodeInput();
+    bool initInput(const char* fileName);
+    virtual bool isEOS() {return m_parseToEOS;}
+    virtual bool init() = 0;
+protected:
+    FILE *m_fp;
+    uint8_t *m_buffer;
+    bool m_readToEOS;
+    bool m_parseToEOS;
+};
+
+class DecodeInputVPX :public MyDecodeInput
 {
-}
+public:
+    DecodeInputVPX();
+    ~DecodeInputVPX();
+    const char * getMimeType();
+    bool init();
+    virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
+private:
+    const char* m_mimeType;
+    const int m_ivfFrmHdrSize;
+    const int m_maxFrameSize;
+};
 
-DecodeInput::~DecodeInput()
+class DecodeInputRaw:public MyDecodeInput
 {
-    if(m_fp)
-        fclose(m_fp);
+public:
+    DecodeInputRaw();
+    ~DecodeInputRaw();
+    bool init();
+    bool ensureBufferData();
+    int32_t scanForStartCode(const uint8_t * data, uint32_t offset, uint32_t size);
+    bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
+    virtual bool isSyncWord(const uint8_t* buf) = 0;
 
-    if(m_buffer)
-        free(m_buffer);
-}
+public:
+    uint32_t m_lastReadOffset; // data has been consumed by decoder already
+    uint32_t m_availableData;  // available data in m_buffer
+    uint32_t StartCodeSize;
+};
 
-bool DecodeInput::initInput(const char* fileName)
+class DecodeInputH264:public DecodeInputRaw
 {
-    m_fp = fopen(fileName, "r");
-    if (!m_fp) {
-        fprintf(stderr, "fail to open input file: %s\n", fileName);
-        return false;
-    }
+public:
+    DecodeInputH264();
+    ~DecodeInputH264();
+    const char * getMimeType();
+    bool isSyncWord(const uint8_t* buf);
+};
 
-    m_buffer = static_cast<uint8_t*>(malloc(CacheBufferSize));
-    return init();
-}
+class DecodeInputJPEG:public DecodeInputRaw
+{
+public:
+    DecodeInputJPEG();
+    ~DecodeInputJPEG();
+    const char * getMimeType();
+    bool isSyncWord(const uint8_t* buf);
+private:
+    int m_countSOI;
+};
 
 DecodeInput* DecodeInput::create(const char* fileName)
 {
     DecodeInput* input = NULL;
-    IVideoDecoder* decoder;
     if(fileName==NULL)
         return NULL;
     const char *ext = strrchr(fileName,'.');
@@ -97,6 +134,35 @@ DecodeInput* DecodeInput::create(const char* fileName)
         return NULL;
     }
     return input;
+}
+
+MyDecodeInput::MyDecodeInput()
+    : m_fp(NULL)
+    , m_buffer(NULL)
+    , m_readToEOS(false)
+    , m_parseToEOS(false)
+{
+}
+
+MyDecodeInput::~MyDecodeInput()
+{
+    if(m_fp)
+        fclose(m_fp);
+
+    if(m_buffer)
+        free(m_buffer);
+}
+
+bool MyDecodeInput::initInput(const char* fileName)
+{
+    m_fp = fopen(fileName, "r");
+    if (!m_fp) {
+        fprintf(stderr, "fail to open input file: %s\n", fileName);
+        return false;
+    }
+
+    m_buffer = static_cast<uint8_t*>(malloc(CacheBufferSize));
+    return init();
 }
 
 struct IvfHeader {
