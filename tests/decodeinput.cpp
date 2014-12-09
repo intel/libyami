@@ -183,7 +183,7 @@ struct IvfHeader {
 
 DecodeInputVPX::DecodeInputVPX()
     : m_ivfFrmHdrSize(12)
-    , m_maxFrameSize(256*1024)
+    , m_maxFrameSize(4096*4096*3/2)
     , m_mimeType("unknown")
 {
 }
