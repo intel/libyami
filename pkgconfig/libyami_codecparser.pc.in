@@ -3,8 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libcodecparser 
+Name: libyami_codecparser
 Description: Intel open source video streamer parsers
 Version: 1.0.0
-Libs: -L${libdir} -lcodecparser 
-Cflags: -I${includedir}/libcodecparser
+Libs: -L${libdir} -lyami_codecparser
+Cflags: -I${includedir}/libyami_codecparser

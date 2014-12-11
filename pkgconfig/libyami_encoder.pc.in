@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: libyami encoder part
 Description: Intel Open source encoder based on libva
 Version: 1.0.0
-Libs: -L${libdir} -lyami_encoder -lyami_common -lcodecparser
+Libs: -L${libdir} -lyami_encoder -lyami_common -lyami_codecparser
 Cflags: -I${includedir}/libyami_encoder
