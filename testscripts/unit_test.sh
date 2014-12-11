@@ -25,32 +25,42 @@ verify_md5()
 {
     file=$1
     currentmd5=$2
-    refh264path="../md5/h264_jm.md5"
-    refvp8path="../md5/vpx.md5"
-    refh264md5=` awk  '$2 ~/^'${file}'/{print $1}' ${refh264path} | awk '{print $1}'`
+    refmd5=` awk  '$2 ~/^'${file}'/{print $1}' ${refmd5file} | awk '{print $1}'`
     j=0
-    if [ $refh264md5 ];then
-        if [ ${refh264md5} = ${currentmd5} ];then
+    if [ $refmd5 ];then
+        if [ ${refmd5} = ${currentmd5} ];then
             echo "${file}    pass"  >> ${tmpass}
         else
             echo "${file}    fail"  >>  ${tmpfail}
             failnumber=$(($failnumber+1))
         fi
     else
-        refvp8md5=`awk -F: '/'${file}'/{print $1}' ${refvp8path} |awk '{print $1}' `
-        if [ $refvp8md5 ];then
-            if [ ${refvp8md5} = ${currentmd5} ];then
-                echo "${file}    pass"  >>  ${tmpass}
-            else
-                echo "${file}    fail"  >>  ${tmpfail}
-                failnumber=$(($failnumber+1))
-            fi
+        echo "${file}    has no md5"  >>  ${tmpfail}
+        echo "${file} has no md5, you should use md5sum to calc md5 of the yuv file by software decoder"
+        echo
+        failnumber=$(($failnumber+1))
+    fi
+}
+
+single_md5()
+{
+    refmd5file=`ls ${testfilepath}bits.md5`
+    if [ ${refmd5file} ];then
+        if [ ${refmd5file} != ${testfilepath}${file} ];then
+            ${yamipath}/tests/yamidecode -i ${testfilepath}${file}  -m 0 -f I420 -o ${outputpath}
+            mv ${file}* ${file}
+            currentmd5=`md5sum ${file} | awk '{print $1}'`
+            verify_md5 ${file} ${currentmd5}
+            i=$(($i+1))
+            echo ${i}---${testfilepath}${file}
         else
-            echo "${file}    has no md5"  >>  ${tmpfail}
-            echo "${file} has no md5, you should use md5sum to calc md5 of the yuv file by software decoder"
-            echo
-            failnumber=$(($failnumber+1))
+            openfile=$(($openfile-1))
+            echo "${testfilepath}${file} is md5 file"
         fi
+    else
+        echo "${testfilepath} has no md5 file" 2>&1 | tee  ${tmpfail}
+        echo "you should use md5sum to calc md5 of the yuv file by software decoder, and add it to ${testfilepath}"
+        failnumber=$(($failnumber+1))
     fi
 }
 
@@ -70,26 +80,20 @@ unit_test_md5()
     failnumber=0
     echo "start test md5..."
     if [ -d ${testfilepath} ];then
+        openfile=`ls ${testfilepath} | wc -l`
         for file in $filelist
         do
             echo ----------------------------------------------------
             echo ${testfilepath}${file}
-            ${yamipath}/tests/yamidecode -i ${testfilepath}${file}  -m 0 -f I420 -o ${outputpath}
-            mv ${file}* ${file}
-            currentmd5=`md5sum ${file} | awk '{print $1}'`
-            verify_md5 ${file} ${currentmd5}
-            i=$(($i+1))
-            echo ${i}---${testfilepath}${file}
+            single_md5
         done
     else
-        ${yamipath}/tests/yamidecode -i ${testfilepath}  -m 0 -f I420 -o ${outputpath}
         file=${testfilepath##*/}
-        mv ${file}* ${file}
-        currentmd5=`md5sum ${file} | awk '{print $1}'`
-        verify_md5 ${file} ${currentmd5}
+        testfilepath=${testfilepath%/*}/
+        single_md5
         i=1
+        openfile=1
     fi
-    openfile=`ls ${testfilepath} | wc -l`
     echo "open file ${openfile},  actual test ${i},   fail: ${failnumber}  ">>  ${RESULT_LOG_FILE}
     if [ $failnumber -gt 0 ];then
         cat ${tmpfail} >> ${RESULT_LOG_FILE}
@@ -341,21 +345,19 @@ recursion_dir()
             k=$(($k+1))
             echo ${k}----${file1}
             if [ -d ${mediafile}${file1} ];then
-                if [ ${file1} = "h264" ];then
+                if [ ${file1} = "jpg" ];then
                     isrecursion=1
-                    unit_test_md5 ${mediafile}${file1}/
-                    get_encodestream_test ${mediafile}${file1}/
+                    refyuv=${mediafile}/yuv/
+                    unit_test_psnr ${mediafile}${file1}/ "decode" 1
                 else
-                    if [ ${file1} = "vp8" ];then
+                    if [ ${file1} != "yuv" ];then
                         isrecursion=1
                         unit_test_md5 ${mediafile}${file1}/
-                    else
-                        if [ ${file1} = "jpg" ];then
-                            isrecursion=1
-                            refyuv=${mediafile}/yuv/
-                            unit_test_psnr ${mediafile}${file1}/ "decode" 1
-                        fi
                     fi
+                fi
+                if [ ${file1} = "h264" ];then
+                    isrecursion=1
+                    get_encodestream_test ${mediafile}${file1}/
                 fi
             fi
         done
