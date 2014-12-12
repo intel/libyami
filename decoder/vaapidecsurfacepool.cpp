@@ -300,9 +300,9 @@ void VaapiDecSurfacePool::setWaitable(bool waitable)
 
     if (!waitable) {
         m_cond.signal();
-        if (m_imagePool)
-            m_imagePool->setWaitable(false);
     }
+    if (m_imagePool)
+        m_imagePool->setWaitable(waitable);
 }
 
 void VaapiDecSurfacePool::flush()

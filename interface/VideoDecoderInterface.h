@@ -122,8 +122,9 @@ public:
     /// set native display
     virtual void  setNativeDisplay( NativeDisplay * display = NULL) = 0;
 
-    /// escape decode thread from potential waiting
-    virtual void releaseLock(void) = 0;
+    /// lockable is set to false when seek begins and reset to true after seek is done
+    /// EOS also set lockable to false
+    virtual void releaseLock(bool lockable=false) = 0;
 
     /// obsolete, make all cached video frame output-able, it can be done by getOutput(draining=true) as well
     virtual void flushOutport(void) = 0;
