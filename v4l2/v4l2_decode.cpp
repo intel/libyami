@@ -75,9 +75,9 @@ V4l2Decoder::V4l2Decoder()
     m_memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 }
 
-void V4l2Decoder::releaseCodecLock()
+void V4l2Decoder::releaseCodecLock(bool lockable)
 {
-    m_decoder->releaseLock();
+    m_decoder->releaseLock(lockable);
 }
 
 bool V4l2Decoder::start()
@@ -173,9 +173,17 @@ bool V4l2Decoder::outputPulse(int32_t &index)
     status = m_decoder->getOutput(frame);
 #endif
 
-    if (status == RENDER_NO_AVAILABLE_FRAME && eosState() == EosStateInput) {
-        setEosState(EosStateOutput);
-        DEBUG("flush-debug flush done on OUTPUT thread");
+    if (status == RENDER_NO_AVAILABLE_FRAME) {
+        if (eosState() == EosStateInput) {
+            setEosState(EosStateOutput);
+            DEBUG("flush-debug flush done on OUTPUT thread");
+        }
+
+        if (eosState() > EosStateNormal) {
+            DEBUG("seek/EOS flush, return empty buffer");
+            m_outputRawFrames[index].timeStamp = -2;
+            return true;
+        }
     }
 
     if (status != RENDER_SUCCESS)

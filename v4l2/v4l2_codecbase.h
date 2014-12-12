@@ -83,7 +83,7 @@ class V4l2CodecBase {
     virtual bool hasCodecEvent() {return m_hasEvent;}
     virtual void setCodecEvent();
     virtual void clearCodecEvent();
-    virtual void releaseCodecLock() {};
+    virtual void releaseCodecLock(bool lockable) {};
 
     VideoDataMemoryType m_memoryType;
     int m_maxBufferCount[2];

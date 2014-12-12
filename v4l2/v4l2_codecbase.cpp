@@ -305,6 +305,10 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 ERROR("unkown stream type: %d", type);
                 break;
             }
+            if (port == INPUT) {
+                DEBUG("INPUT port got STREAMON, escape from flushing state");
+                releaseCodecLock(true);
+            }
 
             m_streamOn[port] = true;
             if (pthread_create(&m_worker[port], NULL, _workerThread, this) != 0) {
@@ -333,7 +337,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             while (m_threadOn[port]) {
                 if (port == INPUT) {
                     DEBUG("INPUT port got STREAMOFF, release internal lock");
-                    releaseCodecLock();
+                    releaseCodecLock(false);
                 }
                 DEBUG("%s port got STREAMOFF, wait until the worker thread exit/cleanup", THREAD_NAME(port));
                 m_threadCond[port]->broadcast();

@@ -75,7 +75,7 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status getClientNativeWindowBuffer(void *bufferHeader,
                                               void *nativeBufferHandle);
     Decode_Status flagNativeBuffer(void *pBuffer);
-    void releaseLock();
+    void releaseLock(bool lockable=false);
 
   protected:
     Decode_Status setupVA(uint32_t numSurface, VAProfile profile);
