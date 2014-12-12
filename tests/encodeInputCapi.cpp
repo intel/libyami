@@ -84,7 +84,7 @@ bool getOneFrameInput(EncodeInputHandler input, VideoFrameRawData *inputBuffer)
 bool recycleOneFrameInput(EncodeInputHandler input, VideoFrameRawData *inputBuffer)
 {
     if(input)
-        return ((EncodeStreamInput*)input)->recycleOneFrameInput(*inputBuffer);
+        return ((EncodeInput*)input)->recycleOneFrameInput(*inputBuffer);
     else
         return false;
 }
