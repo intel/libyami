@@ -42,6 +42,9 @@ class VaapiEncPicture:public VaapiPicture {
     bool editPicture(T * &picParam);
 
     template < class T >
+    bool editQMatrix(T * &qMatrix);
+
+    template < class T >
     bool newSlice(T * &sliceParam);
 
 
@@ -68,10 +71,10 @@ class VaapiEncPicture:public VaapiPicture {
 
     BufObjectPtr m_sequence;
     BufObjectPtr m_picture;
+    BufObjectPtr m_qMatrix;
     std::vector < BufObjectPtr > m_miscParams;
     std::vector < BufObjectPtr > m_slices;
-    std::vector < std::pair < BufObjectPtr,
-        BufObjectPtr > >m_packedHeaders;
+    std::vector < std::pair<BufObjectPtr,BufObjectPtr > >m_packedHeaders;
 };
 
 template < class T > bool VaapiEncPicture::editSequence(T * &seqParam)
@@ -84,6 +87,11 @@ template < class T > bool VaapiEncPicture::editPicture(T * &picParam)
 {
     return editObject(m_picture, VAEncPictureParameterBufferType,
                       picParam);
+}
+
+template < class T > bool VaapiEncPicture::editQMatrix(T * &qMatrix)
+{
+    return editObject(m_qMatrix, VAQMatrixBufferType, qMatrix);
 }
 
 template < class T > bool VaapiEncPicture::newSlice(T * &sliceParam)
