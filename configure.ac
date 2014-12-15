@@ -174,6 +174,14 @@ AC_DEFINE([__BUILD_H264_ENCODER__], [1], [Defined to 1 if --enable-h264enc="yes"
 fi
 AM_CONDITIONAL(BUILD_H264_ENCODER, test "x$enable_h264enc" = "xyes")
 
+dnl vp8 encoder
+AC_ARG_ENABLE(vp8enc,
+    [AC_HELP_STRING([--enable-vp8enc], [build with vp8 encoder support @<:@default=no@:>@])],
+    [], [enable_vp8enc="no"])
+if test "$enable_vp8enc" = "yes"; then
+AC_DEFINE([__BUILD_VP8_ENCODER__], [1], [Defined to 1 if --enable-vp8enc="yes" ])
+fi
+AM_CONDITIONAL(BUILD_VP8_ENCODER, test "x$enable_vp8enc" = "xyes")
 # dnl Doxygen
 AC_ARG_ENABLE(docs,
               [AC_HELP_STRING([--enable-docs], [build with doxygen support @<:@default=yes@:>@])],

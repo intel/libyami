@@ -30,6 +30,9 @@
 #if __BUILD_H264_ENCODER__
 #include "vaapiencoder_h264.h"
 #endif
+#if __BUILD_VP8_ENCODER__
+#include "vaapiencoder_vp8.h"
+#endif
 #include "vaapi/vaapi_host.h"
 #include <string.h>
 
@@ -38,7 +41,10 @@ DEFINE_CLASS_FACTORY(Encoder)
 static const EncoderEntry g_encoderEntries[] = {
 #if __BUILD_H264_ENCODER__
     DEFINE_ENCODER_ENTRY("video/avc", H264),
-    DEFINE_ENCODER_ENTRY("video/h264", H264)
+    DEFINE_ENCODER_ENTRY("video/h264", H264),
+#endif
+#if __BUILD_VP8_ENCODER__
+    DEFINE_ENCODER_ENTRY("video/x-vnd.on2.vp8", VP8),
 #endif
 };
 extern "C" {
