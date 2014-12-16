@@ -47,8 +47,9 @@ int main(int argc, char** argv)
     VideoConfigBuffer configBuffer;
     const VideoFormatInfo *formatInfo = NULL;
     Decode_Status status;
-    class CalcFps calcFps;
+    class CalcFps calcFpsGross, calcFpsNet;
 
+    calcFpsGross.setAnchor();
     yamiTraceInit();
     if (!process_cmdline(argc, argv))
         return -1;
@@ -80,7 +81,6 @@ int main(int argc, char** argv)
     status = decoder->start(&configBuffer);
     assert(status == DECODE_SUCCESS);
 
-    calcFps.setAnchor();
     while (!input->isEOS())
     {
         if (input->getNextDecodeUnit(inputBuffer)){
@@ -99,6 +99,8 @@ int main(int argc, char** argv)
         }
 
         renderOutputFrames(output);
+        if (output->renderFrameCount() == 5)
+            calcFpsNet.setAnchor();
     }
 
 #if 0
@@ -111,7 +113,9 @@ int main(int argc, char** argv)
     // drain the output buffer
     renderOutputFrames(output, true);
 
-    calcFps.fps(output->renderFrameCount());
+    calcFpsGross.fps(output->renderFrameCount());
+    if (output->renderFrameCount() > 5)
+        calcFpsNet.fps(output->renderFrameCount()-5);
 
     possibleWait(input->getMimeType());
 
