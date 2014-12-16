@@ -276,8 +276,8 @@ bool DecodeInputRaw::ensureBufferData()
         m_lastReadOffset = 0;
     }
 
-    readCount = fread(m_buffer + m_availableData, 1, MaxNaluSize, m_fp);
-    if (readCount < MaxNaluSize)
+    readCount = fread(m_buffer + m_availableData, 1, CacheBufferSize-m_availableData, m_fp);
+    if (readCount < CacheBufferSize-m_availableData)
         m_readToEOS = true;
 
     m_availableData += readCount;
