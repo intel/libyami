@@ -74,7 +74,11 @@ struct MimeEntry
 
 static const MimeEntry MimeEntrys[] = {
     AV_CODEC_ID_VP8, "video/x-vnd.on2.vp8",
+
+#if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(54, 40, 0)
     AV_CODEC_ID_VP9, "video/x-vnd.on2.vp9",
+#endif
+
     AV_CODEC_ID_H264, "video/h264"
 };
 

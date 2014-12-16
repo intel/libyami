@@ -26,6 +26,7 @@
 #include "decodeinput.h"
 extern "C" {
 #include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
 }
 
 class DecodeInputAvFormat : public DecodeInput

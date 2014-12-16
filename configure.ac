@@ -251,7 +251,7 @@ PKG_CHECK_MODULES(LIBGL, [gl])
 fi
 
 if test "$enable_avformat" = "yes"; then
-PKG_CHECK_MODULES(LIBAVFORMAT, [libavformat])
+PKG_CHECK_MODULES(LIBAVFORMAT,  libavformat libavcodec libavutil)
 fi
 
 # Checks for library functions.
