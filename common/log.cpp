@@ -44,7 +44,8 @@ void yamiTraceInit()
         char* libyamiLogLevel = getenv("LIBYAMI_LOG_LEVEL");
         char* libyamLog = getenv("LIBYAMI_LOG");
         FILE* tmp;
-        
+
+        yamiLogFn = stderr;
         if (libyamiLogLevel){
             yamiLogFlag = atoi(libyamiLogLevel);
             if (libyamLog){
@@ -62,18 +63,13 @@ void yamiTraceInit()
                 	yamiLogFn = tmp;
                 	yamiMessage(stdout, "Libyami_Trace is on, save log into %s.\n", filename);
             	} else {
-               	    yamiLogFn = stderr;
                 	yamiMessage(stderr, "Open file %s failed.\n", filename);
             	}
-        	}
-            else {
-            	yamiLogFn = stderr;
-                yamiMessage(stderr, "Libyami_Trace is on stderr\n");
             }
-         }
-         else
-            yamiLogFlag = 0;
-         
+        }
+        else {
+            yamiLogFlag = YAMI_LOG_ERROR;
+        }
         isInit = 1;
     }
 }
