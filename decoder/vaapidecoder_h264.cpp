@@ -1397,13 +1397,7 @@ Decode_Status VaapiDecoderH264::start(VideoConfigBuffer * buffer)
             gotConfig = true;
         }
     } else {
-        if (decodeCodecData((uint8_t *) buffer->data, buffer->size)) {
-            H264SPS *sps = &(m_parser.sps[0]);
-            uint32_t maxSize = getMaxDecFrameBuffering(sps, 1);
-            buffer->profile = VAProfileH264Baseline;
-            buffer->surfaceNumber = maxSize + H264_EXTRA_SURFACE_NUMBER;
-            gotConfig = true;
-        } else {
+        if (!decodeCodecData((uint8_t *) buffer->data, buffer->size)) {
             ERROR("codec data has some error");
             return DECODE_FAIL;
         }
