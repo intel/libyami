@@ -51,6 +51,7 @@ int main(int argc, char** argv)
     const VideoFormatInfo *formatInfo = NULL;
     Decode_Status status;
     class CalcFps calcFpsGross, calcFpsNet;
+    int skipFrameCount4NetFps = 0;
 #ifdef __ENABLE_X11__
     XInitThreads();
 #endif
@@ -104,8 +105,10 @@ int main(int argc, char** argv)
         }
 
         renderOutputFrames(output);
-        if (output->renderFrameCount() == 5)
+        if (output->renderFrameCount() >= 5 && !skipFrameCount4NetFps) {
+            skipFrameCount4NetFps = output->renderFrameCount();
             calcFpsNet.setAnchor();
+        }
     }
 
 #if 0
@@ -119,8 +122,8 @@ int main(int argc, char** argv)
     renderOutputFrames(output, true);
 
     calcFpsGross.fps(output->renderFrameCount());
-    if (output->renderFrameCount() > 5)
-        calcFpsNet.fps(output->renderFrameCount()-5);
+    if (output->renderFrameCount() > skipFrameCount4NetFps)
+        calcFpsNet.fps(output->renderFrameCount()-skipFrameCount4NetFps);
 
     possibleWait(input->getMimeType());
 
