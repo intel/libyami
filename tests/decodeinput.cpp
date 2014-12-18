@@ -44,6 +44,7 @@ public:
     bool initInput(const char* fileName);
     virtual bool isEOS() {return m_parseToEOS;}
     virtual bool init() = 0;
+    virtual const string& getCodecData();
 protected:
     FILE *m_fp;
     uint8_t *m_buffer;
@@ -172,6 +173,13 @@ bool MyDecodeInput::initInput(const char* fileName)
 
     m_buffer = static_cast<uint8_t*>(malloc(CacheBufferSize));
     return init();
+}
+
+const string& MyDecodeInput::getCodecData()
+{
+    //no codec data;
+    static const string dummy;
+    return dummy;
 }
 
 struct IvfHeader {

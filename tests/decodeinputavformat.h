@@ -43,6 +43,7 @@ public:
     virtual bool isEOS() { return m_isEos; }
     virtual const char * getMimeType();
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
+    virtual const string& getCodecData();
 
 protected:
     virtual bool initInput(const char* fileName);
@@ -52,6 +53,7 @@ private:
     AVCodecID m_codecId;
     AVPacket m_packet;
     bool m_isEos;
+    string m_codecData;
 };
 
 #endif

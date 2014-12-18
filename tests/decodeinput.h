@@ -23,9 +23,11 @@
 #define decodeinput_h
 
 #include <stdio.h>
+#include <string>
 #include "VideoDecoderDefs.h"
 #include "VideoDecoderInterface.h"
 
+using std::string;
 class DecodeInput {
 public:
     virtual ~DecodeInput() {}
@@ -33,6 +35,7 @@ public:
     virtual bool isEOS() = 0;
     virtual const char * getMimeType() = 0;
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer) = 0;
+    virtual const string& getCodecData() = 0;
 
 protected:
     virtual bool initInput(const char* fileName) = 0;

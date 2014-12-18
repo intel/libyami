@@ -50,6 +50,8 @@ bool DecodeInputAvFormat::initInput(const char* fileName)
         AVCodecContext* ctx = m_format->streams[i]->codec;
         if (AVMEDIA_TYPE_VIDEO == ctx->codec_type) {
             m_codecId = ctx->codec_id;
+            if (ctx->extradata && ctx->extradata_size)
+                m_codecData.append((char*)ctx->extradata, ctx->extradata_size);
             m_videoId = i;
             break;
         }
@@ -116,6 +118,11 @@ bool DecodeInputAvFormat::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
         }
     }
     return false;
+}
+
+const string& DecodeInputAvFormat::getCodecData()
+{
+    return m_codecData;
 }
 
 DecodeInputAvFormat::~DecodeInputAvFormat()

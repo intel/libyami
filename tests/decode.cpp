@@ -83,6 +83,11 @@ int main(int argc, char** argv)
 
     memset(&configBuffer,0,sizeof(VideoConfigBuffer));
     configBuffer.profile = VAProfileNone;
+    const string codecData = input->getCodecData();
+    if (codecData.size()) {
+        configBuffer.data = (uint8_t*)codecData.data();
+        configBuffer.size = codecData.size();
+    }
 
     status = decoder->start(&configBuffer);
     assert(status == DECODE_SUCCESS);
