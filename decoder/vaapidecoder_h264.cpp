@@ -1374,7 +1374,7 @@ VaapiDecoderH264::VaapiDecoderH264()
     m_gotSPS = false;
     m_gotPPS = false;
     m_hasContext = false;
-    m_nalLengthSize = 0;
+    m_nalLengthSize = 4;
     m_isAVC = false;
     m_resetContext = false;
 }
@@ -1480,7 +1480,7 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
     }
 
     do {
-        if (m_isAVC) {
+        if (m_isAVC || buffer->flag & IS_AVCC) {
             if (size < m_nalLengthSize)
                 break;
 

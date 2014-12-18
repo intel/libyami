@@ -26,6 +26,7 @@
 #include "decodeinputavformat.h"
 #include "common/common_def.h"
 #include "common/log.h"
+#include "interface/VideoDecoderDefs.h"
 
 DecodeInputAvFormat::DecodeInputAvFormat()
 :m_format(NULL),m_videoId(-1), m_codecId(AV_CODEC_ID_NONE), m_isEos(true)
@@ -109,6 +110,7 @@ bool DecodeInputAvFormat::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
             memset(&inputBuffer, 0, sizeof(inputBuffer));
             inputBuffer.data = m_packet.data;
             inputBuffer.size = m_packet.size;
+            inputBuffer.flag = IS_AVCC;
             inputBuffer.timeStamp = m_packet.dts;
             return true;
         }

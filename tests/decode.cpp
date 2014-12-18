@@ -35,6 +35,9 @@
 #include "decodeinput.h"
 #include "decodeoutput.h"
 #include "decodehelp.h"
+#ifdef __ENABLE_X11__
+#include <X11/Xlib.h>
+#endif
 
 using namespace YamiMediaCodec;
 
@@ -48,7 +51,9 @@ int main(int argc, char** argv)
     const VideoFormatInfo *formatInfo = NULL;
     Decode_Status status;
     class CalcFps calcFpsGross, calcFpsNet;
-
+#ifdef __ENABLE_X11__
+    XInitThreads();
+#endif
     calcFpsGross.setAnchor();
     yamiTraceInit();
     if (!process_cmdline(argc, argv))

@@ -96,6 +96,9 @@ typedef enum {
     // indicate the input data is a NAL unit for h264
     IS_NAL_UNIT = IS_SECURE_DATA << 1, // 0x10000
 
+    // the input data is in avcC format (not byte stream)  for h264
+    IS_AVCC = IS_NAL_UNIT << 1, // 0x20000
+
 } VIDEO_BUFFER_FLAG;
 
 typedef struct {

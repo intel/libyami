@@ -183,7 +183,7 @@ uint32_t DecodeOutputRaw::getFourcc()
 }
 
 DecodeOutputRaw::DecodeOutputRaw(IVideoDecoder* decoder)
-    :DecodeOutput(decoder), m_convert(m_convert),
+    :DecodeOutput(decoder), m_convert(NULL),
     m_srcFourcc(0), m_destFourcc(0),
     m_enableSoftI420Convert(true)
 {
