@@ -245,7 +245,9 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 {
     ASSERT(dqbuf);
     int index = dqbuf->index;
-    ASSERT(dqbuf->index >= 0 && dqbuf->index < m_actualOutBufferCount);
+    // for the buffers within range of [m_actualOutBufferCount, m_maxBufferCount[OUTPUT]]
+    // there are not used in reality, but still be returned back to client during flush (seek/eos)
+    ASSERT(dqbuf->index >= 0 && dqbuf->index < m_maxBufferCount[OUTPUT]);
     // simple set size data to satify chrome even in texture mode
     dqbuf->m.planes[0].bytesused = m_videoWidth * m_videoHeight;
     dqbuf->m.planes[1].bytesused = m_videoWidth * m_videoHeight/2;
