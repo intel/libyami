@@ -174,6 +174,16 @@ AC_DEFINE([__BUILD_H264_ENCODER__], [1], [Defined to 1 if --enable-h264enc="yes"
 fi
 AM_CONDITIONAL(BUILD_H264_ENCODER, test "x$enable_h264enc" = "xyes")
 
+
+dnl jpeg encoder
+AC_ARG_ENABLE(jpegenc,
+    [AC_HELP_STRING([--enable-jpegenc], [build with jpeg encoder support @<:@default=yes@:>@])],
+    [], [enable_jpegenc="yes"])
+if test "$enable_jpegenc" = "yes"; then
+AC_DEFINE([__BUILD_JPEG_ENCODER__], [1], [Defined to 1 if --enable-jpegenc="yes" ])
+fi
+AM_CONDITIONAL(BUILD_JPEG_ENCODER, test "x$enable_jpegenc" = "xyes")
+
 # dnl Doxygen
 AC_ARG_ENABLE(docs,
               [AC_HELP_STRING([--enable-docs], [build with doxygen support @<:@default=yes@:>@])],

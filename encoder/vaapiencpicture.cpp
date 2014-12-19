@@ -43,10 +43,12 @@ bool VaapiEncPicture::encode()
 bool VaapiEncPicture::doRender()
 {
     RENDER_OBJECT(m_sequence);
-    RENDER_OBJECT(m_packedHeaders);
     RENDER_OBJECT(m_miscParams);
     RENDER_OBJECT(m_picture);
+    RENDER_OBJECT(m_qMatrix);
+    RENDER_OBJECT(m_huffTable);
     RENDER_OBJECT(m_slices);
+    RENDER_OBJECT(m_packedHeaders);
     return true;
 }
 
