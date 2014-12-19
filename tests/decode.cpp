@@ -36,7 +36,7 @@
 #include "decodeoutput.h"
 #include "decodehelp.h"
 #ifdef __ENABLE_X11__
-#include <X11/Xlib.h>
+// #include <X11/Xlib.h>
 #endif
 
 using namespace YamiMediaCodec;
@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     class CalcFps calcFpsGross, calcFpsNet;
     int skipFrameCount4NetFps = 0;
 #ifdef __ENABLE_X11__
-    XInitThreads();
+    // XInitThreads();
 #endif
     calcFpsGross.setAnchor();
     yamiTraceInit();
