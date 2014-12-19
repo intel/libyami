@@ -235,6 +235,7 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
     else
         inputBuffer->data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*qbuf->index;
     inputBuffer->timeStamp = qbuf->timestamp.tv_sec;
+    inputBuffer->flag = qbuf->flags;
     // set buffer unit-mode if possible, nal, frame?
     DEBUG("qbuf->index: %d, inputBuffer: %p, timestamp: %ld", qbuf->index, inputBuffer->data, inputBuffer->timeStamp);
 

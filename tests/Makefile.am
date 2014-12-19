@@ -15,7 +15,12 @@ AM_CFLAGS = \
 	$(LIBVA_CFLAGS)             \
 	$(NULL)
 
+DECODE_INPUT_SOURCES = \
+	decodeinput.cpp \
+	$(NULL)
+
 if ENABLE_AVFORMAT
+DECODE_INPUT_SOURCES += decodeinputavformat.cpp
 AM_CFLAGS += -D__STDC_CONSTANT_MACROS \
 			 $(LIBAVFORMAT_CFLAGS)
 endif
@@ -36,6 +41,9 @@ YAMI_DECODE_LIBS 	= \
 	$(NULL)
 if ENABLE_TESTS_GLES
 YAMI_DECODE_LIBS += $(LIBEGL_LIBS) $(LIBGLES2_LIBS)
+endif
+if ENABLE_AVFORMAT
+YAMI_DECODE_LIBS += $(LIBAVFORMAT_LIBS)
 endif
 
 YAMI_ENCODE_LIBS = \
@@ -69,15 +77,6 @@ CAPI_ENCODE_LIBS = \
 	$(top_builddir)/capi/libyami_capi.la		\
 	$(NULL)
 
-DECODE_INPUT_SOURCES = \
-	decodeinput.cpp \
-	$(NULL)
-
-if ENABLE_AVFORMAT
-DECODE_INPUT_SOURCES += decodeinputavformat.cpp
-YAMI_DECODE_LIBS += $(LIBAVFORMAT_LIBS)
-endif
-
 if ENABLE_CAPI
 decodecapi_LDADD	= $(CAPI_DECODE_LIBS)
 decodecapi_SOURCES	= decodecapi.c decodehelp.h  decodeInputCapi.cpp decodeOutputCapi.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp
@@ -86,7 +85,7 @@ decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
 encodecapi_LDADD	= $(CAPI_ENCODE_LIBS)
-encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp encodeInputCapi.cpp decodeinput.cpp
+encodecapi_SOURCES	= encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp encodeInputCapi.cpp $(DECODE_INPUT_SOURCES)
 else
 yamidecode_LDADD	= $(YAMI_DECODE_LIBS)
 yamidecode_SOURCES	= decode.cpp decodehelp.h $(DECODE_INPUT_SOURCES) decodeoutput.cpp
@@ -98,7 +97,7 @@ yamiencode_LDADD    = $(YAMI_ENCODE_LIBS)
 yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
 
 v4l2decode_LDADD = $(V4L2_DECODE_LIBS)
-v4l2decode_SOURCES = v4l2decode.cpp decodehelp.h decodeinput.cpp
+v4l2decode_SOURCES = v4l2decode.cpp decodehelp.h $(DECODE_INPUT_SOURCES)
 if ENABLE_V4L2_GLX
 v4l2decode_SOURCES += ./glx/glx_help.c
 else

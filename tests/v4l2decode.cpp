@@ -124,6 +124,7 @@ bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index i
         memcpy(inputFrames[buf.index], inputBuffer.data, inputBuffer.size);
         buf.m.planes[0].bytesused = inputBuffer.size;
         buf.m.planes[0].m.mem_offset = 0;
+        buf.flags = inputBuffer.flag;
     }
 
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
