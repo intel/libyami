@@ -33,6 +33,9 @@
 #if __BUILD_VP8_ENCODER__
 #include "vaapiencoder_vp8.h"
 #endif
+#if __BUILD_JPEG_ENCODER__
+#include "vaapiencoder_jpeg.h"
+#endif
 #include "vaapi/vaapi_host.h"
 #include <string.h>
 
@@ -45,6 +48,9 @@ static const EncoderEntry g_encoderEntries[] = {
 #endif
 #if __BUILD_VP8_ENCODER__
     DEFINE_ENCODER_ENTRY("video/x-vnd.on2.vp8", VP8),
+#endif
+#if __BUILD_JPEG_ENCODER__
+    DEFINE_ENCODER_ENTRY("image/jpeg", Jpeg)
 #endif
 };
 extern "C" {

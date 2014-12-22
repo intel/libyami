@@ -239,6 +239,10 @@ EncodeOutput* EncodeOutput::create(const char* outputFileName, int width , int h
             (strcasecmp(ext,"vp8")==0)) {
             output = new EncodeOutputVP8();
     }
+    else if((strcasecmp(ext,"jpg")==0) ||
+               (strcasecmp(ext,"jpeg")==0)) {
+               output = new EncodeStreamOutputJpeg();
+   }
     else
         return NULL;
 
@@ -267,6 +271,11 @@ bool EncodeOutput::write(void* data, int size)
 const char* EncodeOutputH264::getMimeType()
 {
     return "video/h264";
+}
+
+const char* EncodeStreamOutputJpeg::getMimeType()
+{
+    return "image/jpeg";
 }
 
 const char* EncodeOutputVP8::getMimeType()

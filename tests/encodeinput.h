@@ -134,6 +134,11 @@ private:
     int m_frameCount;
 };
 
+class EncodeStreamOutputJpeg : public EncodeOutput
+{
+    virtual const char* getMimeType();
+};
+
 bool createOutputBuffer(VideoEncOutputBuffer* outputBuffer, int maxOutSize);
 
 #endif

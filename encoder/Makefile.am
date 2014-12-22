@@ -15,6 +15,10 @@ if BUILD_H264_ENCODER
         libyami_encoder_source_c += vaapiencoder_h264.cpp
 endif
 
+if BUILD_JPEG_ENCODER
+        libyami_encoder_source_c += vaapiencoder_jpeg.cpp
+endif
+
 if BUILD_VP8_ENCODER
         libyami_encoder_source_c += vaapiencoder_vp8.cpp
 endif
@@ -33,6 +37,10 @@ libyami_encoder_source_h_priv = \
 
 if BUILD_H264_ENCODER
         libyami_encoder_source_h_priv += vaapiencoder_h264.h
+endif
+
+if BUILD_JPEG_ENCODER
+        libyami_encoder_source_h_priv += vaapiencoder_jpeg.h 
 endif
 
 if BUILD_VP8_ENCODER
