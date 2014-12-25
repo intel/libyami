@@ -339,7 +339,7 @@ int main(int argc, char** argv)
     // set input/output data format
     uint32_t codecFormat = v4l2PixelFormatFromMime(input->getMimeType());
     if (!codecFormat) {
-        ERROR("unsupported mimetype");
+        ERROR("unsupported mimetype, %s", input->getMimeType());
         return -1;
     }
 
