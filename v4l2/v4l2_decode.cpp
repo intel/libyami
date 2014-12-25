@@ -86,7 +86,6 @@ bool V4l2Decoder::start()
     if (m_started)
         return true;
     ASSERT(m_decoder);
-    ASSERT(m_configBuffer.profile && m_configBuffer.surfaceNumber);
 
     NativeDisplay nativeDisplay;
 #if __ENABLE_V4L2_GLX__
@@ -313,43 +312,17 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             ASSERT(format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_NV12M);
         } else if (format->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
             // ::CreateInputBuffers
-            ASSERT(format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_H264
-                || format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_VP8
-                || format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_MJPEG);
             ASSERT(format->fmt.pix_mp.num_planes == 1);
             ASSERT(format->fmt.pix_mp.plane_fmt[0].sizeimage);
-            switch (format->fmt.pix_mp.pixelformat) {
-                case V4L2_PIX_FMT_H264: {
-                    m_decoder.reset(createVideoDecoder(YAMI_MIME_H264), releaseVideoDecoder);
-                    memset(&m_configBuffer, 0, sizeof(m_configBuffer));
-                    m_configBuffer.profile = VAProfileH264Main;
-                    m_configBuffer.surfaceNumber = 16;
-                    m_configBuffer.data = NULL;
-                    m_configBuffer.size = 0;
-                }
-                break;
-                case V4L2_PIX_FMT_VP8: {
-                    m_decoder.reset(createVideoDecoder(YAMI_MIME_VP8), releaseVideoDecoder);
-                    m_configBuffer.profile = VAProfileVP8Version0_3;
-                    m_configBuffer.surfaceNumber = 8;
-                    m_configBuffer.data = NULL;
-                    m_configBuffer.size = 0;
-                }
-                break;
-                case V4L2_PIX_FMT_MJPEG: {
-                    m_decoder.reset(createVideoDecoder(YAMI_MIME_JPEG), releaseVideoDecoder);
-                    memset(&m_configBuffer, 0, sizeof(m_configBuffer));
-                    m_configBuffer.profile = VAProfileJPEGBaseline;
-                    m_configBuffer.surfaceNumber = 4;
-                    m_configBuffer.data = NULL;
-                    m_configBuffer.size = 0;
-                }
-                break;
-                default:
-                    ret = -1;
-                break;
-            }
+            memset(&m_configBuffer, 0, sizeof(m_configBuffer));
+            m_decoder.reset(
+                createVideoDecoder(mimeFromV4l2PixelFormat(format->fmt.pix_mp.pixelformat)),
+                releaseVideoDecoder);
             ASSERT(m_decoder);
+            if (!m_decoder) {
+                ret = -1;
+            }
+
             m_maxBufferSize[INPUT] = format->fmt.pix_mp.plane_fmt[0].sizeimage;
         } else {
             ret = -1;

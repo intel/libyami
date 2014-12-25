@@ -36,6 +36,7 @@
 #include "v4l2_encode.h"
 #include "v4l2_decode.h"
 #include "common/log.h"
+#include "common/common_def.h"
 #include <algorithm>
 
 typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
@@ -530,3 +531,39 @@ void V4l2CodecBase::clearCodecEvent()
     m_hasEvent = false;
 }
 
+struct FormatEntry {
+    uint32_t format;
+    const char* mime;
+};
+
+static const FormatEntry FormatEntrys[] = {
+    {V4L2_PIX_FMT_H264, YAMI_MIME_H264},
+    {V4L2_PIX_FMT_VP8, YAMI_MIME_VP8},
+    {V4L2_PIX_FMT_MJPEG, YAMI_MIME_JPEG}
+};
+
+uint32_t v4l2PixelFormatFromMime(const char* mime)
+{
+    uint32_t format = 0;
+    for (int i = 0; i < N_ELEMENTS(FormatEntrys); i++) {
+        const FormatEntry* entry = FormatEntrys + i;
+        if (strcmp(mime, entry->mime) == 0) {
+            format = entry->format;
+            break;
+        }
+    }
+    return format;
+}
+
+const char* mimeFromV4l2PixelFormat(uint32_t pixelFormat)
+{
+    const char* mime = NULL;
+    for (int i = 0; i < N_ELEMENTS(FormatEntrys); i++) {
+        const FormatEntry* entry = FormatEntrys + i;
+        if (entry->format == pixelFormat) {
+            mime = entry->mime;
+            break;
+        }
+    }
+    return mime;
+}

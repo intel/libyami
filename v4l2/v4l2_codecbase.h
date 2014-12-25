@@ -142,4 +142,8 @@ class V4l2CodecBase {
     uint32_t m_frameCount[2];
 #endif
 };
+
+uint32_t v4l2PixelFormatFromMime(const char* mime);
+const char* mimeFromV4l2PixelFormat(uint32_t pixelFormat);
+
 #endif

@@ -264,6 +264,8 @@ bool handleResolutionChange(int32_t fd)
     return true;
 }
 
+extern uint32_t v4l2PixelFormatFromMime(const char* mime);
+
 int main(int argc, char** argv)
 {
     DecodeInput *input;
@@ -335,15 +337,8 @@ int main(int argc, char** argv)
     ASSERT(ioctlRet != -1);
 
     // set input/output data format
-    uint32_t codecFormat = 0;
-    const char* mimeType = input->getMimeType();
-    if (!strcmp(mimeType, YAMI_MIME_H264))
-        codecFormat = V4L2_PIX_FMT_H264;
-    else if (!strcmp(mimeType, YAMI_MIME_VP8))
-        codecFormat = V4L2_PIX_FMT_VP8;
-    else if (!strcmp(mimeType, YAMI_MIME_JPEG))
-        codecFormat = V4L2_PIX_FMT_MJPEG;
-    else {
+    uint32_t codecFormat = v4l2PixelFormatFromMime(input->getMimeType());
+    if (!codecFormat) {
         ERROR("unsupported mimetype");
         return -1;
     }
