@@ -217,9 +217,9 @@ bool DecodeInputVPX::init()
     if (header.tag != 'FIKD')
         return false;
     if (header.fourcc == '08PV')
-        m_mimeType = "video/x-vnd.on2.vp8";
+        m_mimeType = YAMI_MIME_VP8;
     else if (header.fourcc == '09PV')
-        m_mimeType = "video/x-vnd.on2.vp9";
+        m_mimeType = YAMI_MIME_VP9;
     return true;
 }
 
@@ -353,7 +353,7 @@ DecodeInputH264::~DecodeInputH264()
 
 const char *DecodeInputH264::getMimeType()
 {
-    return "video/h264";
+    return YAMI_MIME_H264;
 }
 
 bool DecodeInputH264::isSyncWord(const uint8_t* buf)
@@ -374,7 +374,7 @@ DecodeInputJPEG::~DecodeInputJPEG()
 
 const char *DecodeInputJPEG::getMimeType()
 {
-    return "image/jpeg";
+    return YAMI_MIME_JPEG;
 }
 
 bool DecodeInputJPEG::isSyncWord(const uint8_t* buf)

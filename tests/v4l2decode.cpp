@@ -337,11 +337,11 @@ int main(int argc, char** argv)
     // set input/output data format
     uint32_t codecFormat = 0;
     const char* mimeType = input->getMimeType();
-    if (!strcmp(mimeType, "video/h264"))
+    if (!strcmp(mimeType, YAMI_MIME_H264))
         codecFormat = V4L2_PIX_FMT_H264;
-    else if (!strcmp(mimeType, "video/x-vnd.on2.vp8"))
+    else if (!strcmp(mimeType, YAMI_MIME_VP8))
         codecFormat = V4L2_PIX_FMT_VP8;
-    else if (!strcmp(mimeType, "image/jpeg"))
+    else if (!strcmp(mimeType, YAMI_MIME_JPEG))
         codecFormat = V4L2_PIX_FMT_MJPEG;
     else {
         ERROR("unsupported mimetype");

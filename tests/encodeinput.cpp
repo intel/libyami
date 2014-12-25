@@ -270,7 +270,7 @@ bool EncodeOutput::write(void* data, int size)
 
 const char* EncodeOutputH264::getMimeType()
 {
-    return "video/h264";
+    return YAMI_MIME_H264;
 }
 
 const char* EncodeStreamOutputJpeg::getMimeType()
@@ -280,7 +280,7 @@ const char* EncodeStreamOutputJpeg::getMimeType()
 
 const char* EncodeOutputVP8::getMimeType()
 {
-    return "video/x-vnd.on2.vp8";
+    return YAMI_MIME_VP8;
 }
 
 void setUint32(uint8_t* header, uint32_t value)

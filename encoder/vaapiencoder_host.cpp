@@ -43,11 +43,11 @@ using namespace YamiMediaCodec;
 DEFINE_CLASS_FACTORY(Encoder)
 static const EncoderEntry g_encoderEntries[] = {
 #if __BUILD_H264_ENCODER__
-    DEFINE_ENCODER_ENTRY("video/avc", H264),
-    DEFINE_ENCODER_ENTRY("video/h264", H264),
+    DEFINE_ENCODER_ENTRY(YAMI_MIME_AVC, H264),
+    DEFINE_ENCODER_ENTRY(YAMI_MIME_H264, H264),
 #endif
 #if __BUILD_VP8_ENCODER__
-    DEFINE_ENCODER_ENTRY("video/x-vnd.on2.vp8", VP8),
+    DEFINE_ENCODER_ENTRY(YAMI_MIME_VP8, VP8),
 #endif
 #if __BUILD_JPEG_ENCODER__
     DEFINE_ENCODER_ENTRY("image/jpeg", Jpeg)

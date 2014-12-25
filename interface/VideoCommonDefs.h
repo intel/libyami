@@ -80,6 +80,13 @@ typedef struct VideoFrameRawData{
 
 #define VIDEO_FRAME_FLAGS_KEY 1
 
+#define YAMI_MIME_H264 "video/h264"
+#define YAMI_MIME_AVC  "video/avc"
+#define YAMI_MIME_VP8  "video/x-vnd.on2.vp8"
+#define YAMI_MIME_VP9  "video/x-vnd.on2.vp9"
+#define YAMI_MIME_JPEG "image/jpeg"
+
+
 #ifdef __cplusplus
 }
 #endif

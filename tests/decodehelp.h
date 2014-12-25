@@ -124,7 +124,7 @@ static bool possibleWait(const char* mimeType)
     case 0:
         break;
     case 1:
-        if (renderMode == 0 || strcmp(mimeType, "image/jpeg"))
+        if (renderMode == 0 || strcmp(mimeType, YAMI_MIME_JPEG))
             break;
     case 2:
         fprintf(stdout, "press any key to continue ...");

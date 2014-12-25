@@ -320,7 +320,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             ASSERT(format->fmt.pix_mp.plane_fmt[0].sizeimage);
             switch (format->fmt.pix_mp.pixelformat) {
                 case V4L2_PIX_FMT_H264: {
-                    m_decoder.reset(createVideoDecoder("video/h264"), releaseVideoDecoder);
+                    m_decoder.reset(createVideoDecoder(YAMI_MIME_H264), releaseVideoDecoder);
                     memset(&m_configBuffer, 0, sizeof(m_configBuffer));
                     m_configBuffer.profile = VAProfileH264Main;
                     m_configBuffer.surfaceNumber = 16;
@@ -329,7 +329,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                 }
                 break;
                 case V4L2_PIX_FMT_VP8: {
-                    m_decoder.reset(createVideoDecoder("video/x-vnd.on2.vp8"), releaseVideoDecoder);
+                    m_decoder.reset(createVideoDecoder(YAMI_MIME_VP8), releaseVideoDecoder);
                     m_configBuffer.profile = VAProfileVP8Version0_3;
                     m_configBuffer.surfaceNumber = 8;
                     m_configBuffer.data = NULL;
@@ -337,7 +337,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                 }
                 break;
                 case V4L2_PIX_FMT_MJPEG: {
-                    m_decoder.reset(createVideoDecoder("image/jpeg"), releaseVideoDecoder);
+                    m_decoder.reset(createVideoDecoder(YAMI_MIME_JPEG), releaseVideoDecoder);
                     memset(&m_configBuffer, 0, sizeof(m_configBuffer));
                     m_configBuffer.profile = VAProfileJPEGBaseline;
                     m_configBuffer.surfaceNumber = 4;

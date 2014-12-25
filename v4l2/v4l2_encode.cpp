@@ -296,7 +296,7 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
             // ::SetOutputFormat
             switch (format->fmt.pix_mp.pixelformat) {
                 case V4L2_PIX_FMT_H264: {
-                    m_encoder.reset(createVideoEncoder("video/h264"), releaseVideoEncoder);
+                    m_encoder.reset(createVideoEncoder(YAMI_MIME_H264), releaseVideoEncoder);
                     m_videoParams.size = sizeof(m_videoParams);
                     encodeStatus = m_encoder->getParameters(VideoParamsTypeCommon, &m_videoParams);
                     ASSERT(encodeStatus == ENCODE_SUCCESS);

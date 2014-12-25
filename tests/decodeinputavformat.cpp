@@ -76,13 +76,13 @@ struct MimeEntry
 };
 
 static const MimeEntry MimeEntrys[] = {
-    AV_CODEC_ID_VP8, "video/x-vnd.on2.vp8",
+    AV_CODEC_ID_VP8, YAMI_MIME_VP8,
 
 #if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(54, 40, 0)
-    AV_CODEC_ID_VP9, "video/x-vnd.on2.vp9",
+    AV_CODEC_ID_VP9, YAMI_MIME_VP9,
 #endif
 
-    AV_CODEC_ID_H264, "video/h264"
+    AV_CODEC_ID_H264, YAMI_MIME_H264
 };
 
 const char * DecodeInputAvFormat::getMimeType()
