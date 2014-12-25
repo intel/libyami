@@ -93,7 +93,8 @@ Decode_Status VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
     // only reset va context when there is a larger frame
     if (m_configBuffer.width < hdr->width
         || m_configBuffer.height <  hdr->height) {
-        INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d", m_configBuffer.width, m_configBuffer.height, m_frameHdr.width, m_frameHdr.height);
+        INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d",
+                m_configBuffer.width, m_configBuffer.height, hdr->width, hdr->height);
         Decode_Status status = VaapiDecoderBase::terminateVA();
         if (status != DECODE_SUCCESS)
             return status;
