@@ -24,9 +24,12 @@ if BUILD_VP9_DECODER
         libyami_decoder_source_c += vaapidecoder_vp9.cpp
 endif
 
-
 if BUILD_JPEG_DECODER
         libyami_decoder_source_c += vaapidecoder_jpeg.cpp
+endif
+
+if BUILD_FAKE_DECODER
+        libyami_decoder_source_c += vaapidecoder_fake.cpp
 endif
 
 libyami_decoder_source_h = \
@@ -56,6 +59,10 @@ endif
 
 if BUILD_JPEG_DECODER
         libyami_decoder_source_h_priv += vaapidecoder_jpeg.h
+endif
+
+if BUILD_FAKE_DECODER
+        libyami_decoder_source_h_priv += vaapidecoder_fake.h
 endif
 
 libyami_decoder_la_LIBADD = \

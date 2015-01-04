@@ -37,6 +37,9 @@
 #if __BUILD_JPEG_DECODER__
 #include "vaapidecoder_jpeg.h"
 #endif
+#if __BUILD_FAKE_DECODER__
+#include "vaapidecoder_fake.h"
+#endif
 #include "vaapi/vaapi_host.h"
 #include <string.h>
 
@@ -69,6 +72,9 @@ IVideoDecoder *createVideoDecoder(const char *mimeType)
         ERROR("NULL mime type.");
         return NULL;
     }
+#if __BUILD_FAKE_DECODER__
+    return new VaapiDecoderFake(1920, 1080);
+#endif
     INFO("mimeType: %s\n", mimeType);
     for (int i = 0; i < N_ELEMENTS(g_decoderEntries); i++) {
         const DecoderEntry *e = g_decoderEntries + i;

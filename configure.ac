@@ -165,6 +165,15 @@ AC_DEFINE([__BUILD_H264_DECODER__], [1], [Defined to 1 if --enable-h264dec="yes"
 fi
 AM_CONDITIONAL(BUILD_H264_DECODER, test "x$enable_h264dec" = "xyes")
 
+dnl fake decoder
+AC_ARG_ENABLE(fakedec,
+    [AC_HELP_STRING([--enable-fakedec], [build with fake decoder support @<:@default=no@:>@])],
+    [], [enable_fakedec="no"])
+if test "$enable_fakedec" = "yes"; then
+AC_DEFINE([__BUILD_FAKE_DECODER__], [1], [Defined to 1 if --enable-fakedec="yes" ])
+fi
+AM_CONDITIONAL(BUILD_FAKE_DECODER, test "x$enable_fakedec" = "xyes")
+
 dnl h264 encoder
 AC_ARG_ENABLE(h264enc,
     [AC_HELP_STRING([--enable-h264enc], [build with h264 encoder support @<:@default=yes@:>@])],
