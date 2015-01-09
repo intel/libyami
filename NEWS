@@ -1,7 +1,82 @@
 libyami NEWS -- summary of changes.  2014-11-28
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
-Copyright (C) 2011-2014 Intel Corporation
+Copyright (C) 2011-2015 Intel Corporation
+
+libyami NEWS -- summary of changes.  2014-11-28
+Copyright (C) 2010-2011 Splitted-Desktop Systems
+Copyright (C) 2011 Collabora
+Copyright (C) 2011-2015 Intel Corporation
+
+libyami 0.2.0 release
+=====================
+
+features update
+---------------
++ add VP9 decoder
++ add VP8 encoder
++ add JPEG encoder
++ add Demux support leverage libavformat,: --enable-avformat
+  - yamidecode runs ok when there is no xwindow rendering (-m -1/0)
+  - v4l2decode is ok when there is with or w/o rendering
+  - support libvaformat from the version installed in Ubuntu13.10
+  -	known issue: when there is video rendering, yamidecode blocks at
+    XGetWindowAttributes() after libva dlopen(i965_drv).
+    Add XInitThreads() make things worse. It is strange.
++ Fps update for "-m -1", we get stable performance data now
++ V4l2 fixes: seek, unconditionally stop
++ enable FFmpeg to use libyami for h264 decoding, create example player to
+  demonstrate it, especially on rendering video as texture through dma_buf
+  https://github.com/01org/player-ffmpeg-yami
+
+known issues
+---------------
+- for avformat support in yamidecode,  when there is video rendering,
+  yamidecode blocks at XGetWindowAttributes() after libva dlopen(i965_drv).
+  Add XInitThreads() make things worse. It is strange.
+  v4l2decode doesn't have such issue. (yamidecode is one thread application)
+
+thoughts on libyami (media framework and window system support)
+--------------------------------------------------
+these points are not our priority yet.
+
++ Wayland support
+  We did a lot to support Wayland before:
+  - add Wayland platform support in libva and driver, does hack to
+    copy wayland-drm protocol from mesa/egl
+  - add Wayland platform in middleware, gstreamer-vaapi for example
+
+  the detects are:
+  - so far, only plain rendering is supported: wl_surface_attach/wl_surface_damage;
+    texture video rendering is still a gap
+  - the shared wl_display/wl_window/wl_event_queue are complex and problematic
+
+  it should be much easier with dma_buf.
+  We neend't do anything special for native window system in either vaapi driver or
+  codec library. with dma_buf handle exported, application can draw the video
+  frame (dma_buf) by EGL/GLES, EGL handle native window system automatically(including
+  wrap it into a wl_buffer internally).
+
++ GStreamer support
+  We usually do a lot on hw video buffer sharing in GStreamer, hw video buffer are
+  platform dependent, but the framework requires to wrap them in a generic way. we do
+  a lot in decoder to wrap a platform dependent handle into a subclass of base
+  video buffer, then unwrap it in video sink. and tries best to hide hw detail when
+  a sw component request to access the frame data.
+
+  it becomes simple when hw codec support dma_buf, since dma_buf is Linux generic.
+  it is possible that hw video become not the 2nd class citizen any more. we don't
+  need additional wrapper in decoder side, and we don't need a special video sink
+  for each hw video type.
+
++ dma_buf rendering for legacy support
+  in the above ideas, we usually consider EGL/GLES rendering context, how about
+  legacy usage? it is simple as well.
+
+  DRI3 protocol support dma_buf, it means a dma_buf handle can be sent to server
+  for window update. Keith said mesa is using it, and on server side glamor handle
+  the dma_buf. the remaining gap is that YUV buffer hasn't been supported yet, but
+  not hard to add it.
 
 libyami 0.1.4 release
 =====================
