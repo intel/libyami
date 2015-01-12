@@ -72,7 +72,8 @@ Decode_Status DecodeOutputNull::renderOneFrame(bool drain)
     m_frame.fourcc = 0;
 
     Decode_Status status = m_decoder->getOutput(&m_frame, drain);
-    vaSyncSurface((void*)(m_frame.handle), m_frame.internalID);
+    if (status == RENDER_SUCCESS)
+        vaSyncSurface((void*)(m_frame.handle), m_frame.internalID);
     return status;
 }
 
