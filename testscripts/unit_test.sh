@@ -53,6 +53,7 @@ single_md5()
             verify_md5 ${file} ${currentmd5}
             i=$(($i+1))
             echo ${i}---${testfilepath}${file}
+            rm -f ${file}
         else
             openfile=$(($openfile-1))
             echo "${testfilepath}${file} is md5 file"
@@ -120,6 +121,7 @@ single_psnr()
     fileyuv=`ls ${outfile}*`
     get_w_h ${fileyuv}
     ${yamipath}/testscripts/psnr -i ${refyuvfile} -o ${outputpath}${fileyuv} -W ${WIDTH} -H ${HEIGHT} -s ${standardpsnr}
+    rm -f ${fileyuv}
 }
 
 encode_and_psnr()
@@ -130,6 +132,7 @@ encode_and_psnr()
     testfilename=${outputpath}${file}.264
     outfile=${file}.264_
     single_psnr ${encodepsnr}
+    rm -f ${testfilepath}${file} ${file}.264
 }
 
 print_psnr_result()
@@ -156,8 +159,8 @@ unit_test_psnr()
     outputpath="${scriptpath}/yuv/"
     if [ ${rm_output_print} = 1 ];then
         rm -rf ${outputpath}
+        mkdir -p ${outputpath}
     fi
-    mkdir -p ${outputpath}
     cd ${outputpath}
     filelist=`ls ${testfilepath}`
     if [ ${codec} = "decode" ];then
@@ -331,7 +334,6 @@ get_encodestream_test()
     i=${validcount}
     openfile=${validcount}
     print_psnr_result
-    rm -rf ${outputpath}
 }
 
 recursion_dir()
