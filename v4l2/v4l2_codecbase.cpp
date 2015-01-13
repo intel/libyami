@@ -500,7 +500,7 @@ int32_t V4l2CodecBase::poll(bool poll_device, bool* event_pending)
     if (poll_device) {
       DEBUG("Poll(): adding device fd to poll() set");
       pollfds[nfds].fd = m_fd[0];
-      pollfds[nfds].events = POLLIN | POLLOUT | POLLERR | POLLPRI;
+      pollfds[nfds].events = POLLIN | POLLERR;
       pollfd = nfds;
       nfds++;
     }
