@@ -380,7 +380,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         ASSERT(ctrl->id == V4L2_CID_MIN_BUFFERS_FOR_CAPTURE);
         ASSERT(m_decoder);
         // VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
-        ctrl->value = 16; // todo,  outFormat->surfaceNumber;
+        ctrl->value = 0; // no need report dpb size, we hold all buffers in decoder.
     }
     break;
     default:
