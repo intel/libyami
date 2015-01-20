@@ -275,21 +275,13 @@ static void read_segmentation(Vp9FrameHdr* frame_hdr, BitReader* br)
   }
 }
 
-uint32_t get_lb_tile_cols(uint32_t sb_cols, uint32_t m)
-{
-  uint32_t log2 = 0;
-  while (sb_cols > m) {
-    m <<= 1;
-    log2++;
-  }
-  return log2;
-}
-
 #define MIN_TILE_WIDTH_B64 4
 #define MAX_TILE_WIDTH_B64 64
 uint32_t get_max_lb_tile_cols(uint32_t sb_cols)
 {
-  uint32_t log2 = get_lb_tile_cols(sb_cols, MIN_TILE_WIDTH_B64);
+  int log2 = 0;
+  while ((sb_cols >> log2) >= MIN_TILE_WIDTH_B64)
+    ++log2;
   if (log2)
     log2--;
   return log2;
@@ -297,7 +289,10 @@ uint32_t get_max_lb_tile_cols(uint32_t sb_cols)
 
 uint32_t get_min_lb_tile_cols(uint32_t sb_cols)
 {
-  return get_lb_tile_cols(sb_cols, MAX_TILE_WIDTH_B64);
+  int log2 = 0;
+  while ((MAX_TILE_WIDTH_B64 << log2) < sb_cols)
+    ++log2;
+  return log2;
 }
 
 /* align to 64 */
