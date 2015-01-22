@@ -50,9 +50,9 @@ typedef struct _ReferenceSize
 
 typedef struct _Vp9ParserPrivate
 {
-  uint8_t   y_dc_delta_q;
-  uint8_t   uv_dc_delta_q;
-  uint8_t   uv_ac_delta_q;
+  int8_t   y_dc_delta_q;
+  int8_t   uv_dc_delta_q;
+  int8_t   uv_ac_delta_q;
 
   int16_t   y_dequant[QINDEX_RANGE][2];
   int16_t   uv_dequant[QINDEX_RANGE][2];

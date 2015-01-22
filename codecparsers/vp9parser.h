@@ -178,9 +178,9 @@ struct _Vp9FrameHdr
 
   //quant
   uint8_t   base_qindex;
-  uint8_t   y_dc_delta_q;
-  uint8_t   uv_dc_delta_q;
-  uint8_t   uv_ac_delta_q;
+  int8_t   y_dc_delta_q;
+  int8_t   uv_dc_delta_q;
+  int8_t   uv_ac_delta_q;
 
   /* segmetation */
   /* enable in setup_segmentation*/
