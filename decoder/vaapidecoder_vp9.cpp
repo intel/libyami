@@ -243,6 +243,10 @@ Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* dat
     PicturePtr picture = createPicture(timeStamp);
     if (!picture)
         return DECODE_MEMORY_FAIL;
+    if (!picture->getSurface()->resize(hdr->width, hdr->height)) {
+        ERROR("resize to %dx%d failed", hdr->width, hdr->height);
+        return DECODE_MEMORY_FAIL;
+    }
 
     if (hdr->show_existing_frame) {
         SurfacePtr& surface = m_reference[hdr->frame_to_show];
