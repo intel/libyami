@@ -239,7 +239,7 @@ static void read_segmentation(Vp9FrameHdr* frame_hdr, BitReader* br)
       uint8_t prob = MAX_PROB;
       if (frame_hdr->segmentation_temporal_update) {
         frame_hdr->segment_pred_probs_validate[i] = vp9_read_bit(br);
-        if (frame_hdr->segment_pred_probs_validate[i]);
+        if (frame_hdr->segment_pred_probs_validate[i])
           prob = vp9_read_bits(br, 8);
       }
       frame_hdr->segment_pred_probs[i] = prob;
