@@ -1,12 +1,19 @@
-libyami NEWS -- summary of changes.  2014-11-28
+libyami NEWS -- summary of changes.  2014-01-18
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2015 Intel Corporation
 
-libyami NEWS -- summary of changes.  2014-11-28
-Copyright (C) 2010-2011 Splitted-Desktop Systems
-Copyright (C) 2011 Collabora
-Copyright (C) 2011-2015 Intel Corporation
+libyami 0.2.1 release
+=====================
+the main target of this release is bug fix, especially the busy waiting issue.
+
+features update
+---------------
++fix one busy waiting bug in v4l2decoder.
+     -It will drain out cpu resource even we pause the video.
++4 patches apply to fix vp9 conformance test.
++add fakedec, it's good start for performance measure.
++fix random crash bug when we use "yamidecoder -m -1"
 
 libyami 0.2.0 release
 =====================
