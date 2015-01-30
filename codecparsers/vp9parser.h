@@ -51,8 +51,10 @@ extern "C" {
 
 typedef struct _Vp9FrameHdr     Vp9FrameHdr;
 typedef struct _Vp9Parser       Vp9Parser;
+typedef struct _Vp9LoopFilter   Vp9LoopFilter;
 typedef struct _Vp9Segmentation Vp9Segmentation;
-typedef struct _Vp9SegmentationData Vp9SegmentationData;
+typedef struct _Vp9SegmentationInfo Vp9SegmentationInfo;
+typedef struct _Vp9SegmentationInfoData Vp9SegmentationInfoData;
 
 /**
  * Vp9ParseResult:
@@ -113,7 +115,19 @@ typedef enum {
   VP9_MAX_REF_FRAMES = 4
 } VP9_MV_REFERENCE_FRAME;
 
-struct _Vp9SegmentationData {
+struct _Vp9LoopFilter {
+  uint8_t   filter_level;
+  uint8_t   sharpness_level;
+
+  BOOL      mode_ref_delta_enabled;
+  BOOL      mode_ref_delta_update;
+  BOOL      update_ref_deltas[VP9_MAX_REF_LF_DELTAS];
+  int8_t    ref_deltas[VP9_MAX_REF_LF_DELTAS];
+  BOOL      update_mode_deltas[VP9_MAX_MODE_LF_DELTAS];
+  int8_t    mode_deltas[VP9_MAX_MODE_LF_DELTAS];
+};
+
+struct _Vp9SegmentationInfoData {
   /* SEG_LVL_ALT_Q */
   BOOL      alternate_quantizer_enabled;
   int16_t   alternate_quantizer;
@@ -129,6 +143,28 @@ struct _Vp9SegmentationData {
   BOOL      reference_skip;
 };
 
+struct _Vp9SegmentationInfo {
+  /* segmetation */
+  /* enable in setup_segmentation*/
+  BOOL      enabled;
+  /* update_map in setup_segmentation*/
+  BOOL      update_map;
+  /* tree_probs exist or not*/
+  BOOL      update_tree_probs[VP9_SEG_TREE_PROBS];
+  uint8_t   tree_probs[VP9_SEG_TREE_PROBS];
+  /* pred_probs exist or not*/
+  BOOL      update_pred_probs[VP9_PREDICTION_PROBS];
+  uint8_t   pred_probs[VP9_PREDICTION_PROBS];
+
+  /* abs_delta in setup_segmentation */
+  BOOL      abs_delta;
+  /* temporal_update in setup_segmentation */
+  BOOL      temporal_update;
+
+  /* update_data in setup_segmentation*/
+  BOOL      update_data;
+  Vp9SegmentationInfoData data[VP9_MAX_SEGMENTS];
+};
 
 struct _Vp9FrameHdr
 {
@@ -142,7 +178,7 @@ struct _Vp9FrameHdr
   BOOL      subsampling_y;
   uint32_t  width;
   uint32_t  height;
-  BOOL      display_size_validate;
+  BOOL      display_size_enabled;
   uint32_t  display_width;
   uint32_t  display_height;
   uint8_t   frame_context_idx;
@@ -164,54 +200,20 @@ struct _Vp9FrameHdr
   /* frame_parallel_decoding_mode in vp9 code*/
   BOOL      frame_parallel_decoding_mode;
 
-
-  //loop filter
-  uint8_t   filter_level;
-  uint8_t   sharpness_level;
-
-  BOOL      mode_ref_delta_enabled;
-  BOOL      mode_ref_delta_update;
-  BOOL      ref_deltas_validate[VP9_MAX_REF_LF_DELTAS];
-  int8_t    ref_deltas[VP9_MAX_REF_LF_DELTAS];
-  BOOL      mode_deltas_validate[VP9_MAX_MODE_LF_DELTAS];
-  int8_t    mode_deltas[VP9_MAX_MODE_LF_DELTAS];
-
   //quant
-  uint8_t   base_qindex;
+  uint8_t  base_qindex;
   int8_t   y_dc_delta_q;
   int8_t   uv_dc_delta_q;
   int8_t   uv_ac_delta_q;
 
-  /* segmetation */
-  /* enable in setup_segmentation*/
-  BOOL      segmentation_enabled;
-  /* update_map in setup_segmentation*/
-  BOOL      segmentation_update_map;
-  /* tree_probs exist or not*/
-  BOOL      mb_segment_tree_probs_validate[VP9_SEG_TREE_PROBS];
-  /* tree_probs in setup_segmentation */
-  uint8_t   mb_segment_tree_probs[VP9_SEG_TREE_PROBS];
-  /* pred_probs exist or not*/
-  BOOL      segment_pred_probs_validate[VP9_PREDICTION_PROBS];
-  /* pred_probs in setup_segmentation */
-  uint8_t   segment_pred_probs[VP9_PREDICTION_PROBS];
-
-  /* abs_delta in setup_segmentation */
-  BOOL      segmentation_abs_delta;
-  /* temporal_update in setup_segmentation */
-  BOOL      segmentation_temporal_update;
-
-  /* update_data in setup_segmentation*/
-  BOOL      segmentation_update_data;
-  Vp9SegmentationData segmentation_data[VP9_MAX_SEGMENTS];
+  Vp9LoopFilter loopfilter;
+  Vp9SegmentationInfo segmentation;
 
   uint8_t   log2_tile_rows;
   uint8_t   log2_tile_columns;
 
   uint32_t  first_partition_size;
   uint32_t  frame_header_length_in_bytes;
-
-
 };
 
 struct _Vp9Segmentation
@@ -222,11 +224,18 @@ struct _Vp9Segmentation
   int16_t   chroma_ac_quant_scale;
   int16_t   chroma_dc_quant_scale;
 
+  BOOL      reference_frame_enabled;
+  uint8_t   reference_frame;
+
+  BOOL      reference_skip;
 };
 
 struct _Vp9Parser
 {
   BOOL      lossless_flag;
+
+  uint8_t   mb_segment_tree_probs[VP9_SEG_TREE_PROBS];
+  uint8_t   segment_pred_probs[VP9_PREDICTION_PROBS];
   Vp9Segmentation segmentation[VP9_MAX_SEGMENTS];
 
   /* private data */

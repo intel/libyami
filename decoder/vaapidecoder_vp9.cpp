@@ -178,7 +178,6 @@ bool VaapiDecoderVP9::ensurePicture(const PicturePtr& picture, const Vp9FrameHdr
 
 
 #define FILL_PIC_FIELD(field) param->pic_fields.bits.field = hdr->field;
-
     FILL_PIC_FIELD(subsampling_x)
     FILL_PIC_FIELD(subsampling_y)
     FILL_PIC_FIELD(frame_type)
@@ -191,29 +190,32 @@ bool VaapiDecoderVP9::ensurePicture(const PicturePtr& picture, const Vp9FrameHdr
     FILL_PIC_FIELD(reset_frame_context)
     FILL_PIC_FIELD(refresh_frame_context)
     FILL_PIC_FIELD(frame_context_idx)
-    FILL_PIC_FIELD(segmentation_enabled)
-    FILL_PIC_FIELD(segmentation_temporal_update)
-    FILL_PIC_FIELD(segmentation_update_map)
+#undef FILL_PIC_FIELD
 
+    param->pic_fields.bits.segmentation_enabled = hdr->segmentation.enabled;
+    param->pic_fields.bits.segmentation_temporal_update = hdr->segmentation.temporal_update;
+    param->pic_fields.bits.segmentation_update_map = hdr->segmentation.update_map;
     param->pic_fields.bits.lossless_flag = m_parser->lossless_flag;
 
+    param->filter_level = hdr->loopfilter.filter_level;
+    param->sharpness_level = hdr->loopfilter.sharpness_level;
+
+
 #define FILL_FIELD(field) param->field = hdr->field;
-    FILL_FIELD(filter_level);
-    FILL_FIELD(sharpness_level);
     FILL_FIELD(log2_tile_rows);
     FILL_FIELD(log2_tile_columns);
     FILL_FIELD(frame_header_length_in_bytes)
     FILL_FIELD(first_partition_size)
 #undef FILL_FIELD
-    assert(sizeof(param->mb_segment_tree_probs) == sizeof(hdr->mb_segment_tree_probs));
-    assert(sizeof(param->segment_pred_probs) == sizeof(hdr->segment_pred_probs));
-    memcpy(param->mb_segment_tree_probs, hdr->mb_segment_tree_probs, sizeof(hdr->mb_segment_tree_probs));
-    memcpy(param->segment_pred_probs, hdr->segment_pred_probs, sizeof(hdr->segment_pred_probs));
+    assert(sizeof(param->mb_segment_tree_probs) == sizeof(m_parser->mb_segment_tree_probs));
+    assert(sizeof(param->segment_pred_probs) == sizeof(m_parser->segment_pred_probs));
+    memcpy(param->mb_segment_tree_probs, m_parser->mb_segment_tree_probs, sizeof(m_parser->mb_segment_tree_probs));
+    memcpy(param->segment_pred_probs, m_parser->segment_pred_probs, sizeof(m_parser->segment_pred_probs));
 
     return true;
 }
 
-bool VaapiDecoderVP9::ensureSlice(const PicturePtr& picture,const Vp9FrameHdr* hdr, const void* data, int size)
+bool VaapiDecoderVP9::ensureSlice(const PicturePtr& picture, const void* data, int size)
 {
 #define FILL_FIELD(field) vaseg.field = seg.field;
 
@@ -223,15 +225,15 @@ bool VaapiDecoderVP9::ensureSlice(const PicturePtr& picture,const Vp9FrameHdr* h
     for (int i = 0; i < VP9_MAX_SEGMENTS; i++) {
         VASegmentParameterVP9& vaseg = slice->seg_param[i];
         Vp9Segmentation& seg = m_parser->segmentation[i];
-        const Vp9SegmentationData& data = hdr->segmentation_data[i];
         memcpy(vaseg.filter_level, seg.filter_level, sizeof(seg.filter_level));
         FILL_FIELD(luma_ac_quant_scale)
         FILL_FIELD(luma_dc_quant_scale)
         FILL_FIELD(chroma_ac_quant_scale)
         FILL_FIELD(chroma_dc_quant_scale)
-        vaseg.segment_flags.fields.segment_reference_skipped = data.reference_skip;
-        vaseg.segment_flags.fields.segment_reference_enabled = data.reference_frame_enabled;
-        vaseg.segment_flags.fields.segment_reference = data.reference_frame;
+
+        vaseg.segment_flags.fields.segment_reference_skipped = seg.reference_skip;
+        vaseg.segment_flags.fields.segment_reference_enabled = seg.reference_frame_enabled;
+        vaseg.segment_flags.fields.segment_reference = seg.reference_frame;
 
     }
 #undef FILL_FIELD
@@ -267,7 +269,7 @@ Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* dat
 
     if (!ensurePicture(picture, hdr))
         return DECODE_FAIL;
-    if (!ensureSlice(picture, hdr, data, size))
+    if (!ensureSlice(picture, data, size))
         return DECODE_FAIL;
     ret = picture->decode();
     if (ret != DECODE_SUCCESS)

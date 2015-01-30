@@ -49,7 +49,7 @@ class VaapiDecoderVP9:public VaapiDecoderBase {
     Decode_Status ensureContext(const Vp9FrameHdr* );
     Decode_Status decode(const uint8_t* data, uint32_t size, uint64_t timeStamp);
     Decode_Status decode(const Vp9FrameHdr* hdr, const uint8_t* data, uint32_t size, uint64_t timeStamp);
-    bool ensureSlice(const PicturePtr& ,const Vp9FrameHdr* , const void* data, int size);
+    bool ensureSlice(const PicturePtr& , const void* data, int size);
     bool ensurePicture(const PicturePtr& , const Vp9FrameHdr* );
     //reference related
     bool fillReference(VADecPictureParameterBufferVP9* , const Vp9FrameHdr*);

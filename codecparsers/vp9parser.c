@@ -61,25 +61,35 @@ typedef struct _Vp9ParserPrivate
   int8_t    ref_deltas[VP9_MAX_REF_LF_DELTAS];
   int8_t    mode_deltas[VP9_MAX_MODE_LF_DELTAS];
 
+  BOOL segmentation_abs_delta;
+  Vp9SegmentationInfoData segmentation[VP9_MAX_SEGMENTS];
+
   ReferenceSize reference[VP9_REF_FRAMES];
 } Vp9ParserPrivate;
 
 void init_dequantizer(Vp9Parser* parser);
+
+static void init_vp9_parser(Vp9Parser* parser)
+{
+  Vp9ParserPrivate* priv = parser->priv;
+  memset(parser, 0, sizeof(Vp9Parser));
+  memset(priv, 0, sizeof(Vp9ParserPrivate));
+  parser->priv = priv;
+  init_dequantizer(parser);
+}
 
 Vp9Parser* vp9_parser_new()
 {
   Vp9Parser* parser = (Vp9Parser*)malloc(sizeof(Vp9Parser));
   if (!parser)
     return NULL;
-  memset(parser, 0, sizeof(Vp9Parser));
   Vp9ParserPrivate* priv = (Vp9ParserPrivate*)malloc(sizeof(Vp9ParserPrivate));
   if (!priv) {
     free(parser);
     return NULL;
   }
-  memset(priv, 0, sizeof(Vp9ParserPrivate));
   parser->priv = priv;
-  init_dequantizer(parser);
+  init_vp9_parser(parser);
   return parser;
 }
 
@@ -140,8 +150,8 @@ static void read_frame_size(BitReader* br,
 
 static void read_display_frame_size(Vp9FrameHdr* frame_hdr, BitReader* br)
 {
-  frame_hdr->display_size_validate = vp9_read_bit(br);
-  if (frame_hdr->display_size_validate) {
+  frame_hdr->display_size_enabled = vp9_read_bit(br);
+  if (frame_hdr->display_size_enabled) {
     read_frame_size(br, &frame_hdr->display_width, &frame_hdr->display_height);
   }
 }
@@ -176,34 +186,32 @@ static VP9_INTERP_FILTER read_interp_filter(BitReader* br)
                              : filter_map[vp9_read_bits(br, 2)];
 }
 
-static void read_loopfilter(Vp9FrameHdr* frame_hdr, BitReader* br)
+static void read_loopfilter(Vp9LoopFilter* lf, BitReader* br)
 {
-  frame_hdr->filter_level = vp9_read_bits(br, 6);
-  frame_hdr->sharpness_level = vp9_read_bits(br, 3);
+  lf->filter_level = vp9_read_bits(br, 6);
+  lf->sharpness_level = vp9_read_bits(br, 3);
 
-  frame_hdr->mode_ref_delta_update = 0;
+  lf->mode_ref_delta_update = 0;
 
-  frame_hdr->mode_ref_delta_enabled = vp9_read_bit(br);
-  if (frame_hdr->mode_ref_delta_enabled) {
-    frame_hdr->mode_ref_delta_update = vp9_read_bit(br);
-    if (frame_hdr->mode_ref_delta_update) {
+  lf->mode_ref_delta_enabled = vp9_read_bit(br);
+  if (lf->mode_ref_delta_enabled) {
+    lf->mode_ref_delta_update = vp9_read_bit(br);
+    if (lf->mode_ref_delta_update) {
       int i;
-
       for (i = 0; i < VP9_MAX_REF_LF_DELTAS; i++) {
-        frame_hdr->ref_deltas_validate[i] = vp9_read_bit(br);
-        if (frame_hdr->ref_deltas_validate[i])
-          frame_hdr->ref_deltas[i] = vp9_read_signed_bits(br, 6);
+        lf->update_ref_deltas[i] = vp9_read_bit(br);
+        if (lf->update_ref_deltas[i])
+          lf->ref_deltas[i] = vp9_read_signed_bits(br, 6);
       }
 
       for (i = 0; i < VP9_MAX_MODE_LF_DELTAS; i++) {
-        frame_hdr->mode_deltas_validate[i] = vp9_read_bit(br);
-        if (frame_hdr->mode_deltas_validate[i])
-          frame_hdr->mode_deltas[i] = vp9_read_signed_bits(br, 6);
+        lf->update_mode_deltas[i] = vp9_read_bit(br);
+        if (lf->update_mode_deltas[i])
+          lf->mode_deltas[i] = vp9_read_signed_bits(br, 6);
       }
     }
   }
 }
-
 
 static int8_t read_delta_q(BitReader* br) {
   return vp9_read_bit(br) ? vp9_read_signed_bits(br, 4) : 0;
@@ -218,59 +226,65 @@ static void read_quantization(Vp9FrameHdr* frame_hdr, BitReader* br)
   frame_hdr->uv_ac_delta_q = read_delta_q(br);
 }
 
-static void read_segmentation(Vp9FrameHdr* frame_hdr, BitReader* br)
+static void read_segmentation(Vp9SegmentationInfo* seg, BitReader* br)
 {
   int i, j;
 
-  frame_hdr->segmentation_enabled = vp9_read_bit(br);
-  if (!frame_hdr->segmentation_enabled)
+  seg->update_map = FALSE;
+  seg->update_data = FALSE;
+
+  seg->enabled = vp9_read_bit(br);
+  if (!seg->enabled)
     return;
-  frame_hdr->segmentation_update_map = vp9_read_bit(br);
-  if (frame_hdr->segmentation_update_map) {
+  seg->update_map = vp9_read_bit(br);
+  if (seg->update_map) {
     for (i = 0; i < VP9_SEG_TREE_PROBS; i++) {
-      frame_hdr->mb_segment_tree_probs_validate[i] = vp9_read_bit(br);
-      if (frame_hdr->mb_segment_tree_probs_validate[i])
-        frame_hdr->mb_segment_tree_probs[i] = vp9_read_bits(br, 8);
-      else
-        frame_hdr->mb_segment_tree_probs[i] = MAX_PROB;
+      seg->update_tree_probs[i] = vp9_read_bit(br);
+      seg->tree_probs[i] = seg->update_tree_probs[i] ?
+        vp9_read_bits(br, 8) : MAX_PROB;
     }
-    frame_hdr->segmentation_temporal_update = vp9_read_bit(br);
-    for (i = 0; i < VP9_PREDICTION_PROBS; i++) {
-      uint8_t prob = MAX_PROB;
-      if (frame_hdr->segmentation_temporal_update) {
-        frame_hdr->segment_pred_probs_validate[i] = vp9_read_bit(br);
-        if (frame_hdr->segment_pred_probs_validate[i])
-          prob = vp9_read_bits(br, 8);
+    seg->temporal_update = vp9_read_bit(br);
+    if (seg->temporal_update) {
+      for (i = 0; i < VP9_PREDICTION_PROBS; i++) {
+        seg->update_pred_probs[i] = vp9_read_bit(br);
+        seg->pred_probs[i] = seg->update_pred_probs[i] ?
+          vp9_read_bits(br, 8) : MAX_PROB;
       }
-      frame_hdr->segment_pred_probs[i] = prob;
+    } else {
+      for (i = 0; i < VP9_PREDICTION_PROBS; i++) {
+        seg->pred_probs[i] = MAX_PROB;
+      }
     }
   }
 
-  frame_hdr->segmentation_update_data = vp9_read_bit(br);
+  seg->update_data = vp9_read_bit(br);
 
-  if (frame_hdr->segmentation_update_data) {
-    frame_hdr->segmentation_abs_delta = vp9_read_bit(br);
+  if (seg->update_data) {
+    /* clear all features */
+    memset(seg->data, 0, sizeof(seg->data));
+
+    seg->abs_delta = vp9_read_bit(br);
     for (i = 0; i < VP9_MAX_SEGMENTS; i++) {
-      Vp9SegmentationData* seg = frame_hdr->segmentation_data + i;
+      Vp9SegmentationInfoData* seg_data = seg->data + i;
       uint8_t data;
       /* SEG_LVL_ALT_Q */
-      seg->alternate_quantizer_enabled = vp9_read_bit(br);
-      if (seg->alternate_quantizer_enabled) {
+      seg_data->alternate_quantizer_enabled = vp9_read_bit(br);
+      if (seg_data->alternate_quantizer_enabled) {
         data = vp9_read_bits(br, 8);
-        seg->alternate_quantizer = vp9_read_bit(br) ? -data : data;
+        seg_data->alternate_quantizer = vp9_read_bit(br) ? -data : data;
       }
       /* SEG_LVL_ALT_LF */
-      seg->alternate_loop_filter_enabled = vp9_read_bit(br);
-      if (seg->alternate_loop_filter_enabled) {
+      seg_data->alternate_loop_filter_enabled = vp9_read_bit(br);
+      if (seg_data->alternate_loop_filter_enabled) {
         data = vp9_read_bits(br, 6);
-        seg->alternate_loop_filter = vp9_read_bit(br) ? -data : data;
+        seg_data->alternate_loop_filter = vp9_read_bit(br) ? -data : data;
       }
       /* SEG_LVL_REF_FRAME */
-      seg->reference_frame_enabled = vp9_read_bit(br);
-      if (seg->reference_frame_enabled) {
-        seg->reference_frame = vp9_read_bits(br, 2);
+      seg_data->reference_frame_enabled = vp9_read_bit(br);
+      if (seg_data->reference_frame_enabled) {
+        seg_data->reference_frame = vp9_read_bits(br, 2);
       }
-      seg->reference_skip = vp9_read_bit(br);
+      seg_data->reference_skip = vp9_read_bit(br);
     }
   }
 }
@@ -317,19 +331,19 @@ static BOOL read_tile_info(Vp9FrameHdr * frame_hdr, BitReader* br)
 
 }
 
-static void loop_filter_update(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr)
+static void loop_filter_update(Vp9Parser* parser, const Vp9LoopFilter * lf)
 {
   Vp9ParserPrivate* priv = parser->priv;
   int i;
 
   for (i = 0; i < VP9_MAX_REF_LF_DELTAS; i++) {
-    if (frame_hdr->ref_deltas_validate[i])
-      priv->ref_deltas[i] = frame_hdr->ref_deltas[i];
+    if (lf->update_ref_deltas[i])
+      priv->ref_deltas[i] = lf->ref_deltas[i];
   }
 
   for (i = 0; i < VP9_MAX_MODE_LF_DELTAS; i++) {
-    if (frame_hdr->mode_deltas_validate[i])
-      priv->mode_deltas[i] = frame_hdr->mode_deltas[i];
+    if (lf->update_mode_deltas[i])
+      priv->mode_deltas[i] = lf->mode_deltas[i];
   }
 }
 
@@ -453,31 +467,33 @@ static void quantization_update(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr
 
 }
 
-uint8_t seg_get_base_qindex(uint8_t base_qindex, const Vp9FrameHdr * frame_hdr, int segid)
+uint8_t seg_get_base_qindex(const Vp9Parser* parser, const Vp9FrameHdr * frame_hdr, int segid)
 {
-  int seg_base = base_qindex;
-  const Vp9SegmentationData* seg = frame_hdr->segmentation_data + segid;
-
-  if(frame_hdr->segmentation_enabled &&
-     frame_hdr->segmentation_update_data &&
-     seg->alternate_quantizer_enabled) {
-    if (frame_hdr->segmentation_abs_delta)
+  int seg_base = frame_hdr->base_qindex;
+  Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
+  const Vp9SegmentationInfoData* seg = priv->segmentation + segid;
+  /* DEBUG("id = %d, seg_base = %d, seg enable = %d, alt eanble = %d, abs = %d, alt= %d\n",segid,
+    seg_base, frame_hdr->segmentation.enabled, seg->alternate_quantizer_enabled, priv->segmentation_abs_delta,  seg->alternate_quantizer);
+*/
+  if(frame_hdr->segmentation.enabled &&
+    seg->alternate_quantizer_enabled) {
+      if (priv->segmentation_abs_delta)
         seg_base = seg->alternate_quantizer;
-    else
+      else
         seg_base += seg->alternate_quantizer;
   }
   return clamp(seg_base, 0, MAXQ);
 }
 
-uint8_t seg_get_filter_level(uint8_t filter_level, const Vp9FrameHdr * frame_hdr, int segid)
+uint8_t seg_get_filter_level(const Vp9Parser* parser, const Vp9FrameHdr * frame_hdr, int segid)
 {
-  int seg_filter = filter_level;
-  const Vp9SegmentationData* seg = frame_hdr->segmentation_data + segid;
+  int seg_filter = frame_hdr->loopfilter.filter_level;
+  Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
+  const Vp9SegmentationInfoData* seg = priv->segmentation + segid;
 
-  if(frame_hdr->segmentation_enabled &&
-     frame_hdr->segmentation_update_data &&
-     seg->alternate_loop_filter_enabled) {
-    if (frame_hdr->segmentation_abs_delta)
+  if (frame_hdr->segmentation.enabled &&
+      seg->alternate_loop_filter_enabled) {
+    if (priv->segmentation_abs_delta)
       seg_filter = seg->alternate_loop_filter;
     else
       seg_filter += seg->alternate_loop_filter;
@@ -485,22 +501,46 @@ uint8_t seg_get_filter_level(uint8_t filter_level, const Vp9FrameHdr * frame_hdr
   return clamp(seg_filter, 0, MAX_LOOP_FILTER);
 }
 
+/*save segmentation info from frame header to parser*/
+static void segmentation_save(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr)
+{
+  const Vp9SegmentationInfo* info = &frame_hdr->segmentation;
+  int i;
+  if (!info->enabled)
+    return;
+  if (info->update_map) {
+    ASSERT(sizeof(parser->mb_segment_tree_probs) == sizeof(info->tree_probs));
+    ASSERT(sizeof(parser->segment_pred_probs) == sizeof(info->pred_probs));
+    memcpy(parser->mb_segment_tree_probs, info->tree_probs, sizeof(info->tree_probs));
+    memcpy(parser->segment_pred_probs, info->pred_probs, sizeof(info->pred_probs));
+  }
+  if (info->update_data) {
+    Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
+    priv->segmentation_abs_delta = info->abs_delta;
+    ASSERT(sizeof(priv->segmentation) == sizeof(info->data));
+    memcpy(priv->segmentation, info->data, sizeof(info->data));
+  }
+}
+
 static void segmentation_update(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr)
 {
   int i = 0;
   Vp9ParserPrivate* priv = parser->priv;
-  int default_filter = frame_hdr->filter_level;
+  int default_filter = frame_hdr->loopfilter.filter_level;
   const int scale = 1 << (default_filter >> 5);
+  segmentation_save(parser, frame_hdr);
   for (i = 0; i < VP9_MAX_SEGMENTS; i++) {
-    uint8_t q = seg_get_base_qindex(frame_hdr->base_qindex, frame_hdr, i);
-    uint8_t filter = seg_get_filter_level(default_filter, frame_hdr, i);
+    uint8_t q = seg_get_base_qindex(parser, frame_hdr, i);
+    uint8_t filter = seg_get_filter_level(parser, frame_hdr, i);
     Vp9Segmentation* seg = parser->segmentation+i;
+    Vp9SegmentationInfoData* info = priv->segmentation + i;
+
     seg->luma_dc_quant_scale = priv->y_dequant[q][0];
     seg->luma_ac_quant_scale = priv->y_dequant[q][1];
     seg->chroma_dc_quant_scale = priv->uv_dequant[q][0];
     seg->chroma_ac_quant_scale = priv->uv_dequant[q][1];
 
-    if (!frame_hdr->mode_ref_delta_enabled) {
+    if (!frame_hdr->loopfilter.mode_ref_delta_enabled) {
       memset(seg->filter_level, filter, sizeof(seg->filter_level));
     } else {
       int ref, mode;
@@ -515,9 +555,10 @@ static void segmentation_update(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr
       }
 
     }
-
+    seg->reference_frame_enabled = info->reference_frame_enabled;;
+    seg->reference_frame = info->reference_frame;
+    seg->reference_skip = info->reference_skip;
   }
-
 }
 
 static void reference_update(Vp9Parser* parser, const Vp9FrameHdr* const frame_hdr)
@@ -541,15 +582,6 @@ static void reference_update(Vp9Parser* parser, const Vp9FrameHdr* const frame_h
   }
 }
 
-static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, const Vp9FrameHdr* const frame_hdr)
-{
-  loop_filter_update(parser, frame_hdr);
-  quantization_update(parser, frame_hdr);
-  segmentation_update(parser, frame_hdr);
-  reference_update(parser, frame_hdr);
-  return VP9_PARSER_OK;
-}
-
 static inline  int frame_is_intra_only(const Vp9FrameHdr * frame_hdr)
 {
   return frame_hdr->frame_type == VP9_KEY_FRAME || frame_hdr->intra_only;
@@ -570,6 +602,21 @@ static void set_default_lf_deltas(Vp9Parser* parser)
 static void setup_past_independence(Vp9Parser* parser)
 {
   set_default_lf_deltas(parser);
+}
+
+static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, const Vp9FrameHdr* const frame_hdr)
+{
+  if (frame_hdr->frame_type == VP9_KEY_FRAME) {
+    init_vp9_parser(parser);
+  }
+  if (frame_is_intra_only(frame_hdr) || frame_hdr->error_resilient_mode) {
+    setup_past_independence(parser);
+  }
+  loop_filter_update(parser, &frame_hdr->loopfilter);
+  quantization_update(parser, frame_hdr);
+  segmentation_update(parser, frame_hdr);
+  reference_update(parser, frame_hdr);
+  return VP9_PARSER_OK;
 }
 
 Vp9ParseResult
@@ -647,11 +694,9 @@ vp9_parse_frame_header (Vp9Parser* parser, Vp9FrameHdr * frame_hdr, const uint8_
     frame_hdr->frame_parallel_decoding_mode = TRUE;
   }
   frame_hdr->frame_context_idx = vp9_read_bits(br, FRAME_CONTEXTS_BITS);
-  if (frame_is_intra_only(frame_hdr) || frame_hdr->error_resilient_mode)
-    setup_past_independence(parser);
-  read_loopfilter(frame_hdr, br);
+  read_loopfilter(&frame_hdr->loopfilter, br);
   read_quantization(frame_hdr, br);
-  read_segmentation(frame_hdr, br);
+  read_segmentation(&frame_hdr->segmentation, br);
   if (!read_tile_info(frame_hdr, br))
     goto error;
   frame_hdr->first_partition_size = vp9_read_bits(br, 16);
