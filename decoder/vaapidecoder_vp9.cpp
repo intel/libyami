@@ -106,6 +106,13 @@ Decode_Status VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
         if (status != DECODE_SUCCESS)
             return status;
         return DECODE_FORMAT_CHANGE;
+    } else if (m_videoFormatInfo.width != hdr->width
+        || m_videoFormatInfo.height != hdr->height) {
+        // notify client of resolution change, no need to reset hw context
+            INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d\n", m_videoFormatInfo.width, m_videoFormatInfo.height, hdr->width, hdr->height);
+            m_videoFormatInfo.width = hdr->width;
+            m_videoFormatInfo.height = hdr->height;
+            return DECODE_FORMAT_CHANGE;
     }
     return DECODE_SUCCESS;
 
