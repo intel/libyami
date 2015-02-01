@@ -525,35 +525,41 @@ static void segmentation_save(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr)
 static void segmentation_update(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr)
 {
   int i = 0;
-  Vp9ParserPrivate* priv = parser->priv;
-  int default_filter = frame_hdr->loopfilter.filter_level;
+  const Vp9ParserPrivate* priv = parser->priv;
+  const Vp9LoopFilter* lf = &frame_hdr->loopfilter;
+  int default_filter = lf->filter_level;
   const int scale = 1 << (default_filter >> 5);
+
   segmentation_save(parser, frame_hdr);
+
   for (i = 0; i < VP9_MAX_SEGMENTS; i++) {
     uint8_t q = seg_get_base_qindex(parser, frame_hdr, i);
-    uint8_t filter = seg_get_filter_level(parser, frame_hdr, i);
+
     Vp9Segmentation* seg = parser->segmentation+i;
-    Vp9SegmentationInfoData* info = priv->segmentation + i;
+    const Vp9SegmentationInfoData* info = priv->segmentation + i;
 
     seg->luma_dc_quant_scale = priv->y_dequant[q][0];
     seg->luma_ac_quant_scale = priv->y_dequant[q][1];
     seg->chroma_dc_quant_scale = priv->uv_dequant[q][0];
     seg->chroma_ac_quant_scale = priv->uv_dequant[q][1];
 
-    if (!frame_hdr->loopfilter.mode_ref_delta_enabled) {
-      memset(seg->filter_level, filter, sizeof(seg->filter_level));
-    } else {
-      int ref, mode;
-      const int intra_filter = filter + priv->ref_deltas[VP9_INTRA_FRAME] * scale;
-      seg->filter_level[VP9_INTRA_FRAME][0] = clamp(intra_filter, 0, MAX_LOOP_FILTER);
-      for (ref = VP9_LAST_FRAME; ref < VP9_MAX_REF_FRAMES; ++ref) {
-        for (mode = 0; mode < VP9_MAX_MODE_LF_DELTAS; ++mode) {
-          const int inter_filter = filter + priv->ref_deltas[ref] * scale
-                               + priv->mode_deltas[mode] * scale;
-          seg->filter_level[ref][mode] = clamp(inter_filter, 0, MAX_LOOP_FILTER);
+    if (lf->filter_level) {
+      uint8_t filter = seg_get_filter_level(parser, frame_hdr, i);
+
+      if (!lf->mode_ref_delta_enabled) {
+        memset(seg->filter_level, filter, sizeof(seg->filter_level));
+      } else {
+        int ref, mode;
+        const int intra_filter = filter + priv->ref_deltas[VP9_INTRA_FRAME] * scale;
+        seg->filter_level[VP9_INTRA_FRAME][0] = clamp(intra_filter, 0, MAX_LOOP_FILTER);
+        for (ref = VP9_LAST_FRAME; ref < VP9_MAX_REF_FRAMES; ++ref) {
+          for (mode = 0; mode < VP9_MAX_MODE_LF_DELTAS; ++mode) {
+            const int inter_filter = filter + priv->ref_deltas[ref] * scale
+                                 + priv->mode_deltas[mode] * scale;
+            seg->filter_level[ref][mode] = clamp(inter_filter, 0, MAX_LOOP_FILTER);
+          }
         }
       }
-
     }
     seg->reference_frame_enabled = info->reference_frame_enabled;;
     seg->reference_frame = info->reference_frame;
