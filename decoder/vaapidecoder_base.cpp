@@ -423,8 +423,6 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
     DEBUG("surface pool is reset");
     m_context.reset();
     m_display.reset();
-    m_externalDisplay.type = NATIVE_DISPLAY_AUTO;
-    m_externalDisplay.handle = 0;
 
     m_VAStarted = false;
     return DECODE_SUCCESS;
