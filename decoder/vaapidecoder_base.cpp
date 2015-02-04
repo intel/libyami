@@ -327,6 +327,7 @@ Decode_Status
     VaapiSurface *suf;
     Decode_Status status;
     VAStatus vaStatus = VA_STATUS_SUCCESS;
+    const char* driver_name = NULL;
 
     if (m_enableNativeBuffersFlag == true) {
         numSurface = 20;        //NATIVE_WINDOW_COUNT;
@@ -342,10 +343,22 @@ Decode_Status
     }
 
 #if __PLATFORM_BYT__
+    driver_name = "wrapper";
     if (setenv("LIBVA_DRIVER_NAME", "wrapper", 1) == 0) {
         INFO("setting LIBVA_DRIVER_NAME to wrapper for chromeos");
     }
 #endif
+
+    if (profile == VAProfileVP9Version0) {
+       driver_name = "hybrid";
+       if (setenv("LIBVA_DRIVER_NAME", "hybrid", 1) == 0) {
+           INFO("setting LIBVA_DRIVER_NAME to hybrid for VP9 profile");
+       }
+    }
+    else {
+           INFO("profile: %d, will use legacy i965 driver", profile);
+    }
+
     m_display = VaapiDisplay::create(m_externalDisplay);
 
     if (!m_display) {
@@ -392,6 +405,11 @@ Decode_Status
     if (!(m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER)) {
         m_videoFormatInfo.surfaceWidth = m_videoFormatInfo.width;
         m_videoFormatInfo.surfaceHeight = m_videoFormatInfo.height;
+    }
+
+    // unset the env variable here
+    if (driver_name) {
+       unsetenv("LIBVA_DRIVER_NAME");
     }
 
     m_VAStarted = true;
