@@ -100,8 +100,8 @@ Decode_Status VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
             return status;
         m_configBuffer.width = hdr->width;
         m_configBuffer.height = hdr->height;
-        m_configBuffer.surfaceWidth = hdr->width;
-        m_configBuffer.surfaceHeight = hdr->height;
+        m_configBuffer.surfaceWidth = ALIGN8(hdr->width);
+        m_configBuffer.surfaceHeight = ALIGN32(hdr->height);
         status = VaapiDecoderBase::start(&m_configBuffer);
         if (status != DECODE_SUCCESS)
             return status;

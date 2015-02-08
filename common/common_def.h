@@ -38,6 +38,22 @@ Boston, MA 02110-1301 USA */
 #define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
 #endif
 
+#ifndef ALIGN_POW2
+#define ALIGN_POW2(a, b) ((a + (b - 1)) & ~(b - 1))
+#endif
+
+#ifndef ALIGN8
+#define ALIGN8(a) ALIGN_POW2(a, 8)
+#endif
+
+#ifndef ALIGN16
+#define ALIGN16(a) ALIGN_POW2(a, 16)
+#endif
+
+#ifndef ALIGN32
+#define ALIGN32(a) ALIGN_POW2(a, 32)
+#endif
+
 #ifndef RETURN_IF_FAIL
 #define RETURN_IF_FAIL(condition) \
 do{ \
