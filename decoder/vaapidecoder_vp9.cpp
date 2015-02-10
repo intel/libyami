@@ -37,6 +37,7 @@ VaapiDecoderVP9::VaapiDecoderVP9()
 {
     m_parser.reset(vp9_parser_new(), vp9_parser_free);
     m_reference.resize(VP9_REF_FRAMES);
+    m_hasContext = false;
 }
 
 VaapiDecoderVP9::~VaapiDecoderVP9()
@@ -90,23 +91,50 @@ void VaapiDecoderVP9::flush(void)
 
 Decode_Status VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
 {
+    bool resetContext = false;
+    Decode_Status status = DECODE_SUCCESS;
+    DEBUG("got frame size: %d x %d", hdr->width, hdr->height);
+
     // only reset va context when there is a larger frame
     if (m_configBuffer.width < hdr->width
         || m_configBuffer.height <  hdr->height) {
+        resetContext = true;
         INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d",
                 m_configBuffer.width, m_configBuffer.height, hdr->width, hdr->height);
-        Decode_Status status = VaapiDecoderBase::terminateVA();
+        
+        if (m_hasContext){
+            status = VaapiDecoderBase::terminateVA();
+        }
+        m_hasContext = false;
         if (status != DECODE_SUCCESS)
             return status;
         m_configBuffer.width = hdr->width;
         m_configBuffer.height = hdr->height;
         m_configBuffer.surfaceWidth = hdr->width;
         m_configBuffer.surfaceHeight = hdr->height;
+        DEBUG("USE_NATIVE_GRAPHIC_BUFFER: %d",
+              m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER);
+        if (m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER) {
+            m_configBuffer.graphicBufferWidth = m_configBuffer.width;
+            m_configBuffer.graphicBufferHeight = m_configBuffer.height;
+        }
+
         status = VaapiDecoderBase::start(&m_configBuffer);
         if (status != DECODE_SUCCESS)
             return status;
+     } else if (m_videoFormatInfo.width != hdr->width
+        || m_videoFormatInfo.height != hdr->height) {
+        // notify client of resolution change, no need to reset hw context
+            INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d\n", m_videoFormatInfo.width, m_videoFormatInfo.height, hdr->width, hdr->height);
+            m_videoFormatInfo.width = hdr->width;
+            m_videoFormatInfo.height = hdr->height;
+            return DECODE_FORMAT_CHANGE;
+     }
+    m_hasContext = true;
+
+    if (resetContext)
         return DECODE_FORMAT_CHANGE;
-    }
+
     return DECODE_SUCCESS;
 
 }

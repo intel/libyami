@@ -54,7 +54,7 @@ class VaapiDecoderVP9:public VaapiDecoderBase {
     //reference related
     bool fillReference(VADecPictureParameterBufferVP9* , const Vp9FrameHdr*);
     void updateReference(const PicturePtr&, const Vp9FrameHdr*);
-
+    uint32_t m_hasContext:1;
     typedef std::tr1::shared_ptr<Vp9Parser> ParserPtr;
     ParserPtr m_parser;
     std::vector<SurfacePtr> m_reference;
