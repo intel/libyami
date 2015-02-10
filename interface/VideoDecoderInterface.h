@@ -113,7 +113,7 @@ public:
     * however, this API is still useful when we export video frame directly for EGLImage (dma_buf).
     * </pre>
     */
-    virtual void renderDone(VideoRenderBuffer* buffer) = 0;
+    virtual void renderDone(const VideoRenderBuffer* buffer) = 0;
 
     /** \brief client recycles video frame (retrieve by getOutput) back to libyami after the buffer has been rendered.
     */

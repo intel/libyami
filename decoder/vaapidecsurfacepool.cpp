@@ -341,7 +341,7 @@ void VaapiDecSurfacePool::recycle(VASurfaceID id, SurfaceState flag)
     recycleLocked(id,flag);
 }
 
-void VaapiDecSurfacePool::recycle(VideoRenderBuffer * renderBuf)
+void VaapiDecSurfacePool::recycle(const VideoRenderBuffer * renderBuf)
 {
     if (renderBuf < &m_renderBuffers[0]
         || renderBuf >= &m_renderBuffers[m_renderBuffers.size()]) {

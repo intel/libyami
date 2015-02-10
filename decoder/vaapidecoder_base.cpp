@@ -277,7 +277,7 @@ Decode_Status VaapiDecoderBase::populateOutputHandles(VideoFrameRawData *frames,
     return RENDER_SUCCESS;
 }
 
-void VaapiDecoderBase::renderDone(VideoRenderBuffer * renderBuf)
+void VaapiDecoderBase::renderDone(const VideoRenderBuffer * renderBuf)
 {
     INFO("base: renderDone()");
     if (!m_surfacePool) {

@@ -72,7 +72,7 @@ public:
     bool getOutput(VideoFrameRawData* frame);
     bool populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount);
     /// recycle to surface pool
-    void recycle(VideoRenderBuffer * renderBuf);
+    void recycle(const VideoRenderBuffer * renderBuf);
     /// recycle exported video frame to surface/image pool
     void recycle(VideoFrameRawData* frame);
 
