@@ -71,7 +71,7 @@ PicturePtr VaapiDecoderBase::createPicture(int64_t timeStamp /* , VaapiPictureSt
     /*accquire one surface from m_surfacePool in base decoder  */
     SurfacePtr surface = createSurface();
     if (!surface) {
-        ERROR("create surface failed");
+        DEBUG("create surface failed");
         return picture;
     }
 
