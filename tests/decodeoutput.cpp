@@ -24,9 +24,10 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
-
+#include <sys/stat.h>
+#include <errno.h>
 #include "decodeoutput.h"
-
+#include <iostream>
 #include "common/log.h"
 #include "common/utils.h"
 #include <assert.h>
@@ -72,8 +73,7 @@ Decode_Status DecodeOutputNull::renderOneFrame(bool drain)
     m_frame.fourcc = 0;
 
     Decode_Status status = m_decoder->getOutput(&m_frame, drain);
-    if (status == RENDER_SUCCESS)
-        vaSyncSurface((void*)(m_frame.handle), m_frame.internalID);
+    vaSyncSurface((void*)(m_frame.handle), m_frame.internalID);
     return status;
 }
 
@@ -206,10 +206,18 @@ bool DecodeOutputFileDump::config(const char* dir, const char* source, const cha
         if (s)
             baseFileName = s+1;
         assert(dir);
-        m_name<<dir<<"/"<<baseFileName;
-        m_appendSize = true;
+        struct stat buf;
+        int r = stat(dir, &buf);
+        if (r == 0 && buf.st_mode & S_IFDIR){
+            m_name << dir << "/" << baseFileName;
+            m_appendSize = true;
+        }
+        else{
+            m_name << dir;
+            m_appendSize = false;
+        }
     } else {
-        m_name<<dest;
+        m_name << dest;
         m_appendSize = false;
     }
     return true;
@@ -239,7 +247,7 @@ bool DecodeOutputFileDump::render(VideoFrameRawData* frame)
     if (!m_fp)
         return false;
 
-    //ASSERT(m_width == frame->width && m_height == frame->height);
+    ASSERT(m_width == frame->width && m_height == frame->height);
     if (!getPlaneResolution(frame->fourcc, frame->width, frame->height, width, height, planes))
         return false;
     for (int i = 0; i < planes; i++) {
