@@ -55,6 +55,7 @@ class V4l2Decoder : public V4l2CodecBase
     virtual bool outputPulse(int32_t &index);
     virtual bool recycleOutputBuffer(int32_t index);
     virtual void releaseCodecLock(bool lockable);
+    virtual void flush();
 
   private:
 #if !__ENABLE_V4L2_GLX__

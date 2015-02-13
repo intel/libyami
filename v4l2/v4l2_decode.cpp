@@ -444,6 +444,12 @@ void* V4l2Decoder::mmap (void* addr, size_t length,
     }
 }
 
+void V4l2Decoder::flush()
+{
+    if (m_decoder)
+        m_decoder->flush();
+}
+
 #if __ENABLE_V4L2_GLX__
 int32_t V4l2Decoder::usePixmap(int bufferIndex, Pixmap pixmap)
 {

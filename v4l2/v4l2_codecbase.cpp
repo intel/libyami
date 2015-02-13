@@ -228,6 +228,8 @@ void V4l2CodecBase::workerThread()
             for (i=0; i<m_maxBufferCount[OUTPUT]; i++)
                 recycleOutputBuffer(i);
             DEBUG("recycle all output buffer to make sure internal surface/image are released");
+        } else {
+            flush();
         }
         DEBUG("%s worker thread exit", THREAD_NAME(thread));
     }
