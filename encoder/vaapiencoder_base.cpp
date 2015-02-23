@@ -197,7 +197,7 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PT
         break;
     case VideoConfigTypeBitRate: {
         VideoConfigBitRate* rcParamsConfig = (VideoConfigBitRate*)videoEncParams;
-        if (rcParamsConfig->size == sizeof(VideoConfigFrameRate)) {
+        if (rcParamsConfig->size == sizeof(VideoConfigBitRate)) {
             m_videoParamCommon.rcParams = rcParamsConfig->rcParams;
         } else
             ret = ENCODE_INVALID_PARAMS;
