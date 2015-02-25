@@ -51,6 +51,7 @@ int32_t YamiV4L2_UsePixmap(int fd, int bufferIndex, Pixmap pixmap);
 int32_t YamiV4L2_Stop(int32_t fd);
 #else
 int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int buffer_index, void* egl_image);
+int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd);
 #endif
 } // extern "C"
 #endif
