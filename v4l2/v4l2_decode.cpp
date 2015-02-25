@@ -94,7 +94,7 @@ bool V4l2Decoder::start()
     nativeDisplay.handle = (intptr_t)m_x11Display;
 #else
     nativeDisplay.type = NATIVE_DISPLAY_DRM;
-    nativeDisplay.handle = 0;
+    nativeDisplay.handle = m_drmfd;
 #endif
     m_decoder->setNativeDisplay(&nativeDisplay);
     status = m_decoder->start(&m_configBuffer);

@@ -69,6 +69,8 @@ class V4l2CodecBase {
     virtual int32_t usePixmap(int bufferIndex, Pixmap pixmap) {return 0;};
 #else
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
+    bool setDrmFd(int drm_fd) {m_drmfd = drm_fd; };
+
 #endif
     void workerThread();
     int32_t fd() { return m_fd[0];};
@@ -96,6 +98,8 @@ class V4l2CodecBase {
     bool m_started;
 #if __ENABLE_V4L2_GLX__
     Display *m_x11Display;
+#else
+    int m_drmfd;
 #endif
 
     enum EosState{

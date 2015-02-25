@@ -194,4 +194,15 @@ int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContex
     ASSERT(v4l2Codec);
     return v4l2Codec->useEglImage(eglDisplay, eglContext, bufferIndex, eglImage);
 }
+
+int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd)
+{
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+     bool ret = true;
+
+     ASSERT(v4l2Codec);
+     ret &= v4l2Codec->setDrmFd(drm_fd);
+
+     return ret;
+}
 #endif
