@@ -180,8 +180,7 @@ bool V4l2Decoder::outputPulse(int32_t &index)
 
         if (eosState() > EosStateNormal) {
             DEBUG("seek/EOS flush, return empty buffer");
-            m_outputRawFrames[index].timeStamp = -2;
-            return true;
+            return false;
         }
     }
 
