@@ -72,7 +72,7 @@ V4l2Decoder::V4l2Decoder()
     m_maxBufferSize[OUTPUT] = 0;
     m_bufferSpace[OUTPUT] = NULL;
 
-    m_memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
+    m_memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
 }
 
 void V4l2Decoder::releaseCodecLock(bool lockable)
