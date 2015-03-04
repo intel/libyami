@@ -382,6 +382,15 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         ctrl->value = 0; // no need report dpb size, we hold all buffers in decoder.
     }
     break;
+    case VIDIOC_ENUM_FMT: {
+        struct v4l2_fmtdesc *fmtdesc = static_cast<struct v4l2_fmtdesc *>(arg);
+        if ((fmtdesc->index == 0) && (fmtdesc->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)) {
+            fmtdesc->pixelformat = V4L2_PIX_FMT_NV12M;
+        } else {
+            ret = -1;
+        }
+    }
+    break;
     default:
         ret = -1;
         ERROR("unknown ioctrl command: %d", command);
