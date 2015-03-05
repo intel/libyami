@@ -44,7 +44,7 @@ extern "C" {
 #ifndef VA_FOURCC_I420
 #define VA_FOURCC_I420 VA_FOURCC('I','4','2','0')
 #endif
-char *dumpOutputDir = NULL;
+char *dumpOutputName = NULL;
 uint32_t dumpFourcc = VA_FOURCC_I420;
 char *inputFileName = NULL;
 int renderMode = 1;
@@ -98,7 +98,7 @@ static bool process_cmdline(int argc, char *argv[])
             break;
         case 'o':
             if (optarg)
-                dumpOutputDir = strdup(optarg);
+                dumpOutputName = strdup(optarg);
             break;
         default:
             print_help(argv[0]);
@@ -111,8 +111,8 @@ static bool process_cmdline(int argc, char *argv[])
     }
     fprintf(stderr, "input file: %s, renderMode: %d\n", inputFileName, renderMode);
 
-    if (!dumpOutputDir)
-        dumpOutputDir = strdup ("./");
+    if (!dumpOutputName)
+        dumpOutputName = strdup ("./");
 
     return true;
 }
