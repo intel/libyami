@@ -111,8 +111,8 @@ int main(int argc, char** argv)
         releaseDecodeInput(input);
     if (output)
         releaseDecodeOutput(output);
-    if (dumpOutputDir)
-        free(dumpOutputDir);
+    if (dumpOutputName)
+        free(dumpOutputName);
 
 
     fprintf(stderr, "decode done\n");

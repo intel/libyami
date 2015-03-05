@@ -26,9 +26,9 @@
 #endif
 
 #include "decodeoutput.h"
-
 #include "common/log.h"
 #include "common/utils.h"
+#include <sys/stat.h>
 #include <assert.h>
 #include <va/va.h>
 #ifdef __ENABLE_X11__
@@ -195,18 +195,20 @@ DecodeOutputRaw::~DecodeOutputRaw()
     delete m_convert;
 }
 
-bool DecodeOutputFileDump::config(const char* dir, const char* source, const char* dest, uint32_t fourcc)
+bool DecodeOutputFileDump::config(const char* source, const char* dest, uint32_t fourcc)
 {
     if (!fourcc && dest)
         fourcc == guessFourcc(dest);
     setFourcc(fourcc);
-    if (!dest) {
-        const char* baseFileName = source;
-        const char *s = strrchr(source, '/');
-        if (s)
-            baseFileName = s+1;
-        assert(dir);
-        m_name<<dir<<"/"<<baseFileName;
+    const char* baseFileName = source;
+    const char* s = strrchr(source, '/');
+    if (s)
+        baseFileName = s + 1;
+    assert(dest);
+    struct stat buf;
+    int r = stat(dest, &buf);
+    if (r == 0 && buf.st_mode & S_IFDIR) {
+        m_name<<dest<<"/"<<baseFileName;
         m_appendSize = true;
     } else {
         m_name<<dest;
@@ -550,7 +552,7 @@ bool renderOutputFrames(DecodeOutput* output, bool drain)
 }
 
 
-extern char *dumpOutputDir;
+extern char *dumpOutputName;
 extern uint32_t dumpFourcc;
 extern char *inputFileName;
 bool configDecodeOutput(DecodeOutput* output)
@@ -558,7 +560,7 @@ bool configDecodeOutput(DecodeOutput* output)
     bool ret = true;
     DecodeOutputFileDump* dump = dynamic_cast<DecodeOutputFileDump*>(output);
     if (dump) {
-        ret = dump->config(dumpOutputDir, inputFileName, NULL, dumpFourcc);
+        ret = dump->config(inputFileName, dumpOutputName, dumpFourcc);
     }
     return ret;
 }

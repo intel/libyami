@@ -91,7 +91,7 @@ class DecodeOutputFileDump : public DecodeOutputRaw
 {
 friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
-    bool config(const char* dir, const char* source, const char* dest, uint32_t fourcc);
+    bool config(const char* source, const char* dest, uint32_t fourcc);
     virtual bool setVideoSize(int width, int height);
     ~DecodeOutputFileDump();
 

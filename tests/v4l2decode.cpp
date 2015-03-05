@@ -145,7 +145,7 @@ bool dumpOneVideoFrame(int32_t index)
         if (s)
             baseFileName = s+1;
         // V4L2 reports fourcc as NM12 (planar NV12), use hard code here
-        sprintf(outFileName, "%s/%s_%dx%d.NV12", dumpOutputDir, baseFileName, rawOutputFrames[index].width, rawOutputFrames[index].height);
+        sprintf(outFileName, "%s/%s_%dx%d.NV12", dumpOutputName, baseFileName, rawOutputFrames[index].width, rawOutputFrames[index].height);
         DEBUG("outFileName: %s", outFileName);
         outfp = fopen(outFileName, "w+");
     }
@@ -289,8 +289,8 @@ int main(int argc, char** argv)
     }
     INFO("input file: %s, renderMode: %d", inputFileName, renderMode);
 
-    if (!dumpOutputDir)
-        dumpOutputDir = strdup ("./");
+    if (!dumpOutputName)
+        dumpOutputName = strdup ("./");
 
 #if !__ENABLE_V4L2_GLX__
     switch (renderMode) {
@@ -624,8 +624,8 @@ int main(int argc, char** argv)
     if (outfp)
         fclose(outfp);
 
-    if (dumpOutputDir)
-        free(dumpOutputDir);
+    if (dumpOutputName)
+        free(dumpOutputName);
 
     if (x11Display && x11Window)
         XDestroyWindow(x11Display, x11Window);
