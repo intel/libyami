@@ -50,11 +50,7 @@ V4l2Decoder::V4l2Decoder()
     m_bufferPlaneCount[OUTPUT] = 2;
 
     m_maxBufferCount[INPUT] = 8;
-#if __ENABLE_V4L2_GLX__
-    m_maxBufferCount[OUTPUT] = 8; // Pixmap is alloc at client side, in order to save memory we have to tell them the reality. [it requires chrome change as well]
-#else
-    m_maxBufferCount[OUTPUT] = 26; // use a bigger # to satify chrome, the effective count is m_actualOutBufferCount
-#endif
+    m_maxBufferCount[OUTPUT] = 8;
     m_actualOutBufferCount = m_maxBufferCount[OUTPUT];
 
     m_inputFrames.resize(m_maxBufferCount[INPUT]);

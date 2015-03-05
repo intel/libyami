@@ -134,6 +134,9 @@ bool V4l2CodecBase::close()
         timeOut--;
     }
 
+    for (int i=0; i<m_maxBufferCount[OUTPUT]; i++)
+        recycleOutputBuffer(i);
+
     ASSERT(!m_threadOn[INPUT]);
     ASSERT(!m_threadOn[OUTPUT]);
     ret = stop();
@@ -225,12 +228,7 @@ void V4l2CodecBase::workerThread()
         AutoLock locker(m_frameLock[thread]);
         m_framesTodo[thread].clear();
         m_framesDone[thread].clear();
-        if (thread == OUTPUT) {
-            int i;
-            for (i=0; i<m_maxBufferCount[OUTPUT]; i++)
-                recycleOutputBuffer(i);
-            DEBUG("recycle all output buffer to make sure internal surface/image are released");
-        } else {
+        if (thread == INPUT) {
             flush();
         }
         DEBUG("%s worker thread exit", THREAD_NAME(thread));
