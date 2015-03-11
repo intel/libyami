@@ -1,7 +1,17 @@
-libyami NEWS -- summary of changes.  2014-01-18
+libyami NEWS -- summary of changes.  2015-03-11
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2015 Intel Corporation
+
+libyami 0.2.2 release
+=====================
+
+features update
+---------------
++fix one include issue in capi header
++3 fixes for vp9 decoder and parser
++use cabac as default entropy mode for h264 encoder
++fix servral issues when we use v4l2 decoder in gles mode
 
 libyami 0.2.1 release
 =====================
