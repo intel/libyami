@@ -387,6 +387,21 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         }
     }
     break;
+    case VIDIOC_G_CROP: {
+        struct v4l2_crop* crop= static_cast<struct v4l2_crop *>(arg);
+        ASSERT(crop->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+        ASSERT(m_decoder);
+        const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
+        if (outFormat && outFormat->width && outFormat->height) {
+            crop->c.left =  0;
+            crop->c.top  =  0;
+            crop->c.width  = outFormat->width;
+            crop->c.height = outFormat->height;
+        } else {
+            ret = -1;
+        }
+    }
+    break;
     default:
         ret = -1;
         ERROR("unknown ioctrl command: %d", command);
