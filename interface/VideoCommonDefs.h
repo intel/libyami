@@ -26,6 +26,16 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
+#include <tr1/memory>
+namespace YamiMediaCodec{
+//use tr1's shared_ptr until we implemented ours.
+#define SharedPtr std::tr1::shared_ptr
+#define EnableSharedFromThis std::tr1::enable_shared_from_this
+#define SharedFromThis shared_from_this
+};
+#endif
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -48,6 +58,7 @@ typedef enum {
     NATIVE_DISPLAY_X11,
     NATIVE_DISPLAY_DRM,
     NATIVE_DISPLAY_WAYLAND,
+    NATIVE_DISPLAY_VA,      /* client need init va*/
 } YamiNativeDisplayType;
 
 typedef struct NativeDisplay{
@@ -80,11 +91,61 @@ typedef struct VideoFrameRawData{
 
 #define VIDEO_FRAME_FLAGS_KEY 1
 
+typedef enum {
+    YAMI_SUCCESS = 0,
+    /* need more input to get output frame*/
+    YAMI_MORE_DATA,
+
+    YAMI_FATAL_ERROR = 128,
+    YAMI_FAIL,
+    YAMI_NO_CONFIG,
+    YAMI_DRIVER_FAIL,
+} YamiStatus;
+
+typedef struct VideoRect
+{
+    int32_t  x;
+    int32_t  y;
+    uint32_t width;
+    uint32_t height;
+} VideoRect;
+
+/**
+ * slim version of VideoFrameRawData, only useful information here
+ * hope we can use this for decode, encode and vpp in final.
+ */
+typedef struct VideoFrame {
+    /**
+     * generic id for video surface,
+     * for libva it's VASurfaceID
+     */
+    intptr_t    surface;
+
+    int64_t     timeStamp;
+
+    VideoRect   crop;
+
+    /**
+     * VIDEO_FRAME_FLAGS_XXX
+     */
+    uint32_t    flags;
+
+#ifdef __ENABLE_CAPI__
+    /**
+     * for frame destory, cpp should not touch here
+     */
+    intptr_t    user_data;
+    void        (*free)(struct VideoFrame* );
+#endif
+} VideoFrame;
+
+
 #define YAMI_MIME_H264 "video/h264"
 #define YAMI_MIME_AVC  "video/avc"
 #define YAMI_MIME_VP8  "video/x-vnd.on2.vp8"
 #define YAMI_MIME_VP9  "video/x-vnd.on2.vp9"
 #define YAMI_MIME_JPEG "image/jpeg"
+#define YAMI_VPP_SCALER "vpp/scaler"
 
 
 #ifdef __cplusplus
