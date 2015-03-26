@@ -183,7 +183,7 @@ bool VaapiDecSurfacePool::exportFrame(ImagePtr image, VideoFrameRawData &frame, 
         return false;
 
     VideoDataMemoryType memoryType = frame.memoryType;
-    ImageRawPtr rawImage = image->map(memoryType);
+    ImageRawPtr rawImage = mapVaapiImage(image, memoryType);
 
     if (!rawImage)
         return false;

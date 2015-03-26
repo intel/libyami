@@ -270,7 +270,7 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
         ERROR("VaapiImage::derive() failed");
         return nil;
     }
-    ImageRawPtr raw = image->map();
+    ImageRawPtr raw = mapVaapiImage(image);
     if (!raw) {
         ERROR("image->map() failed");
         return nil;

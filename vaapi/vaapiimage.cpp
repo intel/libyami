@@ -264,9 +264,9 @@ VaapiImage::~VaapiImage()
         return;
 }
 
-ImageRawPtr VaapiImage::map(VideoDataMemoryType memoryType)
+ImageRawPtr mapVaapiImage(ImagePtr img, VideoDataMemoryType memoryType)
 {
-    ImageRawPtr raw = m_rawImage.lock();
+    ImageRawPtr raw = img->m_rawImage.lock();
     if (raw) {
         if (raw->getMemoryType() != memoryType) {
             ERROR("map image to different memory type, wanted %d, mapped = %d", memoryType, raw->getMemoryType());
@@ -274,8 +274,8 @@ ImageRawPtr VaapiImage::map(VideoDataMemoryType memoryType)
         }
         return raw;
     }
-    raw = VaapiImageRaw::create(m_display, shared_from_this(), memoryType);
-    m_rawImage = raw;
+    raw = VaapiImageRaw::create(img->m_display, img, memoryType);
+    img->m_rawImage = raw;
     return raw;
 }
 

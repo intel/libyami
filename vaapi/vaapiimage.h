@@ -37,7 +37,7 @@
 
 namespace YamiMediaCodec{
 
-class VaapiImage : public std::tr1::enable_shared_from_this<VaapiImage>
+class VaapiImage
 {
   private:
     typedef std::tr1::shared_ptr<VAImage> VAImagePtr;
@@ -54,7 +54,7 @@ class VaapiImage : public std::tr1::enable_shared_from_this<VaapiImage>
     uint32_t getWidth();
     uint32_t getHeight();
 
-    ImageRawPtr map(VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY);
+    friend ImageRawPtr mapVaapiImage(ImagePtr, VideoDataMemoryType memoryType);
 
   private:
     VaapiImage(const DisplayPtr& display, const VAImagePtr& image);
@@ -68,6 +68,13 @@ class VaapiImage : public std::tr1::enable_shared_from_this<VaapiImage>
     ImageRawWeakPtr m_rawImage;
     DISALLOW_COPY_AND_ASSIGN(VaapiImage);
 };
+
+//wired thing happend when we do two things together
+// 1. make VaapiImage public shared_from_this (if you make map as VaapiImage's member, you do this)
+// 2. alloc and set ImagePtr's deleter in VaapiImagePool. We also add ImagePoolPtr as Image's member.
+// it will call deleter's operator(), but the deleter will never out of scope. So ImagePoolPtr will never get chance to be del.
+// make map a standalone function can break 1.
+ImageRawPtr mapVaapiImage(ImagePtr, VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY);
 
 /* Raw image to store mapped image*/
 class VaapiImageRaw {
