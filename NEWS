@@ -1,7 +1,12 @@
-libyami NEWS -- summary of changes.  2015-03-11
+libyami NEWS -- summary of changes.  2015-03-27
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2015 Intel Corporation
+
+libyami 0.2.3 release
+=====================
++add VIDIOC_G_CROP to io ctrl
++fix one ImagePtr leak issue, since ImagePtr hold DisplayPtr, it also leak VaapiDisplay
 
 libyami 0.2.2 release
 =====================
