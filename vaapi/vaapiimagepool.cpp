@@ -69,6 +69,7 @@ struct VaapiImagePool::ImageRecycler
         if (!image)
             return;
         m_pool->recycleID(image->getID());
+        m_pool.reset();
     }
 private:
     ImagePoolPtr m_pool;
