@@ -249,7 +249,10 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
             return false;
 
         image = m_imagePool->acquireWithWait();
-        ASSERT(image);
+        if (!image) {
+            DEBUG("No image available");
+            return false;
+        }
         if (!surface->getImage(image)) {
             ASSERT(0);
             return false;
