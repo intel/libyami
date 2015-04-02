@@ -48,6 +48,9 @@ class IVideoEncoder {
     virtual Encode_Status encode(VideoEncRawBuffer * inBuffer) = 0;
     /// continue encoding with new data in @param[in] frame
     virtual Encode_Status encode(VideoFrameRawData* frame) = 0;
+    /// continue encoding with new data in @param[in] frame
+    /// we will hold a reference of @param[in]frame, until it's encode done
+    virtual Encode_Status encode(const SharedPtr<VideoFrame>& frame) = 0;
     /**
      * \brief return one frame encoded data to client;
      * when withWait is false, ENCODE_BUFFER_NO_MORE will be returned if there is no available frame. \n
