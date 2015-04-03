@@ -67,7 +67,6 @@ class VaapiSurface
     uint32_t getWidth(void);
     uint32_t getHeight(void);
     bool resize(uint32_t width, uint32_t height);
-    uint32_t getExtBufHandle();
     DisplayPtr getDisplay();
 
     bool sync();
@@ -81,7 +80,7 @@ class VaapiSurface
                  VASurfaceID,
                  VaapiChromaType,
                  uint32_t width,
-                 uint32_t height, uint32_t externalBufHandle);
+                 uint32_t height);
 
     uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
 
@@ -93,7 +92,6 @@ class VaapiSurface
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_fourcc;
-    uint32_t m_externalBufHandle;   //allocate surface from extenal buf
 };
 }
 #endif                          /* VAAPI_SURFACE_H */

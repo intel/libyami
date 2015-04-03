@@ -78,19 +78,8 @@ SurfacePtr VaapiSurface::create(const DisplayPtr& display,
                               &id, 1, surfAttribs, surfAttribNum);
     if (!checkVaapiStatus(status, "vaCreateSurfacesWithAttribute()"))
         return surface;
-
-    for (int i = 0; i < surfAttribNum; i++) {
-        if (surfAttribs[i].type == VASurfaceAttribExternalBufferDescriptor) {
-            VASurfaceAttribExternalBuffers *surfAttribExtBuf
-                =
-                (VASurfaceAttribExternalBuffers *) surfAttribs[i].value.
-                value.p;
-            externalBufHandle = surfAttribExtBuf->buffers[0];
-            break;
-        }
-    }
     surface.reset(new VaapiSurface(display, id, chromaType,
-                                    width, height,externalBufHandle));
+                                    width, height));
     return surface;
 }
 
@@ -98,10 +87,10 @@ VaapiSurface::VaapiSurface(const DisplayPtr& display,
                            VASurfaceID id,
                            VaapiChromaType chromaType,
                            uint32_t width,
-                           uint32_t height, uint32_t externalBufHandle)
+                           uint32_t height)
     : m_display(display), m_chromaType(chromaType)
     , m_allocWidth(width), m_allocHeight(height), m_width(width), m_height(height)
-    , m_externalBufHandle(externalBufHandle), m_ID(id)
+    , m_ID(id)
 {
 
 }
@@ -145,11 +134,6 @@ bool VaapiSurface::resize(uint32_t width, uint32_t height)
     m_width = width;
     m_height = height;
     return true;
-}
-
-uint32_t VaapiSurface::getExtBufHandle(void)
-{
-    return m_externalBufHandle;
 }
 
 DisplayPtr VaapiSurface::getDisplay()
