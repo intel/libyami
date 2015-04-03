@@ -29,6 +29,7 @@
 #include "common/log.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <string.h>
 #include <sys/time.h>
 #include <va/va.h>
@@ -56,6 +57,71 @@ uint32_t guessFourcc(const char* fileName)
     }
 
     return VA_FOURCC_I420;
+}
+
+bool guessResolution(const char* filename, int& w, int& h)
+{
+    enum {
+        STATE_START,
+        STATE_WDITH,
+        STATE_X,
+        STATE_HEIGHT,
+        STATE_END,
+    };
+    int state = STATE_START;
+    const char* p = filename;
+    const char* tokStart;
+    w = h = 0;
+    while (*p != '\0') {
+        switch (state) {
+            case STATE_START:
+            {
+                if (isdigit(*p)) {
+                    tokStart = p;
+                    state = STATE_WDITH;
+                }
+                break;
+            }
+            case STATE_WDITH:
+            {
+                if (*p == 'x' || *p == 'X') {
+                    state = STATE_X;
+                    sscanf(tokStart, "%d", &w);
+                } else if (!isdigit(*p)){
+                    state = STATE_START;
+                }
+                break;
+            }
+            case STATE_X:
+            {
+                if (isdigit(*p)) {
+                    tokStart = p;
+                    state  = STATE_HEIGHT;
+                } else {
+                    state = STATE_START;
+                }
+                break;
+            }
+            case STATE_HEIGHT:
+            {
+                if (!isdigit(*p)) {
+                    state = STATE_END;
+                    sscanf(tokStart, "%d", &h);
+                }
+                break;
+            }
+        }
+        if (state == STATE_END)
+            break;
+        p++;
+    }
+    //conner case
+    if (*p == '\0' && state == STATE_HEIGHT) {
+        if (!isdigit(*p)) {
+            sscanf(tokStart, "%d", &h);
+        }
+    }
+    return w && h;
 }
 
 bool getPlaneResolution(uint32_t fourcc, uint32_t pixelWidth, uint32_t pixelHeight, uint32_t byteWidth[3], uint32_t byteHeight[3],  uint32_t& planes)
