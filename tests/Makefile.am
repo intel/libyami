@@ -3,7 +3,7 @@ INCLUDES = -I$(top_srcdir)
 if ENABLE_CAPI
 bin_PROGRAMS = decodecapi encodecapi
 else
-bin_PROGRAMS = yamidecode yamiencode
+bin_PROGRAMS = yamidecode yamiencode yamivpp
 if ENABLE_V4L2
 bin_PROGRAMS += v4l2encode v4l2decode
 endif
@@ -77,6 +77,20 @@ CAPI_ENCODE_LIBS = \
 	$(top_builddir)/capi/libyami_capi.la		\
 	$(NULL)
 
+YAMI_VPP_LIBS = \
+    $(YAMI_COMMON_LIBS)   \
+    $(top_builddir)/vpp/libyami_vpp.la	\
+    $(LIBYAMI_LT_LDFLAGS) \
+    $(LIBVA_LIBS) \
+    $(LIBVA_DRM_LIBS) \
+    $(YAMI_ENCODE_LIBS) \
+	$(NULL)
+
+YAMI_VPP_CFLAGS = \
+    $(LIBVA_CFLAGS) \
+    -fpermissive \
+	$(NULL)
+
 if ENABLE_CAPI
 decodecapi_LDADD	= $(CAPI_DECODE_LIBS)
 decodecapi_SOURCES	= decodecapi.c decodehelp.h  decodeInputCapi.cpp decodeOutputCapi.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp
@@ -107,3 +121,6 @@ endif
 v4l2encode_LDADD = $(V4L2_ENCODE_LIBS)
 v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
 endif
+
+yamivpp_LDADD    = $(YAMI_VPP_LIBS)
+yamivpp_SOURCES  = vppinputoutput.cpp vppoutputencode.cpp  vpp.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
