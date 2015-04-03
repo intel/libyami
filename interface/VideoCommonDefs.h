@@ -97,6 +97,43 @@ typedef struct VideoFrameRawData{
 
 #define VIDEO_FRAME_FLAGS_KEY 1
 
+typedef struct VideoRect
+{
+    int32_t  x;
+    int32_t  y;
+    uint32_t width;
+    uint32_t height;
+} VideoRect;
+
+/**
+ * slim version of VideoFrameRawData, only useful information here
+ * hope we can use this for decode, encode and vpp in final.
+ */
+typedef struct VideoFrame {
+    /**
+     * generic id for video surface,
+     * for libva it's VASurfaceID
+     */
+    intptr_t    surface;
+
+    int64_t     timeStamp;
+
+    VideoRect   crop;
+
+    /**
+     * VIDEO_FRAME_FLAGS_XXX
+     */
+    uint32_t    flags;
+
+#ifdef __ENABLE_CAPI__
+    /**
+     * for frame destory, cpp should not touch here
+     */
+    intptr_t    user_data;
+    void        (*free)(struct VideoFrame* );
+#endif
+} VideoFrame;
+
 #define YAMI_MIME_H264 "video/h264"
 #define YAMI_MIME_AVC  "video/avc"
 #define YAMI_MIME_VP8  "video/x-vnd.on2.vp8"
