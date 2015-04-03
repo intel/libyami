@@ -17,5 +17,6 @@ struct Klass##Entry\
 
 #define DEFINE_DECODER_ENTRY(Mime, Codec) DEFINE_CLASS_ENTRY(Decoder, Mime, Codec)
 #define DEFINE_ENCODER_ENTRY(Mime, Codec) DEFINE_CLASS_ENTRY(Encoder, Mime, Codec)
+#define DEFINE_VPP_ENTRY(Mime, Function) DEFINE_CLASS_ENTRY(PostProcess, Mime, Function)
 
 #endif //vaapi_host_h

@@ -97,6 +97,20 @@ typedef struct VideoFrameRawData{
 
 #define VIDEO_FRAME_FLAGS_KEY 1
 
+typedef enum {
+    YAMI_SUCCESS = 0,
+    /* need more input to get output frame*/
+    YAMI_MORE_DATA,
+    YAMI_NOT_IMPLEMENT,
+    YAMI_INVALID_PARAM,
+    YAMI_OUT_MEMORY,
+
+    YAMI_FATAL_ERROR = 128,
+    YAMI_FAIL,
+    YAMI_NO_CONFIG,
+    YAMI_DRIVER_FAIL,
+} YamiStatus;
+
 typedef struct VideoRect
 {
     int32_t  x;
@@ -139,7 +153,7 @@ typedef struct VideoFrame {
 #define YAMI_MIME_VP8  "video/x-vnd.on2.vp8"
 #define YAMI_MIME_VP9  "video/x-vnd.on2.vp9"
 #define YAMI_MIME_JPEG "image/jpeg"
-
+#define YAMI_VPP_SCALER "vpp/scaler"
 
 #ifdef __cplusplus
 }

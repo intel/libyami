@@ -301,6 +301,7 @@ AC_CONFIG_FILES([Makefile
                  vaapi/Makefile
                  decoder/Makefile
                  encoder/Makefile
+                 vpp/Makefile
                  v4l2/Makefile
                  capi/Makefile
                  tests/Makefile
@@ -313,5 +314,6 @@ AC_OUTPUT([
          pkgconfig/libyami_common.pc
          pkgconfig/libyami_decoder.pc
          pkgconfig/libyami_encoder.pc
+         pkgconfig/libyami_vpp.pc
 ])
 
