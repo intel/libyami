@@ -59,6 +59,7 @@ class VaapiSurface
                              uint32_t height,
                              void *surfaceAttribArray,
                              uint32_t surfAttribNum);
+    VaapiSurface(const DisplayPtr&, VASurfaceID);
 
     ~VaapiSurface();
 
@@ -92,6 +93,7 @@ class VaapiSurface
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_fourcc;
+    bool     m_owner;       //surface owner
 };
 }
 #endif                          /* VAAPI_SURFACE_H */

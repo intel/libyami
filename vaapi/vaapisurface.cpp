@@ -90,16 +90,25 @@ VaapiSurface::VaapiSurface(const DisplayPtr& display,
                            uint32_t height)
     : m_display(display), m_chromaType(chromaType)
     , m_allocWidth(width), m_allocHeight(height), m_width(width), m_height(height)
-    , m_ID(id)
+    , m_ID(id), m_owner(true)
+{
+
+}
+
+VaapiSurface::VaapiSurface(const DisplayPtr& display, VASurfaceID id)
+    : m_display(display), m_chromaType(0)
+    , m_allocWidth(0), m_allocHeight(0), m_width(0), m_height(0)
+    , m_ID(id), m_owner(false)
 {
 
 }
 
 VaapiSurface::~VaapiSurface()
 {
-    VAStatus status;
+    VAStatus status = VA_STATUS_SUCCESS;
 
-    status = vaDestroySurfaces(m_display->getID(), &m_ID, 1);
+    if (m_owner)
+        status = vaDestroySurfaces(m_display->getID(), &m_ID, 1);
 
     if (!checkVaapiStatus(status, "vaDestroySurfaces()"))
         WARNING("failed to destroy surface");
