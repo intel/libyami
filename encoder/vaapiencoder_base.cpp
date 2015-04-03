@@ -142,6 +142,18 @@ Encode_Status VaapiEncoderBase::encode(VideoFrameRawData* frame)
     return doEncode(surface, frame->timeStamp, frame->flags & VIDEO_FRAME_FLAGS_KEY);
 }
 
+Encode_Status VaapiEncoderBase::encode(const SharedPtr<VideoFrame>& frame)
+{
+    if (!frame || !frame->surface)
+        return ENCODE_INVALID_PARAMS;
+    if (isBusy())
+        return ENCODE_IS_BUSY;
+    SurfacePtr surface = createSurface(frame);
+    if (!surface)
+        return ENCODE_INVALID_PARAMS;
+    return doEncode(surface, frame->timeStamp, frame->flags & VIDEO_FRAME_FLAGS_KEY);
+}
+
 Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     FUNC_ENTER();
@@ -290,6 +302,20 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
         ERROR("copyfrom in buffer failed");
         return nil;
     }
+    return surface;
+}
+
+struct SurfaceRecycler
+{
+    SurfaceRecycler(const SharedPtr<VideoFrame>& frame): m_frame(frame){}
+    void operator()(VaapiSurface* surface) { delete surface;}
+private:
+    SharedPtr<VideoFrame> m_frame;
+};
+
+SurfacePtr VaapiEncoderBase::createSurface(const SharedPtr<VideoFrame>& frame)
+{
+    SurfacePtr surface(new VaapiSurface(m_display, (VASurfaceID)frame->surface), SurfaceRecycler(frame));
     return surface;
 }
 

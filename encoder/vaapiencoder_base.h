@@ -58,6 +58,7 @@ public:
     virtual Encode_Status stop(void) = 0;
     virtual Encode_Status encode(VideoEncRawBuffer *inBuffer);
     virtual Encode_Status encode(VideoFrameRawData* frame);
+    virtual Encode_Status encode(const SharedPtr<VideoFrame>& frame);
 
     /*
     * getOutput can be called several time for a frame (such as first time  codec data, and second time others)
@@ -92,6 +93,7 @@ protected:
     //utils functions for derived class
     SurfacePtr createSurface(uint32_t fourcc = VA_FOURCC_NV12);
     SurfacePtr createSurface(VideoFrameRawData* frame);
+    SurfacePtr createSurface(const SharedPtr<VideoFrame>& frame);
 
     template <class Pic>
     bool output(const SharedPtr<Pic>&);
