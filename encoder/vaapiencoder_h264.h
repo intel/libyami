@@ -31,7 +31,6 @@
 #include <list>
 #include <queue>
 #include <pthread.h>
-#include <tr1/memory>
 #include <va/va_enc_h264.h>
 
 namespace YamiMediaCodec{
@@ -43,9 +42,9 @@ class VaapiEncoderH264 : public VaapiEncoderBase {
 public:
     //shortcuts, It's intended to elimilate codec diffrence
     //to make template for other codec implelmentation.
-    typedef std::tr1::shared_ptr<VaapiEncPictureH264> PicturePtr;
-    typedef std::tr1::shared_ptr<VaapiEncoderH264Ref> ReferencePtr;
-    typedef std::tr1::shared_ptr <VaapiEncStreamHeaderH264> StreamHeaderPtr;
+    typedef SharedPtr<VaapiEncPictureH264> PicturePtr;
+    typedef SharedPtr<VaapiEncoderH264Ref> ReferencePtr;
+    typedef SharedPtr <VaapiEncStreamHeaderH264> StreamHeaderPtr;
 
     VaapiEncoderH264();
     ~VaapiEncoderH264();

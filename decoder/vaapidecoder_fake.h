@@ -34,7 +34,7 @@ enum {
 
 class VaapiDecoderFake:public VaapiDecoderBase {
   public:
-    typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
+    typedef SharedPtr<VaapiDecPicture> PicturePtr;
     VaapiDecoderFake(int32_t width, int32_t height);
     virtual ~ VaapiDecoderFake();
     virtual Decode_Status start(VideoConfigBuffer * );

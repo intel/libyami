@@ -25,7 +25,6 @@
 #include <assert.h>
 #include <deque>
 #include <list>
-#include <tr1/memory>
 #include "common/condition.h"
 #if __ENABLE_V4L2_GLX__
 #include <X11/Xlib.h>
@@ -52,7 +51,7 @@ class V4l2CodecBase {
     V4l2CodecBase();
      ~V4l2CodecBase();
 
-    typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
+    typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
     static V4l2CodecPtr createCodec(const char* name, int32_t flags);
     bool close ();
     virtual int32_t setFrameMemoryType(VideoDataMemoryType memory_type) {m_memoryType = memory_type; return 0;} ;

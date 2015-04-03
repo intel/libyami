@@ -34,7 +34,6 @@
 #include "vaapi/vaapiutils.h"
 
 
-using std::tr1::shared_ptr;
 using std::tr1::weak_ptr;
 using std::list;
 /**
@@ -143,7 +142,7 @@ class NativeDisplayDrm : public NativeDisplayBase{
     }
 };
 
-typedef std::tr1::shared_ptr<NativeDisplayBase> NativeDisplayPtr;
+typedef SharedPtr<NativeDisplayBase> NativeDisplayPtr;
 
 bool VaapiDisplay::isCompatible(const NativeDisplay& other)
 {
@@ -211,7 +210,7 @@ VaapiDisplay::getVaFormat(uint32_t fourcc)
 class DisplayCache
 {
 public:
-    static shared_ptr<DisplayCache> getInstance();
+    static SharedPtr<DisplayCache> getInstance();
     DisplayPtr createDisplay(const NativeDisplay& nativeDisplay);
 
     ~DisplayCache() {}
@@ -222,9 +221,9 @@ private:
     YamiMediaCodec::Lock m_lock;
 };
 
-shared_ptr<DisplayCache> DisplayCache::getInstance()
+SharedPtr<DisplayCache> DisplayCache::getInstance()
 {
-    static shared_ptr<DisplayCache> cache;
+    static SharedPtr<DisplayCache> cache;
     if (!cache)
         cache.reset(new DisplayCache);
     return cache;

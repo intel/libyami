@@ -39,7 +39,7 @@
 #include "common/common_def.h"
 #include <algorithm>
 
-typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
+typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
 #define THREAD_NAME(thread) (thread == INPUT ? "INPUT" : "OUTPUT")
 
 #define DEBUG_FRAME_LIST(list, listType, maxSize)  do {         \

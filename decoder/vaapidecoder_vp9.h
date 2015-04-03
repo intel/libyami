@@ -36,7 +36,7 @@ enum {
 
 class VaapiDecoderVP9:public VaapiDecoderBase {
   public:
-    typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
+    typedef SharedPtr<VaapiDecPicture> PicturePtr;
     VaapiDecoderVP9();
     virtual ~ VaapiDecoderVP9();
     virtual Decode_Status start(VideoConfigBuffer * );
@@ -55,7 +55,7 @@ class VaapiDecoderVP9:public VaapiDecoderBase {
     bool fillReference(VADecPictureParameterBufferVP9* , const Vp9FrameHdr*);
     void updateReference(const PicturePtr&, const Vp9FrameHdr*);
 
-    typedef std::tr1::shared_ptr<Vp9Parser> ParserPtr;
+    typedef SharedPtr<Vp9Parser> ParserPtr;
     ParserPtr m_parser;
     std::vector<SurfacePtr> m_reference;
 };

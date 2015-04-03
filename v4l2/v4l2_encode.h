@@ -22,14 +22,13 @@
 #ifndef v4l2_encode_h
 #define v4l2_encode_h
 
-#include <tr1/memory>
 #include <vector>
 
 #include "v4l2_codecbase.h"
 #include "interface/VideoEncoderInterface.h"
 
 using namespace YamiMediaCodec;
-typedef std::tr1::shared_ptr < IVideoEncoder > EncoderPtr;
+typedef SharedPtr < IVideoEncoder > EncoderPtr;
 
 class V4l2Encoder : public V4l2CodecBase
 {

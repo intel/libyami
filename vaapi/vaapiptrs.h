@@ -21,38 +21,39 @@
 
 #ifndef vaapiptrs_h
 #define vaapiptrs_h
-#include <tr1/memory>
+
+#include "interface/VideoCommonDefs.h"
 
 namespace YamiMediaCodec{
 class VaapiSurface;
-typedef std::tr1::shared_ptr < VaapiSurface > SurfacePtr;
+typedef SharedPtr < VaapiSurface > SurfacePtr;
 
 class VaapiImage;
-typedef std::tr1::shared_ptr < VaapiImage > ImagePtr;
+typedef SharedPtr < VaapiImage > ImagePtr;
 
 class VaapiImageRaw;
-typedef std::tr1::shared_ptr < VaapiImageRaw > ImageRawPtr;
+typedef SharedPtr < VaapiImageRaw > ImageRawPtr;
 
 class VaapiCodedBuffer;
-typedef std::tr1::shared_ptr < VaapiCodedBuffer > CodedBufferPtr;
+typedef SharedPtr < VaapiCodedBuffer > CodedBufferPtr;
 
 class VaapiBufObject;
-typedef std::tr1::shared_ptr < VaapiBufObject > BufObjectPtr;
+typedef SharedPtr < VaapiBufObject > BufObjectPtr;
 
 class VaapiDisplay;
-typedef std::tr1::shared_ptr < VaapiDisplay > DisplayPtr;
+typedef SharedPtr < VaapiDisplay > DisplayPtr;
 
 class VaapiConfig;
-typedef std::tr1::shared_ptr < VaapiConfig > ConfigPtr;
+typedef SharedPtr < VaapiConfig > ConfigPtr;
 
 class VaapiContext;
-typedef std::tr1::shared_ptr < VaapiContext > ContextPtr;
+typedef SharedPtr < VaapiContext > ContextPtr;
 
 class VaapiDecSurfacePool;
-typedef std::tr1::shared_ptr < VaapiDecSurfacePool > DecSurfacePoolPtr;
+typedef SharedPtr < VaapiDecSurfacePool > DecSurfacePoolPtr;
 
 class VaapiImagePool;
-typedef std::tr1::shared_ptr < VaapiImagePool > ImagePoolPtr;
+typedef SharedPtr < VaapiImagePool > ImagePoolPtr;
 } //namespace YamiMediaCodec
 
 #endif                          /* vaapiptr_h */

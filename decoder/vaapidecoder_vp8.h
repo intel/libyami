@@ -44,7 +44,7 @@ enum {
 
 class VaapiDecoderVP8:public VaapiDecoderBase {
   public:
-    typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
+    typedef SharedPtr<VaapiDecPicture> PicturePtr;
     VaapiDecoderVP8();
     virtual ~ VaapiDecoderVP8();
     virtual Decode_Status start(VideoConfigBuffer * buffer);

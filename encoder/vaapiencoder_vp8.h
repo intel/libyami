@@ -25,7 +25,6 @@
 
 #include "vaapiencoder_base.h"
 #include "vaapi/vaapiptrs.h"
-#include <tr1/memory>
 #include <va/va_enc_vp8.h>
 #include <deque>
 
@@ -37,7 +36,7 @@ class VaapiEncoderVP8 : public VaapiEncoderBase {
 public:
     //shortcuts, It's intended to elimilate codec diffrence
     //to make template for other codec implelmentation.
-    typedef std::tr1::shared_ptr<VaapiEncPictureVP8> PicturePtr;
+    typedef SharedPtr<VaapiEncPictureVP8> PicturePtr;
     typedef SurfacePtr ReferencePtr;
 
     VaapiEncoderVP8();

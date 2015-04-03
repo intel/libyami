@@ -47,7 +47,7 @@ enum VaapiEncReorderState
 };
 
 class VaapiEncoderBase : public IVideoEncoder {
-    typedef std::tr1::shared_ptr<VaapiEncPicture> PicturePtr;
+    typedef SharedPtr<VaapiEncPicture> PicturePtr;
 public:
     VaapiEncoderBase();
     virtual ~VaapiEncoderBase();
@@ -94,7 +94,7 @@ protected:
     SurfacePtr createSurface(VideoFrameRawData* frame);
 
     template <class Pic>
-    bool output(const std::tr1::shared_ptr<Pic>&);
+    bool output(const SharedPtr<Pic>&);
     virtual Encode_Status getCodecConfig(VideoEncOutputBuffer * outBuffer);
 
     //virtual functions
@@ -169,7 +169,7 @@ private:
 };
 
 template <class Pic>
-bool VaapiEncoderBase::output(const std::tr1::shared_ptr<Pic>& pic)
+bool VaapiEncoderBase::output(const SharedPtr<Pic>& pic)
 {
     bool ret;
     PicturePtr picture;

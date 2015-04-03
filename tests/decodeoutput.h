@@ -29,8 +29,6 @@
 
 #include <stdio.h>
 #include <vector>
-#include <tr1/memory>
-
 #include <sstream>
 
 using namespace YamiMediaCodec;

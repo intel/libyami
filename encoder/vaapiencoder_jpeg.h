@@ -26,7 +26,6 @@
 #include "vaapiencoder_base.h"
 #include "vaapi/vaapiptrs.h"
 #include "codecparsers/jpegparser.h"
-#include <tr1/memory>
 #include <va/va_enc_jpeg.h>
 
 namespace YamiMediaCodec {
@@ -34,8 +33,8 @@ class VaapiEncPictureJPEG;
 
 class VaapiEncoderJpeg : public VaapiEncoderBase {
 public:
-    typedef std::tr1::shared_ptr<VaapiEncPictureJPEG> PicturePtr;
-    
+    typedef SharedPtr<VaapiEncPictureJPEG> PicturePtr;
+
     VaapiEncoderJpeg();
     ~VaapiEncoderJpeg();
     virtual Encode_Status start();

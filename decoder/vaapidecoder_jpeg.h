@@ -31,7 +31,7 @@
 namespace YamiMediaCodec{
 class VaapiDecoderJpeg:public VaapiDecoderBase {
   public:
-    typedef std::tr1::shared_ptr<VaapiDecPicture> PicturePtr;
+    typedef SharedPtr<VaapiDecPicture> PicturePtr;
     VaapiDecoderJpeg();
     virtual ~ VaapiDecoderJpeg();
     virtual Decode_Status start(VideoConfigBuffer * buffer);

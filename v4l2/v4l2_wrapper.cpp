@@ -30,7 +30,7 @@
 #include "common/lock.h"
 
 #include <map>
-typedef std::tr1::shared_ptr < V4l2CodecBase > V4l2CodecPtr;
+typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
 
 /** <pre>
 v4l2_wrapper implements a wrapper library for yami encoder/decoder, it translates v4l2 ioctl to yami APIs.

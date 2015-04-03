@@ -67,9 +67,9 @@ enum {
 class VaapiDecPictureH264 : public VaapiDecPicture
 {
   public:
-    typedef std::tr1::shared_ptr<VaapiDecPictureH264> PicturePtr;
+    typedef SharedPtr<VaapiDecPictureH264> PicturePtr;
     typedef std::tr1::weak_ptr<VaapiDecPictureH264> PictureWeakPtr;
-    typedef std::tr1::shared_ptr<H264SliceHdr> SliceHeaderPtr;
+    typedef SharedPtr<H264SliceHdr> SliceHeaderPtr;
     friend class VaapiDPBManager;
     friend class VaapiDecoderH264;
     friend class VaapiFrameStore;
@@ -145,7 +145,7 @@ class VaapiDecPictureH264 : public VaapiDecPicture
 class VaapiFrameStore {
     typedef VaapiDecPictureH264::PicturePtr PicturePtr;
   public:
-    typedef std::tr1::shared_ptr<VaapiFrameStore> Ptr;
+    typedef SharedPtr<VaapiFrameStore> Ptr;
     VaapiFrameStore(const PicturePtr& pic);
     ~VaapiFrameStore();
     bool addPicture(const PicturePtr& pic);
@@ -163,7 +163,7 @@ class VaapiFrameStore {
 };
 
 struct VaapiDecPicBufLayer {
-    typedef std::tr1::shared_ptr<VaapiDecPicBufLayer> Ptr;
+    typedef SharedPtr<VaapiDecPicBufLayer> Ptr;
     VaapiDecPicBufLayer(uint32_t size)
     {
         memset(&DPBCount, 0, sizeof(*this) - offsetof(VaapiDecPicBufLayer, DPBCount));
@@ -189,7 +189,7 @@ class VaapiDecoderH264;
 
 class VaapiDPBManager {
   public:
-    typedef std::tr1::shared_ptr<VaapiDPBManager> Ptr;
+    typedef SharedPtr<VaapiDPBManager> Ptr;
     typedef VaapiDecPictureH264::PicturePtr PicturePtr;
     typedef VaapiDecPictureH264::SliceHeaderPtr SliceHeaderPtr;
     VaapiDPBManager(VaapiDecoderH264* decoder, uint32_t DPBSize);

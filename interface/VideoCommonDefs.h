@@ -26,6 +26,22 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
+#include <tr1/memory>
+namespace YamiMediaCodec{
+//use tr1's shared_ptr until we implemented ours.
+#define SharedPtr std::tr1::shared_ptr
+#define EnableSharedFromThis std::tr1::enable_shared_from_this
+#define SharedFromThis shared_from_this
+
+
+#define DISALLOW_COPY_AND_ASSIGN(className) \
+      className(const className&); \
+      className & operator=(const className&); \
+
+}
+#endif
+
+#ifdef __cplusplus
 extern "C" {
 #endif
 

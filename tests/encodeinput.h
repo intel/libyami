@@ -30,7 +30,6 @@
 #include "VideoEncoderDefs.h"
 #include "VideoEncoderInterface.h"
 #include <vector>
-#include <tr1/memory>
 
 using namespace YamiMediaCodec;
 
