@@ -64,6 +64,7 @@ typedef enum {
     NATIVE_DISPLAY_X11,
     NATIVE_DISPLAY_DRM,
     NATIVE_DISPLAY_WAYLAND,
+    NATIVE_DISPLAY_VA,      /* client need init va*/
 } YamiNativeDisplayType;
 
 typedef struct NativeDisplay{

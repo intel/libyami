@@ -142,6 +142,21 @@ class NativeDisplayDrm : public NativeDisplayBase{
     }
 };
 
+class NativeDisplayVADisplay : public NativeDisplayBase{
+  public:
+    NativeDisplayVADisplay() :NativeDisplayBase(){ };
+    ~NativeDisplayVADisplay() {};
+    virtual bool initialize (const NativeDisplay& display) {
+        ASSERT(display.type == NATIVE_DISPLAY_VA);
+
+        return acceptValidExternalHandle(display);
+    };
+
+    bool isCompatible(const NativeDisplay& display) {
+        return display.type == NATIVE_DISPLAY_VA && display.handle == m_handle;
+    }
+};
+
 typedef SharedPtr<NativeDisplayBase> NativeDisplayPtr;
 
 bool VaapiDisplay::isCompatible(const NativeDisplay& other)
@@ -276,6 +291,12 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
             vaDisplay = vaGetDisplayDRM(nativeDisplayObj->nativeHandle());
         INFO("use vaapi drm backend");
         break;
+    case NATIVE_DISPLAY_VA:
+        nativeDisplayObj.reset (new NativeDisplayVADisplay());
+        if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
+            vaDisplay = (VADisplay)nativeDisplayObj->nativeHandle();
+        INFO("use vaapi va backend");
+        break;
     default:
         break;
     }
@@ -285,7 +306,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
         return vaapiDisplay;
     }
 
-    if (vaInit(vaDisplay))
+    if (nativeDisplay.type == NATIVE_DISPLAY_VA || vaInit(vaDisplay))
         vaapiDisplay.reset(new VaapiDisplay(nativeDisplayObj, vaDisplay));
 
     if (vaapiDisplay) {
