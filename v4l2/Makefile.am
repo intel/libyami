@@ -9,7 +9,7 @@ libyami_v4l2_source_c = \
         v4l2_wrapper.cpp \
         $(NULL)
 if !ENABLE_V4L2_GLX
-libyami_v4l2_source_c += ../egl/egl_util.c
+libyami_v4l2_source_c += ../egl/egl_util.c ../egl/egl_vaapi_image.cpp
 endif
 
 libyami_v4l2_source_h = \

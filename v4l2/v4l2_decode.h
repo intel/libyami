@@ -27,9 +27,12 @@
 #include "v4l2_codecbase.h"
 #include "interface/VideoDecoderInterface.h"
 
+namespace YamiMediaCodec {
+    class EglVaapiImage;
+}
+
 using namespace YamiMediaCodec;
 typedef SharedPtr < IVideoDecoder > DecoderPtr;
-
 class V4l2Decoder : public V4l2CodecBase
 {
   public:
@@ -57,11 +60,6 @@ class V4l2Decoder : public V4l2CodecBase
     virtual void flush();
 
   private:
-#if !__ENABLE_V4L2_GLX__
-    bool populateOutputFrames(EGLDisplay eglDisplay, EGLContext eglContext);
-#endif
-
-  private:
     DecoderPtr m_decoder;
     VideoConfigBuffer m_configBuffer;
     // VideoFormatInfo m_videoFormatInfo;
@@ -80,7 +78,7 @@ class V4l2Decoder : public V4l2CodecBase
 #if __ENABLE_V4L2_GLX__
     std::vector <Pixmap> m_pixmaps;
 #else
-    std::vector <EGLImageKHR> m_eglImages;
+    std::vector <SharedPtr<EglVaapiImage> > m_eglVaapiImages;
 #endif
 };
 #endif

@@ -34,7 +34,7 @@
 #include "interface/VideoDecoderHost.h"
 #include "common/log.h"
 #if !__ENABLE_V4L2_GLX__
-#include "egl/egl_util.h"
+#include "egl/egl_vaapi_image.h"
 #endif
 
 V4l2Decoder::V4l2Decoder()
@@ -161,22 +161,20 @@ bool V4l2Decoder::outputPulse(int32_t &index)
     DEBUG("renders to Pixmap=0x%x", m_pixmaps[index]);
     status = m_decoder->getOutput(m_pixmaps[index], &timeStamp, 0, 0, m_videoWidth, m_videoHeight);
 #else
+    frame = &m_outputRawFrames[index];
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
         if (!m_bufferSpace[OUTPUT])
             return false;
-        frame = &m_outputRawFrames[index];
         ASSERT(frame->handle);
         frame->fourcc = VA_FOURCC_NV12;
+        frame->memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;
     }
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
-        if (m_eglImages.empty())
+        if (m_eglVaapiImages.empty())
             return false;
-        frame = &tempFrame;
-        frame->width = 0;
-        frame->height = 0;
-        frame->fourcc = VA_FOURCC_BGRX; // XXX, assumed fourcc here
+        frame->memoryType = VIDEO_DATA_MEMORY_TYPE_SURFACE_ID;
     }
-    frame->memoryType = m_memoryType;
+
 
     status = m_decoder->getOutput(frame);
 #endif
@@ -195,22 +193,12 @@ bool V4l2Decoder::outputPulse(int32_t &index)
 
     if (status != RENDER_SUCCESS)
         return false;
-
 #if __ENABLE_V4L2_GLX__
     m_outputRawFrames[index].timeStamp = timeStamp;
 #else
-    DEBUG("got output frame with timestamp: %ld", frame->timeStamp);
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
-        int i;
-        bool found = false;
-        for (i=0; i< m_actualOutBufferCount; i++) {
-            if (frame->internalID == m_outputRawFrames[i].internalID) {
-                index = i; // update deque index
-                m_outputRawFrames[i].timeStamp = frame->timeStamp;
-                found = true;
-            }
-        }
-        ASSERT(found);
+        m_eglVaapiImages[index]->blt(*frame);
+        m_decoder->renderDone(frame);
     }
 #endif
 
@@ -220,12 +208,6 @@ bool V4l2Decoder::outputPulse(int32_t &index)
 
 bool V4l2Decoder::recycleOutputBuffer(int32_t index)
 {
-#if !__ENABLE_V4L2_GLX__
-    ASSERT(index >= 0 && index < m_maxBufferCount[OUTPUT]);
-    DEBUG("index: %d, handle: 0x%x", index, m_outputRawFrames[index].handle);
-    if (m_outputRawFrames[index].handle)
-        m_decoder->renderDone(&m_outputRawFrames[index]);
-#endif
     return true;
 }
 
@@ -278,12 +260,38 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     switch (command) {
     case VIDIOC_STREAMON:
     case VIDIOC_STREAMOFF:
-    case VIDIOC_REQBUFS:
     case VIDIOC_QBUF:
     case VIDIOC_DQBUF:
     case VIDIOC_QUERYCAP:
         ret = V4l2CodecBase::ioctl(command, arg);
         break;
+    case VIDIOC_REQBUFS: {
+        ret = V4l2CodecBase::ioctl(command, arg);
+#if !__ENABLE_V4L2_GLX__
+        ASSERT(ret == 0);
+        struct v4l2_requestbuffers *reqbufs = static_cast<struct v4l2_requestbuffers *>(arg);
+        if (reqbufs->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+            if (!reqbufs->count) {
+                m_eglVaapiImages.clear();
+            } else {
+                const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
+                ASSERT(outFormat && outFormat->width && outFormat->height);
+                ASSERT(m_eglVaapiImages.empty());
+                for (int i = 0; i < reqbufs->count; i++) {
+                    SharedPtr<EglVaapiImage> image(
+                                                   new EglVaapiImage(m_decoder->getDisplayID(), outFormat->width, outFormat->height));
+                    if (!image->init()) {
+                        ERROR("Create egl vaapi image failed");
+                        ret  = -1;
+                        break;
+                    }
+                    m_eglVaapiImages.push_back(image);
+                }
+            }
+        }
+#endif
+        break;
+    }
     case VIDIOC_QUERYBUF: {
         struct v4l2_buffer *buffer = static_cast<struct v4l2_buffer*>(arg);
         if (buffer->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
@@ -506,61 +514,12 @@ int32_t V4l2Decoder::usePixmap(int bufferIndex, Pixmap pixmap)
     return 0;
 }
 #else
-bool V4l2Decoder::populateOutputFrames(EGLDisplay eglDisplay, EGLContext eglContext)
-{
-    int i;
-    VideoFrameRawData frame;
-    Decode_Status status = DECODE_SUCCESS;
-
-    DEBUG("m_videoWidth=%d, m_videoHeight=%d", m_videoWidth, m_videoHeight);
-    // negotiate the count of exported frame (image pool) size,
-    // for native target fourcc (NV12), it is decided by surface pool size
-    // for non-native target fourcc, it is decided (guessed) by the life time of texture/frame rendering
-    m_actualOutBufferCount = 0;
-    frame.memoryType = m_memoryType;
-    frame.fourcc = VA_FOURCC_BGRX;
-    status = m_decoder->populateOutputHandles(&frame, m_actualOutBufferCount);
-    ASSERT(status == RENDER_SUCCESS && m_actualOutBufferCount);
-    ASSERT(m_maxBufferCount[OUTPUT] >= m_actualOutBufferCount);
-    DEBUG("m_actualOutBufferCount: %d", m_actualOutBufferCount);
-
-    // populate all possible exported frames
-    for (i=0; i<m_maxBufferCount[OUTPUT] ; i++) {
-        m_outputRawFrames[i].memoryType = m_memoryType;
-        m_outputRawFrames[i].fourcc = VA_FOURCC_BGRX; // VAAPI BGRA match MESA ARGB
-        m_outputRawFrames[i].width = 0;
-        m_outputRawFrames[i].height = 0;
-        m_outputRawFrames[i].handle = -1;
-        m_outputRawFrames[i].internalID = 0;
-    }
-    status = m_decoder->populateOutputHandles(&m_outputRawFrames[0], m_actualOutBufferCount /* actual count only*/);
-    ASSERT(status == RENDER_SUCCESS);
-
-    // binding EGLimage for each frame
-    m_eglImages.resize(m_actualOutBufferCount);
-    for (i=0; i<m_eglImages.size(); i++) {
-        m_eglImages[i]  = createEglImageFromHandle(eglDisplay, eglContext, m_outputRawFrames[i].memoryType, m_outputRawFrames[i].handle,
-            m_outputRawFrames[i].width, m_outputRawFrames[i].height, m_outputRawFrames[i].pitch[0]);
-
-        m_decoder->renderDone(&m_outputRawFrames[i]);
-        ASSERT(m_eglImages[i]);
-    }
-
-    return true;
-}
-
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
 {
-    EGLImageKHR image = EGL_NO_IMAGE_KHR;
-
-    // EGLImage is requested before the first frame (associated with it) is ready; we can't create EGLImage when it is requested for the first time.
-    if (m_eglImages.empty())
-        populateOutputFrames(eglDisplay, eglContext);
-
     ASSERT(m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
-    ASSERT(bufferIndex>=0 && bufferIndex<m_maxBufferCount[OUTPUT]);
+    ASSERT(bufferIndex<m_eglVaapiImages.size());
     bufferIndex = std::min(bufferIndex, m_actualOutBufferCount-1);
-    *(EGLImageKHR*)eglImage = m_eglImages[bufferIndex];
+    *(EGLImageKHR*)eglImage = m_eglVaapiImages[bufferIndex]->createEglImage(eglDisplay, eglContext, m_memoryType);
 
     return 0;
 }
