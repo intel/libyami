@@ -304,6 +304,7 @@ EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc, int
     glClearColor(0.0, 0.0, 0.5, 0.0);
     glEnable(GL_DEPTH_TEST);
     glClearDepthf(1.0f);
+#if __ENABLE_V4L2_GLX__
     {
         int width, height;
         Window root;
@@ -311,6 +312,7 @@ EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc, int
         XGetGeometry(x11Display, x11Window, &root, &x, &y, &width, &height, &borderWidth, &depth);
         glViewport(0, 0, width, height);
     }
+#endif
     if (isExternalTexture)
         glProgram = createShaders(vertexShaderText_rgba, fragShaderText_rgba_ext, 1);
     else
