@@ -809,6 +809,15 @@ Encode_Status VaapiEncoderH264::getMaxOutSize(uint32_t *maxSize)
     return ENCODE_SUCCESS;
 }
 
+#ifdef __BUILD_GET_MV__
+Encode_Status VaapiEncoderH264::getMVBufferSize(uint32_t *Size)
+{
+    FUNC_ENTER();
+    *Size = sizeof(VAMotionVectorIntel)*16*m_mbWidth*m_mbHeight;
+    return ENCODE_SUCCESS;
+}
+#endif
+
 Encode_Status VaapiEncoderH264::start()
 {
     printf("start");
@@ -1353,11 +1362,20 @@ bool VaapiEncoderH264::ensureSlices(const PicturePtr& picture)
 Encode_Status VaapiEncoderH264::encodePicture(const PicturePtr& picture)
 {
     Encode_Status ret = ENCODE_FAIL;
+
     SurfacePtr reconstruct = createSurface();
     if (!reconstruct)
         return ret;
     {
         AutoLock locker(m_paramLock);
+
+#ifdef __BUILD_GET_MV__
+        uint32_t size;
+        void *buffer = NULL;
+        getMVBufferSize(&size);
+        if (!picture->editMVBuffer(buffer, &size))
+            return ret;
+#endif
         if (!ensureSequence (picture))
             return ret;
         if (!ensureMiscParams (picture.get()))

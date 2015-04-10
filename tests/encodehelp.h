@@ -31,6 +31,9 @@ static char *codec = NULL;
 static uint32_t inputFourcc = 0;
 static int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 30;
 static int frameCount = 0;
+#ifdef __BUILD_GET_MV__
+static FILE *MVFp;
+#endif
 
 #ifndef __cplusplus
 #ifndef bool

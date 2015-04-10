@@ -51,7 +51,6 @@ int main(int argc, char** argv)
     int encodeFrameCount = 0;
 
     yamiTraceInit();
-
     if (!process_cmdline(argc, argv))
         return -1;
 
@@ -98,6 +97,16 @@ int main(int argc, char** argv)
     //init output buffer
     encoder->getMaxOutSize(&maxOutSize);
 
+#ifdef __BUILD_GET_MV__
+    uint32_t size;
+    VideoEncMVBuffer MVBuffer;
+    MVFp = fopen("feimv.bin","wb");
+    encoder->getMVBufferSize(&size);
+    if (!createMVBuffer(&MVBuffer, size)) {
+        fprintf (stderr, "fail to create MV buffer\n");
+        return -1;
+    }
+#endif
     if (!createOutputBuffer(&outputBuffer, maxOutSize)) {
         fprintf (stderr, "fail to create output\n");
         return -1;
@@ -116,10 +125,19 @@ int main(int argc, char** argv)
 
         //get the output buffer
         do {
+#ifndef __BUILD_GET_MV__
             status = encoder->getOutput(&outputBuffer, false);
+#else
+            status = encoder->getOutput(&outputBuffer, &MVBuffer, false);
+#endif
             if (status == ENCODE_SUCCESS
                 && !output->write(outputBuffer.data, outputBuffer.dataSize))
                 assert(0);
+#ifdef __BUILD_GET_MV__
+            if (status == ENCODE_SUCCESS) {
+                fwrite(MVBuffer.data, MVBuffer.bufferSize, 1, MVFp);
+            }
+#endif
         } while (status != ENCODE_BUFFER_NO_MORE);
 
         if (frameCount &&  encodeFrameCount++ > frameCount)
@@ -128,16 +146,29 @@ int main(int argc, char** argv)
 
     // drain the output buffer
     do {
+#ifndef __BUILD_GET_MV__
        status = encoder->getOutput(&outputBuffer, true);
+#else
+       status = encoder->getOutput(&outputBuffer, &MVBuffer, true);
+#endif
        if (status == ENCODE_SUCCESS
            && !output->write(outputBuffer.data, outputBuffer.dataSize))
            assert(0);
+#ifdef __BUILD_GET_MV__
+        if (status == ENCODE_SUCCESS) {
+            fwrite(MVBuffer.data, MVBuffer.bufferSize, 1, MVFp);
+        }
+#endif
     } while (status != ENCODE_BUFFER_NO_MORE);
 
     encoder->stop();
     releaseVideoEncoder(encoder);
     free(outputBuffer.data);
     delete output;
+#ifdef __BUILD_GET_MV__
+    free(MVBuffer.data);
+    fclose(MVFp);
+#endif
     fprintf(stderr, "encode done\n");
     return 0;
 }

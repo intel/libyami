@@ -200,6 +200,16 @@ if test "$enable_vp8enc" = "yes"; then
 AC_DEFINE([__BUILD_VP8_ENCODER__], [1], [Defined to 1 if --enable-vp8enc="yes" ])
 fi
 AM_CONDITIONAL(BUILD_VP8_ENCODER, test "x$enable_vp8enc" = "xyes")
+
+dnl encoder getmv
+AC_ARG_ENABLE(getmv,
+    [AC_HELP_STRING([--enable-getmv], [build with get mv support @<:@default=no@:>@])],
+    [], [enable_getmv="no"])
+if test "$enable_getmv" = "yes"; then
+AC_DEFINE([__BUILD_GET_MV__], [1], [Defined to 1 if --enable-getmv="yes" ])
+fi
+AM_CONDITIONAL(BUILD_GET_MV, test "x$enable_getmv" = "xyes")
+
 # dnl Doxygen
 AC_ARG_ENABLE(docs,
               [AC_HELP_STRING([--enable-docs], [build with doxygen support @<:@default=yes@:>@])],

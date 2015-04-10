@@ -65,8 +65,11 @@ public:
     * If the buffer passed to encoded is not big enough, this API call will return ENCODE_BUFFER_TOO_SMALL
     * and caller should provide a big enough buffer and call again
     */
+#ifndef __BUILD_GET_MV__
     virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false);
-
+#else
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, VideoEncMVBuffer* MVBuffer, bool withWait = false);
+#endif
     virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR);
     virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR);
     virtual Encode_Status setConfig(VideoParamConfigType type, Yami_PTR);
@@ -74,6 +77,13 @@ public:
 
     virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
 
+#ifdef __BUILD_GET_MV__
+    /// get MV buffer size.
+    virtual Encode_Status getMVBufferSize(uint32_t * Size);
+#endif
+    virtual void getPicture(PicturePtr &outPicture);
+    virtual Encode_Status checkCodecData(VideoEncOutputBuffer * outBuffer);
+    virtual Encode_Status checkEmpty(VideoEncOutputBuffer * outBuffer, bool *outEmpty);
     virtual Encode_Status getStatistics(VideoStatistics *videoStat) {
         return ENCODE_SUCCESS;
     };

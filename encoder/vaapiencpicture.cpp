@@ -26,6 +26,9 @@
 #include "vaapicodedbuffer.h"
 
 #include "log.h"
+#ifdef __BUILD_GET_MV__
+#include <va/va_intel_fei.h>
+#endif
 
 namespace YamiMediaCodec{
 VaapiEncPicture::VaapiEncPicture(const ContextPtr& context,
@@ -49,6 +52,9 @@ bool VaapiEncPicture::doRender()
     RENDER_OBJECT(m_qMatrix);
     RENDER_OBJECT(m_huffTable);
     RENDER_OBJECT(m_slices);
+#ifdef __BUILD_GET_MV__
+    RENDER_OBJECT(m_FEIBuffer);
+#endif
     return true;
 }
 
@@ -72,7 +78,6 @@ addPackedHeader(VAEncPackedHeaderType packedHeaderType, const void *header,
     return ret;
 }
 
-
 Encode_Status VaapiEncPicture::getOutput(VideoEncOutputBuffer * outBuffer)
 {
     ASSERT(outBuffer);
@@ -88,5 +93,31 @@ Encode_Status VaapiEncPicture::getOutput(VideoEncOutputBuffer * outBuffer)
     outBuffer->dataSize = size;
     return ENCODE_SUCCESS;
 }
+
+#ifdef __BUILD_GET_MV__
+bool VaapiEncPicture::editMVBuffer(void*& buffer, uint32_t *size)
+{
+    VABufferID bufID;
+    VAEncMiscParameterFEIFrameControlH264Intel   fei_pic_param;
+    VAEncMiscParameterFEIFrameControlH264Intel *misc_fei_pic_control_param;
+
+    if (!m_MVBuffer) {
+        m_MVBuffer = createBufferObject(VAEncFEIMVBufferTypeIntel, *size, NULL, (void**)&buffer);
+        bufID = m_MVBuffer->getID();
+        fei_pic_param.mv_data = bufID;
+        fei_pic_param.function = VA_ENC_FUNCTION_ENC_PAK_INTEL;
+        fei_pic_param.num_mv_predictors   = 1;
+
+        if (!newMisc(VAEncMiscParameterTypeFEIFrameControlIntel, misc_fei_pic_control_param))
+            return false;
+        *misc_fei_pic_control_param = fei_pic_param;
+    } else {
+        buffer = m_MVBuffer->map();
+        *size = m_MVBuffer->getSize();
+    }
+    return true;
+}
+
+#endif
 
 }

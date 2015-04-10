@@ -231,6 +231,15 @@ Encode_Status VaapiEncoderBase::getMaxOutSize(uint32_t *maxSize)
     return ENCODE_SUCCESS;
 }
 
+#ifdef __BUILD_GET_MV__
+Encode_Status VaapiEncoderBase::getMVBufferSize(uint32_t *Size)
+{
+    FUNC_ENTER();
+    *Size = 0;
+    return ENCODE_SUCCESS;
+}
+#endif
+
 SurfacePtr VaapiEncoderBase::createSurface(uint32_t fourcc)
 {
     VASurfaceAttrib attrib;
@@ -386,36 +395,89 @@ bool VaapiEncoderBase::initVA()
     return true;
 }
 
-Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, bool withWait)
+Encode_Status VaapiEncoderBase::checkEmpty(VideoEncOutputBuffer *outBuffer, bool *outEmpty)
 {
     bool isEmpty;
     FUNC_ENTER();
     if (!outBuffer)
         return ENCODE_INVALID_PARAMS;
 
-    {
-        AutoLock l(m_lock);
-        isEmpty = m_output.empty();
-        INFO("output queue size: %ld\n", m_output.size());
-    }
+    AutoLock l(m_lock);
+    isEmpty = m_output.empty();
+    INFO("output queue size: %ld\n", m_output.size());
+
+    *outEmpty = isEmpty;
 
     if (isEmpty) {
         if (outBuffer->format == OUTPUT_CODEC_DATA)
            return getCodecConfig(outBuffer);
         return ENCODE_BUFFER_NO_MORE;
     }
+}
 
-    PicturePtr& picture = m_output.front();
-    picture->sync();
-    Encode_Status ret = picture->getOutput(outBuffer);
-    if (ret != ENCODE_SUCCESS)
-        return ret;
+void VaapiEncoderBase::getPicture(PicturePtr &outPicture)
+{
+    outPicture = m_output.front();
+    outPicture->sync();
+}
+
+Encode_Status VaapiEncoderBase::checkCodecData(VideoEncOutputBuffer * outBuffer)
+{
     if (outBuffer->format != OUTPUT_CODEC_DATA) {
         AutoLock l(m_lock);
         m_output.pop_front();
     }
     return ENCODE_SUCCESS;
 }
+
+#ifndef __BUILD_GET_MV__
+Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, bool withWait)
+{
+    bool isEmpty;
+    PicturePtr picture;
+    Encode_Status ret;
+    FUNC_ENTER();
+    ret = checkEmpty(outBuffer, &isEmpty);
+    if (isEmpty)
+        return ret;
+
+    getPicture(picture);
+    ret = picture->getOutput(outBuffer);
+    if (ret != ENCODE_SUCCESS)
+        return ret;
+
+    checkCodecData(outBuffer);
+    return ENCODE_SUCCESS;
+}
+
+#else
+
+Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, VideoEncMVBuffer * MVBuffer, bool withWait)
+{
+    void *data = NULL;
+    uint32_t mappedSize;
+    bool isEmpty;
+    PicturePtr picture;
+    Encode_Status ret;
+    FUNC_ENTER();
+
+    ret = checkEmpty(outBuffer, &isEmpty);
+    if (isEmpty)
+        return ret;
+    getPicture(picture);
+
+    ret = picture->getOutput(outBuffer);
+    if (ret != ENCODE_SUCCESS)
+        return ret;
+    if (!picture->editMVBuffer(data, &mappedSize))
+        return ret;
+    if (data)
+        memcpy(MVBuffer->data, data, mappedSize);
+    checkCodecData(outBuffer);
+    return ENCODE_SUCCESS;
+}
+
+#endif
 
 Encode_Status VaapiEncoderBase::getCodecConfig(VideoEncOutputBuffer * outBuffer)
 {
