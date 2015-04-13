@@ -83,7 +83,8 @@ public:
      */
     virtual Decode_Status getOutput(unsigned long draw, int64_t *timeStamp
         , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
-        , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1) = 0;
+        , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1
+        , unsigned int flags = 0) = 0;
     /**
      * \brief export one frame to client buffer;
      * there are four type to export one frame (VideoDataMemoryType); after rendering, client return the buffer back by renderDone(VideoFrameRawData*);

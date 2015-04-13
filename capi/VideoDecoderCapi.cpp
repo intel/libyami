@@ -78,11 +78,11 @@ const VideoRenderBuffer* decodeGetOutput(DecodeHandler p, bool draining)
 #ifdef __ENABLE_X11__
 Decode_Status decodeGetOutput_x11(DecodeHandler p, Drawable draw, int64_t *timeStamp
         , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
-        , int frameX, int frameY, int frameWidth, int frameHeight)
+        , int frameX, int frameY, int frameWidth, int frameHeight, unsigned int flags)
 {
     if(p)
         return ((IVideoDecoder*)p)->getOutput(draw, timeStamp, drawX, drawY, drawWidth, drawHeight, draining
-                        , frameX, frameY, frameWidth, frameHeight);
+                        , frameX, frameY, frameWidth, frameHeight, flags);
     else
         return DECODE_FAIL;
 }
