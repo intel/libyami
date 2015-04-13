@@ -27,7 +27,7 @@
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
-#if LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(53, 35, 0)
+#if LIBAVCODEC_VERSION_INT <= AV_VERSION_INT(54, 51, 100)
     typedef CodecID AVCodecID;
     #define AV_CODEC_ID_NONE   CODEC_ID_NONE
     #define AV_CODEC_ID_VP8    CODEC_ID_VP8
