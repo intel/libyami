@@ -48,7 +48,7 @@ bool DecodeOutput::setVideoSize(int width, int height)
 }
 
 DecodeOutput::DecodeOutput(IVideoDecoder* decoder)
-    :m_decoder(decoder), m_width(0), m_height(0), m_renderFrames(0)
+    :m_decoder(decoder), m_width(0), m_height(0), m_renderFrames(0), m_frame{VIDEO_DATA_MEMORY_TYPE_RAW_POINTER, 0}
 {
 
 }
@@ -335,7 +335,7 @@ bool DecodeOutputX11::init()
     return true;
 }
 
-DecodeOutputX11::DecodeOutputX11(IVideoDecoder* decoder):DecodeOutput(decoder)
+DecodeOutputX11::DecodeOutputX11(IVideoDecoder* decoder):DecodeOutput(decoder), m_window(0)
 {
 }
 
