@@ -48,6 +48,7 @@ class IVideoEncoder {
     virtual Encode_Status encode(VideoEncRawBuffer * inBuffer) = 0;
     /// continue encoding with new data in @param[in] frame
     virtual Encode_Status encode(VideoFrameRawData* frame) = 0;
+#ifndef __BUILD_GET_MV__
     /**
      * \brief return one frame encoded data to client;
      * when withWait is false, ENCODE_BUFFER_NO_MORE will be returned if there is no available frame. \n
@@ -59,6 +60,21 @@ class IVideoEncoder {
      * param [in/out] when there is no output data available, wait or not
      */
     virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false) = 0;
+#else
+    /**
+     * \brief return one frame encoded data to client;
+     * when withWait is false, ENCODE_BUFFER_NO_MORE will be returned if there is no available frame. \n
+     * when withWait is true, function call is block until there is one frame available. \n
+     * typically, getOutput() is called in a separate thread (than encoding thread), this thread sleeps when
+     * there is no output available when withWait is true. \n
+     *
+     * param [in/out] outBuffer a #VideoEncOutputBuffer of one frame encoded data
+     * param [in/out] MVBuffer  a #VideoEncMVBuffer of one frame MV data
+     * param [in/out] when there is no output data available, wait or not
+     */
+    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, VideoEncMVBuffer * MVBuffer, bool withWait = false) = 0;
+#endif
+
     /// get encoder params, some config parameter are updated basing on sw/hw implement limition.
     /// for example, update pitches basing on hw alignment
     virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR videoEncParams) = 0;
@@ -67,6 +83,11 @@ class IVideoEncoder {
     virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR videoEncParams) = 0;
     /// get max coded buffer size.
     virtual Encode_Status getMaxOutSize(uint32_t * maxSize) = 0;
+
+#ifdef __BUILD_GET_MV__
+    /// get MV buffer size.
+    virtual Encode_Status getMVBufferSize(uint32_t * Size) = 0;
+#endif
 
     /// get encode statistics information, for debug use
     virtual Encode_Status getStatistics(VideoStatistics * videoStat) = 0;

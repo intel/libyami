@@ -349,3 +349,13 @@ bool createOutputBuffer(VideoEncOutputBuffer* outputBuffer, int maxOutSize)
     return true;
 }
 
+#ifdef __BUILD_GET_MV__
+bool createMVBuffer(VideoEncMVBuffer* MVBuffer, int Size)
+{
+    MVBuffer->data = static_cast<uint8_t*>(malloc(Size));
+    if (!MVBuffer->data)
+        return false;
+    MVBuffer->bufferSize = Size;
+    return true;
+}
+#endif

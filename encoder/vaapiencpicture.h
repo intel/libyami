@@ -64,6 +64,10 @@ class VaapiEncPicture:public VaapiPicture {
     // h264 encoder may need convert annexb to avcC
     virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer);
 
+#ifdef __BUILD_GET_MV__
+    virtual bool editMVBuffer(void*& buffer, uint32_t *size);
+#endif
+
     CodedBufferPtr m_codedBuffer;
 
   private:
@@ -76,6 +80,10 @@ class VaapiEncPicture:public VaapiPicture {
     BufObjectPtr m_picture;
     BufObjectPtr m_qMatrix;
     BufObjectPtr m_huffTable;
+#ifdef __BUILD_GET_MV__
+    BufObjectPtr m_MVBuffer;
+    BufObjectPtr m_FEIBuffer;
+#endif
     std::vector < BufObjectPtr > m_miscParams;
     std::vector < BufObjectPtr > m_slices;
     std::vector < std::pair<BufObjectPtr,BufObjectPtr > >m_packedHeaders;

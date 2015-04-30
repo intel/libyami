@@ -155,6 +155,37 @@ typedef struct VideoEncOutputBuffer {
 #endif
 }VideoEncOutputBuffer;
 
+#ifdef __BUILD_GET_MV__
+    /*
+    * VideoEncMVBuffer is defined to store Motion vector.
+    * Memory size allocated to data pointer can be got by getMVBufferSize API.
+    * Picture is partitioned to 16*16 block, within the 16x16 block, each 4x4 subblock has the same MV.
+    * Access the first 4*4 subblock to get the MV of each 16*16 block, and skip the 16*16 block to
+    * get MV of next 16x16 Block.
+    * Refer to structure VAMotionVectorIntel about detailed layout for MV of 4*4 subblock.
+    * 16x16 block is in raster scan order, within the 16x16 block, each 4x4 block MV is ordered as below in memory.
+    *                         16x16 Block
+    *        -----------------------------------------
+    *        |    1    |    2    |    5     |    6    |
+    *        -----------------------------------------
+    *        |    3    |    4    |    7     |    8    |
+    *        -----------------------------------------
+    *        |    9    |    10   |    13   |    14   |
+    *        -----------------------------------------
+    *        |    11   |    12   |    15   |    16   |
+    *        -----------------------------------------
+    */
+typedef struct VideoEncMVBuffer {
+    uint8_t *data;                //memory to store the MV
+    uint32_t bufferSize;        //buffer size
+    uint32_t dataSize;          //actuall size
+#ifndef __ENABLE_CAPI__
+     VideoEncMVBuffer():data(0), bufferSize(0), dataSize(0) {
+    };
+#endif
+}VideoEncMVBuffer;
+#endif
+
 typedef struct VideoEncRawBuffer {
     uint8_t *data;
     uint32_t fourcc;

@@ -140,5 +140,7 @@ class EncodeStreamOutputJpeg : public EncodeOutput
 };
 
 bool createOutputBuffer(VideoEncOutputBuffer* outputBuffer, int maxOutSize);
-
+#ifdef __BUILD_GET_MV__
+bool createMVBuffer(VideoEncMVBuffer* MVBuffer, int Size);
+#endif
 #endif

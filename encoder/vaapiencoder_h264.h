@@ -1,3 +1,4 @@
+
 /*
  *  vaapiencoder_h264.h - h264 encoder for va
  *
@@ -55,6 +56,10 @@ public:
     virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR);
     virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR);
     virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
+#ifdef __BUILD_GET_MV__
+    // get MV buffer size.
+    virtual Encode_Status getMVBufferSize(uint32_t * Size);
+#endif
 
 protected:
     virtual Encode_Status doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame);
