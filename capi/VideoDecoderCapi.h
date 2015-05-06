@@ -60,7 +60,7 @@ Decode_Status decodeGetOutputRawData(DecodeHandler p, VideoFrameRawData* frame, 
 
 const VideoFormatInfo* getFormatInfo(DecodeHandler p);
 
-void renderDone(DecodeHandler p, VideoRenderBuffer* buffer);
+void renderDone(DecodeHandler p, const VideoRenderBuffer* buffer);
 
 void renderDoneRawData(DecodeHandler p, VideoFrameRawData* buffer);
 
