@@ -100,7 +100,7 @@ const VideoFormatInfo* getFormatInfo(DecodeHandler p)
         return ((IVideoDecoder*)p)->getFormatInfo();
 }
 
-void renderDone(DecodeHandler p, VideoRenderBuffer* buffer)
+void renderDone(DecodeHandler p, const VideoRenderBuffer* buffer)
 {
     if(p)
         ((IVideoDecoder*)p)->renderDone(buffer);
