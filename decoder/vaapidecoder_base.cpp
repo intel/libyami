@@ -197,7 +197,7 @@ const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
 
 Decode_Status VaapiDecoderBase::getOutput(unsigned long draw, int64_t *timeStamp
     , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
-    , int frameX, int frameY, int frameWidth, int frameHeight)
+    , int frameX, int frameY, int frameWidth, int frameHeight, unsigned int flags)
 {
     VAStatus vaStatus = VA_STATUS_SUCCESS;
     const VideoRenderBuffer *renderBuffer = getOutput(draining);
@@ -220,7 +220,7 @@ Decode_Status VaapiDecoderBase::getOutput(unsigned long draw, int64_t *timeStamp
     vaStatus = vaPutSurface(m_display->getID(), renderBuffer->surface,
             draw, drawX, drawY, drawWidth, drawHeight,
             frameX, frameY, frameWidth, frameHeight,
-            NULL,0,0);
+            NULL,0,flags);
 #else
     vaStatus = VA_STATUS_ERROR_OPERATION_FAILED;
     ERROR("vaPutSurface is not supported when libva-x11 backend is disable during build (--disable-x11)");
