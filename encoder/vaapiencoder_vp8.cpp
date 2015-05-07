@@ -198,6 +198,8 @@ bool VaapiEncoderVP8::fill(VAQMatrixBufferVP8* qMatrix) const
     for (int i = 0; i < 4; i++) {
         qMatrix->quantization_index[i] = 40;
     }
+
+    return true;
 }
 
 
