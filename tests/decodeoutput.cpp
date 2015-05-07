@@ -320,7 +320,7 @@ bool DecodeOutputX11::init()
         fprintf(stderr, "Failed to XOpenDisplay during DecodeOutputX11::%s\n", __FUNCTION__);
         return false;
     }
-
+    m_window = 0;
     NativeDisplay nativeDisplay;
     if (renderMode == 0) {
         nativeDisplay.type = NATIVE_DISPLAY_DRM;
