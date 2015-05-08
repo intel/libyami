@@ -60,6 +60,7 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.cyclicFrameInterval = 30;
     m_videoParamCommon.refreshType = VIDEO_ENC_NONIR;
     m_videoParamCommon.airParams.airAuto = 1;
+    m_videoParamCommon.leastInputCount = 0;
 
     updateMaxOutputBufferCount();
 }
