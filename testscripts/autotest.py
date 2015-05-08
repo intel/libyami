@@ -15,7 +15,7 @@ if __name__ == '__main__':
     testoutput = sys.argv[3]
     savemode = True if int(sys.argv[4])==1 else False
     autotestpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    yamitestpath = os.path.join(autotestpath[0:autotestpath.rfind('/')],'tests')
+    yamitestpath = os.path.join(autotestpath[0:autotestpath.rfind('/')],'tests/.libs')
     yamidecode = os.path.join(yamitestpath, 'yamidecode')
     yamiencode = os.path.join(yamitestpath, 'yamiencode')
     v4l2decode = os.path.join(yamitestpath, 'v4l2decode')
@@ -27,14 +27,14 @@ if __name__ == '__main__':
     encodemodelist = ['m', '0']
     v4l2wmodelist  = ['w', '0', '1']
     v4l2mmodelist  = ['m', '-1', '0', '1', '2', '3', '4']
-
+    
     if testformat == 'decode':
         yamiobject = libyami(yamidecode, yamiencode, psnr)
         yamiobject.yamiplay(mediafiles, testoutput, 'D', decodemodelist, savemode, not savemode)
         yamiobject.writetologfile()
     elif testformat == 'encode':
         yamiobject = libyami(yamidecode, yamiencode, psnr)
-        yamiobject.yamiplay(mediafiles, testoutput, 'E', encodemodelist, savemode, True)
+        yamiobject.yamiplay(mediafiles, testoutput, 'E', encodemodelist, savemode, True)   
         yamiobject.writetologfile()
     elif testformat == 'v4l2':
         yamiobject = libyami(yamidecode, yamiencode, psnr)
@@ -50,3 +50,4 @@ if __name__ == '__main__':
         yamiobject.yamiplay(mediafiles, testoutput, 'D', v4l2mmodelist, savemode, False)
         yamiobject.yamiplay(mediafiles, testoutput, 'E', v4l2mmodelist, savemode, False)
         yamiobject.writetologfile()
+  

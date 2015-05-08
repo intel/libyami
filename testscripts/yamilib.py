@@ -9,6 +9,8 @@ class libyami:
     encodepsnr = 33
     decodefiltes = ['h264','264','26l','jsv','jvt','avc','ivf','jpeg','mjpg','jpg']
     encodefiltes = ['I420','NV12','yuv']
+    valgringformat = 'valgrind --sim-hints=lax-ioctls --leak-check=full --log-file='
+    memoryindex = 0
     def __init__(self, decode, encode, psnr):
         self.decode = decode
         self.encode = encode
@@ -18,6 +20,7 @@ class libyami:
         self.passnumber  = 0
         self.passlist = []
         self.faillist = []
+        self.logfile = ''
     def setdeencode(self, decode, encode):
         self.decode = decode
         self.encode = encode
@@ -39,6 +42,9 @@ class libyami:
         self.currentinputbase = os.path.basename(currentinput)
     def setcurrentoutput(self, currentoutput):
         self.currentoutput = currentoutput
+    def setmemoryleakcheck(self, memorylogfile):
+        self.memoryleakformat = libyami.valgringformat + self.outputdir + os.sep + str(memorylogfile)
+        self.memorylogfile = self.outputdir + os.sep + str(memorylogfile)  
     def setoutputdir(self, outputdir):
         if not os.path.exists(outputdir) or not os.path.isdir(outputdir):
             os.mkdir(outputdir)
@@ -48,7 +54,7 @@ class libyami:
         self.setsavemode(savemode)
         self.setplaymode(playmode)
         self.setcompmode(compmode)
-        if os.path.isfile(mediafile):
+        if os.path.isfile(mediafile):            
             self.play(mediafile, outputdir)
         for root,dirs,files in os.walk(mediafile):
             for testfile in files:
@@ -62,17 +68,19 @@ class libyami:
         self.setoutputdir(outputdir)
         if self.codemode == 'D' and self.passfilter(mediafile, libyami.decodefiltes):
             self.opennumber += 1
-            self.decodetest()
+            self.decodetest()      
         elif self.codemode == 'E' and self.passfilter(mediafile, libyami.encodefiltes):
             self.opennumber += 1
-            self.encodetest()
+            self.encodetest() 
     def decodetest(self):
         message = ['']
         if not self.savemode:
-            self.setcurrentoutput(os.path.join(self.outputdir, self.currentinputbase))
+            self.setcurrentoutput(os.path.join(self.outputdir, self.currentinputbase))            
         else:
             self.setcurrentoutput(self.outputdir)
         for i in range(1, len(self.playmode)):
+            libyami.memoryindex += 1 
+            self.setmemoryleakcheck(libyami.memoryindex) 
             if self.decodefunc(self.playmode[0], self.playmode[i], message):
                 if self.playmode[0] == 'm' and self.playmode[i]== '0' and self.compmode:
                     self.writetologlist(message[0], self.comparemd5())
@@ -82,12 +90,17 @@ class libyami:
                 self.writetologlist(message[0], False)
             if not self.savemode and os.path.exists(self.currentoutput):
                 os.remove(self.currentoutput)
+            self.checkmemoryleak()
     def encodetest(self):
         message = ['']
         self.setcurrentoutput(os.path.join(self.outputdir, self.currentinputbase+'.h264'))
+        libyami.memoryindex += 1
+        self.setmemoryleakcheck(libyami.memoryindex)
         if not self.encodefunc(message):
+            self.checkmemoryleak()
             self.writetologlist(message[0], False)
             return
+        self.checkmemoryleak()
         if not self.compmode:
             os.remove(self.currentoutput)
             self.writetologlist(message[0], True)
@@ -95,34 +108,53 @@ class libyami:
         rawI420 = self.currentinput
         self.setcurrentinput(self.currentoutput)
         self.setcurrentoutput(os.path.join(self.outputdir, os.path.basename(rawI420)))
+        libyami.memoryindex += 1
+        self.setmemoryleakcheck(libyami.memoryindex)
         if not self.decodefunc('m', '0', message):
+            self.checkmemoryleak()
             return
+        self.checkmemoryleak()
         self.setcurrentinput(rawI420)
+        libyami.memoryindex += 1
+        self.setmemoryleakcheck(libyami.memoryindex)
         self.psnrfunc()
         if not self.savemode:
-            os.remove(self.currentoutput)
+            os.remove(self.currentoutput)                    
             os.remove(self.currentoutput+'.txt')
             os.remove(self.currentoutput+'.h264')
+        self.checkmemoryleak()
     def decodefunc(self, mode, modevalue, message):
         if mode == 'm' and modevalue == '0':
-            decodeCmd = self.decode+' -i '+self.currentinput+' -'+mode+' '+modevalue+' -o '+self.currentoutput
+            decodeCmd = self.memoryleakformat+' '+self.decode+' -i '+self.currentinput+' -'+mode+' '+modevalue+' -o '+self.currentoutput
         else:
-            decodeCmd = self.decode+' -i '+self.currentinput+' -'+mode+' '+modevalue
+            decodeCmd = self.memoryleakformat+' '+self.decode+' -i '+self.currentinput+' -'+mode+' '+modevalue
         message[0] = os.path.basename(self.decode)+' '+self.currentinputbase+' -'+mode+' '+modevalue
         if os.system(decodeCmd) != 0:
             return False
         return True
     def encodefunc(self, message):
         W_H = self.get_w_h(self.currentinputbase)
-        encodeCmd = self.encode+' -i '+self.currentinput+' -s I420 -W '+str(W_H[0])+' -H '+str(W_H[1])+' -o '+self.currentoutput
+        encodeCmd = self.memoryleakformat+' '+self.encode+' -i '+self.currentinput+' -s I420 -W '+str(W_H[0])+' -H '+str(W_H[1])+' -o '+self.currentoutput
         message[0] = os.path.basename(self.encode)+' '+self.currentinputbase
         if os.system(encodeCmd) != 0:
             return False
         return True
     def psnrfunc(self):
         W_H = self.get_w_h(self.currentinputbase)
-        psnrCmd = self.psnr+' -i '+self.currentinput+' -o '+self.currentoutput+' -W '+str(W_H[0])+' -H '+str(W_H[1])+' -s '+str(libyami.encodepsnr)
+        psnrCmd = self.memoryleakformat+' '+self.psnr+' -i '+self.currentinput+' -o '+self.currentoutput+' -W '+str(W_H[0])+' -H '+str(W_H[1])+' -s '+str(libyami.encodepsnr)
         os.system(psnrCmd)
+    def checkmemoryleak(self):
+        memcheckresult=open(self.memorylogfile).read()
+        errornumb=0
+        errorflag=True
+        while errorflag:
+            errornumb=memcheckresult.find('ERROR SUMMARY:', errornumb)+15
+            if errornumb == 14:
+                break
+            if memcheckresult[errornumb] != '0':
+                errorflag = False
+        if errorflag and os.path.exists(self.memorylogfile):
+            os.remove(self.memorylogfile)
     def get_w_h(self, filename):
         filenamelist = filename.split('_')
         filenamelist = filenamelist[len(filenamelist) - 1].split('.')
@@ -130,18 +162,18 @@ class libyami:
         return W_H
     def comparemd5(self):
         currentmd5 = self.getmd5sum()
-        return self.verifymd5(currentmd5)
+        return self.verifymd5(currentmd5)            
     def getmd5sum(self):
         fmd5value = hashlib.md5()
         fd = open(self.currentoutput, 'rb')
         fmd5value.update(fd.read())
         fd.close()
-        return fmd5value.hexdigest()
+        return fmd5value.hexdigest()          
     def verifymd5(self, md5value):
         returnvalue = False
         refmd5 = os.path.join(os.path.dirname(self.currentinput),'bits.md5')
         fd = open(refmd5, 'r')
-        lines = fd.readlines()
+        lines = fd.readlines() 
         for strline in lines:
             if md5value in strline and self.currentinputbase in strline:
                 returnvalue = True
@@ -151,7 +183,7 @@ class libyami:
     def passfilter(self, mediafile, filters):
         for i in range(0, len(filters)):
             if mediafile.endswith(filters[i]):
-                return True
+                return True 
         return False
     def writetologlist(self, message, checkvalue):
         if checkvalue:
@@ -160,6 +192,12 @@ class libyami:
         else:
             self.faillist.append(message)
             self.failnumber += 1
+    def resetinfo(self):
+        self.opennumber = 0
+        self.passnumber = 0
+        self.failnumber = 0
+        self.passlist = []
+        self.faillist = []       
     def parsepsnrresult(self):
         psnrfile = os.path.join(self.outputdir, 'jpg_psnr.txt')
         if not os.path.exists(psnrfile):
@@ -181,10 +219,18 @@ class libyami:
         logfile = os.path.join(logdirectory, logfile)
         logfilehandler = open(logfile, 'a')
         logfilehandler.write('open file:'+str(self.opennumber)+'\npass test:'+str(self.passnumber)+'\nfail test:'+str(self.failnumber))
-        logfilehandler.write("\n\nfail test as follow:\n")
+        logfilehandler.write("\n\nfail test as follow:\n\n")
         for i in range(len(self.faillist)):
-            logfilehandler.write(self.faillist[i]+'\n')
-        logfilehandler.write("\n\npass test as follow:\n")
+            logfilehandler.write(self.faillist[i]+'\n\n')
+        logfilehandler.write("\n\npass test as follow:\n\n")
         for i in range(len(self.passlist)):
-            logfilehandler.write(self.passlist[i]+'\n')
-        logfilehandler.close()
+            logfilehandler.write(self.passlist[i]+'\n\n')
+        logfilehandler.close()            
+    def printinfo(self):
+        print("open file:%d\npass test:%d\nfail test:%d\n"%(self.opennumber,self.passnumber,self.failnumber))
+        print("\n\nfail test as follow:")
+        for i in range(len(self.faillist)):
+            print(self.faillist[i])
+        print("\n\npass test as follow:")
+        for i in range(len(self.passlist)):
+            print(self.passlist[i])
