@@ -165,6 +165,7 @@ int main(int argc, char** argv)
     releaseVideoEncoder(encoder);
     free(outputBuffer.data);
     delete output;
+    delete input;
 #ifdef __BUILD_GET_MV__
     free(MVBuffer.data);
     fclose(MVFp);
