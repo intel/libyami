@@ -54,9 +54,9 @@ private:
 SharedPtr<VADisplay> createVADisplay()
 {
     SharedPtr<VADisplay> display;
-    int fd = open("/dev/dri/card0", O_RDWR);
+    int fd = open("/dev/dri/renderD128", O_RDWR);
     if (fd < 0) {
-        ERROR("open card0 failed");
+        ERROR("open renderD128 failed");
         return display;
     }
     VADisplay vadisplay = vaGetDisplayDRM(fd);
