@@ -4,6 +4,7 @@ libyami_codecparser_source_c = \
         bitreader.c \
         bytereader.c \
         h264parser.c \
+        h265parser.c \
         mpegvideoparser.c \
         mpeg4parser.c \
         vc1parser.c \
@@ -20,6 +21,7 @@ libyami_codecparser_source_h_priv = \
         bitreader.h \
         bytereader.h \
         h264parser.h \
+        h265parser.c \
         mpegvideoparser.h \
         mpeg4parser.h \
         vc1parser.h \
