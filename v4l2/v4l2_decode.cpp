@@ -251,6 +251,10 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     return true;
 }
 
+#ifndef V4L2_PIX_FMT_VP9
+#define V4L2_PIX_FMT_VP9 '09PV'
+#endif
+
 int32_t V4l2Decoder::ioctl(int command, void* arg)
 {
     Decode_Status encodeStatus = DECODE_SUCCESS;
@@ -382,6 +386,10 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         struct v4l2_fmtdesc *fmtdesc = static_cast<struct v4l2_fmtdesc *>(arg);
         if ((fmtdesc->index == 0) && (fmtdesc->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)) {
             fmtdesc->pixelformat = V4L2_PIX_FMT_NV12M;
+        } else if ((fmtdesc->index == 0) && (fmtdesc->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)) {
+            fmtdesc->pixelformat = V4L2_PIX_FMT_VP8;
+        } else if ((fmtdesc->index == 1) && (fmtdesc->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)) {
+            fmtdesc->pixelformat = V4L2_PIX_FMT_VP9;
         } else {
             ret = -1;
         }
