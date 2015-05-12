@@ -51,7 +51,7 @@ Decode_Status VaapiDecoderVP9::start(VideoConfigBuffer * buffer)
           buffer->height);
     Decode_Status status;
 
-    buffer->profile = VAProfileVP9Version0;
+    buffer->profile = VAProfileVP9Profile0;
     //8 reference frame + extra number
     buffer->surfaceNumber = 8 + VP9_EXTRA_SURFACE_NUMBER;
 
