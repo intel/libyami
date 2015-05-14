@@ -102,7 +102,8 @@ bool V4l2Decoder::start()
 
 bool V4l2Decoder::stop()
 {
-    m_decoder->stop();
+    if (m_started)
+      m_decoder->stop();
 
     m_started = false;
     return true;
