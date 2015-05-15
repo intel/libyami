@@ -314,10 +314,14 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             }
 
             m_streamOn[port] = true;
-            if (pthread_create(&m_worker[port], NULL, _workerThread, this) != 0) {
+            pthread_attr_t attr;
+            pthread_attr_init(&attr);
+            pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+            if (pthread_create(&m_worker[port], &attr, _workerThread, this) != 0) {
                 ret = -1;
                 ERROR("fail to create input worker thread");
             }
+            pthread_detach(m_worker[port]);
         }
         break;
         case VIDIOC_STREAMOFF: {
