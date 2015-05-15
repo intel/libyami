@@ -35,7 +35,7 @@ class V4l2Decoder : public V4l2CodecBase
 {
   public:
     V4l2Decoder();
-     ~V4l2Decoder() {};
+     ~V4l2Decoder();
 
     virtual int32_t ioctl(int request, void* arg);
     virtual void* mmap(void* addr, size_t length,

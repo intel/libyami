@@ -71,6 +71,18 @@ V4l2Decoder::V4l2Decoder()
     m_memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
 }
 
+V4l2Decoder::~V4l2Decoder()
+{
+    if (m_bufferSpace[INPUT]) {
+        delete [] m_bufferSpace[INPUT];
+        m_bufferSpace[OUTPUT] = NULL;
+    }
+    if (m_bufferSpace[OUTPUT]) {
+        delete [] m_bufferSpace[OUTPUT];
+        m_bufferSpace[OUTPUT] = NULL;
+    }
+}
+
 void V4l2Decoder::releaseCodecLock(bool lockable)
 {
     m_decoder->releaseLock(lockable);
@@ -432,7 +444,7 @@ void* V4l2Decoder::mmap (void* addr, size_t length,
 
     if (offset < m_maxBufferSize[INPUT] * m_maxBufferCount[INPUT]) { // assume it is input buffer
         if (!m_bufferSpace[INPUT]) {
-            m_bufferSpace[INPUT] = static_cast<uint8_t*>(malloc(m_maxBufferSize[INPUT] * m_maxBufferCount[INPUT]));
+            m_bufferSpace[INPUT] = new uint8_t[m_maxBufferSize[INPUT] * m_maxBufferCount[INPUT]];
             for (i=0; i<m_maxBufferCount[INPUT]; i++) {
                 m_inputFrames[i].data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*i;
                 m_inputFrames[i].size = m_maxBufferSize[INPUT];
@@ -444,7 +456,7 @@ void* V4l2Decoder::mmap (void* addr, size_t length,
         offset -= m_maxBufferSize[INPUT] * m_maxBufferCount[INPUT];
         ASSERT(offset <= m_maxBufferSize[OUTPUT] * m_maxBufferCount[OUTPUT]);
         if (!m_bufferSpace[OUTPUT]) {
-            m_bufferSpace[OUTPUT] = static_cast<uint8_t*>(malloc(m_maxBufferSize[OUTPUT] * m_maxBufferCount[OUTPUT]));
+            m_bufferSpace[OUTPUT] = new uint8_t[m_maxBufferSize[OUTPUT] * m_maxBufferCount[OUTPUT]];
             for (i=0; i<m_maxBufferCount[OUTPUT]; i++) {
                 m_outputRawFrames[i].handle = (intptr_t)(m_bufferSpace[OUTPUT] + m_maxBufferSize[OUTPUT]*i);
                 m_outputRawFrames[i].size = m_maxBufferSize[OUTPUT];
