@@ -104,8 +104,7 @@ public:
     ~SimplePlayer()
     {
         if (m_nativeDisplay) {
-            VADisplay dpy = (VADisplay)m_nativeDisplay->handle;
-            vaTerminate(dpy);
+            vaTerminate(m_vaDisplay);
         }
         if (m_window) {
             XDestroyWindow(m_display.get(), m_window);
@@ -114,11 +113,19 @@ public:
 private:
     void renderOutputs()
     {
-        Decode_Status status;
+        VAStatus status = VA_STATUS_SUCCESS;
         do {
-            int64_t timeStamp;
-            status = m_decoder->getOutput(m_window, &timeStamp, 0, 0, m_width, m_height);
-        } while (status == RENDER_SUCCESS);
+            SharedPtr<VideoFrame> frame = m_decoder->getOutput();
+            if (!frame)
+                break;
+            status = vaPutSurface(m_vaDisplay, (VASurfaceID)frame->surface,
+                m_window, 0, 0, m_width, m_height, 0, 0, m_width, m_height,
+                NULL, 0, 0);
+            if (status != VA_STATUS_SUCCESS) {
+                ERROR("vaPutSurface return %d", status);
+                break;
+            }
+        } while (1);
     }
     bool initDisplay()
     {
@@ -128,17 +135,17 @@ private:
             return false;
         }
         m_display.reset(display, XCloseDisplay);
-        VADisplay vaDisplay = vaGetDisplay(m_display.get());
+        m_vaDisplay = vaGetDisplay(m_display.get());
         int major, minor;
         VAStatus status;
-        status = vaInitialize(vaDisplay, &major, &minor);
+        status = vaInitialize(m_vaDisplay, &major, &minor);
         if (status != VA_STATUS_SUCCESS) {
             fprintf(stderr, "init va failed status = %d", status);
             return false;
         }
         m_nativeDisplay.reset(new NativeDisplay);
         m_nativeDisplay->type = NATIVE_DISPLAY_VA;
-        m_nativeDisplay->handle = (intptr_t)vaDisplay;
+        m_nativeDisplay->handle = (intptr_t)m_vaDisplay;
         return true;
     }
     void resizeWindow(int width, int height)
@@ -167,6 +174,7 @@ private:
     }
     SharedPtr<Display> m_display;
     SharedPtr<NativeDisplay> m_nativeDisplay;
+    VADisplay m_vaDisplay;
     Window   m_window;
     SharedPtr<IVideoDecoder> m_decoder;
     SharedPtr<DecodeInput> m_input;

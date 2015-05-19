@@ -52,13 +52,16 @@ public:
     virtual void flush(void) = 0;
     /// continue decoding with new data in @param[in] buffer; send empty data (buffer.data=NULL, buffer.size=0) to indicate EOS
     virtual Decode_Status decode(VideoDecodeBuffer *buffer) = 0;
+
+    ///get decoded frame from decoder.
+    virtual SharedPtr<VideoFrame> getOutput() = 0;
     /**
      * \brief return one frame to client for display; obsolete API. please use getOutput(XID, ...) or getOutput(VideoFrameRawData, ...) instead.
      * NULL will be returned if no available frame for rendering
      * @param[in] draining drain out all possible frames or not. it is set to true upon EOS.
      * @return a #VideoRenderBuffer to be rendered by client
      */
-    virtual const VideoRenderBuffer* getOutput(bool draining = false) = 0;
+    virtual const VideoRenderBuffer* getOutput(bool draining) = 0;
     /**
      * \brief  render one available video frame to draw
      * @param[in] draw a X11 drawable, Pixmap or Window ID. we do not use Drawable/XID type from X11/X.h because interface should be unique unconditionally
