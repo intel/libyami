@@ -63,7 +63,7 @@ Encode_Status VaapiEncoderVP8::getMaxOutSize(uint32_t *maxSize)
 void VaapiEncoderVP8::resetParams()
 {
     //5 times compress ratio
-    m_maxCodedbufSize = width() * height() * 3 / 2 / 5;
+    m_maxCodedbufSize = width() * height() * 3 / 2;
 }
 
 Encode_Status VaapiEncoderVP8::start()
@@ -198,6 +198,8 @@ bool VaapiEncoderVP8::fill(VAQMatrixBufferVP8* qMatrix) const
     for (int i = 0; i < 4; i++) {
         qMatrix->quantization_index[i] = 40;
     }
+
+    return true;
 }
 
 

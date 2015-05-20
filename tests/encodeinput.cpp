@@ -238,7 +238,7 @@ static void get_ivf_file_header(uint8_t *header, int width, int height,int count
     setUint32(header+8,  '08PV');               /* headersize */
     setUint16(header+12, width);                /* width */
     setUint16(header+14, height);               /* height */
-    setUint32(header+16, 1);                    /* rate */
+    setUint32(header+16, 30);                    /* rate */
     setUint32(header+20, 1);                    /* scale */
     setUint32(header+24, count);                /* length */
     setUint32(header+28, 0);                    /* unused */
