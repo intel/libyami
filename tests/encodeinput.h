@@ -40,7 +40,7 @@ class EncodeInput {
 public:
     static EncodeInput* create(const char* inputFileName, uint32_t fourcc, int width, int height);
     EncodeInput() : m_width(0), m_height(0), m_frameSize(0) {};
-    ~EncodeInput() {};
+    virtual ~EncodeInput() {};
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height) = 0;
     virtual bool getOneFrameInput(VideoFrameRawData &inputBuffer) = 0;
     virtual bool recycleOneFrameInput(VideoFrameRawData &inputBuffer) {return true;};
@@ -107,7 +107,7 @@ private:
 class EncodeOutput {
 public:
     EncodeOutput();
-    ~EncodeOutput();
+    virtual ~EncodeOutput();
     static  EncodeOutput* create(const char* outputFileName, int width , int height);
     virtual bool write(void* data, int size);
     virtual const char* getMimeType() = 0;
