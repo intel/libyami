@@ -1146,7 +1146,6 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
         break;
     case 5:
         {
-            flushDPB();
             /* The picture shall be inferred to have had frame_num equal to 0 (7.4.3) */
             picture->m_frameNum = 0;
 
@@ -1161,6 +1160,8 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
 
             if (VAAPI_H264_PICTURE_IS_SHORT_TERM_REFERENCE(picture))
                 removeShortReference(picture);
+
+            flushDPB();
         }
         break;
     case 6:
