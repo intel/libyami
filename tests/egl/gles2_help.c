@@ -103,7 +103,7 @@ createShaders(const char *vertexShaderText, const char *fragShaderText, int texC
     char log[BUFFER_SIZE];
     GLsizei logSize;
 
-    glProgram = calloc(1, sizeof(glProgram));
+    glProgram = calloc(1, sizeof(GLProgram));
     if (!glProgram)
         return NULL;
 
