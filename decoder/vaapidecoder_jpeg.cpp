@@ -229,7 +229,6 @@ Decode_Status
 Decode_Status VaapiDecoderJpeg::fillQuantizationTable()
 {
     VAIQMatrixBufferJPEGBaseline *vaIqMatrix = NULL;
-    VaapiBufObject *object;
     uint32_t i, j, numTables;
 
     if (!m_hasQuantTable)
@@ -262,7 +261,6 @@ Decode_Status VaapiDecoderJpeg::fillHuffmanTable()
 {
     VAHuffmanTableBufferJPEGBaseline *vaHuffmanTable = NULL;
     JpegHuffmanTables *const hufTables = &m_hufTables;
-    VaapiBufObject *object;
     uint32_t i, numTables;
 
     if (!m_hasHufTable)
@@ -333,8 +331,6 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
 
     m_picture = createPicture(m_currentPTS);
     ASSERT(m_picture);
-    if (!m_picture)
-        return false;
 
     if (!m_picture) {
         ERROR("failed to allocate picture");

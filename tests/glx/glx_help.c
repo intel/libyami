@@ -72,6 +72,7 @@ GLXContextType* glxInit(Display *x11Display, Window x11Window)
     XVisualInfo *visualInfo = glXChooseVisual(x11Display, screen, attribs);
     ASSERT(visualInfo);
     glxContext = glXCreateContext(x11Display, visualInfo, NULL, True);
+    XFree(visualInfo);
     ASSERT(glxContext);
 
     context.glxContext = glxContext;
@@ -106,6 +107,7 @@ void glxRelease(GLXContextType *glxContext, Pixmap *pixmaps, GLXPixmap *glxPixma
     int i;
     for (i=0; i<pixmapCount; i++) {
         glXReleaseTexImageEXT_func(glxContext->x11Display, glxPixmaps[i], GLX_FRONT_LEFT_EXT);
+        glXMakeCurrent(glxContext->x11Display, None, NULL);
         glXDestroyPixmap(glxContext->x11Display, glxPixmaps[i]);
         XFreePixmap(glxContext->x11Display, pixmaps[i]);
     }
@@ -138,6 +140,7 @@ int createPixmapForTexture(GLXContextType *glxContext, GLuint texture, uint32_t 
     *pixmap = XCreatePixmap(x11Display, DEFAULT_ROOT_WINDOW(x11Display), width, height, depth);
     ASSERT(*pixmap);
     *glxPixmap = glXCreatePixmap(x11Display, *fbConfig, *pixmap, pixmapAttr);
+    XFree(fbConfig);
     ASSERT(*glxPixmap);
     glBindTexture(GL_TEXTURE_2D, texture);
     glXBindTexImageEXT_func(x11Display, *glxPixmap, GLX_FRONT_LEFT_EXT, NULL);
