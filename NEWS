@@ -1,7 +1,17 @@
-libyami NEWS -- summary of changes.  2015-03-27
+libyami NEWS -- summary of changes.  2015-05-22
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2015 Intel Corporation
+
+libyami 0.2.4 release
+=====================
++add vpp interface for c++
++fix momory leak, uinitilized variable and invalid read reported by valgrind
++3 bug fix for vp8 encoder.
++.gitignore file
++ update correct profile name for vp9 since libva updated.
+
+
 
 libyami 0.2.3 release
 =====================
