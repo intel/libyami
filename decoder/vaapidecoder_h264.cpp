@@ -1277,13 +1277,17 @@ bool VaapiDecoderH264::decodeCodecData(uint8_t * buf, uint32_t bufSize)
     if (!buf || bufSize == 0)
         return false;
 
+    if (buf[0] != 1) {
+        VideoDecodeBuffer buffer;
+        memset(&buffer, 0, sizeof(buffer));
+        buffer.data = buf;
+        buffer.size = bufSize;
+        status = decode(&buffer);
+        return status == DECODE_SUCCESS;
+    }
+
     if (bufSize < 8)
         return false;
-
-    if (buf[0] != 1) {
-        ERROR("failed to decode codec-data, not in avcC format");
-        return false;
-    }
 
     m_nalLengthSize = (buf[4] & 0x03) + 1;
 

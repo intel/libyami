@@ -112,7 +112,6 @@ bool DecodeInputAvFormat::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
             memset(&inputBuffer, 0, sizeof(inputBuffer));
             inputBuffer.data = m_packet.data;
             inputBuffer.size = m_packet.size;
-            inputBuffer.flag = IS_AVCC;
             inputBuffer.timeStamp = m_packet.dts;
             return true;
         }
