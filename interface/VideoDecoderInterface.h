@@ -126,6 +126,8 @@ public:
     /// EOS also set lockable to false
     virtual void releaseLock(bool lockable=false) = 0;
 
+    ///do not use this, we will remove this in near future
+    virtual VADisplay getDisplayID() = 0;
     /// obsolete, make all cached video frame output-able, it can be done by getOutput(draining=true) as well
     virtual void flushOutport(void) = 0;
     /// not interest for now, may be used by Android to accept external video frame memory from gralloc

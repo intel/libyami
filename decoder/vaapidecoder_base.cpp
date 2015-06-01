@@ -459,4 +459,11 @@ Decode_Status VaapiDecoderBase::outputPicture(const PicturePtr& picture)
         picture->m_timeStamp)?DECODE_SUCCESS:DECODE_FAIL;
 }
 
+VADisplay VaapiDecoderBase::getDisplayID()
+{
+    if (!m_display)
+        return NULL;
+    return m_display->getID();
+}
+
 } //namespace YamiMediaCodec
