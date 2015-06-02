@@ -1,7 +1,9 @@
-/* vp8parser.c
+/*
+ * vp8parser.c - VP8 parser
  *
- *  Copyright (C) 2013-2014 Intel Corporation
- *    Author: Zhao, Halley<halley.zhao@intel.com>
+ * Copyright (C) 2013-2014 Intel Corporation
+ *   Author: Halley Zhao <halley.zhao@intel.com>
+ *   Author: Gwenole Beauchesne <gwenole.beauchesne@intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -18,6 +20,7 @@
  * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
  * Boston, MA 02110-1301, USA.
  */
+
 /**
  * SECTION:vp8parser
  * @short_description: Convenience library for parsing vp8 video bitstream.
@@ -27,851 +30,538 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+# include "config.h"
 #endif
+#include <string.h>
 #include "bytereader.h"
 #include "vp8parser.h"
-#include "dboolhuff.h"
-#include <string.h>
-#include "common/log.h"
+#include "vp8rangedecoder.h"
+#include "vp8utils.h"
 
-/* section 13.4 of spec */
-static const uint8_t vp8_token_update_probs[4][8][3][11] = {
-  {
-        {
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {176, 246, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {223, 241, 252, 255, 255, 255, 255, 255, 255, 255, 255},
-              {249, 253, 253, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 244, 252, 255, 255, 255, 255, 255, 255, 255, 255},
-              {234, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {253, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 246, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {239, 253, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {254, 255, 254, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 248, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {251, 255, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 253, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {251, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {254, 255, 254, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 254, 253, 255, 254, 255, 255, 255, 255, 255, 255},
-              {250, 255, 254, 255, 254, 255, 255, 255, 255, 255, 255},
-              {254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            }
-      },
-  {
-        {
-              {217, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {225, 252, 241, 253, 255, 255, 254, 255, 255, 255, 255},
-              {234, 250, 241, 250, 253, 255, 253, 254, 255, 255, 255}
-            },
-        {
-              {255, 254, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {223, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {238, 253, 254, 254, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 248, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {249, 254, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 253, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {247, 254, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 253, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {252, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {253, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 254, 253, 255, 255, 255, 255, 255, 255, 255, 255},
-              {250, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            }
-      },
-  {
-        {
-              {186, 251, 250, 255, 255, 255, 255, 255, 255, 255, 255},
-              {234, 251, 244, 254, 255, 255, 255, 255, 255, 255, 255},
-              {251, 251, 243, 253, 254, 255, 254, 255, 255, 255, 255}
-            },
-        {
-              {255, 253, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {236, 253, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {251, 253, 253, 254, 254, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {254, 254, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 254, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {254, 254, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            }
-      },
-  {
-        {
-              {248, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {250, 254, 252, 254, 255, 255, 255, 255, 255, 255, 255},
-              {248, 254, 249, 253, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 253, 253, 255, 255, 255, 255, 255, 255, 255, 255},
-              {246, 253, 253, 255, 255, 255, 255, 255, 255, 255, 255},
-              {252, 254, 251, 254, 254, 255, 255, 255, 255, 255, 255}
-            },
+DEBUG_CATEGORY (vp8_parser_debug);
+#define CAT_DEFAULT vp8_parser_debug
 
-        {
-              {255, 254, 252, 255, 255, 255, 255, 255, 255, 255, 255},
-              {248, 254, 253, 255, 255, 255, 255, 255, 255, 255, 255},
-              {253, 255, 254, 254, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 251, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {245, 251, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {253, 253, 254, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 251, 253, 255, 255, 255, 255, 255, 255, 255, 255},
-              {252, 253, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 254, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 252, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {249, 255, 254, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 254, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 255, 253, 255, 255, 255, 255, 255, 255, 255, 255},
-              {250, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            },
-        {
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {254, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255},
-              {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255}
-            }
-      }
-};
-
-/* section 17.2 of spec */
-static const uint8_t vp8_mv_update_prob[2][19] = {
-  {
-        237,
-        246,
-        253, 253, 254, 254, 254, 254, 254,
-      254, 254, 254, 254, 254, 250, 250, 252, 254, 254},
-  {
-        231,
-        243,
-        245, 253, 254, 254, 254, 254, 254,
-      254, 254, 254, 254, 254, 251, 251, 254, 254, 254}
-};
-
-/* section 13.4 of spec */
-static const uint8_t default_coef_probs[4][8][3][11] = {
-  {
-        {
-              {128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128},
-              {128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128},
-              {128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128}
-            },
-        {
-              {253, 136, 254, 255, 228, 219, 128, 128, 128, 128, 128},
-              {189, 129, 242, 255, 227, 213, 255, 219, 128, 128, 128},
-              {106, 126, 227, 252, 214, 209, 255, 255, 128, 128, 128}
-            },
-        {
-              {1, 98, 248, 255, 236, 226, 255, 255, 128, 128, 128},
-              {181, 133, 238, 254, 221, 234, 255, 154, 128, 128, 128},
-              {78, 134, 202, 247, 198, 180, 255, 219, 128, 128, 128}
-            },
-        {
-              {1, 185, 249, 255, 243, 255, 128, 128, 128, 128, 128},
-              {184, 150, 247, 255, 236, 224, 128, 128, 128, 128, 128},
-              {77, 110, 216, 255, 236, 230, 128, 128, 128, 128, 128}
-            },
-        {
-              {1, 101, 251, 255, 241, 255, 128, 128, 128, 128, 128},
-              {170, 139, 241, 252, 236, 209, 255, 255, 128, 128, 128},
-              {37, 116, 196, 243, 228, 255, 255, 255, 128, 128, 128}
-            },
-        {
-              {1, 204, 254, 255, 245, 255, 128, 128, 128, 128, 128},
-              {207, 160, 250, 255, 238, 128, 128, 128, 128, 128, 128},
-              {102, 103, 231, 255, 211, 171, 128, 128, 128, 128, 128}
-            },
-        {
-              {1, 152, 252, 255, 240, 255, 128, 128, 128, 128, 128},
-              {177, 135, 243, 255, 234, 225, 128, 128, 128, 128, 128},
-              {80, 129, 211, 255, 194, 224, 128, 128, 128, 128, 128}
-            },
-        {
-              {1, 1, 255, 128, 128, 128, 128, 128, 128, 128, 128},
-              {246, 1, 255, 128, 128, 128, 128, 128, 128, 128, 128},
-              {255, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128}
-            }
-      },
-  {
-        {
-              {198, 35, 237, 223, 193, 187, 162, 160, 145, 155, 62},
-              {131, 45, 198, 221, 172, 176, 220, 157, 252, 221, 1},
-              {68, 47, 146, 208, 149, 167, 221, 162, 255, 223, 128}
-            },
-        {
-              {1, 149, 241, 255, 221, 224, 255, 255, 128, 128, 128},
-              {184, 141, 234, 253, 222, 220, 255, 199, 128, 128, 128},
-              {81, 99, 181, 242, 176, 190, 249, 202, 255, 255, 128}
-            },
-        {
-              {1, 129, 232, 253, 214, 197, 242, 196, 255, 255, 128},
-              {99, 121, 210, 250, 201, 198, 255, 202, 128, 128, 128},
-              {23, 91, 163, 242, 170, 187, 247, 210, 255, 255, 128}
-            },
-        {
-              {1, 200, 246, 255, 234, 255, 128, 128, 128, 128, 128},
-              {109, 178, 241, 255, 231, 245, 255, 255, 128, 128, 128},
-              {44, 130, 201, 253, 205, 192, 255, 255, 128, 128, 128}
-            },
-        {
-              {1, 132, 239, 251, 219, 209, 255, 165, 128, 128, 128},
-              {94, 136, 225, 251, 218, 190, 255, 255, 128, 128, 128},
-              {22, 100, 174, 245, 186, 161, 255, 199, 128, 128, 128}
-            },
-        {
-              {1, 182, 249, 255, 232, 235, 128, 128, 128, 128, 128},
-              {124, 143, 241, 255, 227, 234, 128, 128, 128, 128, 128},
-              {35, 77, 181, 251, 193, 211, 255, 205, 128, 128, 128}
-            },
-        {
-              {1, 157, 247, 255, 236, 231, 255, 255, 128, 128, 128},
-              {121, 141, 235, 255, 225, 227, 255, 255, 128, 128, 128},
-              {45, 99, 188, 251, 195, 217, 255, 224, 128, 128, 128}
-            },
-        {
-              {1, 1, 251, 255, 213, 255, 128, 128, 128, 128, 128},
-              {203, 1, 248, 255, 255, 128, 128, 128, 128, 128, 128},
-              {137, 1, 177, 255, 224, 255, 128, 128, 128, 128, 128}
-            }
-      },
-  {
-        {
-              {253, 9, 248, 251, 207, 208, 255, 192, 128, 128, 128},
-              {175, 13, 224, 243, 193, 185, 249, 198, 255, 255, 128},
-              {73, 17, 171, 221, 161, 179, 236, 167, 255, 234, 128}
-            },
-        {
-              {1, 95, 247, 253, 212, 183, 255, 255, 128, 128, 128},
-              {239, 90, 244, 250, 211, 209, 255, 255, 128, 128, 128},
-              {155, 77, 195, 248, 188, 195, 255, 255, 128, 128, 128}
-            },
-        {
-              {1, 24, 239, 251, 218, 219, 255, 205, 128, 128, 128},
-              {201, 51, 219, 255, 196, 186, 128, 128, 128, 128, 128},
-              {69, 46, 190, 239, 201, 218, 255, 228, 128, 128, 128}
-            },
-        {
-              {1, 191, 251, 255, 255, 128, 128, 128, 128, 128, 128},
-              {223, 165, 249, 255, 213, 255, 128, 128, 128, 128, 128},
-              {141, 124, 248, 255, 255, 128, 128, 128, 128, 128, 128}
-            },
-        {
-              {1, 16, 248, 255, 255, 128, 128, 128, 128, 128, 128},
-              {190, 36, 230, 255, 236, 255, 128, 128, 128, 128, 128},
-              {149, 1, 255, 128, 128, 128, 128, 128, 128, 128, 128}
-            },
-        {
-              {1, 226, 255, 128, 128, 128, 128, 128, 128, 128, 128},
-              {247, 192, 255, 128, 128, 128, 128, 128, 128, 128, 128},
-              {240, 128, 255, 128, 128, 128, 128, 128, 128, 128, 128}
-            },
-        {
-              {1, 134, 252, 255, 255, 128, 128, 128, 128, 128, 128},
-              {213, 62, 250, 255, 255, 128, 128, 128, 128, 128, 128},
-              {55, 93, 255, 128, 128, 128, 128, 128, 128, 128, 128}
-            },
-        {
-              {128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128},
-              {128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128},
-              {128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128}
-            }
-      },
-  {
-        {
-              {202, 24, 213, 235, 186, 191, 220, 160, 240, 175, 255},
-              {126, 38, 182, 232, 169, 184, 228, 174, 255, 187, 128},
-              {61, 46, 138, 219, 151, 178, 240, 170, 255, 216, 128}
-            },
-        {
-              {1, 112, 230, 250, 199, 191, 247, 159, 255, 255, 128},
-              {166, 109, 228, 252, 211, 215, 255, 174, 128, 128, 128},
-              {39, 77, 162, 232, 172, 180, 245, 178, 255, 255, 128}
-            },
-        {
-              {1, 52, 220, 246, 198, 199, 249, 220, 255, 255, 128},
-              {124, 74, 191, 243, 183, 193, 250, 221, 255, 255, 128},
-              {24, 71, 130, 219, 154, 170, 243, 182, 255, 255, 128}
-            },
-        {
-              {1, 182, 225, 249, 219, 240, 255, 224, 128, 128, 128},
-              {149, 150, 226, 252, 216, 205, 255, 171, 128, 128, 128},
-              {28, 108, 170, 242, 183, 194, 254, 223, 255, 255, 128}
-            },
-        {
-              {1, 81, 230, 252, 204, 203, 255, 192, 128, 128, 128},
-              {123, 102, 209, 247, 188, 196, 255, 233, 128, 128, 128},
-              {20, 95, 153, 243, 164, 173, 255, 203, 128, 128, 128}
-            },
-        {
-              {1, 222, 248, 255, 216, 213, 128, 128, 128, 128, 128},
-              {168, 175, 246, 252, 235, 205, 255, 255, 128, 128, 128},
-              {47, 116, 215, 255, 211, 212, 255, 255, 128, 128, 128}
-            },
-        {
-              {1, 121, 236, 253, 212, 214, 255, 255, 128, 128, 128},
-              {141, 84, 213, 252, 201, 202, 255, 219, 128, 128, 128},
-              {42, 80, 160, 240, 162, 185, 255, 205, 128, 128, 128}
-            },
-        {
-              {1, 1, 255, 128, 128, 128, 128, 128, 128, 128, 128},
-              {244, 1, 255, 128, 128, 128, 128, 128, 128, 128, 128},
-              {238, 1, 255, 128, 128, 128, 128, 128, 128, 128, 128}
-            }
-      }
-};
-
-/* section 17.2 of spec */
-static const uint8_t vp8_default_mv_context[2][19] = {
-  {
-        162,
-        128,
-        225, 146, 172, 147, 214, 39, 156,
-      128, 129, 132, 75, 145, 178, 206, 239, 254, 254},
-  {
-        164,
-        128,
-        204, 170, 119, 235, 140, 230, 228,
-      128, 130, 130, 74, 148, 180, 203, 236, 254, 254}
-};
-
-
-#define READ_BIT(br, val, field_name)  val = vp8_decode_value(br, 1)
-#define READ_N_BITS(br, val, nbits, field_name)  val = vp8_decode_value(br, nbits)
-
-/********** API **********/
-
-/**
- * vp8_bool_decoder_debug_status:
- * @br: the #BOOL_DECODER to read
- *
- * helper function to track range decoder status, debug purpose
- *
- */
+#define INITIALIZE_DEBUG_CATEGORY ensure_debug_category ()
 static void
-vp8_bool_decoder_debug_status (BOOL_DECODER * br, const uint8_t * buf_start)
+ensure_debug_category (void)
 {
-  DEBUG
-      ("BOOL_DECODER: %x bytes read with %2d bits not parsed yet, code_word is:%8x, range-high is %2x\n",
-      (uint32_t) (br->user_buffer - buf_start), 8 + br->count,
-      (uint64_t) br->value, br->range);
-  DEBUG ("user_buffer: %p, user_buffer_start: %p\n", br->user_buffer,
-      buf_start);
+#ifndef DISABLE_DEBUG
+  static size_t is_initialized;
+
+  if (g_once_init_enter (&is_initialized)) {
+    DEBUG_CATEGORY_INIT (vp8_parser_debug, "codecparsers_vp8", 0,
+        "vp8 parser library");
+    g_once_init_leave (&is_initialized, TRUE);
+  }
+#endif
 }
 
+static Vp8MvProbs vp8_mv_update_probs;
+static Vp8TokenProbs vp8_token_update_probs;
 
-static BOOL
-update_segmentation (BOOL_DECODER * bool_decoder,
-    Vp8FrameHdr * frame_hdr)
+static void
+ensure_prob_tables (void)
 {
-  Vp8Segmentation *seg = &frame_hdr->multi_frame_data->segmentation;
-  int i, tmp;
+  static size_t is_initialized;
 
-  READ_BIT (bool_decoder, seg->segmentation_enabled, "segmentation_enabled");
-  if (!seg->segmentation_enabled) {
+  if (g_once_init_enter (&is_initialized)) {
+    vp8_mv_update_probs_init (&vp8_mv_update_probs);
+    vp8_token_update_probs_init (&vp8_token_update_probs);
+    g_once_init_leave (&is_initialized, TRUE);
+  }
+}
+
+#define READ_BOOL(rd, val, field_name) \
+  val = vp8_read_bool ((rd))
+#define READ_UINT(rd, val, nbits, field_name) \
+  val = vp8_read_uint ((rd), (nbits))
+#define READ_SINT(rd, val, nbits, field_name) \
+  val = vp8_read_sint ((rd), (nbits))
+
+static inline bool
+vp8_read_bool (Vp8RangeDecoder * rd)
+{
+  return (bool) vp8_range_decoder_read_literal (rd, 1);
+}
+
+static inline uint32_t
+vp8_read_uint (Vp8RangeDecoder * rd, uint32_t nbits)
+{
+  return (uint32_t) vp8_range_decoder_read_literal (rd, nbits);
+}
+
+static inline int32_t
+vp8_read_sint (Vp8RangeDecoder * rd, uint32_t nbits)
+{
+  int32_t v;
+
+  v = vp8_range_decoder_read_literal (rd, nbits);
+  if (vp8_range_decoder_read_literal (rd, 1))
+    v = -v;
+  return v;
+}
+
+/* Parse update_segmentation() */
+static bool
+parse_update_segmentation (Vp8RangeDecoder * rd, Vp8Segmentation * seg)
+{
+  bool update;
+  int32_t i;
+
+  seg->update_mb_segmentation_map = FALSE;
+  seg->update_segment_feature_data = FALSE;
+
+  READ_BOOL (rd, seg->segmentation_enabled, "segmentation_enabled");
+  if (!seg->segmentation_enabled)
     return TRUE;
-  }
 
-  READ_BIT (bool_decoder, seg->update_mb_segmentation_map,
-      "update_mb_segmentation_map");
-  READ_BIT (bool_decoder, seg->update_segment_feature_data,
+  READ_BOOL (rd, seg->update_mb_segmentation_map, "update_mb_segmentation_map");
+  READ_BOOL (rd, seg->update_segment_feature_data,
       "update_segment_feature_data");
+
   if (seg->update_segment_feature_data) {
-    READ_BIT (bool_decoder, seg->segment_feature_mode, "segment_feature_mode");
+    READ_UINT (rd, seg->segment_feature_mode, 1, "segment_feature_mode");
+
+    /* quantizer_update_value defaults to zero if update flag is zero
+       (Section 9.3, 4.b) */
     for (i = 0; i < 4; i++) {
-      READ_BIT (bool_decoder, tmp, "quantizer_update");
-      if (tmp) {
-        READ_N_BITS (bool_decoder, seg->quantizer_update_value[i], 7,
+      READ_BOOL (rd, update, "quantizer_update");
+      if (update) {
+        READ_SINT (rd, seg->quantizer_update_value[i], 7,
             "quantizer_update_value");
-        READ_BIT (bool_decoder, tmp, "quantizer_update_sign");
-        if (tmp)
-          seg->quantizer_update_value[i] = -seg->quantizer_update_value[i];
-      }
+      } else
+        seg->quantizer_update_value[i] = 0;
     }
 
+    /* lf_update_value defaults to zero if update flag is zero
+       (Section 9.3, 4.b) */
     for (i = 0; i < 4; i++) {
-      READ_BIT (bool_decoder, tmp, "loop_filter_update");
-      if (tmp) {
-        READ_N_BITS (bool_decoder, seg->lf_update_value[i], 6,
-            "lf_update_value");
-        READ_BIT (bool_decoder, tmp, "lf_update_sign");
-        if (tmp)
-          seg->lf_update_value[i] = -seg->lf_update_value[i];
-      }
+      READ_BOOL (rd, update, "loop_filter_update");
+      if (update) {
+        READ_SINT (rd, seg->lf_update_value[i], 6, "lf_update_value");
+      } else
+        seg->lf_update_value[i] = 0;
     }
   }
 
+  /* segment_prob defaults to 255 if update flag is zero
+     (Section 9.3, 5) */
   if (seg->update_mb_segmentation_map) {
-    memset (seg->segment_prob, 0xff, 3);
     for (i = 0; i < 3; i++) {
-      READ_BIT (bool_decoder, tmp, "segment_prob_update");
-      if (tmp) {
-        READ_N_BITS (bool_decoder, seg->segment_prob[i], 8, "segment_prob");
-      }
+      READ_BOOL (rd, update, "segment_prob_update");
+      if (update) {
+        READ_UINT (rd, seg->segment_prob[i], 8, "segment_prob");
+      } else
+        seg->segment_prob[i] = 255;
+    }
+  }
+  return TRUE;
+}
+
+/* Parse mb_lf_adjustments() to update loop filter delta adjustments */
+static bool
+parse_mb_lf_adjustments (Vp8RangeDecoder * rd, Vp8MbLfAdjustments * adj)
+{
+  bool update;
+  int32_t i;
+
+  adj->mode_ref_lf_delta_update = FALSE;
+
+  READ_BOOL (rd, adj->loop_filter_adj_enable, "loop_filter_adj_enable");
+  if (!adj->loop_filter_adj_enable)
+    return TRUE;
+
+  READ_BOOL (rd, adj->mode_ref_lf_delta_update, "mode_ref_lf_delta_update");
+  if (!adj->mode_ref_lf_delta_update)
+    return TRUE;
+
+  for (i = 0; i < 4; i++) {
+    READ_BOOL (rd, update, "ref_frame_delta_update_flag");
+    if (update) {
+      READ_SINT (rd, adj->ref_frame_delta[i], 6, "ref_frame_delta_magniture");
     }
   }
 
-  return TRUE;
-}
-
-static BOOL
-mb_lf_adjustments (BOOL_DECODER * bool_decoder,
-    Vp8FrameHdr * frame_hdr)
-{
-  Vp8MbLfAdjustments *mb_lf_adjust =
-      &frame_hdr->multi_frame_data->mb_lf_adjust;
-  int i, tmp;
-
-  READ_BIT (bool_decoder, mb_lf_adjust->loop_filter_adj_enable,
-      "loop_filter_adj_enable");
-  if (mb_lf_adjust->loop_filter_adj_enable) {
-    READ_BIT (bool_decoder, mb_lf_adjust->mode_ref_lf_delta_update,
-        "mode_ref_lf_delta_update");
-    if (mb_lf_adjust->mode_ref_lf_delta_update) {
-      for (i = 0; i < 4; i++) {
-        READ_BIT (bool_decoder, tmp, "ref_frame_delta_update_flag");
-        if (tmp) {
-          READ_N_BITS (bool_decoder, mb_lf_adjust->ref_frame_delta[i], 6,
-              "delta_magnitude");
-          READ_BIT (bool_decoder, tmp, "delta_sign");
-          if (tmp)
-            mb_lf_adjust->ref_frame_delta[i] =
-                -mb_lf_adjust->ref_frame_delta[i];
-        }
-      }
-
-      for (i = 0; i < 4; i++) {
-        READ_BIT (bool_decoder, tmp, "mb_mode_delta_update_flag");
-        if (tmp) {
-          READ_N_BITS (bool_decoder, mb_lf_adjust->mb_mode_delta[i], 6,
-              "delta_magnitude");
-          READ_BIT (bool_decoder, tmp, "delta_sign");
-          if (tmp)
-            mb_lf_adjust->mb_mode_delta[i] = -mb_lf_adjust->mb_mode_delta[i];
-        }
-      }
+  for (i = 0; i < 4; i++) {
+    READ_BOOL (rd, update, "mb_mode_delta_update_flag");
+    if (update) {
+      READ_SINT (rd, adj->mb_mode_delta[i], 6, "mb_mode_delta_magnitude");
     }
   }
+  return TRUE;
+}
+
+/* Parse quant_indices() */
+static bool
+parse_quant_indices (Vp8RangeDecoder * rd, Vp8QuantIndices * qip)
+{
+  bool update;
+
+  READ_UINT (rd, qip->y_ac_qi, 7, "y_ac_qi");
+
+  READ_BOOL (rd, update, "y_dc_delta_present");
+  if (update) {
+    READ_SINT (rd, qip->y_dc_delta, 4, "y_dc_delta_magnitude");
+  } else
+    qip->y_dc_delta = 0;
+
+  READ_BOOL (rd, update, "y2_dc_delta_present");
+  if (update) {
+    READ_SINT (rd, qip->y2_dc_delta, 4, "y2_dc_delta_magnitude");
+  } else
+    qip->y2_dc_delta = 0;
+
+  READ_BOOL (rd, update, "y2_ac_delta_present");
+  if (update) {
+    READ_SINT (rd, qip->y2_ac_delta, 4, "y2_ac_delta_magnitude");
+  } else
+    qip->y2_ac_delta = 0;
+
+  READ_BOOL (rd, update, "uv_dc_delta_present");
+  if (update) {
+    READ_SINT (rd, qip->uv_dc_delta, 4, "uv_dc_delta_magnitude");
+  } else
+    qip->uv_dc_delta = 0;
+
+  READ_BOOL (rd, update, "uv_ac_delta_present");
+  if (update) {
+    READ_SINT (rd, qip->uv_ac_delta, 4, "uv_ac_delta_magnitude");
+  } else
+    qip->uv_ac_delta = 0;
 
   return TRUE;
 }
 
-static BOOL
-quant_indices_parse (BOOL_DECODER * bool_decoder,
-    Vp8FrameHdr * frame_hdr)
+/* Parse token_prob_update() to update persistent token probabilities */
+static bool
+parse_token_prob_update (Vp8RangeDecoder * rd, Vp8TokenProbs * probs)
 {
-  Vp8QuantIndices *quant_indices = &frame_hdr->quant_indices;
-  int tmp;
-
-  memset (quant_indices, 0, sizeof (*quant_indices));
-  READ_N_BITS (bool_decoder, quant_indices->y_ac_qi, 7, "y_ac_qi");
-
-  READ_BIT (bool_decoder, tmp, "y_dc_delta_present");
-  if (tmp) {
-    READ_N_BITS (bool_decoder, quant_indices->y_dc_delta, 4,
-        "y_dc_delta_present");
-    READ_BIT (bool_decoder, tmp, "y_dc_delta_sign");
-    if (tmp)
-      quant_indices->y_dc_delta = -quant_indices->y_dc_delta;
-  }
-
-  READ_BIT (bool_decoder, tmp, "y2_dc_delta_present");
-  if (tmp) {
-    READ_N_BITS (bool_decoder, quant_indices->y2_dc_delta, 4,
-        "y2_dc_delta_magnitude");
-    READ_BIT (bool_decoder, tmp, "y2_dc_delta_sign");
-    if (tmp)
-      quant_indices->y2_dc_delta = -quant_indices->y2_dc_delta;
-  }
-
-  READ_BIT (bool_decoder, tmp, "y2_ac_delta_present");
-  if (tmp) {
-    READ_N_BITS (bool_decoder, quant_indices->y2_ac_delta, 4,
-        "y2_ac_delta_magnitude");
-    READ_BIT (bool_decoder, tmp, "y2_ac_delta_sign");
-    if (tmp)
-      quant_indices->y2_ac_delta = -quant_indices->y2_ac_delta;
-  }
-
-  READ_BIT (bool_decoder, tmp, "uv_dc_delta_present");
-  if (tmp) {
-    READ_N_BITS (bool_decoder, quant_indices->uv_dc_delta, 4,
-        "uv_dc_delta_magnitude");
-    READ_BIT (bool_decoder, tmp, "uv_dc_delta_sign");
-    if (tmp)
-      quant_indices->uv_dc_delta = -quant_indices->uv_dc_delta;
-  }
-
-  READ_BIT (bool_decoder, tmp, "uv_ac_delta_present");
-  if (tmp) {
-    READ_N_BITS (bool_decoder, quant_indices->uv_ac_delta, 4,
-        "uv_ac_delta_magnitude");
-    READ_BIT (bool_decoder, tmp, "uv_ac_delta_sign");
-    if (tmp)
-      quant_indices->uv_ac_delta = -quant_indices->uv_ac_delta;
-  }
-  return TRUE;
-}
-
-static BOOL
-token_prob_update (BOOL_DECODER * bool_decoder,
-    Vp8FrameHdr * frame_hdr)
-{
-  Vp8TokenProbUpdate *token_prob_update =
-      &frame_hdr->multi_frame_data->token_prob_update;
-  int i, j, k, l;
+  int32_t i, j, k, l;
+  uint8_t prob;
 
   for (i = 0; i < 4; i++) {
     for (j = 0; j < 8; j++) {
       for (k = 0; k < 3; k++) {
         for (l = 0; l < 11; l++) {
-          if (vp8dx_decode_bool (bool_decoder,
-                  vp8_token_update_probs[i][j][k][l])) {
-            READ_N_BITS (bool_decoder,
-                token_prob_update->coeff_prob[i][j][k][l], 8,
-                "token_prob_update");
-            DEBUG ("        coeff_prob[%d][%d][%d][%d]: %d\n", i, j, k, l,
-                token_prob_update->coeff_prob[i][j][k][l]);
+          if (vp8_range_decoder_read (rd,
+                  vp8_token_update_probs.prob[i][j][k][l])) {
+            READ_UINT (rd, prob, 8, "token_prob_update");
+            probs->prob[i][j][k][l] = prob;
           }
         }
       }
     }
   }
-
   return TRUE;
 }
 
-static BOOL
-mv_prob_update (BOOL_DECODER * bool_decoder, Vp8FrameHdr * frame_hdr)
+/* Parse prob_update() to update probabilities used for MV decoding */
+static bool
+parse_mv_prob_update (Vp8RangeDecoder * rd, Vp8MvProbs * probs)
 {
-  Vp8MvProbUpdate *mv_prob_update =
-      &frame_hdr->multi_frame_data->mv_prob_update;
-  int i, j, x;
+  int32_t i, j;
+  uint8_t prob;
 
   for (i = 0; i < 2; i++) {
     for (j = 0; j < 19; j++) {
-      if (vp8dx_decode_bool (bool_decoder, vp8_mv_update_prob[i][j])) {
-        READ_N_BITS (bool_decoder, x, 7, "mv_prob_update");
-        mv_prob_update->prob[i][j] = x ? x << 1 : 1;
-        DEBUG ("      mv_prob_update->prob[%d][%d]: %d\n", i, j,
-            mv_prob_update->prob[i][j]);
+      if (vp8_range_decoder_read (rd, vp8_mv_update_probs.prob[i][j])) {
+        READ_UINT (rd, prob, 7, "mv_prob_update");
+        probs->prob[i][j] = prob ? (prob << 1) : 1;
       }
     }
   }
   return TRUE;
 }
 
-/**
- * vp8_parse_frame_header:
- * @frame_hdr: The #Vp8FrameHdr to fill
- * @data: The data to parse
- * @offset: offset from which to start the parsing
- * @size: The size of the @data to parse
- *
- * Parses @data and fills @frame_hdr with the information
- *
- * VP8 parser depends on properly framed data since there is
- * no sync code in VP8 stream.
- * @frame->multi_frame_data should be set by caller, which constains
- * parameters inheriting from previous frame; parser may or may not
- * update them for current frame.
- *
- * Returns: a #Vp8ParseResult
- */
-Vp8ParseResult
-vp8_parse_frame_header (Vp8FrameHdr * frame_hdr, const uint8_t * data,
-    uint32_t offset, uint32_t size)
+/* Calculate partition sizes */
+static bool
+calc_partition_sizes (Vp8FrameHdr * frame_hdr, const uint8_t * data,
+    uint32_t size)
 {
-  ByteReader byte_reader;
-  BOOL_DECODER bool_decoder;
-  Vp8RangeDecoderStatus *state = NULL;
-  uint32_t frame_tag, tmp;
-  uint16_t tmp_16;
-  int pos, i;
+  const uint32_t num_partitions = 1 << frame_hdr->log2_nbr_of_dct_partitions;
+  uint32_t i, ofs, part_size, part_size_ofs = frame_hdr->first_part_size;
 
-  if (!frame_hdr->multi_frame_data) {
-    WARNING ("multi_frame_data should be set by the caller of vp8 parser");
-    goto error;
-  }
-  /* Uncompressed Data Chunk */
-  byte_reader_init (&byte_reader, data, size);
-  if (!byte_reader_get_uint24_le (&byte_reader, &frame_tag)) {
-    goto error;
+  ofs = part_size_ofs + 3 * (num_partitions - 1);
+  if (ofs > size) {
+    ERROR ("not enough bytes left to parse partition sizes");
+    return FALSE;
   }
 
-  frame_hdr->key_frame = frame_tag & 0x01;
+  /* The size of the last partition is not specified (9.5) */
+  for (i = 0; i < num_partitions - 1; i++) {
+    part_size = (uint32_t) data[part_size_ofs + 0] |
+        ((uint32_t) data[part_size_ofs + 1] << 8) |
+        ((uint32_t) data[part_size_ofs + 2] << 16);
+    part_size_ofs += 3;
+
+    frame_hdr->partition_size[i] = part_size;
+    ofs += part_size;
+  }
+
+  if (ofs > size) {
+    ERROR ("not enough bytes left to determine the last partition size");
+    return FALSE;
+  }
+  frame_hdr->partition_size[i] = size - ofs;
+
+  while (++i < G_N_ELEMENTS (frame_hdr->partition_size))
+    frame_hdr->partition_size[i] = 0;
+  return TRUE;
+}
+
+/* Parse uncompressed data chunk (19.1) */
+static Vp8ParserResult
+parse_uncompressed_data_chunk (Vp8Parser * parser, ByteReader * br,
+    Vp8FrameHdr * frame_hdr)
+{
+  uint32_t frame_tag, start_code;
+  uint16_t size_code;
+
+  DEBUG ("parsing \"Uncompressed Data Chunk\"");
+
+  if (!byte_reader_get_uint24_le (br, &frame_tag))
+    goto error;
+
+  frame_hdr->key_frame = !(frame_tag & 0x01);
   frame_hdr->version = (frame_tag >> 1) & 0x07;
   frame_hdr->show_frame = (frame_tag >> 4) & 0x01;
   frame_hdr->first_part_size = (frame_tag >> 5) & 0x7ffff;
 
-  if (frame_hdr->key_frame == VP8_KEY_FRAME) {
-    if (!byte_reader_get_uint24_be (&byte_reader, &tmp)) {
+  if (frame_hdr->key_frame) {
+    if (!byte_reader_get_uint24_be (br, &start_code))
+      goto error;
+    if (start_code != 0x9d012a)
+      WARNING ("vp8 parser: invalid start code in frame header");
+
+    if (!byte_reader_get_uint16_le (br, &size_code))
+      goto error;
+    frame_hdr->width = size_code & 0x3fff;
+    frame_hdr->horiz_scale_code = size_code >> 14;
+
+    if (!byte_reader_get_uint16_le (br, &size_code)) {
       goto error;
     }
-    if (tmp != 0x9d012a)
-      WARNING ("vp8 parser: invalid start code in frame header.");
+    frame_hdr->height = size_code & 0x3fff;
+    frame_hdr->vert_scale_code = (size_code >> 14);
 
-    if (!byte_reader_get_uint16_le (&byte_reader, &tmp_16)) {
-      goto error;
-    }
-    frame_hdr->width = tmp_16 & 0x3fff;
-    frame_hdr->horizontal_scale = tmp_16 >> 14;
-
-    if (!byte_reader_get_uint16_le (&byte_reader, &tmp_16)) {
-      goto error;
-    }
-    frame_hdr->height = tmp_16 & 0x3fff;
-    frame_hdr->vertical_scale = (tmp_16 >> 14);
-
-    vp8_parse_init_default_multi_frame_data (frame_hdr->multi_frame_data);
-  }
-  /* Frame Header */
-  pos = byte_reader_get_pos (&byte_reader);
-  if (vp8dx_start_decode (&bool_decoder, data + pos, size - pos))
-    goto error;
-
-  if (frame_hdr->key_frame == VP8_KEY_FRAME) {
-    READ_BIT (&bool_decoder, frame_hdr->color_space, "color_space");
-    READ_BIT (&bool_decoder, frame_hdr->clamping_type, "clamping_type");
-  }
-
-  if (!update_segmentation (&bool_decoder, frame_hdr)) {
-    goto error;
-  }
-
-  READ_BIT (&bool_decoder, frame_hdr->filter_type, "filter_type");
-  READ_N_BITS (&bool_decoder, frame_hdr->loop_filter_level, 6,
-      "loop_filter_level");
-  READ_N_BITS (&bool_decoder, frame_hdr->sharpness_level, 3,
-      "sharpness_level");
-
-  if (!mb_lf_adjustments (&bool_decoder, frame_hdr)) {
-    goto error;
-  }
-
-  READ_N_BITS (&bool_decoder, frame_hdr->log2_nbr_of_dct_partitions, 2,
-      "log2_nbr_of_dct_partitions");
-  if (frame_hdr->log2_nbr_of_dct_partitions) {
-    const uint8_t *part_size_ptr = data + frame_hdr->first_part_size;
-    int par_count = 1 << frame_hdr->log2_nbr_of_dct_partitions;
-    int i = 0;
-
-    if (frame_hdr->key_frame == VP8_KEY_FRAME)
-      part_size_ptr += VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME;
-    else
-      part_size_ptr += VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME;
-    /* the last partition size is not specified (see spec page 9) */
-    for (i = 0; i < par_count - 1; i++) {
-      uint8_t c[3];
-      c[0] = *part_size_ptr;
-      c[1] = *(part_size_ptr + 1);
-      c[2] = *(part_size_ptr + 2);
-      frame_hdr->partition_size[i] = c[0] + (c[1] << 8) + (c[2] << 16);
-      part_size_ptr += 3;
-    }
-  }
-
-  if (!quant_indices_parse (&bool_decoder, frame_hdr)) {
-    goto error;
-  }
-
-  if (frame_hdr->key_frame == VP8_KEY_FRAME) {
-    READ_BIT (&bool_decoder, frame_hdr->refresh_entropy_probs,
-        "refresh_entropy_probs");
+    /* Reset parser state on key frames */
+    vp8_parser_init (parser);
   } else {
-    READ_BIT (&bool_decoder, frame_hdr->refresh_golden_frame,
-        "refresh_golden_frame");
-    READ_BIT (&bool_decoder, frame_hdr->refresh_alternate_frame,
+    frame_hdr->width = 0;
+    frame_hdr->height = 0;
+    frame_hdr->horiz_scale_code = 0;
+    frame_hdr->vert_scale_code = 0;
+  }
+
+  /* Calculated values */
+  frame_hdr->data_chunk_size = byte_reader_get_pos (br);
+  return VP8_PARSER_OK;
+
+error:
+  WARNING ("error parsing \"Uncompressed Data Chunk\"");
+  return VP8_PARSER_ERROR;
+}
+
+/* Parse Frame Header (19.2) */
+static Vp8ParserResult
+parse_frame_header (Vp8Parser * parser, Vp8RangeDecoder * rd,
+    Vp8FrameHdr * frame_hdr)
+{
+  bool update;
+  uint32_t i;
+
+  DEBUG ("parsing \"Frame Header\"");
+
+  if (frame_hdr->key_frame) {
+    READ_UINT (rd, frame_hdr->color_space, 1, "color_space");
+    READ_UINT (rd, frame_hdr->clamping_type, 1, "clamping_type");
+  }
+
+  if (!parse_update_segmentation (rd, &parser->segmentation))
+    goto error;
+
+  READ_UINT (rd, frame_hdr->filter_type, 1, "filter_type");
+  READ_UINT (rd, frame_hdr->loop_filter_level, 6, "loop_filter_level");
+  READ_UINT (rd, frame_hdr->sharpness_level, 3, "sharpness_level");
+
+  if (!parse_mb_lf_adjustments (rd, &parser->mb_lf_adjust))
+    goto error;
+
+  READ_UINT (rd, frame_hdr->log2_nbr_of_dct_partitions, 2,
+      "log2_nbr_of_dct_partitions");
+
+  if (!parse_quant_indices (rd, &frame_hdr->quant_indices))
+    goto error;
+
+  frame_hdr->copy_buffer_to_golden = 0;
+  frame_hdr->copy_buffer_to_alternate = 0;
+  if (frame_hdr->key_frame) {
+    READ_BOOL (rd, frame_hdr->refresh_entropy_probs, "refresh_entropy_probs");
+
+    frame_hdr->refresh_last = TRUE;
+    frame_hdr->refresh_golden_frame = TRUE;
+    frame_hdr->refresh_alternate_frame = TRUE;
+
+    vp8_mode_probs_init_defaults (&frame_hdr->mode_probs, TRUE);
+  } else {
+    READ_BOOL (rd, frame_hdr->refresh_golden_frame, "refresh_golden_frame");
+    READ_BOOL (rd, frame_hdr->refresh_alternate_frame,
         "refresh_alternate_frame");
 
     if (!frame_hdr->refresh_golden_frame) {
-      READ_N_BITS (&bool_decoder, frame_hdr->copy_buffer_to_golden, 2,
+      READ_UINT (rd, frame_hdr->copy_buffer_to_golden, 2,
           "copy_buffer_to_golden");
     }
 
     if (!frame_hdr->refresh_alternate_frame) {
-      READ_N_BITS (&bool_decoder, frame_hdr->copy_buffer_to_alternate, 2,
+      READ_UINT (rd, frame_hdr->copy_buffer_to_alternate, 2,
           "copy_buffer_to_alternate");
     }
 
-    READ_BIT (&bool_decoder, frame_hdr->sign_bias_golden, "sign_bias_golden");
-    READ_BIT (&bool_decoder, frame_hdr->sign_bias_alternate,
-        "sign_bias_alternate");
-    READ_BIT (&bool_decoder, frame_hdr->refresh_entropy_probs,
-        "refresh_entropy_probs");
-    READ_BIT (&bool_decoder, frame_hdr->refresh_last, "refresh_last");
-  }
+    READ_UINT (rd, frame_hdr->sign_bias_golden, 1, "sign_bias_golden");
+    READ_UINT (rd, frame_hdr->sign_bias_alternate, 1, "sign_bias_alternate");
+    READ_BOOL (rd, frame_hdr->refresh_entropy_probs, "refresh_entropy_probs");
+    READ_BOOL (rd, frame_hdr->refresh_last, "refresh_last");
 
-  if (!token_prob_update (&bool_decoder, frame_hdr)) {
+    memcpy (&frame_hdr->mode_probs, &parser->mode_probs,
+        sizeof (parser->mode_probs));
+  }
+  memcpy (&frame_hdr->token_probs, &parser->token_probs,
+      sizeof (parser->token_probs));
+  memcpy (&frame_hdr->mv_probs, &parser->mv_probs, sizeof (parser->mv_probs));
+
+  if (!parse_token_prob_update (rd, &frame_hdr->token_probs))
     goto error;
-  }
 
-  READ_BIT (&bool_decoder, frame_hdr->mb_no_skip_coeff, "mb_no_skip_coeff");
+  READ_BOOL (rd, frame_hdr->mb_no_skip_coeff, "mb_no_skip_coeff");
   if (frame_hdr->mb_no_skip_coeff) {
-    READ_N_BITS (&bool_decoder, frame_hdr->prob_skip_false, 8,
-        "prob_skip_false");
+    READ_UINT (rd, frame_hdr->prob_skip_false, 8, "prob_skip_false");
   }
 
-  if (frame_hdr->key_frame != VP8_KEY_FRAME) {
-    READ_N_BITS (&bool_decoder, frame_hdr->prob_intra, 8, "prob_intra");
-    READ_N_BITS (&bool_decoder, frame_hdr->prob_last, 8, "prob_last");
-    READ_N_BITS (&bool_decoder, frame_hdr->prob_gf, 8, "prob_gf");
+  if (!frame_hdr->key_frame) {
+    READ_UINT (rd, frame_hdr->prob_intra, 8, "prob_intra");
+    READ_UINT (rd, frame_hdr->prob_last, 8, "prob_last");
+    READ_UINT (rd, frame_hdr->prob_gf, 8, "prob_gf");
 
-    READ_BIT (&bool_decoder, frame_hdr->intra_16x16_prob_update_flag,
-        "intra_16x16_prob_update_flag");
-
-    if (frame_hdr->intra_16x16_prob_update_flag) {
+    READ_BOOL (rd, update, "intra_16x16_prob_update_flag");
+    if (update) {
       for (i = 0; i < 4; i++) {
-        READ_N_BITS (&bool_decoder, frame_hdr->intra_16x16_prob[i], 8,
-            "intra_16x16_prob");
+        READ_UINT (rd, frame_hdr->mode_probs.y_prob[i], 8, "intra_16x16_prob");
       }
     }
 
-    READ_BIT (&bool_decoder, frame_hdr->intra_chroma_prob_update_flag,
-        "intra_chroma_prob_update_flag");
-    if (frame_hdr->intra_chroma_prob_update_flag) {
+    READ_BOOL (rd, update, "intra_chroma_prob_update_flag");
+    if (update) {
       for (i = 0; i < 3; i++) {
-        READ_N_BITS (&bool_decoder, frame_hdr->intra_chroma_prob[i], 8,
+        READ_UINT (rd, frame_hdr->mode_probs.uv_prob[i], 8,
             "intra_chroma_prob");
       }
     }
 
-    if (!mv_prob_update (&bool_decoder, frame_hdr)) {
+    if (!parse_mv_prob_update (rd, &frame_hdr->mv_probs))
       goto error;
-    }
-
   }
 
-  vp8_bool_decoder_debug_status (&bool_decoder, data + pos);
-
-  state = &frame_hdr->rangedecoder_state;
-  if (bool_decoder.count < 0)
-    vp8dx_bool_decoder_fill (&bool_decoder);
-
-  state->range = bool_decoder.range;
-  state->code_word = (uint8_t) ((bool_decoder.value) >> (VP8_BD_VALUE_SIZE - 8));
-  state->remaining_bits = 8 + bool_decoder.count;
-  state->buffer = bool_decoder.user_buffer;
-
-  while (state->remaining_bits >= 8) {
-    state->buffer--;
-    state->remaining_bits -= 8;
+  /* Refresh entropy probabilities */
+  if (frame_hdr->refresh_entropy_probs) {
+    memcpy (&parser->token_probs, &frame_hdr->token_probs,
+        sizeof (frame_hdr->token_probs));
+    memcpy (&parser->mv_probs, &frame_hdr->mv_probs,
+        sizeof (frame_hdr->mv_probs));
+    if (!frame_hdr->key_frame)
+      memcpy (&parser->mode_probs, &frame_hdr->mode_probs,
+          sizeof (frame_hdr->mode_probs));
   }
 
+  /* Calculated values */
+  frame_hdr->header_size = vp8_range_decoder_get_pos (rd);
   return VP8_PARSER_OK;
 
 error:
-  WARNING ("failed in parsing VP8 frame header");
+  WARNING ("error parsing \"Frame Header\"");
   return VP8_PARSER_ERROR;
 }
 
+/**** API ****/
 /**
- * vp8_parse_init_default_multi_frame_data:
- * @multi_frame_data: The #Vp8MultiFrameData to init
+ * vp8_parser_init:
+ * @parser: The #Vp8Parser to initialize
  *
- * init @multi_frame_data with default value
+ * Initializes the supplied @parser structure with its default values.
  *
- * decoder uses it to se default parameter, in case key frame
- * updates probability table but refresh_entropy_probs isn't set
- *
- * Returns: TRUE if successful, FALSE otherwise.
+ * Since: 1.4
  */
-BOOL
-vp8_parse_init_default_multi_frame_data (Vp8MultiFrameData *
-    multi_frame_data)
+void
+vp8_parser_init (Vp8Parser * parser)
 {
-  Vp8TokenProbUpdate *token_prob_update;
-  Vp8MvProbUpdate *mv_prob_update;
-  Vp8MbLfAdjustments *mb_lf_adjust;
+  g_return_if_fail (parser != NULL);
 
-  if (!multi_frame_data)
-    return FALSE;
+  memset (&parser->segmentation, 0, sizeof (parser->segmentation));
+  memset (&parser->mb_lf_adjust, 0, sizeof (parser->mb_lf_adjust));
+  vp8_token_probs_init_defaults (&parser->token_probs);
+  vp8_mv_probs_init_defaults (&parser->mv_probs);
+  vp8_mode_probs_init_defaults (&parser->mode_probs, FALSE);
+}
 
-  token_prob_update = &multi_frame_data->token_prob_update;
-  mv_prob_update = &multi_frame_data->mv_prob_update;
-  mb_lf_adjust = &multi_frame_data->mb_lf_adjust;
+/**
+ * vp8_parser_parse_frame_header:
+ * @parser: The #Vp8Parser
+ * @frame_hdr: The #Vp8FrameHdr to fill
+ * @data: The data to parse
+ * @size: The size of the @data to parse
+ *
+ * Parses the VP8 bitstream contained in @data, and fills in @frame_hdr
+ * with the information. The supplied @data shall point to a complete
+ * frame since there is no sync code specified for VP8 bitstreams. Thus,
+ * the @size argument shall represent the whole frame size.
+ *
+ * Returns: a #Vp8ParserResult
+ *
+ * Since: 1.4
+ */
+Vp8ParserResult
+vp8_parser_parse_frame_header (Vp8Parser * parser,
+    Vp8FrameHdr * frame_hdr, const uint8_t * data, size_t size)
+{
+  ByteReader br;
+  Vp8RangeDecoder rd;
+  Vp8RangeDecoderState rd_state;
+  Vp8ParserResult result;
 
-  if (!token_prob_update || !mv_prob_update || !mb_lf_adjust)
-    return FALSE;
+  ensure_debug_category ();
+  ensure_prob_tables ();
 
-  memcpy (token_prob_update->coeff_prob, default_coef_probs,
-      sizeof (default_coef_probs));
-  memset (mb_lf_adjust, 0, sizeof (*mb_lf_adjust));
-  memcpy (mv_prob_update->prob, vp8_default_mv_context,
-      sizeof (vp8_default_mv_context));
+  g_return_val_if_fail (frame_hdr != NULL, VP8_PARSER_ERROR);
+  g_return_val_if_fail (parser != NULL, VP8_PARSER_ERROR);
 
-  return TRUE;
+  /* Uncompressed Data Chunk */
+  byte_reader_init (&br, data, size);
+
+  result = parse_uncompressed_data_chunk (parser, &br, frame_hdr);
+  if (result != VP8_PARSER_OK)
+    return result;
+
+  /* Frame Header */
+  if (frame_hdr->data_chunk_size + frame_hdr->first_part_size > size)
+    return VP8_PARSER_BROKEN_DATA;
+
+  data += frame_hdr->data_chunk_size;
+  size -= frame_hdr->data_chunk_size;
+  if (!vp8_range_decoder_init (&rd, data, frame_hdr->first_part_size))
+    return VP8_PARSER_BROKEN_DATA;
+
+  result = parse_frame_header (parser, &rd, frame_hdr);
+  if (result != VP8_PARSER_OK)
+    return result;
+
+  /* Calculate partition sizes */
+  if (!calc_partition_sizes (frame_hdr, data, size))
+    return VP8_PARSER_BROKEN_DATA;
+
+  /* Sync range decoder state */
+  vp8_range_decoder_get_state (&rd, &rd_state);
+  frame_hdr->rd_range = rd_state.range;
+  frame_hdr->rd_value = rd_state.value;
+  frame_hdr->rd_count = rd_state.count;
+  return VP8_PARSER_OK;
 }
