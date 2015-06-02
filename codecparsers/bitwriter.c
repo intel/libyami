@@ -72,10 +72,10 @@ bit_writer_init_fill (BitWriter * bitwriter, uint8_t * data, uint32_t bits)
  * if @free_data is %TRUE.
  */
 void
-bit_writer_clear (BitWriter * bitwriter, BOOL free_data)
+bit_writer_clear (BitWriter * bitwriter, bool free_data)
 {
   if (bitwriter->auto_grow && bitwriter->data && free_data)
-    free (bitwriter->data);
+    g_free (bitwriter->data);
 
   bitwriter->data = NULL;
   bitwriter->bit_size = 0;
@@ -96,9 +96,7 @@ bit_writer_clear (BitWriter * bitwriter, BOOL free_data)
 BitWriter *
 bit_writer_new (uint32_t reserved_bits)
 {
-  BitWriter *ret = (BitWriter *) malloc (sizeof (BitWriter));
-  if (!ret)
-    return NULL;
+  BitWriter *ret = g_slice_new0 (BitWriter);
 
   bit_writer_init (ret, reserved_bits);
 
@@ -120,9 +118,7 @@ bit_writer_new (uint32_t reserved_bits)
 BitWriter *
 bit_writer_new_fill (uint8_t * data, uint32_t bits)
 {
-  BitWriter *ret = (BitWriter *) calloc (sizeof (BitWriter), 1);
-  if (!ret)
-    return NULL;
+  BitWriter *ret = g_slice_new0 (BitWriter);
 
   bit_writer_init_fill (ret, data, bits);
 
@@ -138,14 +134,13 @@ bit_writer_new_fill (uint8_t * data, uint32_t bits)
  * @free_data is %TRUE
  */
 void
-bit_writer_free (BitWriter * writer, BOOL free_data)
+bit_writer_free (BitWriter * writer, bool free_data)
 {
-  if (writer == NULL)
-    return;
+  g_return_if_fail (writer != NULL);
 
   bit_writer_clear (writer, free_data);
 
-  free (writer);
+  g_slice_free (BitWriter, writer);
 }
 
 /**
@@ -156,7 +151,7 @@ bit_writer_free (BitWriter * writer, BOOL free_data)
  *
  * Returns: size of bits written in @data
  */
-uint
+uint32_t
 bit_writer_get_size (BitWriter * bitwriter)
 {
   return _bit_writer_get_size_inline (bitwriter);
@@ -185,7 +180,7 @@ bit_writer_get_data (BitWriter * bitwriter)
  *
  * Returns: %TRUE if successful, %FALSE otherwise
  */
-BOOL
+bool
 bit_writer_set_pos (BitWriter * bitwriter, uint32_t pos)
 {
   return _bit_writer_set_pos_inline (bitwriter, pos);
@@ -236,7 +231,7 @@ bit_writer_set_pos (BitWriter * bitwriter, uint32_t pos)
  */
 
 #define BIT_WRITER_WRITE_BITS(bits) \
-BOOL \
+bool \
 bit_writer_put_bits_uint##bits (BitWriter *bitwriter, uint##bits##_t value, uint32_t nbits) \
 { \
   return _bit_writer_put_bits_uint##bits##_inline (bitwriter, value, nbits); \
@@ -246,7 +241,9 @@ BIT_WRITER_WRITE_BITS (8)
 BIT_WRITER_WRITE_BITS (16)
 BIT_WRITER_WRITE_BITS (32)
 BIT_WRITER_WRITE_BITS (64)
+
 #undef BIT_WRITER_WRITE_BITS
+
 /**
  * bit_writer_put_bytes:
  * @bitwriter: a #BitWriter instance
@@ -257,8 +254,9 @@ BIT_WRITER_WRITE_BITS (64)
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
  */
-    BOOL
-bit_writer_put_bytes (BitWriter * bitwriter, const uint8_t * data, uint32_t nbytes)
+bool
+bit_writer_put_bytes (BitWriter * bitwriter,
+    const uint8_t * data, uint32_t nbytes)
 {
   return _bit_writer_put_bytes_inline (bitwriter, data, nbytes);
 }
@@ -273,7 +271,7 @@ bit_writer_put_bytes (BitWriter * bitwriter, const uint8_t * data, uint32_t nbyt
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
  */
-BOOL
+bool
 bit_writer_align_bytes (BitWriter * bitwriter, uint8_t trailing_bit)
 {
   return _bit_writer_align_bytes_inline (bitwriter, trailing_bit);

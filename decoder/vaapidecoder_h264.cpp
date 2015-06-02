@@ -114,58 +114,41 @@ static VaapiChromaType getH264ChromaType(H264SPS * sps)
 
 
 static inline uint32_t
-getSliceDataBitOffset(SliceHeaderPtr sliceHdr, H264NalUnit * nalu)
+getSliceDataBitOffset(SliceHeaderPtr sliceHdr, uint32_t nal_header_bytes)
 {
     uint32_t epbCount;
     epbCount = sliceHdr->n_emulation_prevention_bytes;
-    return 8 * sliceHdr->nal_header_bytes + sliceHdr->header_size -
+    return 8 * nal_header_bytes + sliceHdr->header_size -
         epbCount * 8;
 }
 
 static void
-fillIqMatrix4x4(VAIQMatrixBufferH264 * iqMatrix, const H264PPS * pps)
+fillIqMatrix4x4(VAIQMatrixBufferH264 *iq_matrix, const H264PPS *pps)
 {
-    const uint8_t(*const ScalingList4x4)[6][16] = &pps->scaling_lists_4x4;
-    uint32_t i, j;
-
-    /* There are always 6 4x4 scaling lists */
-    assert(N_ELEMENTS(iqMatrix->ScalingList4x4) == 6);
-    assert(N_ELEMENTS(iqMatrix->ScalingList4x4[0]) == 16);
-
-    if (sizeof(iqMatrix->ScalingList4x4[0][0]) == 1)
-        memcpy(iqMatrix->ScalingList4x4, *ScalingList4x4,
-               sizeof(iqMatrix->ScalingList4x4));
-    else {
-        for (i = 0; i < N_ELEMENTS(iqMatrix->ScalingList4x4); i++) {
-            for (j = 0; j < N_ELEMENTS(iqMatrix->ScalingList4x4[i]); j++)
-                iqMatrix->ScalingList4x4[i][j] = (*ScalingList4x4)[i][j];
-        }
-    }
+		uint32_t i;
+		/* There are always 6 4x4 scaling lists */
+		assert(G_N_ELEMENTS(iq_matrix->ScalingList4x4) == 6);
+		assert(G_N_ELEMENTS(iq_matrix->ScalingList4x4[0]) == 16);
+		for (i = 0; i < G_N_ELEMENTS(iq_matrix->ScalingList4x4); i++)
+				h264_quant_matrix_4x4_get_raster_from_zigzag(
+								iq_matrix->ScalingList4x4[i], pps->scaling_lists_4x4[i]);
 }
 
 static void
-fillIqMatrix8x8(VAIQMatrixBufferH264 * iqMatrix, const H264PPS * pps)
+fillIqMatrix8x8(VAIQMatrixBufferH264 *iq_matrix, const H264PPS *pps)
 {
-    const uint8_t(*const ScalingList8x8)[6][64] = &pps->scaling_lists_8x8;
     const H264SPS *const sps = pps->sequence;
-    uint32_t i, j, n;
+    uint32_t i, n;
 
     /* If chroma_format_idc != 3, there are up to 2 8x8 scaling lists */
     if (!pps->transform_8x8_mode_flag)
         return;
-
-    assert(N_ELEMENTS(iqMatrix->ScalingList8x8) >= 2);
-    assert(N_ELEMENTS(iqMatrix->ScalingList8x8[0]) == 64);
-
-    if (sizeof(iqMatrix->ScalingList8x8[0][0]) == 1)
-        memcpy(iqMatrix->ScalingList8x8, *ScalingList8x8,
-               sizeof(iqMatrix->ScalingList8x8));
-    else {
-        n = (sps->chroma_format_idc != 3) ? 2 : 6;
-        for (i = 0; i < n; i++) {
-            for (j = 0; j < N_ELEMENTS(iqMatrix->ScalingList8x8[i]); j++)
-                iqMatrix->ScalingList8x8[i][j] = (*ScalingList8x8)[i][j];
-        }
+    assert(G_N_ELEMENTS(iq_matrix->ScalingList8x8) >= 2);
+    assert(G_N_ELEMENTS(iq_matrix->ScalingList8x8[0]) == 64);
+    n = (sps->chroma_format_idc != 3) ? 2 : 6;
+    for (i = 0; i < n; i++) {
+        h264_quant_matrix_8x8_get_raster_from_zigzag(
+        iq_matrix->ScalingList8x8[i], pps->scaling_lists_8x8[i]);
     }
 }
 
@@ -322,6 +305,7 @@ Decode_Status VaapiDecoderH264::decodePPS(H264NalUnit * nalu)
 
 Decode_Status VaapiDecoderH264::decodeSEI(H264NalUnit * nalu)
 {
+#if 0
     H264SEIMessage sei;
     H264ParserResult result;
 
@@ -333,6 +317,7 @@ Decode_Status VaapiDecoderH264::decodeSEI(H264NalUnit * nalu)
         WARNING("failed to decode SEI, payload type:%d", sei.payloadType);
         return getStatus(result);
     }
+#endif
 
     return DECODE_SUCCESS;
 }
@@ -869,7 +854,7 @@ bool VaapiDecoderH264::fillSlice(VASliceParameterBufferH264 * sliceParam,
 {
     /* Fill in VASliceParameterBufferH264 */
     sliceParam->slice_data_bit_offset =
-        getSliceDataBitOffset(sliceHdr, nalu);
+        getSliceDataBitOffset(sliceHdr, nalu->header_bytes);
     sliceParam->first_mb_in_slice = sliceHdr->first_mb_in_slice;
     sliceParam->slice_type = sliceHdr->type % 5;
     sliceParam->direct_spatial_mv_pred_flag =
@@ -937,8 +922,8 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
         m_mbHeight = mbHeight;
         m_configBuffer.surfaceWidth = mbWidth * 16;
         m_configBuffer.surfaceHeight = mbHeight * 16;
-        m_configBuffer.width = sps->width;
-        m_configBuffer.height = sps->height;
+        m_configBuffer.width = sps->crop_rect_width ? sps->crop_rect_width : sps->width;
+        m_configBuffer.height = sps->crop_rect_height ? sps->crop_rect_height : sps->height;
         resetContext = true;
     }
 
