@@ -7,9 +7,6 @@ bin_PROGRAMS = yamidecode yamiencode yamivpp
 if ENABLE_V4L2
 bin_PROGRAMS += v4l2encode v4l2decode
 endif
-if ENABLE_X11
-bin_PROGRAMS += simpleplayer
-endif
 endif
 
 AM_CFLAGS = \
@@ -128,7 +125,3 @@ endif
 yamivpp_LDADD    = $(YAMI_VPP_LIBS)
 yamivpp_SOURCES  = vppinputoutput.cpp vppoutputencode.cpp  vpp.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
 
-if ENABLE_X11
-simpleplayer_LDADD = $(YAMI_DECODE_LIBS)
-simpleplayer_SOURCES	= simpleplayer.cpp $(DECODE_INPUT_SOURCES)
-endif
