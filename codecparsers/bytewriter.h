@@ -62,11 +62,11 @@ void            byte_writer_init_with_data  (ByteWriter *writer, uint8_t *data,
 
 void            byte_writer_free                    (ByteWriter *writer);
 uint8_t *        byte_writer_free_and_get_data       (ByteWriter *writer);
-Buffer *     byte_writer_free_and_get_buffer     (ByteWriter *writer) G_GNUC_MALLOC;
+//Buffer *     byte_writer_free_and_get_buffer     (ByteWriter *writer) G_GNUC_MALLOC;
 
 void            byte_writer_reset                   (ByteWriter *writer);
 uint8_t *        byte_writer_reset_and_get_data      (ByteWriter *writer);
-Buffer *     byte_writer_reset_and_get_buffer    (ByteWriter *writer) G_GNUC_MALLOC;
+//Buffer *     byte_writer_reset_and_get_buffer    (ByteWriter *writer) G_GNUC_MALLOC;
 
 /**
  * byte_writer_get_pos:
@@ -146,7 +146,7 @@ bool        byte_writer_fill              (ByteWriter *writer, uint8_t value, ui
 bool        byte_writer_put_string_utf8   (ByteWriter *writer, const char *data);
 bool        byte_writer_put_string_utf16  (ByteWriter *writer, const uint16_t *data);
 bool        byte_writer_put_string_utf32  (ByteWriter *writer, const uint32_t *data);
-bool        byte_writer_put_buffer        (ByteWriter *writer, Buffer * buffer, size_t offset, gssize size);
+//bool        byte_writer_put_buffer        (ByteWriter *writer, Buffer * buffer, size_t offset, gssize size);
 
 /**
  * byte_writer_put_string:
@@ -292,6 +292,7 @@ _byte_writer_fill_inline (ByteWriter * writer, uint8_t value, uint32_t size)
   return TRUE;
 }
 
+#if 0
 static inline void
 byte_writer_put_buffer_unchecked (ByteWriter * writer, Buffer * buffer,
     size_t offset, gssize size)
@@ -334,6 +335,7 @@ _byte_writer_put_buffer_inline (ByteWriter * writer, Buffer * buffer,
 
   return TRUE;
 }
+#endif
 
 #ifndef BYTE_WRITER_DISABLE_INLINES
 

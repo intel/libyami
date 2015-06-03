@@ -2325,6 +2325,7 @@ h264_sps_clear (H264SPS * sps)
   }
 }
 
+#if 0
 /**
  * h264_parser_parse_sei:
  * @nalparser: a #H264NalParser
@@ -2358,6 +2359,7 @@ h264_parser_parse_sei (H264NalParser * nalparser, H264NalUnit * nalu,
 
   return res;
 }
+#endif
 
 /**
  * h264_quant_matrix_8x8_get_zigzag_from_raster:

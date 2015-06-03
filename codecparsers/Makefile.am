@@ -1,54 +1,67 @@
-lib_LTLIBRARIES = libgstcodecparsers-@GST_API_VERSION@.la
+INCLUDES = -I$(top_srcdir)
 
-libgstcodecparsers_@GST_API_VERSION@_la_SOURCES = \
-	gstmpegvideoparser.c gsth264parser.c gstvc1parser.c gstmpeg4parser.c \
-	gsth265parser.c gstvp8parser.c gstvp8rangedecoder.c \
-	parserutils.c nalutils.c dboolhuff.c vp8utils.c \
+libyami_codecparser_source_c = \
+        bitreader.c \
+        bytereader.c \
+        bytewriter.c \
+        h264parser.c \
+        h265parser.c \
+        mpegvideoparser.c \
+        mpeg4parser.c \
+        vc1parser.c \
+        vp8utils.c \
+        vp8rangedecoder.c \
+        vp8parser.c \
+        dboolhuff.c \
+        jpegparser.c \
+        parserutils.c \
+        nalutils.c \
+        bitwriter.c \
 	$(NULL)
 
-libgstcodecparsers_@GST_API_VERSION@includedir = \
-	$(includedir)/gstreamer-@GST_API_VERSION@/gst/codecparsers
-
-noinst_HEADERS = parserutils.h nalutils.h dboolhuff.h vp8utils.h
-
-libgstcodecparsers_@GST_API_VERSION@include_HEADERS = \
-	gstmpegvideoparser.h gsth264parser.h gstvc1parser.h gstmpeg4parser.h \
-	gsth265parser.h \
+libyami_codecparser_source_h_priv = \
+        bitreader.h \
+        bytereader.h \
+        bytewriter.h \
+        h264parser.h \
+        h265parser.h \
+        mpegvideoparser.h \
+        mpeg4parser.h \
+        vc1parser.h \
+        vp8utils.h \
+        vp8rangedecoder.h \
+        vp8parser.h \
+        jpegparser.h \
+        parserutils.h \
+        nalutils.h \
+        bitwriter.h \
 	$(NULL)
 
-libgstcodecparsers_@GST_API_VERSION@_la_CFLAGS = \
-	-I$(top_builddir)/gst-libs \
-	$(GST_PLUGINS_BAD_CFLAGS) \
-	-DGST_USE_UNSTABLE_API \
-	$(GST_CFLAGS) \
-	-Dvp8_norm=gst_codecparsers_vp8_norm \
-	-Dvp8dx_start_decode=gst_codecparsers_vp8dx_start_decode \
-	-Dvp8dx_bool_decoder_fill=gst_codecparsers_vp8dx_bool_decoder_fill
-
-libgstcodecparsers_@GST_API_VERSION@_la_LIBADD = \
-	$(GST_BASE_LIBS) \
-	$(GST_LIBS) \
-	$(LIBM)
-
-libgstcodecparsers_@GST_API_VERSION@_la_LDFLAGS = \
-	$(GST_LIB_LDFLAGS) \
-	$(GST_ALL_LDFLAGS) \
-	$(GST_LT_LDFLAGS)
+libyami_codecparser_source_h_priv = \
+		dboolhuff.h \
+	$(NULL)
 
 EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
 
-Android.mk:  $(BUILT_SOURCES) Makefile.am
-	androgenizer -:PROJECT libgstcodecparsers -:STATIC libgstcodecparsers-@GST_API_VERSION@ \
-	 -:TAGS eng debug \
-         -:REL_TOP $(top_srcdir) -:ABS_TOP $(abs_top_srcdir) \
-	 -:SOURCES $(libgstcodecparsers_@GST_API_VERSION@_la_SOURCES) \
-         $(built_sources) \
-	 -:CFLAGS $(DEFS) $(libgstcodecparsers_@GST_API_VERSION@_la_CFLAGS) \
-	 -:LDFLAGS $(libgstcodecparsers_@GST_API_VERSION@_la_LDFLAGS) \
-	           $(libgstcodecparsers@GST_API_VERSION@_la_LIBADD) \
-	           -ldl \
-	 -:HEADER_TARGET gstreamer-@GST_API_VERSION@/gst/codecparsers \
-	 -:HEADERS $(libgstcodecparsersinclude_HEADERS) \
-         $(built_headers) \
-	 -:PASSTHROUGH LOCAL_ARM_MODE:=arm \
-	> $@
+libyami_codecparser_ldflags = \
+    $(LIBYAMI_LT_LDFLAGS) \
+	$(NULL)
+
+libyami_codecparser_cppflags = \
+   -Dvp8_norm=libyami_vp8_norm \
+   -Dvp8dx_start_decode=libyami_vp8dx_start_decode \
+   -Dvp8dx_bool_decoder_fill=libyami_vp8dx_bool_decoder_fill
+	$(NULL)
+
+lib_LTLIBRARIES			= libyami_codecparser.la
+libyami_codecparserincludedir         = ${includedir}/libyami_codecparser
+libyami_codecparserinclude_HEADERS   = $(libyami_codecparser_source_h)
+noinst_HEADERS                  = $(libyami_codecparser_source_h_priv)
+libyami_codecparser_la_SOURCES	= $(libyami_codecparser_source_c)
+libyami_codecparser_la_LDFLAGS	= $(libyami_codecparser_ldflags)
+libyami_codecparser_la_CPPFLAGS      = $(libyami_codecparser_cppflags)
+
+DISTCLEANFILES = \
+	Makefile.in
+
+

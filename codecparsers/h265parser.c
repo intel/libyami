@@ -2457,6 +2457,7 @@ h265_sei_free (H265SEIMessage * sei)
   }
 }
 
+#if 0
 /**
  * h265_parser_parse_sei:
  * @nalparser: a #H265Parser
@@ -2491,7 +2492,7 @@ h265_parser_parse_sei (H265Parser * nalparser, H265NalUnit * nalu,
 
   return res;
 }
-
+#endif
 
 /**
  * h265_quant_matrix_4x4_get_zigzag_from_raster:
