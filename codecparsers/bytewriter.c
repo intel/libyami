@@ -217,6 +217,7 @@ byte_writer_reset_and_get_data (ByteWriter * writer)
   return data;
 }
 
+#if 0
 /**
  * byte_writer_reset_and_get_buffer:
  * @writer: #ByteWriter instance
@@ -248,6 +249,7 @@ byte_writer_reset_and_get_buffer (ByteWriter * writer)
 
   return buffer;
 }
+#endif
 
 /**
  * byte_writer_free:
@@ -288,6 +290,7 @@ byte_writer_free_and_get_data (ByteWriter * writer)
   return data;
 }
 
+#if 0
 /**
  * byte_writer_free_and_get_buffer:
  * @writer: (in) (transfer full): #ByteWriter instance
@@ -312,6 +315,7 @@ byte_writer_free_and_get_buffer (ByteWriter * writer)
 
   return buffer;
 }
+#endif
 
 /**
  * byte_writer_get_remaining:
