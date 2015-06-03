@@ -197,7 +197,7 @@ bool VaapiDecoderVP8::fillPictureParam(const PicturePtr&  picture)
         return false;
 
     /* Fill in VAPictureParameterBufferVP8 */
-    Vp8Segmentation *seg = &m_currFrameContext.segmentation;
+    Vp8Segmentation *seg = &m_parser.segmentation;
 
     /* Fill in VAPictureParameterBufferVP8 */
     if (m_frameHdr.key_frame) {
@@ -236,9 +236,9 @@ bool VaapiDecoderVP8::fillPictureParam(const PicturePtr&  picture)
     picParam->pic_fields.bits.filter_type = m_frameHdr.filter_type;
     picParam->pic_fields.bits.sharpness_level = m_frameHdr.sharpness_level;
     picParam->pic_fields.bits.loop_filter_adj_enable =
-        m_currFrameContext.mb_lf_adjust.loop_filter_adj_enable;
+        m_parser.mb_lf_adjust.loop_filter_adj_enable;
     picParam->pic_fields.bits.mode_ref_lf_delta_update =
-        m_currFrameContext.mb_lf_adjust.mode_ref_lf_delta_update;
+        m_parser.mb_lf_adjust.mode_ref_lf_delta_update;
     picParam->pic_fields.bits.sign_bias_golden =
         m_frameHdr.sign_bias_golden;
     picParam->pic_fields.bits.sign_bias_alternate =
@@ -263,9 +263,9 @@ bool VaapiDecoderVP8::fillPictureParam(const PicturePtr&  picture)
             picParam->loop_filter_level[i] = m_frameHdr.loop_filter_level;
 
         picParam->loop_filter_deltas_ref_frame[i] =
-            m_currFrameContext.mb_lf_adjust.ref_frame_delta[i];
+            m_parser.mb_lf_adjust.ref_frame_delta[i];
         picParam->loop_filter_deltas_mode[i] =
-            m_currFrameContext.mb_lf_adjust.mb_mode_delta[i];
+            m_parser.mb_lf_adjust.mb_mode_delta[i];
     }
 
     picParam->pic_fields.bits.loop_filter_disable =
@@ -293,7 +293,7 @@ bool VaapiDecoderVP8::fillPictureParam(const PicturePtr&  picture)
 /* fill quant parameter buffers functions*/
 bool VaapiDecoderVP8::ensureQuantMatrix(const PicturePtr&  pic)
 {
-    Vp8Segmentation *seg = &m_currFrameContext.segmentation;
+    Vp8Segmentation *seg = &m_parser.segmentation;
     VAIQMatrixBufferVP8 *iqMatrix;
     int32_t baseQI, i;
 
@@ -503,7 +503,7 @@ VaapiDecoderVP8::VaapiDecoderVP8()
     m_buffer = 0;
     m_frameSize = 0;
     memset(&m_frameHdr, 0, sizeof(Vp8FrameHdr));
-    memset(&m_currFrameContext, 0, sizeof(Vp8Parser));
+    memset(&m_parser, 0, sizeof(Vp8Parser));
 
     // m_yModeProbs[4];
     // m_uvModeProbs[3];
@@ -595,7 +595,7 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
 
         memset(&m_frameHdr, 0, sizeof(m_frameHdr));
         result =
-            vp8_parser_parse_frame_header(&m_currFrameContext, &m_frameHdr, m_buffer, m_frameSize);
+            vp8_parser_parse_frame_header(&m_parser, &m_frameHdr, m_buffer, m_frameSize);
         status = getStatus(result);
         if (status != DECODE_SUCCESS) {
             break;
