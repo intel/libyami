@@ -1,4 +1,4 @@
-/* Gstreamer H.265 bitstream parser
+/* reamer H.265 bitstream parser
  * Copyright (C) 2012 Intel Corporation
  * Copyright (C) 2013 Sreerenj Balachandran <sreerenj.balachandran@intel.com>
  *
@@ -21,48 +21,48 @@
  */
 
 /**
- * SECTION:gsth265parser
+ * SECTION:h265parser
  * @short_description: Convenience library for h265 video bitstream parsing.
  *
  * It offers you bitstream parsing in HEVC mode and non-HEVC mode. To identify
  * Nals in a bitstream and parse its headers, you should call:
  * <itemizedlist>
  *   <listitem>
- *      gst_h265_parser_identify_nalu() to identify the following nalu in
+ *      h265_parser_identify_nalu() to identify the following nalu in
  *        non-HEVC bitstreams
  *   </listitem>
  *   <listitem>
- *      gst_h265_parser_identify_nalu_hevc() to identify the nalu in
+ *      h265_parser_identify_nalu_hevc() to identify the nalu in
  *        HEVC bitstreams
  *   </listitem>
  * </itemizedlist>
  *
- * Then, depending on the #GstH265NalUnitType of the newly parsed #GstH265NalUnit,
+ * Then, depending on the #H265NalUnitType of the newly parsed #H265NalUnit,
  * you should call the differents functions to parse the structure:
  * <itemizedlist>
  *   <listitem>
- *      From #GST_H265_NAL_SLICE_TRAIL_N to #GST_H265_NAL_SLICE_CRA_NUT: gst_h265_parser_parse_slice_hdr()
+ *      From #H265_NAL_SLICE_TRAIL_N to #H265_NAL_SLICE_CRA_NUT: h265_parser_parse_slice_hdr()
  *   </listitem>
  *   <listitem>
- *      #GST_H265_NAL_SEI: gst_h265_parser_parse_sei()
+ *      #H265_NAL_SEI: h265_parser_parse_sei()
  *   </listitem>
  *   <listitem>
- *      #GST_H265_NAL_VPS: gst_h265_parser_parse_vps()
+ *      #H265_NAL_VPS: h265_parser_parse_vps()
  *   </listitem>
  *   <listitem>
- *      #GST_H265_NAL_SPS: gst_h265_parser_parse_sps()
+ *      #H265_NAL_SPS: h265_parser_parse_sps()
  *   </listitem>
  *   <listitem>
- *      #GST_H265_NAL_PPS: #gst_h265_parser_parse_pps()
+ *      #H265_NAL_PPS: #h265_parser_parse_pps()
  *   </listitem>
  *   <listitem>
- *      Any other: gst_h265_parser_parse_nal()
+ *      Any other: h265_parser_parse_nal()
  *   </listitem>
  * </itemizedlist>
  *
- * Note: You should always call gst_h265_parser_parse_nal() if you don't
- * actually need #GstH265NalUnitType to be parsed for your personal use, in
- * order to guarantee that the #GstH265Parser is always up to date.
+ * Note: You should always call h265_parser_parse_nal() if you don't
+ * actually need #H265NalUnitType to be parsed for your personal use, in
+ * order to guarantee that the #H265Parser is always up to date.
  *
  * For more details about the structures, look at the ITU-T H.265
  * specifications, you can download them from:
@@ -79,20 +79,20 @@
 #endif
 
 #include "nalutils.h"
-#include "gsth265parser.h"
+#include "h265parser.h"
 
-#include <gst/base/gstbytereader.h>
-#include <gst/base/gstbitreader.h>
+#include "bytereader.h"
+#include "bitreader.h"
 #include <string.h>
 #include <math.h>
 
-GST_DEBUG_CATEGORY (h265_parser_debug);
-#define GST_CAT_DEFAULT h265_parser_debug
+DEBUG_CATEGORY (h265_parser_debug);
+#define CAT_DEFAULT h265_parser_debug
 
-static gboolean initialized = FALSE;
+static bool initialized = FALSE;
 #define INITIALIZE_DEBUG_CATEGORY \
   if (!initialized) { \
-    GST_DEBUG_CATEGORY_INIT (h265_parser_debug, "codecparsers_h265", 0, \
+    DEBUG_CATEGORY_INIT (h265_parser_debug, "codecparsers_h265", 0, \
         "h265 parser library"); \
     initialized = TRUE; \
   }
@@ -100,7 +100,7 @@ static gboolean initialized = FALSE;
 /**** Default scaling_lists according to Table 7-5 and 7-6 *****/
 
 /* Table 7-5 */
-static const guint8 default_scaling_list0[16] = {
+static const uint8_t default_scaling_list0[16] = {
   16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
   16, 16, 16, 16
 };
@@ -109,7 +109,7 @@ static const guint8 default_scaling_list0[16] = {
  *  Default scaling list of 8x8 and 16x16 matrices for matrixId = 0, 1 and 2
  *  Default scaling list of 32x32 matrix for matrixId = 0
  */
-static const guint8 default_scaling_list1[64] = {
+static const uint8_t default_scaling_list1[64] = {
   16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 16,
   17, 16, 17, 18, 17, 18, 18, 17, 18, 21, 19, 20,
   21, 20, 19, 21, 24, 22, 22, 24, 24, 22, 22, 24,
@@ -122,7 +122,7 @@ static const guint8 default_scaling_list1[64] = {
  *  Default scaling list of 8x8 and 16x16 matrices for matrixId = 3, 4 and 5
  *  Default scaling list of 32x32 matrix for matrixId = 1
  */
-static const guint8 default_scaling_list2[64] = {
+static const uint8_t default_scaling_list2[64] = {
   16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 17,
   17, 17, 17, 17, 18, 18, 18, 18, 18, 20, 20, 20,
   20, 20, 20, 20, 24, 24, 24, 24, 24, 24, 24, 24,
@@ -131,14 +131,14 @@ static const guint8 default_scaling_list2[64] = {
   54, 71, 71, 91
 };
 
-static const guint8 zigzag_4x4[16] = {
+static const uint8_t zigzag_4x4[16] = {
   0, 1, 4, 8,
   5, 2, 3, 6,
   9, 12, 13, 10,
   7, 11, 14, 15,
 };
 
-static const guint8 zigzag_8x8[64] = {
+static const uint8_t zigzag_8x8[64] = {
   0, 1, 8, 16, 9, 2, 3, 10,
   17, 24, 32, 25, 18, 11, 4, 5,
   12, 19, 26, 33, 40, 48, 41, 34,
@@ -151,7 +151,7 @@ static const guint8 zigzag_8x8[64] = {
 
 typedef struct
 {
-  guint par_n, par_d;
+  uint32_t par_n, par_d;
 } PAR;
 
 /* Table E-1 - Meaning of sample aspect ratio indicator (1..16) */
@@ -178,10 +178,10 @@ static const PAR aspect_ratios[17] = {
 /*****  Utils ****/
 #define EXTENDED_SAR 255
 
-static GstH265VPS *
-gst_h265_parser_get_vps (GstH265Parser * parser, guint8 vps_id)
+static H265VPS *
+h265_parser_get_vps (H265Parser * parser, uint8_t vps_id)
 {
-  GstH265VPS *vps;
+  H265VPS *vps;
 
   vps = &parser->vps[vps_id];
 
@@ -191,10 +191,10 @@ gst_h265_parser_get_vps (GstH265Parser * parser, guint8 vps_id)
   return NULL;
 }
 
-static GstH265SPS *
-gst_h265_parser_get_sps (GstH265Parser * parser, guint8 sps_id)
+static H265SPS *
+h265_parser_get_sps (H265Parser * parser, uint8_t sps_id)
 {
-  GstH265SPS *sps;
+  H265SPS *sps;
 
   sps = &parser->sps[sps_id];
 
@@ -204,10 +204,10 @@ gst_h265_parser_get_sps (GstH265Parser * parser, guint8 sps_id)
   return NULL;
 }
 
-static GstH265PPS *
-gst_h265_parser_get_pps (GstH265Parser * parser, guint8 pps_id)
+static H265PPS *
+h265_parser_get_pps (H265Parser * parser, uint8_t pps_id)
 {
-  GstH265PPS *pps;
+  H265PPS *pps;
 
   pps = &parser->pps[pps_id];
 
@@ -217,23 +217,23 @@ gst_h265_parser_get_pps (GstH265Parser * parser, guint8 pps_id)
   return NULL;
 }
 
-static gboolean
-gst_h265_parse_nalu_header (GstH265NalUnit * nalu)
+static bool
+h265_parse_nalu_header (H265NalUnit * nalu)
 {
-  guint8 *data = nalu->data + nalu->offset;
-  GstBitReader br;
+  uint8_t *data = nalu->data + nalu->offset;
+  BitReader br;
 
   if (nalu->size < 2)
     return FALSE;
 
-  gst_bit_reader_init (&br, data, nalu->size - nalu->offset);
+  bit_reader_init (&br, data, nalu->size - nalu->offset);
 
   /* skip the forbidden_zero_bit */
-  gst_bit_reader_skip_unchecked (&br, 1);
+  bit_reader_skip_unchecked (&br, 1);
 
-  nalu->type = gst_bit_reader_get_bits_uint8_unchecked (&br, 6);
-  nalu->layer_id = gst_bit_reader_get_bits_uint8_unchecked (&br, 6);
-  nalu->temporal_id_plus1 = gst_bit_reader_get_bits_uint8_unchecked (&br, 3);
+  nalu->type = bit_reader_get_bits_uint8_unchecked (&br, 6);
+  nalu->layer_id = bit_reader_get_bits_uint8_unchecked (&br, 6);
+  nalu->temporal_id_plus1 = bit_reader_get_bits_uint8_unchecked (&br, 3);
   nalu->header_bytes = 2;
 
   return TRUE;
@@ -241,12 +241,12 @@ gst_h265_parse_nalu_header (GstH265NalUnit * nalu)
 
 /****** Parsing functions *****/
 
-static gboolean
-gst_h265_parse_profile_tier_level (GstH265ProfileTierLevel * ptl,
-    NalReader * nr, guint8 maxNumSubLayersMinus1)
+static bool
+h265_parse_profile_tier_level (H265ProfileTierLevel * ptl,
+    NalReader * nr, uint8_t maxNumSubLayersMinus1)
 {
-  guint i, j;
-  GST_DEBUG ("parsing \"ProfileTierLevel parameters\"");
+  uint32_t i, j;
+  DEBUG ("parsing \"ProfileTierLevel parameters\"");
 
   /* set default values for fields that might not be present in the
    * bitstream and have valid defaults */
@@ -306,17 +306,17 @@ gst_h265_parse_profile_tier_level (GstH265ProfileTierLevel * ptl,
   return TRUE;
 
 error:
-  GST_WARNING ("error parsing \"ProfileTierLevel Parameters\"");
+  WARNING ("error parsing \"ProfileTierLevel Parameters\"");
   return FALSE;
 }
 
-static gboolean
-gst_h265_parse_sub_layer_hrd_parameters (GstH265SubLayerHRDParams * sub_hrd,
-    NalReader * nr, guint8 CpbCnt, guint8 sub_pic_hrd_params_present_flag)
+static bool
+h265_parse_sub_layer_hrd_parameters (H265SubLayerHRDParams * sub_hrd,
+    NalReader * nr, uint8_t CpbCnt, uint8_t sub_pic_hrd_params_present_flag)
 {
-  guint i;
+  uint32_t i;
 
-  GST_DEBUG ("parsing \"SubLayer HRD Parameters\"");
+  DEBUG ("parsing \"SubLayer HRD Parameters\"");
 
   /* set default values for fields that might not be present in the bitstream
      and have valid defaults */
@@ -338,17 +338,17 @@ gst_h265_parse_sub_layer_hrd_parameters (GstH265SubLayerHRDParams * sub_hrd,
   return TRUE;
 
 error:
-  GST_WARNING ("error parsing \"SubLayerHRD Parameters \"");
+  WARNING ("error parsing \"SubLayerHRD Parameters \"");
   return FALSE;
 }
 
-static gboolean
-gst_h265_parse_hrd_parameters (GstH265HRDParams * hrd, NalReader * nr,
-    guint8 commonInfPresentFlag, guint8 maxNumSubLayersMinus1)
+static bool
+h265_parse_hrd_parameters (H265HRDParams * hrd, NalReader * nr,
+    uint8_t commonInfPresentFlag, uint8_t maxNumSubLayersMinus1)
 {
-  guint i;
+  uint32_t i;
 
-  GST_DEBUG ("parsing \"HRD Parameters\"");
+  DEBUG ("parsing \"HRD Parameters\"");
 
   /* set default values for fields that might not be present in the bitstream
      and have valid defaults */
@@ -408,13 +408,13 @@ gst_h265_parse_hrd_parameters (GstH265HRDParams * hrd, NalReader * nr,
       READ_UE_MAX (nr, hrd->cpb_cnt_minus1[i], 31);
 
     if (hrd->nal_hrd_parameters_present_flag)
-      if (!gst_h265_parse_sub_layer_hrd_parameters (&hrd->sublayer_hrd_params
+      if (!h265_parse_sub_layer_hrd_parameters (&hrd->sublayer_hrd_params
               [i], nr, hrd->cpb_cnt_minus1[i],
               hrd->sub_pic_hrd_params_present_flag))
         goto error;
 
     if (hrd->vcl_hrd_parameters_present_flag)
-      if (!gst_h265_parse_sub_layer_hrd_parameters (&hrd->sublayer_hrd_params
+      if (!h265_parse_sub_layer_hrd_parameters (&hrd->sublayer_hrd_params
               [i], nr, hrd->cpb_cnt_minus1[i],
               hrd->sub_pic_hrd_params_present_flag))
         goto error;
@@ -423,16 +423,16 @@ gst_h265_parse_hrd_parameters (GstH265HRDParams * hrd, NalReader * nr,
   return TRUE;
 
 error:
-  GST_WARNING ("error parsing \"HRD Parameters\"");
+  WARNING ("error parsing \"HRD Parameters\"");
   return FALSE;
 }
 
-static gboolean
-gst_h265_parse_vui_parameters (GstH265SPS * sps, NalReader * nr)
+static bool
+h265_parse_vui_parameters (H265SPS * sps, NalReader * nr)
 {
-  GstH265VUIParams *vui = &sps->vui_params;
+  H265VUIParams *vui = &sps->vui_params;
 
-  GST_DEBUG ("parsing \"VUI Parameters\"");
+  DEBUG ("parsing \"VUI Parameters\"");
 
   /* set default values for fields that might not be present in the bitstream
      and have valid defaults */
@@ -519,12 +519,12 @@ gst_h265_parse_vui_parameters (GstH265SPS * sps, NalReader * nr)
   if (vui->timing_info_present_flag) {
     READ_UINT32 (nr, vui->num_units_in_tick, 32);
     if (vui->num_units_in_tick == 0)
-      GST_WARNING ("num_units_in_tick = 0 detected in stream "
+      WARNING ("num_units_in_tick = 0 detected in stream "
           "(incompliant to H.265 E.2.1).");
 
     READ_UINT32 (nr, vui->time_scale, 32);
     if (vui->time_scale == 0)
-      GST_WARNING ("time_scale = 0 detected in stream "
+      WARNING ("time_scale = 0 detected in stream "
           "(incompliant to H.265 E.2.1).");
 
     READ_UINT8 (nr, vui->poc_proportional_to_timing_flag, 1);
@@ -533,7 +533,7 @@ gst_h265_parse_vui_parameters (GstH265SPS * sps, NalReader * nr)
 
     READ_UINT8 (nr, vui->hrd_parameters_present_flag, 1);
     if (vui->hrd_parameters_present_flag)
-      if (!gst_h265_parse_hrd_parameters (&vui->hrd_params, nr, 1,
+      if (!h265_parse_hrd_parameters (&vui->hrd_params, nr, 1,
               sps->max_sub_layers_minus1))
         goto error;
   }
@@ -553,27 +553,27 @@ gst_h265_parse_vui_parameters (GstH265SPS * sps, NalReader * nr)
   return TRUE;
 
 error:
-  GST_WARNING ("error parsing \"VUI Parameters\"");
+  WARNING ("error parsing \"VUI Parameters\"");
   return FALSE;
 }
 
-static gboolean
-get_scaling_list_params (GstH265ScalingList * dest_scaling_list,
-    guint8 sizeId, guint8 matrixId, guint8 ** sl, guint8 * size,
-    gint16 ** scaling_list_dc_coef_minus8)
+static bool
+get_scaling_list_params (H265ScalingList * dest_scaling_list,
+    uint8_t sizeId, uint8_t matrixId, uint8_t ** sl, uint8_t * size,
+    int16_t ** scaling_list_dc_coef_minus8)
 {
   switch (sizeId) {
-    case GST_H265_QUANT_MATIX_4X4:
+    case H265_QUANT_MATIX_4X4:
       *sl = dest_scaling_list->scaling_lists_4x4[matrixId];
       if (size)
         *size = 16;
       break;
-    case GST_H265_QUANT_MATIX_8X8:
+    case H265_QUANT_MATIX_8X8:
       *sl = dest_scaling_list->scaling_lists_8x8[matrixId];
       if (size)
         *size = 64;
       break;
-    case GST_H265_QUANT_MATIX_16X16:
+    case H265_QUANT_MATIX_16X16:
       *sl = dest_scaling_list->scaling_lists_16x16[matrixId];
       if (size)
         *size = 64;
@@ -581,7 +581,7 @@ get_scaling_list_params (GstH265ScalingList * dest_scaling_list,
         *scaling_list_dc_coef_minus8 =
             dest_scaling_list->scaling_list_dc_coef_minus8_16x16;
       break;
-    case GST_H265_QUANT_MATIX_32X32:
+    case H265_QUANT_MATIX_32X32:
       *sl = dest_scaling_list->scaling_lists_32x32[matrixId];
       if (size)
         *size = 64;
@@ -595,23 +595,23 @@ get_scaling_list_params (GstH265ScalingList * dest_scaling_list,
   return TRUE;
 }
 
-static gboolean
-get_default_scaling_lists (guint8 ** sl, guint8 sizeId, guint8 matrixId)
+static bool
+get_default_scaling_lists (uint8_t ** sl, uint8_t sizeId, uint8_t matrixId)
 {
   switch (sizeId) {
-    case GST_H265_QUANT_MATIX_4X4:
+    case H265_QUANT_MATIX_4X4:
       memcpy (*sl, default_scaling_list0, 16);
       break;
 
-    case GST_H265_QUANT_MATIX_8X8:
-    case GST_H265_QUANT_MATIX_16X16:
+    case H265_QUANT_MATIX_8X8:
+    case H265_QUANT_MATIX_16X16:
       if (matrixId <= 2)
         memcpy (*sl, default_scaling_list1, 64);
       else
         memcpy (*sl, default_scaling_list2, 64);
       break;
 
-    case GST_H265_QUANT_MATIX_32X32:
+    case H265_QUANT_MATIX_32X32:
       if (matrixId == 0)
         memcpy (*sl, default_scaling_list1, 64);
       else
@@ -625,22 +625,22 @@ get_default_scaling_lists (guint8 ** sl, guint8 sizeId, guint8 matrixId)
   return TRUE;
 }
 
-static gboolean
-gst_h265_parser_parse_scaling_lists (NalReader * nr,
-    GstH265ScalingList * dest_scaling_list, gboolean use_default)
+static bool
+h265_parser_parse_scaling_lists (NalReader * nr,
+    H265ScalingList * dest_scaling_list, bool use_default)
 {
-  guint8 sizeId;
-  guint8 matrixId;
-  guint8 scaling_list_pred_mode_flag = 0;
-  guint8 scaling_list_pred_matrix_id_delta = 0;
-  guint8 size, i;
+  uint8_t sizeId;
+  uint8_t matrixId;
+  uint8_t scaling_list_pred_mode_flag = 0;
+  uint8_t scaling_list_pred_matrix_id_delta = 0;
+  uint8_t size, i;
 
-  GST_DEBUG ("parsing scaling lists");
+  DEBUG ("parsing scaling lists");
 
   for (sizeId = 0; sizeId < 4; sizeId++) {
     for (matrixId = 0; matrixId < ((sizeId == 3) ? 2 : 6); matrixId++) {
-      gint16 *scaling_list_dc_coef_minus8 = NULL;
-      guint8 *sl;
+      int16_t *scaling_list_dc_coef_minus8 = NULL;
+      uint8_t *sl;
 
       if (!get_scaling_list_params (dest_scaling_list, sizeId, matrixId, &sl,
               &size, &scaling_list_dc_coef_minus8))
@@ -662,7 +662,7 @@ gst_h265_parser_parse_scaling_lists (NalReader * nr,
         READ_UINT8 (nr, scaling_list_pred_mode_flag, 1);
 
         if (!scaling_list_pred_mode_flag) {
-          guint8 refMatrixId;
+          uint8_t refMatrixId;
 
           READ_UE_MAX (nr, scaling_list_pred_matrix_id_delta, matrixId);
 
@@ -675,7 +675,7 @@ gst_h265_parser_parse_scaling_lists (NalReader * nr,
               scaling_list_dc_coef_minus8[matrixId] = 8;
 
           } else {
-            guint8 *temp_sl;
+            uint8_t *temp_sl;
 
             refMatrixId = matrixId - scaling_list_pred_matrix_id_delta; /* 7-30 */
 
@@ -693,8 +693,8 @@ gst_h265_parser_parse_scaling_lists (NalReader * nr,
                   scaling_list_dc_coef_minus8[refMatrixId];
           }
         } else {
-          guint8 nextCoef = 8;
-          gint8 scaling_list_delta_coef;
+          uint8_t nextCoef = 8;
+          int8_t scaling_list_delta_coef;
 
           if (sizeId > 1) {
             READ_SE_ALLOWED (nr, scaling_list_dc_coef_minus8[matrixId], -7,
@@ -715,25 +715,25 @@ gst_h265_parser_parse_scaling_lists (NalReader * nr,
   return TRUE;
 
 error:
-  GST_WARNING ("error parsing scaling lists");
+  WARNING ("error parsing scaling lists");
   return FALSE;
 }
 
-static gboolean
-gst_h265_parser_parse_short_term_ref_pic_sets (GstH265ShortTermRefPicSet *
-    stRPS, NalReader * nr, guint8 stRpsIdx, GstH265SPS * sps)
+static bool
+h265_parser_parse_short_term_ref_pic_sets (H265ShortTermRefPicSet *
+    stRPS, NalReader * nr, uint8_t stRpsIdx, H265SPS * sps)
 {
-  guint8 num_short_term_ref_pic_sets;
-  guint8 RefRpsIdx = 0;
-  gint16 deltaRps = 0;
-  guint8 use_delta_flag[16] = { 0 };
-  guint8 used_by_curr_pic_flag[16] = { 0 };
-  guint32 delta_poc_s0_minus1[16] = { 0 };
-  guint32 delta_poc_s1_minus1[16] = { 0 };
-  gint j, i = 0;
-  gint dPoc;
+  uint8_t num_short_term_ref_pic_sets;
+  uint8_t RefRpsIdx = 0;
+  int16_t deltaRps = 0;
+  uint8_t use_delta_flag[16] = { 0 };
+  uint8_t used_by_curr_pic_flag[16] = { 0 };
+  uint32_t delta_poc_s0_minus1[16] = { 0 };
+  uint32_t delta_poc_s1_minus1[16] = { 0 };
+  int32_t j, i = 0;
+  int32_t dPoc;
 
-  GST_DEBUG ("parsing \"ShortTermRefPicSetParameters\"");
+  DEBUG ("parsing \"ShortTermRefPicSetParameters\"");
 
   /* set default values for fields that might not be present in the bitstream
      and have valid defaults */
@@ -748,7 +748,7 @@ gst_h265_parser_parse_short_term_ref_pic_sets (GstH265ShortTermRefPicSet *
     READ_UINT8 (nr, stRPS->inter_ref_pic_set_prediction_flag, 1);
 
   if (stRPS->inter_ref_pic_set_prediction_flag) {
-    GstH265ShortTermRefPicSet *RefRPS;
+    H265ShortTermRefPicSet *RefRPS;
 
     if (stRpsIdx == num_short_term_ref_pic_sets)
       READ_UE_MAX (nr, stRPS->delta_idx_minus1, stRpsIdx - 1);
@@ -862,17 +862,17 @@ gst_h265_parser_parse_short_term_ref_pic_sets (GstH265ShortTermRefPicSet *
   return TRUE;
 
 error:
-  GST_WARNING ("error parsing \"ShortTermRefPicSet Parameters\"");
+  WARNING ("error parsing \"ShortTermRefPicSet Parameters\"");
   return FALSE;
 }
 
-static gboolean
-gst_h265_slice_parse_ref_pic_list_modification (GstH265SliceHdr * slice,
-    NalReader * nr, gint NumPocTotalCurr)
+static bool
+h265_slice_parse_ref_pic_list_modification (H265SliceHdr * slice,
+    NalReader * nr, int32_t NumPocTotalCurr)
 {
-  guint i;
-  GstH265RefPicListModification *rpl_mod = &slice->ref_pic_list_modification;
-  const guint n = ceil_log2 (NumPocTotalCurr);
+  uint32_t i;
+  H265RefPicListModification *rpl_mod = &slice->ref_pic_list_modification;
+  const uint32_t n = ceil_log2 (NumPocTotalCurr);
 
   /* set default values */
   rpl_mod->ref_pic_list_modification_flag_l0 = 0;
@@ -890,7 +890,7 @@ gst_h265_slice_parse_ref_pic_list_modification (GstH265SliceHdr * slice,
       CHECK_ALLOWED_MAX (rpl_mod->list_entry_l0[i], (NumPocTotalCurr - 1));
     }
   }
-  if (GST_H265_IS_B_SLICE (slice)) {
+  if (H265_IS_B_SLICE (slice)) {
     READ_UINT8 (nr, rpl_mod->ref_pic_list_modification_flag_l1, 1);
     if (rpl_mod->ref_pic_list_modification_flag_l1)
       for (i = 0; i <= slice->num_ref_idx_l1_active_minus1; i++) {
@@ -902,19 +902,19 @@ gst_h265_slice_parse_ref_pic_list_modification (GstH265SliceHdr * slice,
   return TRUE;
 
 error:
-  GST_WARNING ("error parsing \"Prediction weight table\"");
+  WARNING ("error parsing \"Prediction weight table\"");
   return FALSE;
 }
 
-static gboolean
-gst_h265_slice_parse_pred_weight_table (GstH265SliceHdr * slice, NalReader * nr)
+static bool
+h265_slice_parse_pred_weight_table (H265SliceHdr * slice, NalReader * nr)
 {
-  GstH265PredWeightTable *p;
-  gint i, j;
-  GstH265PPS *pps = slice->pps;
-  GstH265SPS *sps = pps->sps;
+  H265PredWeightTable *p;
+  int32_t i, j;
+  H265PPS *pps = slice->pps;
+  H265SPS *sps = pps->sps;
 
-  GST_DEBUG ("parsing \"Prediction weight table\"");
+  DEBUG ("parsing \"Prediction weight table\"");
 
   p = &slice->pred_weight_table;
 
@@ -926,7 +926,7 @@ gst_h265_slice_parse_pred_weight_table (GstH265SliceHdr * slice, NalReader * nr)
     p->luma_offset_l0[i] = 0;
   }
 
-  if (GST_H265_IS_B_SLICE (slice)) {
+  if (H265_IS_B_SLICE (slice)) {
     for (i = 0; i < G_N_ELEMENTS (p->luma_weight_l1_flag); i++) {
       p->chroma_weight_l1_flag[i] = 0;
       p->luma_offset_l1[i] = 0;
@@ -955,7 +955,7 @@ gst_h265_slice_parse_pred_weight_table (GstH265SliceHdr * slice, NalReader * nr)
       }
   }
 
-  if (GST_H265_IS_B_SLICE (slice)) {
+  if (H265_IS_B_SLICE (slice)) {
     for (i = 0; i <= slice->num_ref_idx_l1_active_minus1; i++)
       READ_UINT8 (nr, p->luma_weight_l1_flag[i], 1);
     if (sps->chroma_format_idc != 0)
@@ -978,27 +978,27 @@ gst_h265_slice_parse_pred_weight_table (GstH265SliceHdr * slice, NalReader * nr)
   return TRUE;
 
 error:
-  GST_WARNING ("error parsing \"Prediction weight table\"");
+  WARNING ("error parsing \"Prediction weight table\"");
   return FALSE;
 }
 
-static GstH265ParserResult
-gst_h265_parser_parse_buffering_period (GstH265Parser * parser,
-    GstH265BufferingPeriod * per, NalReader * nr)
+static H265ParserResult
+h265_parser_parse_buffering_period (H265Parser * parser,
+    H265BufferingPeriod * per, NalReader * nr)
 {
-  GstH265SPS *sps;
-  guint8 sps_id;
-  guint i;
-  guint n;
+  H265SPS *sps;
+  uint8_t sps_id;
+  uint32_t i;
+  uint32_t n;
 
-  GST_DEBUG ("parsing \"Buffering period\"");
+  DEBUG ("parsing \"Buffering period\"");
 
-  READ_UE_MAX (nr, sps_id, GST_H265_MAX_SPS_COUNT - 1);
-  sps = gst_h265_parser_get_sps (parser, sps_id);
+  READ_UE_MAX (nr, sps_id, H265_MAX_SPS_COUNT - 1);
+  sps = h265_parser_get_sps (parser, sps_id);
   if (!sps) {
-    GST_WARNING ("couldn't find associated sequence parameter set with id: %d",
+    WARNING ("couldn't find associated sequence parameter set with id: %d",
         sps_id);
-    return GST_H265_PARSER_BROKEN_LINK;
+    return H265_PARSER_BROKEN_LINK;
   }
   per->sps = sps;
 
@@ -1008,8 +1008,8 @@ gst_h265_parser_parse_buffering_period (GstH265Parser * parser,
   per->dpb_delay_offset = 0;
 
   if (sps->vui_parameters_present_flag) {
-    GstH265VUIParams *vui = &sps->vui_params;
-    GstH265HRDParams *hrd = &vui->hrd_params;
+    H265VUIParams *vui = &sps->vui_params;
+    H265HRDParams *hrd = &vui->hrd_params;
 
     if (!hrd->sub_pic_hrd_params_present_flag)
       READ_UINT8 (nr, per->irap_cpb_params_present_flag, 1);
@@ -1052,23 +1052,23 @@ gst_h265_parser_parse_buffering_period (GstH265Parser * parser,
     }
 
   }
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 
 error:
-  GST_WARNING ("error parsing \"Buffering period\"");
-  return GST_H265_PARSER_ERROR;
+  WARNING ("error parsing \"Buffering period\"");
+  return H265_PARSER_ERROR;
 }
 
-static GstH265ParserResult
-gst_h265_parser_parse_pic_timing (GstH265Parser * parser,
-    GstH265PicTiming * tim, NalReader * nr)
+static H265ParserResult
+h265_parser_parse_pic_timing (H265Parser * parser,
+    H265PicTiming * tim, NalReader * nr)
 {
-  GstH265ProfileTierLevel *profile_tier_level;
-  guint i;
+  H265ProfileTierLevel *profile_tier_level;
+  uint32_t i;
 
-  GST_DEBUG ("parsing \"Picture timing\"");
+  DEBUG ("parsing \"Picture timing\"");
   if (!parser->last_sps || !parser->last_sps->valid) {
-    GST_WARNING ("didn't get the associated sequence paramater set for the "
+    WARNING ("didn't get the associated sequence paramater set for the "
         "current access unit");
     goto error;
   }
@@ -1087,7 +1087,7 @@ gst_h265_parser_parse_pic_timing (GstH265Parser * parser,
     tim->source_scan_type = 2;
 
   if (parser->last_sps->vui_parameters_present_flag) {
-    GstH265VUIParams *vui = &parser->last_sps->vui_params;
+    H265VUIParams *vui = &parser->last_sps->vui_params;
 
     if (vui->frame_field_info_present_flag) {
       READ_UINT8 (nr, tim->pic_struct, 4);
@@ -1099,7 +1099,7 @@ gst_h265_parser_parse_pic_timing (GstH265Parser * parser,
     }
 
     if (vui->hrd_parameters_present_flag) {
-      GstH265HRDParams *hrd = &vui->hrd_params;
+      H265HRDParams *hrd = &vui->hrd_params;
 
       READ_UINT8 (nr, tim->au_cpb_removal_delay_minus1,
           (hrd->au_cpb_removal_delay_length_minus1 + 1));
@@ -1120,9 +1120,9 @@ gst_h265_parser_parse_pic_timing (GstH265Parser * parser,
               (hrd->du_cpb_removal_delay_increment_length_minus1 + 1));
 
         tim->num_nalus_in_du_minus1 =
-            g_new0 (guint32, (tim->num_decoding_units_minus1 + 1));
+            g_new0 (uint32_t, (tim->num_decoding_units_minus1 + 1));
         tim->du_cpb_removal_delay_increment_minus1 =
-            g_new0 (guint8, (tim->num_decoding_units_minus1 + 1));
+            g_new0 (uint8_t, (tim->num_decoding_units_minus1 + 1));
 
         for (i = 0; i <= (tim->num_decoding_units_minus1 + 1); i++) {
           READ_UE (nr, tim->num_nalus_in_du_minus1[i]);
@@ -1135,88 +1135,88 @@ gst_h265_parser_parse_pic_timing (GstH265Parser * parser,
       }
     }
   }
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 
 error:
-  GST_WARNING ("error parsing \"Picture timing\"");
-  return GST_H265_PARSER_ERROR;
+  WARNING ("error parsing \"Picture timing\"");
+  return H265_PARSER_ERROR;
 }
 
 /******** API *************/
 
 /**
- * gst_h265_parser_new:
+ * h265_parser_new:
  *
- * Creates a new #GstH265Parser. It should be freed with
- * gst_h265_parser_free after use.
+ * Creates a new #H265Parser. It should be freed with
+ * h265_parser_free after use.
  *
- * Returns: a new #GstH265Parser
+ * Returns: a new #H265Parser
  */
-GstH265Parser *
-gst_h265_parser_new (void)
+H265Parser *
+h265_parser_new (void)
 {
-  GstH265Parser *parser;
+  H265Parser *parser;
 
-  parser = g_slice_new0 (GstH265Parser);
+  parser = g_slice_new0 (H265Parser);
   INITIALIZE_DEBUG_CATEGORY;
 
   return parser;
 }
 
 /**
- * gst_h265_parser_free:
- * @parser: the #GstH265Parser to free
+ * h265_parser_free:
+ * @parser: the #H265Parser to free
  *
  * Frees @parser and sets it to %NULL
  */
 void
-gst_h265_parser_free (GstH265Parser * parser)
+h265_parser_free (H265Parser * parser)
 {
-  g_slice_free (GstH265Parser, parser);
+  g_slice_free (H265Parser, parser);
   parser = NULL;
 }
 
 /**
- * gst_h265_parser_identify_nalu_unchecked:
- * @parser: a #GstH265Parser
+ * h265_parser_identify_nalu_unchecked:
+ * @parser: a #H265Parser
  * @data: The data to parse
  * @offset: the offset from which to parse @data
  * @size: the size of @data
- * @nalu: The #GstH265NalUnit where to store parsed nal headers
+ * @nalu: The #H265NalUnit where to store parsed nal headers
  *
  * Parses @data and fills @nalu from the next nalu data from @data.
  *
- * This differs from @gst_h265_parser_identify_nalu in that it doesn't
+ * This differs from @h265_parser_identify_nalu in that it doesn't
  * check whether the packet is complete or not.
  *
  * Note: Only use this function if you already know the provided @data
- * is a complete NALU, else use @gst_h265_parser_identify_nalu.
+ * is a complete NALU, else use @h265_parser_identify_nalu.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_identify_nalu_unchecked (GstH265Parser * parser,
-    const guint8 * data, guint offset, gsize size, GstH265NalUnit * nalu)
+H265ParserResult
+h265_parser_identify_nalu_unchecked (H265Parser * parser,
+    const uint8_t * data, uint32_t offset, size_t size, H265NalUnit * nalu)
 {
-  gint off1;
+  int32_t off1;
 
   if (size < offset + 4) {
-    GST_DEBUG ("Can't parse, buffer has too small size %" G_GSIZE_FORMAT
+    DEBUG ("Can't parse, buffer has too small size %" G_GSIZE_FORMAT
         ", offset %u", size, offset);
-    return GST_H265_PARSER_ERROR;
+    return H265_PARSER_ERROR;
   }
 
   off1 = scan_for_start_codes (data + offset, size - offset);
 
   if (off1 < 0) {
-    GST_DEBUG ("No start code prefix in this buffer");
-    return GST_H265_PARSER_NO_NAL;
+    DEBUG ("No start code prefix in this buffer");
+    return H265_PARSER_NO_NAL;
   }
 
   if (offset + off1 == size - 1) {
-    GST_DEBUG ("Missing data to identify nal unit");
+    DEBUG ("Missing data to identify nal unit");
 
-    return GST_H265_PARSER_ERROR;
+    return H265_PARSER_ERROR;
   }
 
   nalu->sc_offset = offset + off1;
@@ -1226,57 +1226,57 @@ gst_h265_parser_identify_nalu_unchecked (GstH265Parser * parser,
     nalu->sc_offset--;
 
   nalu->offset = offset + off1 + 3;
-  nalu->data = (guint8 *) data;
+  nalu->data = (uint8_t *) data;
   nalu->size = size - nalu->offset;
 
-  if (!gst_h265_parse_nalu_header (nalu)) {
-    GST_WARNING ("error parsing \"NAL unit header\"");
+  if (!h265_parse_nalu_header (nalu)) {
+    WARNING ("error parsing \"NAL unit header\"");
     nalu->size = 0;
-    return GST_H265_PARSER_BROKEN_DATA;
+    return H265_PARSER_BROKEN_DATA;
   }
 
   nalu->valid = TRUE;
 
-  if (nalu->type == GST_H265_NAL_EOS || nalu->type == GST_H265_NAL_EOB) {
-    GST_DEBUG ("end-of-seq or end-of-stream nal found");
+  if (nalu->type == H265_NAL_EOS || nalu->type == H265_NAL_EOB) {
+    DEBUG ("end-of-seq or end-of-stream nal found");
     nalu->size = 2;
-    return GST_H265_PARSER_OK;
+    return H265_PARSER_OK;
   }
 
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 }
 
 /**
- * gst_h265_parser_identify_nalu:
- * @parser: a #GstH265Parser
+ * h265_parser_identify_nalu:
+ * @parser: a #H265Parser
  * @data: The data to parse
  * @offset: the offset from which to parse @data
  * @size: the size of @data
- * @nalu: The #GstH265NalUnit where to store parsed nal headers
+ * @nalu: The #H265NalUnit where to store parsed nal headers
  *
  * Parses @data and fills @nalu from the next nalu data from @data
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_identify_nalu (GstH265Parser * parser,
-    const guint8 * data, guint offset, gsize size, GstH265NalUnit * nalu)
+H265ParserResult
+h265_parser_identify_nalu (H265Parser * parser,
+    const uint8_t * data, uint32_t offset, size_t size, H265NalUnit * nalu)
 {
-  GstH265ParserResult res;
-  gint off2;
+  H265ParserResult res;
+  int32_t off2;
 
   res =
-      gst_h265_parser_identify_nalu_unchecked (parser, data, offset, size,
+      h265_parser_identify_nalu_unchecked (parser, data, offset, size,
       nalu);
 
-  if (res != GST_H265_PARSER_OK || nalu->size == 2)
+  if (res != H265_PARSER_OK || nalu->size == 2)
     goto beach;
 
   off2 = scan_for_start_codes (data + nalu->offset, size - nalu->offset);
   if (off2 < 0) {
-    GST_DEBUG ("Nal start %d, No end found", nalu->offset);
+    DEBUG ("Nal start %d, No end found", nalu->offset);
 
-    return GST_H265_PARSER_NO_NAL_END;
+    return H265_PARSER_NO_NAL_END;
   }
 
   /* Mini performance improvement:
@@ -1287,44 +1287,44 @@ gst_h265_parser_identify_nalu (GstH265Parser * parser,
 
   nalu->size = off2;
   if (nalu->size < 3)
-    return GST_H265_PARSER_BROKEN_DATA;
+    return H265_PARSER_BROKEN_DATA;
 
-  GST_DEBUG ("Complete nal found. Off: %d, Size: %d", nalu->offset, nalu->size);
+  DEBUG ("Complete nal found. Off: %d, Size: %d", nalu->offset, nalu->size);
 
 beach:
   return res;
 }
 
 /**
- * gst_h265_parser_identify_nalu_hevc:
- * @parser: a #GstH265Parser
+ * h265_parser_identify_nalu_hevc:
+ * @parser: a #H265Parser
  * @data: The data to parse, must be the beging of the Nal unit
  * @offset: the offset from which to parse @data
  * @size: the size of @data
  * @nal_length_size: the size in bytes of the HEVC nal length prefix.
- * @nalu: The #GstH265NalUnit where to store parsed nal headers
+ * @nalu: The #H265NalUnit where to store parsed nal headers
  *
  * Parses @data and sets @nalu.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_identify_nalu_hevc (GstH265Parser * parser,
-    const guint8 * data, guint offset, gsize size, guint8 nal_length_size,
-    GstH265NalUnit * nalu)
+H265ParserResult
+h265_parser_identify_nalu_hevc (H265Parser * parser,
+    const uint8_t * data, uint32_t offset, size_t size, uint8_t nal_length_size,
+    H265NalUnit * nalu)
 {
-  GstBitReader br;
+  BitReader br;
 
   if (size < offset + nal_length_size) {
-    GST_DEBUG ("Can't parse, buffer has too small size %" G_GSIZE_FORMAT
+    DEBUG ("Can't parse, buffer has too small size %" G_GSIZE_FORMAT
         ", offset %u", size, offset);
-    return GST_H265_PARSER_ERROR;
+    return H265_PARSER_ERROR;
   }
 
   size = size - offset;
-  gst_bit_reader_init (&br, data + offset, size);
+  bit_reader_init (&br, data + offset, size);
 
-  nalu->size = gst_bit_reader_get_bits_uint32_unchecked (&br,
+  nalu->size = bit_reader_get_bits_uint32_unchecked (&br,
       nal_length_size * 8);
   nalu->sc_offset = offset;
   nalu->offset = offset + nal_length_size;
@@ -1332,75 +1332,75 @@ gst_h265_parser_identify_nalu_hevc (GstH265Parser * parser,
   if (size < nalu->size + nal_length_size) {
     nalu->size = 0;
 
-    return GST_H265_PARSER_NO_NAL_END;
+    return H265_PARSER_NO_NAL_END;
   }
 
-  nalu->data = (guint8 *) data;
+  nalu->data = (uint8_t *) data;
 
-  if (!gst_h265_parse_nalu_header (nalu)) {
-    GST_WARNING ("error parsing \"NAL unit header\"");
+  if (!h265_parse_nalu_header (nalu)) {
+    WARNING ("error parsing \"NAL unit header\"");
     nalu->size = 0;
-    return GST_H265_PARSER_BROKEN_DATA;
+    return H265_PARSER_BROKEN_DATA;
   }
 
   if (nalu->size < 2)
-    return GST_H265_PARSER_BROKEN_DATA;
+    return H265_PARSER_BROKEN_DATA;
 
   nalu->valid = TRUE;
 
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 }
 
 /**
- * gst_h265_parser_parse_nal:
- * @parser: a #GstH265Parser
- * @nalu: The #GstH265NalUnit to parse
+ * h265_parser_parse_nal:
+ * @parser: a #H265Parser
+ * @nalu: The #H265NalUnit to parse
  *
  * This function should be called in the case one doesn't need to
  * parse a specific structure. It is necessary to do so to make
  * sure @parser is up to date.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_parse_nal (GstH265Parser * parser, GstH265NalUnit * nalu)
+H265ParserResult
+h265_parser_parse_nal (H265Parser * parser, H265NalUnit * nalu)
 {
-  GstH265VPS vps;
-  GstH265SPS sps;
-  GstH265PPS pps;
+  H265VPS vps;
+  H265SPS sps;
+  H265PPS pps;
 
   switch (nalu->type) {
-    case GST_H265_NAL_VPS:
-      return gst_h265_parser_parse_vps (parser, nalu, &vps);
+    case H265_NAL_VPS:
+      return h265_parser_parse_vps (parser, nalu, &vps);
       break;
-    case GST_H265_NAL_SPS:
-      return gst_h265_parser_parse_sps (parser, nalu, &sps, FALSE);
+    case H265_NAL_SPS:
+      return h265_parser_parse_sps (parser, nalu, &sps, FALSE);
       break;
-    case GST_H265_NAL_PPS:
-      return gst_h265_parser_parse_pps (parser, nalu, &pps);
+    case H265_NAL_PPS:
+      return h265_parser_parse_pps (parser, nalu, &pps);
   }
 
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 }
 
 /**
- * gst_h265_parser_parse_vps:
- * @parser: a #GstH265Parser
- * @nalu: The #GST_H265_NAL_VPS #GstH265NalUnit to parse
- * @vps: The #GstH265VPS to fill.
+ * h265_parser_parse_vps:
+ * @parser: a #H265Parser
+ * @nalu: The #H265_NAL_VPS #H265NalUnit to parse
+ * @vps: The #H265VPS to fill.
  *
  * Parses @data, and fills the @vps structure.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_parse_vps (GstH265Parser * parser, GstH265NalUnit * nalu,
-    GstH265VPS * vps)
+H265ParserResult
+h265_parser_parse_vps (H265Parser * parser, H265NalUnit * nalu,
+    H265VPS * vps)
 {
-  GstH265ParserResult res = gst_h265_parse_vps (nalu, vps);
+  H265ParserResult res = h265_parse_vps (nalu, vps);
 
-  if (res == GST_H265_PARSER_OK) {
-    GST_DEBUG ("adding video parameter set with id: %d to array", vps->id);
+  if (res == H265_PARSER_OK) {
+    DEBUG ("adding video parameter set with id: %d to array", vps->id);
 
     parser->vps[vps->id] = *vps;
     parser->last_vps = &parser->vps[vps->id];
@@ -1410,22 +1410,22 @@ gst_h265_parser_parse_vps (GstH265Parser * parser, GstH265NalUnit * nalu,
 }
 
 /**
- * gst_h265_parse_vps:
- * @nalu: The #GST_H265_NAL_VPS #GstH265NalUnit to parse
- * @sps: The #GstH265VPS to fill.
+ * h265_parse_vps:
+ * @nalu: The #H265_NAL_VPS #H265NalUnit to parse
+ * @sps: The #H265VPS to fill.
  *
  * Parses @data, and fills the @vps structure.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parse_vps (GstH265NalUnit * nalu, GstH265VPS * vps)
+H265ParserResult
+h265_parse_vps (H265NalUnit * nalu, H265VPS * vps)
 {
   NalReader nr;
-  guint i, j;
+  uint32_t i, j;
 
   INITIALIZE_DEBUG_CATEGORY;
-  GST_DEBUG ("parsing VPS");
+  DEBUG ("parsing VPS");
 
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
@@ -1448,7 +1448,7 @@ gst_h265_parse_vps (GstH265NalUnit * nalu, GstH265VPS * vps)
   if (!nal_reader_skip (&nr, 16))
     goto error;
 
-  if (!gst_h265_parse_profile_tier_level (&vps->profile_tier_level, &nr,
+  if (!h265_parse_profile_tier_level (&vps->profile_tier_level, &nr,
           vps->max_sub_layers_minus1))
     goto error;
 
@@ -1501,7 +1501,7 @@ gst_h265_parse_vps (GstH265NalUnit * nalu, GstH265VPS * vps)
       READ_UE_MAX (&nr, vps->hrd_layer_set_idx, 1023);
       CHECK_ALLOWED_MAX (vps->hrd_layer_set_idx, 0);
 
-      if (!gst_h265_parse_hrd_parameters (&vps->hrd_params, &nr,
+      if (!h265_parse_hrd_parameters (&vps->hrd_params, &nr,
               vps->cprms_present_flag, vps->max_sub_layers_minus1))
         goto error;
     }
@@ -1509,34 +1509,34 @@ gst_h265_parse_vps (GstH265NalUnit * nalu, GstH265VPS * vps)
   READ_UINT8 (&nr, vps->vps_extension, 1);
   vps->valid = TRUE;
 
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 
 error:
-  GST_WARNING ("error parsing \"Video parameter set\"");
+  WARNING ("error parsing \"Video parameter set\"");
   vps->valid = FALSE;
-  return GST_H265_PARSER_ERROR;
+  return H265_PARSER_ERROR;
 }
 
 /**
- * gst_h265_parser_parse_sps:
- * @parser: a #GstH265Parser
- * @nalu: The #GST_H265_NAL_SPS #GstH265NalUnit to parse
- * @sps: The #GstH265SPS to fill.
+ * h265_parser_parse_sps:
+ * @parser: a #H265Parser
+ * @nalu: The #H265_NAL_SPS #H265NalUnit to parse
+ * @sps: The #H265SPS to fill.
  * @parse_vui_params: Whether to parse the vui_params or not
  *
  * Parses @data, and fills the @sps structure.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
-    GstH265SPS * sps, gboolean parse_vui_params)
+H265ParserResult
+h265_parser_parse_sps (H265Parser * parser, H265NalUnit * nalu,
+    H265SPS * sps, bool parse_vui_params)
 {
-  GstH265ParserResult res =
-      gst_h265_parse_sps (parser, nalu, sps, parse_vui_params);
+  H265ParserResult res =
+      h265_parse_sps (parser, nalu, sps, parse_vui_params);
 
-  if (res == GST_H265_PARSER_OK) {
-    GST_DEBUG ("adding sequence parameter set with id: %d to array", sps->id);
+  if (res == H265_PARSER_OK) {
+    DEBUG ("adding sequence parameter set with id: %d to array", sps->id);
 
     parser->sps[sps->id] = *sps;
     parser->last_sps = &parser->sps[sps->id];
@@ -1546,30 +1546,30 @@ gst_h265_parser_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
 }
 
 /**
- * gst_h265_parse_sps:
- * parser: The #GstH265Parser
- * @nalu: The #GST_H265_NAL_SPS #GstH265NalUnit to parse
- * @sps: The #GstH265SPS to fill.
+ * h265_parse_sps:
+ * parser: The #H265Parser
+ * @nalu: The #H265_NAL_SPS #H265NalUnit to parse
+ * @sps: The #H265SPS to fill.
  * @parse_vui_params: Whether to parse the vui_params or not
  *
  * Parses @data, and fills the @sps structure.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
-    GstH265SPS * sps, gboolean parse_vui_params)
+H265ParserResult
+h265_parse_sps (H265Parser * parser, H265NalUnit * nalu,
+    H265SPS * sps, bool parse_vui_params)
 {
   NalReader nr;
-  GstH265VPS *vps;
-  guint8 vps_id;
-  guint i;
-  guint subwc[] = { 1, 2, 2, 1, 1 };
-  guint subhc[] = { 1, 2, 1, 1, 1 };
-  GstH265VUIParams *vui = NULL;
+  H265VPS *vps;
+  uint8_t vps_id;
+  uint32_t i;
+  uint32_t subwc[] = { 1, 2, 2, 1, 1 };
+  uint32_t subhc[] = { 1, 2, 1, 1, 1 };
+  H265VUIParams *vui = NULL;
 
   INITIALIZE_DEBUG_CATEGORY;
-  GST_DEBUG ("parsing SPS");
+  DEBUG ("parsing SPS");
 
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
@@ -1587,9 +1587,9 @@ gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
   sps->pcm_loop_filter_disabled_flag = 0;
 
   READ_UINT8 (&nr, vps_id, 4);
-  vps = gst_h265_parser_get_vps (parser, vps_id);
+  vps = h265_parser_get_vps (parser, vps_id);
   if (!vps) {
-    GST_DEBUG ("couldn't find associated video parameter set with id: %d",
+    DEBUG ("couldn't find associated video parameter set with id: %d",
         vps_id);
   }
   sps->vps = vps;
@@ -1597,11 +1597,11 @@ gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
   READ_UINT8 (&nr, sps->max_sub_layers_minus1, 3);
   READ_UINT8 (&nr, sps->temporal_id_nesting_flag, 1);
 
-  if (!gst_h265_parse_profile_tier_level (&sps->profile_tier_level, &nr,
+  if (!h265_parse_profile_tier_level (&sps->profile_tier_level, &nr,
           sps->max_sub_layers_minus1))
     goto error;
 
-  READ_UE_MAX (&nr, sps->id, GST_H265_MAX_SPS_COUNT - 1);
+  READ_UE_MAX (&nr, sps->id, H265_MAX_SPS_COUNT - 1);
 
   READ_UE_MAX (&nr, sps->chroma_format_idc, 3);
   if (sps->chroma_format_idc == 3)
@@ -1657,7 +1657,7 @@ gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
     READ_UINT8 (&nr, sps->scaling_list_data_present_flag, 1);
 
     if (sps->scaling_list_data_present_flag)
-      if (!gst_h265_parser_parse_scaling_lists (&nr, &sps->scaling_list, FALSE))
+      if (!h265_parser_parse_scaling_lists (&nr, &sps->scaling_list, FALSE))
         goto error;
   }
 
@@ -1675,7 +1675,7 @@ gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
 
   READ_UE_MAX (&nr, sps->num_short_term_ref_pic_sets, 64);
   for (i = 0; i < sps->num_short_term_ref_pic_sets; i++)
-    if (!gst_h265_parser_parse_short_term_ref_pic_sets
+    if (!h265_parser_parse_short_term_ref_pic_sets
         (&sps->short_term_ref_pic_set[i], &nr, i, sps))
       goto error;
 
@@ -1694,7 +1694,7 @@ gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
   READ_UINT8 (&nr, sps->vui_parameters_present_flag, 1);
 
   if (sps->vui_parameters_present_flag && parse_vui_params) {
-    if (!gst_h265_parse_vui_parameters (sps, &nr))
+    if (!h265_parse_vui_parameters (sps, &nr))
       goto error;
     vui = &sps->vui_params;
   }
@@ -1711,13 +1711,13 @@ gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
   sps->width = sps->pic_width_in_luma_samples;
   sps->height = sps->pic_height_in_luma_samples;
   if (sps->width < 0 || sps->height < 0) {
-    GST_WARNING ("invalid width/height in SPS");
+    WARNING ("invalid width/height in SPS");
     goto error;
   }
 
   if (sps->conformance_window_flag) {
-    const guint crop_unit_x = subwc[sps->chroma_format_idc];
-    const guint crop_unit_y = subhc[sps->chroma_format_idc];
+    const uint32_t crop_unit_x = subwc[sps->chroma_format_idc];
+    const uint32_t crop_unit_y = subhc[sps->chroma_format_idc];
 
     sps->crop_rect_width = sps->width -
         (sps->conf_win_left_offset + sps->conf_win_right_offset) * crop_unit_x;
@@ -1726,7 +1726,7 @@ gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
     sps->crop_rect_x = sps->conf_win_left_offset * crop_unit_x;
     sps->crop_rect_y = sps->conf_win_top_offset * crop_unit_y;
 
-    GST_LOG ("crop_rectangle x=%u y=%u width=%u, height=%u", sps->crop_rect_x,
+    INFO ("crop_rectangle x=%u y=%u width=%u, height=%u", sps->crop_rect_x,
         sps->crop_rect_y, sps->crop_rect_width, sps->crop_rect_height);
   }
 
@@ -1741,56 +1741,56 @@ gst_h265_parse_sps (GstH265Parser * parser, GstH265NalUnit * nalu,
         && !vui->field_seq_flag && !vui->frame_field_info_present_flag) {
       sps->fps_num = vui->time_scale;
       sps->fps_den = vui->num_units_in_tick;
-      GST_LOG ("framerate %d/%d", sps->fps_num, sps->fps_den);
+      INFO ("framerate %d/%d", sps->fps_num, sps->fps_den);
     }
   } else {
-    GST_LOG ("No VUI, unknown framerate");
+    INFO ("No VUI, unknown framerate");
   }
 
   sps->valid = TRUE;
 
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 
 error:
-  GST_WARNING ("error parsing \"Sequence parameter set\"");
+  WARNING ("error parsing \"Sequence parameter set\"");
   sps->valid = FALSE;
-  return GST_H265_PARSER_ERROR;
+  return H265_PARSER_ERROR;
 }
 
 /**
- * gst_h265_parse_pps:
- * @parser: a #GstH265Parser
- * @nalu: The #GST_H265_NAL_PPS #GstH265NalUnit to parse
- * @pps: The #GstH265PPS to fill.
+ * h265_parse_pps:
+ * @parser: a #H265Parser
+ * @nalu: The #H265_NAL_PPS #H265NalUnit to parse
+ * @pps: The #H265PPS to fill.
  *
  * Parses @data, and fills the @pps structure.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parse_pps (GstH265Parser * parser, GstH265NalUnit * nalu,
-    GstH265PPS * pps)
+H265ParserResult
+h265_parse_pps (H265Parser * parser, H265NalUnit * nalu,
+    H265PPS * pps)
 {
   NalReader nr;
-  GstH265SPS *sps;
-  gint sps_id;
-  gint qp_bd_offset;
-  guint8 i;
+  H265SPS *sps;
+  int32_t sps_id;
+  int32_t qp_bd_offset;
+  uint8_t i;
 
   INITIALIZE_DEBUG_CATEGORY;
-  GST_DEBUG ("parsing PPS");
+  DEBUG ("parsing PPS");
 
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
 
-  READ_UE_MAX (&nr, pps->id, GST_H265_MAX_PPS_COUNT - 1);
-  READ_UE_MAX (&nr, sps_id, GST_H265_MAX_SPS_COUNT - 1);
+  READ_UE_MAX (&nr, pps->id, H265_MAX_PPS_COUNT - 1);
+  READ_UE_MAX (&nr, sps_id, H265_MAX_SPS_COUNT - 1);
 
-  sps = gst_h265_parser_get_sps (parser, sps_id);
+  sps = h265_parser_get_sps (parser, sps_id);
   if (!sps) {
-    GST_WARNING ("couldn't find associated sequence parameter set with id: %d",
+    WARNING ("couldn't find associated sequence parameter set with id: %d",
         sps_id);
-    return GST_H265_PARSER_BROKEN_LINK;
+    return H265_PARSER_BROKEN_LINK;
   }
   pps->sps = sps;
   qp_bd_offset = 6 * sps->bit_depth_luma_minus8;
@@ -1865,11 +1865,11 @@ gst_h265_parse_pps (GstH265Parser * parser, GstH265NalUnit * nalu,
 
   READ_UINT8 (&nr, pps->scaling_list_data_present_flag, 1);
   if (pps->scaling_list_data_present_flag)
-    if (!gst_h265_parser_parse_scaling_lists (&nr, &pps->scaling_list, FALSE))
+    if (!h265_parser_parse_scaling_lists (&nr, &pps->scaling_list, FALSE))
       goto error;
   if (sps->scaling_list_enabled_flag && !sps->scaling_list_data_present_flag
       && !pps->scaling_list_data_present_flag)
-    if (!gst_h265_parser_parse_scaling_lists (&nr, &pps->scaling_list, TRUE))
+    if (!h265_parser_parse_scaling_lists (&nr, &pps->scaling_list, TRUE))
       goto error;
 
   READ_UINT8 (&nr, pps->lists_modification_present_flag, 1);
@@ -1878,31 +1878,31 @@ gst_h265_parse_pps (GstH265Parser * parser, GstH265NalUnit * nalu,
   READ_UINT8 (&nr, pps->pps_extension_flag, 1);
 
   pps->valid = TRUE;
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 
 error:
-  GST_WARNING ("error parsing \"Picture parameter set\"");
+  WARNING ("error parsing \"Picture parameter set\"");
   pps->valid = FALSE;
-  return GST_H265_PARSER_ERROR;
+  return H265_PARSER_ERROR;
 }
 
 /**
- * gst_h265_parser_parse_pps:
- * @parser: a #GstH265Parser
- * @nalu: The #GST_H265_NAL_PPS #GstH265NalUnit to parse
- * @pps: The #GstH265PPS to fill.
+ * h265_parser_parse_pps:
+ * @parser: a #H265Parser
+ * @nalu: The #H265_NAL_PPS #H265NalUnit to parse
+ * @pps: The #H265PPS to fill.
  *
  * Parses @data, and fills the @pps structure.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_parse_pps (GstH265Parser * parser,
-    GstH265NalUnit * nalu, GstH265PPS * pps)
+H265ParserResult
+h265_parser_parse_pps (H265Parser * parser,
+    H265NalUnit * nalu, H265PPS * pps)
 {
-  GstH265ParserResult res = gst_h265_parse_pps (parser, nalu, pps);
-  if (res == GST_H265_PARSER_OK) {
-    GST_DEBUG ("adding picture parameter set with id: %d to array", pps->id);
+  H265ParserResult res = h265_parse_pps (parser, nalu, pps);
+  if (res == H265_PARSER_OK) {
+    DEBUG ("adding picture parameter set with id: %d to array", pps->id);
 
     parser->pps[pps->id] = *pps;
     parser->last_pps = &parser->pps[pps->id];
@@ -1912,77 +1912,77 @@ gst_h265_parser_parse_pps (GstH265Parser * parser,
 }
 
 /**
- * gst_h265_parser_parse_slice_hdr:
- * @parser: a #GstH265Parser
- * @nalu: The #GST_H265_NAL_SLICE #GstH265NalUnit to parse
- * @slice: The #GstH265SliceHdr to fill.
+ * h265_parser_parse_slice_hdr:
+ * @parser: a #H265Parser
+ * @nalu: The #H265_NAL_SLICE #H265NalUnit to parse
+ * @slice: The #H265SliceHdr to fill.
  *
  * Parses @data, and fills the @slice structure.
  * The resulting @slice_hdr structure shall be deallocated with
- * gst_h265_slice_hdr_free() when it is no longer needed
+ * h265_slice_hdr_free() when it is no longer needed
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
-    GstH265NalUnit * nalu, GstH265SliceHdr * slice)
+H265ParserResult
+h265_parser_parse_slice_hdr (H265Parser * parser,
+    H265NalUnit * nalu, H265SliceHdr * slice)
 {
   NalReader nr;
-  gint pps_id;
-  GstH265PPS *pps;
-  GstH265SPS *sps;
-  guint i;
-  guint CurrRpsIdx = 0;
-  GstH265ShortTermRefPicSet *stRPS = NULL;
-  guint32 UsedByCurrPicLt[16];
-  guint32 PicSizeInCtbsY;
-  guint32 PicWidthInCtbsY;
-  guint32 PicHeightInCtbsY;
-  guint32 CtbSizeY;
-  guint32 MinCbLog2SizeY;
-  guint32 CtbLog2SizeY;
-  gint NumPocTotalCurr = 0;
+  int32_t pps_id;
+  H265PPS *pps;
+  H265SPS *sps;
+  uint32_t i;
+  uint32_t CurrRpsIdx = 0;
+  H265ShortTermRefPicSet *stRPS = NULL;
+  uint32_t UsedByCurrPicLt[16];
+  uint32_t PicSizeInCtbsY;
+  uint32_t PicWidthInCtbsY;
+  uint32_t PicHeightInCtbsY;
+  uint32_t CtbSizeY;
+  uint32_t MinCbLog2SizeY;
+  uint32_t CtbLog2SizeY;
+  int32_t NumPocTotalCurr = 0;
 
   if (!nalu->size) {
-    GST_DEBUG ("Invalid Nal Unit");
-    return GST_H265_PARSER_ERROR;
+    DEBUG ("Invalid Nal Unit");
+    return H265_PARSER_ERROR;
   }
 
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
 
-  GST_DEBUG ("parsing \"Slice header\", slice type");
+  DEBUG ("parsing \"Slice header\", slice type");
 
   READ_UINT8 (&nr, slice->first_slice_segment_in_pic_flag, 1);
 
-  if (nalu->type >= GST_H265_NAL_SLICE_BLA_W_LP
+  if (nalu->type >= H265_NAL_SLICE_BLA_W_LP
       && nalu->type <= RESERVED_IRAP_NAL_TYPE_MAX)
     READ_UINT8 (&nr, slice->no_output_of_prior_pics_flag, 1);
 
-  READ_UE_MAX (&nr, pps_id, GST_H265_MAX_PPS_COUNT - 1);
-  pps = gst_h265_parser_get_pps (parser, pps_id);
+  READ_UE_MAX (&nr, pps_id, H265_MAX_PPS_COUNT - 1);
+  pps = h265_parser_get_pps (parser, pps_id);
   if (!pps) {
-    GST_WARNING
+    WARNING
         ("couldn't find associated picture parameter set with id: %d", pps_id);
-    return GST_H265_PARSER_BROKEN_LINK;
+    return H265_PARSER_BROKEN_LINK;
   }
 
   slice->pps = pps;
   sps = pps->sps;
   if (!sps) {
-    GST_WARNING
+    WARNING
         ("couldn't find associated sequence parameter set with id: %d",
         pps->id);
-    return GST_H265_PARSER_BROKEN_LINK;
+    return H265_PARSER_BROKEN_LINK;
   }
 
   MinCbLog2SizeY = sps->log2_min_luma_coding_block_size_minus3 + 3;
   CtbLog2SizeY = MinCbLog2SizeY + sps->log2_diff_max_min_luma_coding_block_size;
   CtbSizeY = 1 << CtbLog2SizeY;
   PicHeightInCtbsY =
-      ceil ((gdouble) sps->pic_height_in_luma_samples / (gdouble) CtbSizeY);
+      ceil ((double) sps->pic_height_in_luma_samples / (double) CtbSizeY);
   PicWidthInCtbsY =
-      ceil ((gdouble) sps->pic_width_in_luma_samples / (gdouble) CtbSizeY);
+      ceil ((double) sps->pic_width_in_luma_samples / (double) CtbSizeY);
   PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
   /* set default values for fields that might not be present in the bitstream
    * and have valid defaults */
@@ -2014,7 +2014,7 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
   slice->entry_point_offset_minus1 = NULL;
 
   if (!slice->first_slice_segment_in_pic_flag) {
-    const guint n = ceil_log2 (PicSizeInCtbsY);
+    const uint32_t n = ceil_log2 (PicSizeInCtbsY);
 
     if (pps->dependent_slice_segments_enabled_flag)
       READ_UINT8 (&nr, slice->dependent_slice_segment_flag, 1);
@@ -2033,26 +2033,26 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
     if (sps->separate_colour_plane_flag == 1)
       READ_UINT8 (&nr, slice->colour_plane_id, 2);
 
-    if ((nalu->type != GST_H265_NAL_SLICE_IDR_W_RADL)
-        && (nalu->type != GST_H265_NAL_SLICE_IDR_N_LP)) {
+    if ((nalu->type != H265_NAL_SLICE_IDR_W_RADL)
+        && (nalu->type != H265_NAL_SLICE_IDR_N_LP)) {
       READ_UINT16 (&nr, slice->pic_order_cnt_lsb,
           (sps->log2_max_pic_order_cnt_lsb_minus4 + 4));
 
       READ_UINT8 (&nr, slice->short_term_ref_pic_set_sps_flag, 1);
       if (!slice->short_term_ref_pic_set_sps_flag) {
-        if (!gst_h265_parser_parse_short_term_ref_pic_sets
+        if (!h265_parser_parse_short_term_ref_pic_sets
             (&slice->short_term_ref_pic_sets, &nr,
                 sps->num_short_term_ref_pic_sets, sps))
           goto error;
       } else if (sps->num_short_term_ref_pic_sets > 1) {
-        const guint n = ceil_log2 (sps->num_short_term_ref_pic_sets);
+        const uint32_t n = ceil_log2 (sps->num_short_term_ref_pic_sets);
         READ_UINT8 (&nr, slice->short_term_ref_pic_set_idx, n);
         CHECK_ALLOWED_MAX (slice->short_term_ref_pic_set_idx,
             sps->num_short_term_ref_pic_sets - 1);
       }
 
       if (sps->long_term_ref_pics_present_flag) {
-        guint32 limit;
+        uint32_t limit;
 
         if (sps->num_long_term_ref_pics_sps > 0)
           READ_UE_MAX (&nr, slice->num_long_term_sps,
@@ -2063,7 +2063,7 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
         for (i = 0; i < limit; i++) {
           if (i < slice->num_long_term_sps) {
             if (sps->num_long_term_ref_pics_sps > 1) {
-              const guint n = ceil_log2 (sps->num_long_term_ref_pics_sps);
+              const uint32_t n = ceil_log2 (sps->num_long_term_ref_pics_sps);
               READ_UINT8 (&nr, slice->lt_idx_sps[i], n);
             }
           } else {
@@ -2092,12 +2092,12 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
       READ_UINT8 (&nr, slice->sao_chroma_flag, 1);
     }
 
-    if (GST_H265_IS_B_SLICE (slice) || GST_H265_IS_P_SLICE (slice)) {
+    if (H265_IS_B_SLICE (slice) || H265_IS_P_SLICE (slice)) {
       READ_UINT8 (&nr, slice->num_ref_idx_active_override_flag, 1);
 
       if (slice->num_ref_idx_active_override_flag) {
         READ_UE_MAX (&nr, slice->num_ref_idx_l0_active_minus1, 14);
-        if (GST_H265_IS_B_SLICE (slice))
+        if (H265_IS_B_SLICE (slice))
           READ_UE_MAX (&nr, slice->num_ref_idx_l1_active_minus1, 14);
       } else {
         /*set default values */
@@ -2127,17 +2127,17 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
 
       if (pps->lists_modification_present_flag) {
         if (NumPocTotalCurr > 1)
-          if (!gst_h265_slice_parse_ref_pic_list_modification (slice, &nr,
+          if (!h265_slice_parse_ref_pic_list_modification (slice, &nr,
                   NumPocTotalCurr))
             goto error;
       }
 
-      if (GST_H265_IS_B_SLICE (slice))
+      if (H265_IS_B_SLICE (slice))
         READ_UINT8 (&nr, slice->mvd_l1_zero_flag, 1);
       if (pps->cabac_init_present_flag)
         READ_UINT8 (&nr, slice->cabac_init_flag, 1);
       if (slice->temporal_mvp_enabled_flag) {
-        if (GST_H265_IS_B_SLICE (slice))
+        if (H265_IS_B_SLICE (slice))
           READ_UINT8 (&nr, slice->collocated_from_l0_flag, 1);
 
         if ((slice->collocated_from_l0_flag
@@ -2146,21 +2146,21 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
                 && slice->num_ref_idx_l1_active_minus1 > 0)) {
 
           /*fixme: add optimization */
-          if ((GST_H265_IS_P_SLICE (slice))
-              || ((GST_H265_IS_B_SLICE (slice))
+          if ((H265_IS_P_SLICE (slice))
+              || ((H265_IS_B_SLICE (slice))
                   && (slice->collocated_from_l0_flag))) {
             READ_UE_MAX (&nr, slice->collocated_ref_idx,
                 slice->num_ref_idx_l0_active_minus1);
-          } else if ((GST_H265_IS_B_SLICE (slice))
+          } else if ((H265_IS_B_SLICE (slice))
               && (!slice->collocated_from_l0_flag)) {
             READ_UE_MAX (&nr, slice->collocated_ref_idx,
                 slice->num_ref_idx_l1_active_minus1);
           }
         }
       }
-      if ((pps->weighted_pred_flag && GST_H265_IS_P_SLICE (slice)) ||
-          (pps->weighted_bipred_flag && GST_H265_IS_B_SLICE (slice)))
-        if (!gst_h265_slice_parse_pred_weight_table (slice, &nr))
+      if ((pps->weighted_pred_flag && H265_IS_P_SLICE (slice)) ||
+          (pps->weighted_bipred_flag && H265_IS_B_SLICE (slice)))
+        if (!h265_slice_parse_pred_weight_table (slice, &nr))
           goto error;
       READ_UE_MAX (&nr, slice->five_minus_max_num_merge_cand, 4);
     }
@@ -2188,7 +2188,7 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
   }
 
   if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag) {
-    guint32 offset_max;
+    uint32_t offset_max;
 
     if (!pps->tiles_enabled_flag && pps->entropy_coding_sync_enabled_flag)
       offset_max = PicHeightInCtbsY - 1;
@@ -2203,7 +2203,7 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
     if (slice->num_entry_point_offsets > 0) {
       READ_UE_MAX (&nr, slice->offset_len_minus1, 31);
       slice->entry_point_offset_minus1 =
-          g_new0 (guint32, slice->num_entry_point_offsets);
+          g_new0 (uint32_t, slice->num_entry_point_offsets);
       for (i = 0; i < slice->num_entry_point_offsets; i++)
         READ_UINT32 (&nr, slice->entry_point_offset_minus1[i],
             (slice->offset_len_minus1 + 1));
@@ -2211,7 +2211,7 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
   }
 
   if (pps->slice_segment_header_extension_present_flag) {
-    guint16 slice_segment_header_extension_length;
+    uint16_t slice_segment_header_extension_length;
     READ_UE_MAX (&nr, slice_segment_header_extension_length, 256);
     for (i = 0; i < slice_segment_header_extension_length; i++)
       if (!nal_reader_skip (&nr, 8))
@@ -2229,19 +2229,19 @@ gst_h265_parser_parse_slice_hdr (GstH265Parser * parser,
   slice->header_size = nal_reader_get_pos (&nr);
   slice->n_emulation_prevention_bytes = nal_reader_get_epb_count (&nr);
 
-  return GST_H265_PARSER_OK;
+  return H265_PARSER_OK;
 
 error:
-  GST_WARNING ("error parsing \"Slice header\"");
+  WARNING ("error parsing \"Slice header\"");
 
-  gst_h265_slice_hdr_free (slice);
+  h265_slice_hdr_free (slice);
 
-  return GST_H265_PARSER_ERROR;
+  return H265_PARSER_ERROR;
 }
 
-static gboolean
+static bool
 nal_reader_has_more_data_in_payload (NalReader * nr,
-    guint32 payload_start_pos_bit, guint32 payloadSize)
+    uint32_t payload_start_pos_bit, uint32_t payloadSize)
 {
   if (nal_reader_is_byte_aligned (nr) &&
       (nal_reader_get_pos (nr) == (payload_start_pos_bit + 8 * payloadSize)))
@@ -2250,17 +2250,17 @@ nal_reader_has_more_data_in_payload (NalReader * nr,
   return TRUE;
 }
 
-static GstH265ParserResult
-gst_h265_parser_parse_sei_message (GstH265Parser * parser,
-    guint8 nal_type, NalReader * nr, GstH265SEIMessage * sei)
+static H265ParserResult
+h265_parser_parse_sei_message (H265Parser * parser,
+    uint8_t nal_type, NalReader * nr, H265SEIMessage * sei)
 {
-  guint32 payloadSize;
-  guint8 payload_type_byte, payload_size_byte;
-  guint remaining, payload_size;
-  guint32 payload_start_pos_bit;
-  GstH265ParserResult res = GST_H265_PARSER_OK;
+  uint32_t payloadSize;
+  uint8_t payload_type_byte, payload_size_byte;
+  uint32_t remaining, payload_size;
+  uint32_t payload_start_pos_bit;
+  H265ParserResult res = H265_PARSER_OK;
 
-  GST_DEBUG ("parsing \"Sei message\"");
+  DEBUG ("parsing \"Sei message\"");
 
   sei->payloadType = 0;
   do {
@@ -2278,20 +2278,20 @@ gst_h265_parser_parse_sei_message (GstH265Parser * parser,
   payload_size = payloadSize * 8 < remaining ? payloadSize * 8 : remaining;
 
   payload_start_pos_bit = nal_reader_get_pos (nr);
-  GST_DEBUG
+  DEBUG
       ("SEI message received: payloadType  %u, payloadSize = %u bytes",
       sei->payloadType, payload_size);
 
-  if (nal_type == GST_H265_NAL_PREFIX_SEI) {
+  if (nal_type == H265_NAL_PREFIX_SEI) {
     switch (sei->payloadType) {
-      case GST_H265_SEI_BUF_PERIOD:
+      case H265_SEI_BUF_PERIOD:
         /* size not set; might depend on emulation_prevention_three_byte */
-        res = gst_h265_parser_parse_buffering_period (parser,
+        res = h265_parser_parse_buffering_period (parser,
             &sei->payload.buffering_period, nr);
         break;
-      case GST_H265_SEI_PIC_TIMING:
+      case H265_SEI_PIC_TIMING:
         /* size not set; might depend on emulation_prevention_three_byte */
-        res = gst_h265_parser_parse_pic_timing (parser,
+        res = h265_parser_parse_pic_timing (parser,
             &sei->payload.pic_timing, nr);
         break;
       default:
@@ -2299,17 +2299,17 @@ gst_h265_parser_parse_sei_message (GstH265Parser * parser,
            emulation prevention bytes */
         if (!nal_reader_skip_long (nr, payload_size))
           goto error;
-        res = GST_H265_PARSER_OK;
+        res = H265_PARSER_OK;
         break;
     }
-  } else if (nal_type == GST_H265_NAL_SUFFIX_SEI) {
+  } else if (nal_type == H265_NAL_SUFFIX_SEI) {
     switch (sei->payloadType) {
       default:
         /* Just consume payloadSize bytes, which does not account for
            emulation prevention bytes */
         if (!nal_reader_skip_long (nr, payload_size))
           goto error;
-        res = GST_H265_PARSER_OK;
+        res = H265_PARSER_OK;
         break;
     }
   }
@@ -2338,35 +2338,35 @@ gst_h265_parser_parse_sei_message (GstH265Parser * parser,
   return res;
 
 error:
-  GST_WARNING ("error parsing \"Sei message\"");
-  return GST_H265_PARSER_ERROR;
+  WARNING ("error parsing \"Sei message\"");
+  return H265_PARSER_ERROR;
 }
 
 /**
- * gst_h265_slice_hdr_copy:
- * @dst_slice: The destination #GstH265SliceHdr to copy into
- * @src_slice: The source #GstH265SliceHdr to copy from
+ * h265_slice_hdr_copy:
+ * @dst_slice: The destination #H265SliceHdr to copy into
+ * @src_slice: The source #H265SliceHdr to copy from
  *
  * Copies @src_slice into @dst_slice
  *
  * Returns: %TRUE if everything went fine, %FALSE otherwise
  */
-gboolean
-gst_h265_slice_hdr_copy (GstH265SliceHdr * dst_slice,
-    const GstH265SliceHdr * src_slice)
+bool
+h265_slice_hdr_copy (H265SliceHdr * dst_slice,
+    const H265SliceHdr * src_slice)
 {
-  guint i;
+  uint32_t i;
 
   g_return_val_if_fail (dst_slice != NULL, FALSE);
   g_return_val_if_fail (src_slice != NULL, FALSE);
 
-  gst_h265_slice_hdr_free (dst_slice);
+  h265_slice_hdr_free (dst_slice);
 
   *dst_slice = *src_slice;
 
   if (dst_slice->num_entry_point_offsets > 0) {
     dst_slice->entry_point_offset_minus1 =
-        g_new0 (guint32, dst_slice->num_entry_point_offsets);
+        g_new0 (uint32_t, dst_slice->num_entry_point_offsets);
     for (i = 0; i < dst_slice->num_entry_point_offsets; i++)
       dst_slice->entry_point_offset_minus1[i] =
           src_slice->entry_point_offset_minus1[i];
@@ -2376,13 +2376,13 @@ gst_h265_slice_hdr_copy (GstH265SliceHdr * dst_slice,
 }
 
 /**
- * gst_h265_slice_hdr_free:
- * slice_hdr: The #GstH265SliceHdr to free
+ * h265_slice_hdr_free:
+ * slice_hdr: The #H265SliceHdr to free
  *
  * Frees @slice_hdr fields.
  */
 void
-gst_h265_slice_hdr_free (GstH265SliceHdr * slice_hdr)
+h265_slice_hdr_free (H265SliceHdr * slice_hdr)
 {
   g_return_if_fail (slice_hdr != NULL);
 
@@ -2392,36 +2392,36 @@ gst_h265_slice_hdr_free (GstH265SliceHdr * slice_hdr)
 }
 
 /**
- * gst_h265_sei_copy:
- * @dst_sei: The destination #GstH265SEIMessage to copy into
- * @src_sei: The source #GstH265SEIMessage to copy from
+ * h265_sei_copy:
+ * @dst_sei: The destination #H265SEIMessage to copy into
+ * @src_sei: The source #H265SEIMessage to copy from
  *
  * Copies @src_sei into @dst_sei
  *
  * Returns: %TRUE if everything went fine, %FALSE otherwise
  */
-gboolean
-gst_h265_sei_copy (GstH265SEIMessage * dst_sei,
-    const GstH265SEIMessage * src_sei)
+bool
+h265_sei_copy (H265SEIMessage * dst_sei,
+    const H265SEIMessage * src_sei)
 {
-  guint i;
+  uint32_t i;
 
   g_return_val_if_fail (dst_sei != NULL, FALSE);
   g_return_val_if_fail (src_sei != NULL, FALSE);
 
-  gst_h265_sei_free (dst_sei);
+  h265_sei_free (dst_sei);
 
   *dst_sei = *src_sei;
 
-  if (dst_sei->payloadType == GST_H265_SEI_PIC_TIMING) {
-    GstH265PicTiming *dst_pic_timing = &dst_sei->payload.pic_timing;
-    const GstH265PicTiming *src_pic_timing = &src_sei->payload.pic_timing;
+  if (dst_sei->payloadType == H265_SEI_PIC_TIMING) {
+    H265PicTiming *dst_pic_timing = &dst_sei->payload.pic_timing;
+    const H265PicTiming *src_pic_timing = &src_sei->payload.pic_timing;
 
     if (dst_pic_timing->num_decoding_units_minus1 > 0) {
       dst_pic_timing->num_nalus_in_du_minus1 =
-          g_new0 (guint32, (dst_pic_timing->num_decoding_units_minus1 + 1));
+          g_new0 (uint32_t, (dst_pic_timing->num_decoding_units_minus1 + 1));
       dst_pic_timing->du_cpb_removal_delay_increment_minus1 =
-          g_new0 (guint8, (dst_pic_timing->num_decoding_units_minus1 + 1));
+          g_new0 (uint8_t, (dst_pic_timing->num_decoding_units_minus1 + 1));
 
       for (i = 0; i <= dst_pic_timing->num_decoding_units_minus1; i++) {
         dst_pic_timing->num_nalus_in_du_minus1[i] =
@@ -2436,18 +2436,18 @@ gst_h265_sei_copy (GstH265SEIMessage * dst_sei,
 }
 
 /**
- * gst_h265_sei_free:
- * sei: The #GstH265SEIMessage to free
+ * h265_sei_free:
+ * sei: The #H265SEIMessage to free
  *
  * Frees @sei fields.
  */
 void
-gst_h265_sei_free (GstH265SEIMessage * sei)
+h265_sei_free (H265SEIMessage * sei)
 {
   g_return_if_fail (sei != NULL);
 
-  if (sei->payloadType == GST_H265_SEI_PIC_TIMING) {
-    GstH265PicTiming *pic_timing = &sei->payload.pic_timing;
+  if (sei->payloadType == H265_SEI_PIC_TIMING) {
+    H265PicTiming *pic_timing = &sei->payload.pic_timing;
     if (pic_timing->num_decoding_units_minus1 > 0) {
       g_free (pic_timing->num_nalus_in_du_minus1);
       g_free (pic_timing->du_cpb_removal_delay_increment_minus1);
@@ -2458,32 +2458,32 @@ gst_h265_sei_free (GstH265SEIMessage * sei)
 }
 
 /**
- * gst_h265_parser_parse_sei:
- * @nalparser: a #GstH265Parser
- * @nalu: The #GST_H265_NAL_SEI #GstH265NalUnit to parse
- * @messages: The GArray of #GstH265SEIMessage to fill. The caller must free it when done.
+ * h265_parser_parse_sei:
+ * @nalparser: a #H265Parser
+ * @nalu: The #H265_NAL_SEI #H265NalUnit to parse
+ * @messages: The GArray of #H265SEIMessage to fill. The caller must free it when done.
  *
  * Parses @data, create and fills the @messages array.
  *
- * Returns: a #GstH265ParserResult
+ * Returns: a #H265ParserResult
  */
-GstH265ParserResult
-gst_h265_parser_parse_sei (GstH265Parser * nalparser, GstH265NalUnit * nalu,
+H265ParserResult
+h265_parser_parse_sei (H265Parser * nalparser, H265NalUnit * nalu,
     GArray ** messages)
 {
   NalReader nr;
-  GstH265SEIMessage sei;
-  GstH265ParserResult res;
+  H265SEIMessage sei;
+  H265ParserResult res;
 
-  GST_DEBUG ("parsing SEI nal");
+  DEBUG ("parsing SEI nal");
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
-  *messages = g_array_new (FALSE, FALSE, sizeof (GstH265SEIMessage));
-  g_array_set_clear_func (*messages, (GDestroyNotify) gst_h265_sei_free);
+  *messages = g_array_new (FALSE, FALSE, sizeof (H265SEIMessage));
+  g_array_set_clear_func (*messages, (GDestroyNotify) h265_sei_free);
 
   do {
-    res = gst_h265_parser_parse_sei_message (nalparser, nalu->type, &nr, &sei);
-    if (res == GST_H265_PARSER_OK)
+    res = h265_parser_parse_sei_message (nalparser, nalu->type, &nr, &sei);
+    if (res == H265_PARSER_OK)
       g_array_append_val (*messages, sei);
     else
       break;
@@ -2494,7 +2494,7 @@ gst_h265_parser_parse_sei (GstH265Parser * nalparser, GstH265NalUnit * nalu,
 
 
 /**
- * gst_h265_quant_matrix_4x4_get_zigzag_from_raster:
+ * h265_quant_matrix_4x4_get_zigzag_from_raster:
  * @out_quant: (out): The resulting quantization matrix
  * @quant: The source quantization matrix
  *
@@ -2507,10 +2507,10 @@ gst_h265_parser_parse_sei (GstH265Parser * nalparser, GstH265NalUnit * nalu,
  * Since: 1.6
  */
 void
-gst_h265_quant_matrix_4x4_get_zigzag_from_raster (guint8 out_quant[16],
-    const guint8 quant[16])
+h265_quant_matrix_4x4_get_zigzag_from_raster (uint8_t out_quant[16],
+    const uint8_t quant[16])
 {
-  guint i;
+  uint32_t i;
 
   g_return_if_fail (out_quant != quant);
 
@@ -2519,7 +2519,7 @@ gst_h265_quant_matrix_4x4_get_zigzag_from_raster (guint8 out_quant[16],
 }
 
 /**
- * gst_h265_quant_matrix_4x4_get_raster_from_zigzag:
+ * h265_quant_matrix_4x4_get_raster_from_zigzag:
  * @out_quant: (out): The resulting quantization matrix
  * @quant: The source quantization matrix
  *
@@ -2532,10 +2532,10 @@ gst_h265_quant_matrix_4x4_get_zigzag_from_raster (guint8 out_quant[16],
  * Since: 1.6
  */
 void
-gst_h265_quant_matrix_4x4_get_raster_from_zigzag (guint8 out_quant[16],
-    const guint8 quant[16])
+h265_quant_matrix_4x4_get_raster_from_zigzag (uint8_t out_quant[16],
+    const uint8_t quant[16])
 {
-  guint i;
+  uint32_t i;
 
   g_return_if_fail (out_quant != quant);
 
@@ -2544,7 +2544,7 @@ gst_h265_quant_matrix_4x4_get_raster_from_zigzag (guint8 out_quant[16],
 }
 
 /**
- * gst_h265_quant_matrix_8x8_get_zigzag_from_raster:
+ * h265_quant_matrix_8x8_get_zigzag_from_raster:
  * @out_quant: (out): The resulting quantization matrix
  * @quant: The source quantization matrix
  *
@@ -2557,10 +2557,10 @@ gst_h265_quant_matrix_4x4_get_raster_from_zigzag (guint8 out_quant[16],
  * Since: 1.6
  */
 void
-gst_h265_quant_matrix_8x8_get_zigzag_from_raster (guint8 out_quant[64],
-    const guint8 quant[64])
+h265_quant_matrix_8x8_get_zigzag_from_raster (uint8_t out_quant[64],
+    const uint8_t quant[64])
 {
-  guint i;
+  uint32_t i;
 
   g_return_if_fail (out_quant != quant);
 
@@ -2569,7 +2569,7 @@ gst_h265_quant_matrix_8x8_get_zigzag_from_raster (guint8 out_quant[64],
 }
 
 /**
- * gst_h265_quant_matrix_8x8_get_raster_from_zigzag:
+ * h265_quant_matrix_8x8_get_raster_from_zigzag:
  * @out_quant: (out): The resulting quantization matrix
  * @quant: The source quantization matrix
  *
@@ -2582,10 +2582,10 @@ gst_h265_quant_matrix_8x8_get_zigzag_from_raster (guint8 out_quant[64],
  * Since: 1.6
  */
 void
-gst_h265_quant_matrix_8x8_get_raster_from_zigzag (guint8 out_quant[64],
-    const guint8 quant[64])
+h265_quant_matrix_8x8_get_raster_from_zigzag (uint8_t out_quant[64],
+    const uint8_t quant[64])
 {
-  guint i;
+  uint32_t i;
 
   g_return_if_fail (out_quant != quant);
 

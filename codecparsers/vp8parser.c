@@ -1,5 +1,5 @@
 /*
- * gstvp8parser.c - VP8 parser
+ * vp8parser.c - VP8 parser
  *
  * Copyright (C) 2013-2014 Intel Corporation
  *   Author: Halley Zhao <halley.zhao@intel.com>
@@ -22,7 +22,7 @@
  */
 
 /**
- * SECTION:gstvp8parser
+ * SECTION:vp8parser
  * @short_description: Convenience library for parsing vp8 video bitstream.
  *
  * For more details about the structures, you can refer to the
@@ -33,40 +33,40 @@
 # include "config.h"
 #endif
 #include <string.h>
-#include <gst/base/gstbytereader.h>
-#include "gstvp8parser.h"
-#include "gstvp8rangedecoder.h"
+#include "bytereader.h"
+#include "vp8parser.h"
+#include "vp8rangedecoder.h"
 #include "vp8utils.h"
 
-GST_DEBUG_CATEGORY (vp8_parser_debug);
-#define GST_CAT_DEFAULT vp8_parser_debug
+DEBUG_CATEGORY (vp8_parser_debug);
+#define CAT_DEFAULT vp8_parser_debug
 
 #define INITIALIZE_DEBUG_CATEGORY ensure_debug_category ()
 static void
 ensure_debug_category (void)
 {
-#ifndef GST_DISABLE_GST_DEBUG
-  static gsize is_initialized;
+#ifndef DISABLE_DEBUG
+  static size_t is_initialized;
 
   if (g_once_init_enter (&is_initialized)) {
-    GST_DEBUG_CATEGORY_INIT (vp8_parser_debug, "codecparsers_vp8", 0,
+    DEBUG_CATEGORY_INIT (vp8_parser_debug, "codecparsers_vp8", 0,
         "vp8 parser library");
     g_once_init_leave (&is_initialized, TRUE);
   }
 #endif
 }
 
-static GstVp8MvProbs vp8_mv_update_probs;
-static GstVp8TokenProbs vp8_token_update_probs;
+static Vp8MvProbs vp8_mv_update_probs;
+static Vp8TokenProbs vp8_token_update_probs;
 
 static void
 ensure_prob_tables (void)
 {
-  static gsize is_initialized;
+  static size_t is_initialized;
 
   if (g_once_init_enter (&is_initialized)) {
-    gst_vp8_mv_update_probs_init (&vp8_mv_update_probs);
-    gst_vp8_token_update_probs_init (&vp8_token_update_probs);
+    vp8_mv_update_probs_init (&vp8_mv_update_probs);
+    vp8_token_update_probs_init (&vp8_token_update_probs);
     g_once_init_leave (&is_initialized, TRUE);
   }
 }
@@ -78,35 +78,35 @@ ensure_prob_tables (void)
 #define READ_SINT(rd, val, nbits, field_name) \
   val = vp8_read_sint ((rd), (nbits))
 
-static inline gboolean
-vp8_read_bool (GstVp8RangeDecoder * rd)
+static inline bool
+vp8_read_bool (Vp8RangeDecoder * rd)
 {
-  return (gboolean) gst_vp8_range_decoder_read_literal (rd, 1);
+  return (bool) vp8_range_decoder_read_literal (rd, 1);
 }
 
-static inline guint
-vp8_read_uint (GstVp8RangeDecoder * rd, guint nbits)
+static inline uint32_t
+vp8_read_uint (Vp8RangeDecoder * rd, uint32_t nbits)
 {
-  return (guint) gst_vp8_range_decoder_read_literal (rd, nbits);
+  return (uint32_t) vp8_range_decoder_read_literal (rd, nbits);
 }
 
-static inline gint
-vp8_read_sint (GstVp8RangeDecoder * rd, guint nbits)
+static inline int32_t
+vp8_read_sint (Vp8RangeDecoder * rd, uint32_t nbits)
 {
-  gint v;
+  int32_t v;
 
-  v = gst_vp8_range_decoder_read_literal (rd, nbits);
-  if (gst_vp8_range_decoder_read_literal (rd, 1))
+  v = vp8_range_decoder_read_literal (rd, nbits);
+  if (vp8_range_decoder_read_literal (rd, 1))
     v = -v;
   return v;
 }
 
 /* Parse update_segmentation() */
-static gboolean
-parse_update_segmentation (GstVp8RangeDecoder * rd, GstVp8Segmentation * seg)
+static bool
+parse_update_segmentation (Vp8RangeDecoder * rd, Vp8Segmentation * seg)
 {
-  gboolean update;
-  gint i;
+  bool update;
+  int32_t i;
 
   seg->update_mb_segmentation_map = FALSE;
   seg->update_segment_feature_data = FALSE;
@@ -159,11 +159,11 @@ parse_update_segmentation (GstVp8RangeDecoder * rd, GstVp8Segmentation * seg)
 }
 
 /* Parse mb_lf_adjustments() to update loop filter delta adjustments */
-static gboolean
-parse_mb_lf_adjustments (GstVp8RangeDecoder * rd, GstVp8MbLfAdjustments * adj)
+static bool
+parse_mb_lf_adjustments (Vp8RangeDecoder * rd, Vp8MbLfAdjustments * adj)
 {
-  gboolean update;
-  gint i;
+  bool update;
+  int32_t i;
 
   adj->mode_ref_lf_delta_update = FALSE;
 
@@ -192,10 +192,10 @@ parse_mb_lf_adjustments (GstVp8RangeDecoder * rd, GstVp8MbLfAdjustments * adj)
 }
 
 /* Parse quant_indices() */
-static gboolean
-parse_quant_indices (GstVp8RangeDecoder * rd, GstVp8QuantIndices * qip)
+static bool
+parse_quant_indices (Vp8RangeDecoder * rd, Vp8QuantIndices * qip)
 {
-  gboolean update;
+  bool update;
 
   READ_UINT (rd, qip->y_ac_qi, 7, "y_ac_qi");
 
@@ -233,17 +233,17 @@ parse_quant_indices (GstVp8RangeDecoder * rd, GstVp8QuantIndices * qip)
 }
 
 /* Parse token_prob_update() to update persistent token probabilities */
-static gboolean
-parse_token_prob_update (GstVp8RangeDecoder * rd, GstVp8TokenProbs * probs)
+static bool
+parse_token_prob_update (Vp8RangeDecoder * rd, Vp8TokenProbs * probs)
 {
-  gint i, j, k, l;
-  guint8 prob;
+  int32_t i, j, k, l;
+  uint8_t prob;
 
   for (i = 0; i < 4; i++) {
     for (j = 0; j < 8; j++) {
       for (k = 0; k < 3; k++) {
         for (l = 0; l < 11; l++) {
-          if (gst_vp8_range_decoder_read (rd,
+          if (vp8_range_decoder_read (rd,
                   vp8_token_update_probs.prob[i][j][k][l])) {
             READ_UINT (rd, prob, 8, "token_prob_update");
             probs->prob[i][j][k][l] = prob;
@@ -256,15 +256,15 @@ parse_token_prob_update (GstVp8RangeDecoder * rd, GstVp8TokenProbs * probs)
 }
 
 /* Parse prob_update() to update probabilities used for MV decoding */
-static gboolean
-parse_mv_prob_update (GstVp8RangeDecoder * rd, GstVp8MvProbs * probs)
+static bool
+parse_mv_prob_update (Vp8RangeDecoder * rd, Vp8MvProbs * probs)
 {
-  gint i, j;
-  guint8 prob;
+  int32_t i, j;
+  uint8_t prob;
 
   for (i = 0; i < 2; i++) {
     for (j = 0; j < 19; j++) {
-      if (gst_vp8_range_decoder_read (rd, vp8_mv_update_probs.prob[i][j])) {
+      if (vp8_range_decoder_read (rd, vp8_mv_update_probs.prob[i][j])) {
         READ_UINT (rd, prob, 7, "mv_prob_update");
         probs->prob[i][j] = prob ? (prob << 1) : 1;
       }
@@ -274,24 +274,24 @@ parse_mv_prob_update (GstVp8RangeDecoder * rd, GstVp8MvProbs * probs)
 }
 
 /* Calculate partition sizes */
-static gboolean
-calc_partition_sizes (GstVp8FrameHdr * frame_hdr, const guint8 * data,
-    guint size)
+static bool
+calc_partition_sizes (Vp8FrameHdr * frame_hdr, const uint8_t * data,
+    uint32_t size)
 {
-  const guint num_partitions = 1 << frame_hdr->log2_nbr_of_dct_partitions;
-  guint i, ofs, part_size, part_size_ofs = frame_hdr->first_part_size;
+  const uint32_t num_partitions = 1 << frame_hdr->log2_nbr_of_dct_partitions;
+  uint32_t i, ofs, part_size, part_size_ofs = frame_hdr->first_part_size;
 
   ofs = part_size_ofs + 3 * (num_partitions - 1);
   if (ofs > size) {
-    GST_ERROR ("not enough bytes left to parse partition sizes");
+    ERROR ("not enough bytes left to parse partition sizes");
     return FALSE;
   }
 
   /* The size of the last partition is not specified (9.5) */
   for (i = 0; i < num_partitions - 1; i++) {
-    part_size = (guint32) data[part_size_ofs + 0] |
-        ((guint32) data[part_size_ofs + 1] << 8) |
-        ((guint32) data[part_size_ofs + 2] << 16);
+    part_size = (uint32_t) data[part_size_ofs + 0] |
+        ((uint32_t) data[part_size_ofs + 1] << 8) |
+        ((uint32_t) data[part_size_ofs + 2] << 16);
     part_size_ofs += 3;
 
     frame_hdr->partition_size[i] = part_size;
@@ -299,7 +299,7 @@ calc_partition_sizes (GstVp8FrameHdr * frame_hdr, const guint8 * data,
   }
 
   if (ofs > size) {
-    GST_ERROR ("not enough bytes left to determine the last partition size");
+    ERROR ("not enough bytes left to determine the last partition size");
     return FALSE;
   }
   frame_hdr->partition_size[i] = size - ofs;
@@ -310,16 +310,16 @@ calc_partition_sizes (GstVp8FrameHdr * frame_hdr, const guint8 * data,
 }
 
 /* Parse uncompressed data chunk (19.1) */
-static GstVp8ParserResult
-parse_uncompressed_data_chunk (GstVp8Parser * parser, GstByteReader * br,
-    GstVp8FrameHdr * frame_hdr)
+static Vp8ParserResult
+parse_uncompressed_data_chunk (Vp8Parser * parser, ByteReader * br,
+    Vp8FrameHdr * frame_hdr)
 {
-  guint32 frame_tag, start_code;
-  guint16 size_code;
+  uint32_t frame_tag, start_code;
+  uint16_t size_code;
 
-  GST_DEBUG ("parsing \"Uncompressed Data Chunk\"");
+  DEBUG ("parsing \"Uncompressed Data Chunk\"");
 
-  if (!gst_byte_reader_get_uint24_le (br, &frame_tag))
+  if (!byte_reader_get_uint24_le (br, &frame_tag))
     goto error;
 
   frame_hdr->key_frame = !(frame_tag & 0x01);
@@ -328,24 +328,24 @@ parse_uncompressed_data_chunk (GstVp8Parser * parser, GstByteReader * br,
   frame_hdr->first_part_size = (frame_tag >> 5) & 0x7ffff;
 
   if (frame_hdr->key_frame) {
-    if (!gst_byte_reader_get_uint24_be (br, &start_code))
+    if (!byte_reader_get_uint24_be (br, &start_code))
       goto error;
     if (start_code != 0x9d012a)
-      GST_WARNING ("vp8 parser: invalid start code in frame header");
+      WARNING ("vp8 parser: invalid start code in frame header");
 
-    if (!gst_byte_reader_get_uint16_le (br, &size_code))
+    if (!byte_reader_get_uint16_le (br, &size_code))
       goto error;
     frame_hdr->width = size_code & 0x3fff;
     frame_hdr->horiz_scale_code = size_code >> 14;
 
-    if (!gst_byte_reader_get_uint16_le (br, &size_code)) {
+    if (!byte_reader_get_uint16_le (br, &size_code)) {
       goto error;
     }
     frame_hdr->height = size_code & 0x3fff;
     frame_hdr->vert_scale_code = (size_code >> 14);
 
     /* Reset parser state on key frames */
-    gst_vp8_parser_init (parser);
+    vp8_parser_init (parser);
   } else {
     frame_hdr->width = 0;
     frame_hdr->height = 0;
@@ -354,23 +354,23 @@ parse_uncompressed_data_chunk (GstVp8Parser * parser, GstByteReader * br,
   }
 
   /* Calculated values */
-  frame_hdr->data_chunk_size = gst_byte_reader_get_pos (br);
-  return GST_VP8_PARSER_OK;
+  frame_hdr->data_chunk_size = byte_reader_get_pos (br);
+  return VP8_PARSER_OK;
 
 error:
-  GST_WARNING ("error parsing \"Uncompressed Data Chunk\"");
-  return GST_VP8_PARSER_ERROR;
+  WARNING ("error parsing \"Uncompressed Data Chunk\"");
+  return VP8_PARSER_ERROR;
 }
 
 /* Parse Frame Header (19.2) */
-static GstVp8ParserResult
-parse_frame_header (GstVp8Parser * parser, GstVp8RangeDecoder * rd,
-    GstVp8FrameHdr * frame_hdr)
+static Vp8ParserResult
+parse_frame_header (Vp8Parser * parser, Vp8RangeDecoder * rd,
+    Vp8FrameHdr * frame_hdr)
 {
-  gboolean update;
-  guint i;
+  bool update;
+  uint32_t i;
 
-  GST_DEBUG ("parsing \"Frame Header\"");
+  DEBUG ("parsing \"Frame Header\"");
 
   if (frame_hdr->key_frame) {
     READ_UINT (rd, frame_hdr->color_space, 1, "color_space");
@@ -402,7 +402,7 @@ parse_frame_header (GstVp8Parser * parser, GstVp8RangeDecoder * rd,
     frame_hdr->refresh_golden_frame = TRUE;
     frame_hdr->refresh_alternate_frame = TRUE;
 
-    gst_vp8_mode_probs_init_defaults (&frame_hdr->mode_probs, TRUE);
+    vp8_mode_probs_init_defaults (&frame_hdr->mode_probs, TRUE);
   } else {
     READ_BOOL (rd, frame_hdr->refresh_golden_frame, "refresh_golden_frame");
     READ_BOOL (rd, frame_hdr->refresh_alternate_frame,
@@ -474,39 +474,39 @@ parse_frame_header (GstVp8Parser * parser, GstVp8RangeDecoder * rd,
   }
 
   /* Calculated values */
-  frame_hdr->header_size = gst_vp8_range_decoder_get_pos (rd);
-  return GST_VP8_PARSER_OK;
+  frame_hdr->header_size = vp8_range_decoder_get_pos (rd);
+  return VP8_PARSER_OK;
 
 error:
-  GST_WARNING ("error parsing \"Frame Header\"");
-  return GST_VP8_PARSER_ERROR;
+  WARNING ("error parsing \"Frame Header\"");
+  return VP8_PARSER_ERROR;
 }
 
 /**** API ****/
 /**
- * gst_vp8_parser_init:
- * @parser: The #GstVp8Parser to initialize
+ * vp8_parser_init:
+ * @parser: The #Vp8Parser to initialize
  *
  * Initializes the supplied @parser structure with its default values.
  *
  * Since: 1.4
  */
 void
-gst_vp8_parser_init (GstVp8Parser * parser)
+vp8_parser_init (Vp8Parser * parser)
 {
   g_return_if_fail (parser != NULL);
 
   memset (&parser->segmentation, 0, sizeof (parser->segmentation));
   memset (&parser->mb_lf_adjust, 0, sizeof (parser->mb_lf_adjust));
-  gst_vp8_token_probs_init_defaults (&parser->token_probs);
-  gst_vp8_mv_probs_init_defaults (&parser->mv_probs);
-  gst_vp8_mode_probs_init_defaults (&parser->mode_probs, FALSE);
+  vp8_token_probs_init_defaults (&parser->token_probs);
+  vp8_mv_probs_init_defaults (&parser->mv_probs);
+  vp8_mode_probs_init_defaults (&parser->mode_probs, FALSE);
 }
 
 /**
- * gst_vp8_parser_parse_frame_header:
- * @parser: The #GstVp8Parser
- * @frame_hdr: The #GstVp8FrameHdr to fill
+ * vp8_parser_parse_frame_header:
+ * @parser: The #Vp8Parser
+ * @frame_hdr: The #Vp8FrameHdr to fill
  * @data: The data to parse
  * @size: The size of the @data to parse
  *
@@ -515,53 +515,53 @@ gst_vp8_parser_init (GstVp8Parser * parser)
  * frame since there is no sync code specified for VP8 bitstreams. Thus,
  * the @size argument shall represent the whole frame size.
  *
- * Returns: a #GstVp8ParserResult
+ * Returns: a #Vp8ParserResult
  *
  * Since: 1.4
  */
-GstVp8ParserResult
-gst_vp8_parser_parse_frame_header (GstVp8Parser * parser,
-    GstVp8FrameHdr * frame_hdr, const guint8 * data, gsize size)
+Vp8ParserResult
+vp8_parser_parse_frame_header (Vp8Parser * parser,
+    Vp8FrameHdr * frame_hdr, const uint8_t * data, size_t size)
 {
-  GstByteReader br;
-  GstVp8RangeDecoder rd;
-  GstVp8RangeDecoderState rd_state;
-  GstVp8ParserResult result;
+  ByteReader br;
+  Vp8RangeDecoder rd;
+  Vp8RangeDecoderState rd_state;
+  Vp8ParserResult result;
 
   ensure_debug_category ();
   ensure_prob_tables ();
 
-  g_return_val_if_fail (frame_hdr != NULL, GST_VP8_PARSER_ERROR);
-  g_return_val_if_fail (parser != NULL, GST_VP8_PARSER_ERROR);
+  g_return_val_if_fail (frame_hdr != NULL, VP8_PARSER_ERROR);
+  g_return_val_if_fail (parser != NULL, VP8_PARSER_ERROR);
 
   /* Uncompressed Data Chunk */
-  gst_byte_reader_init (&br, data, size);
+  byte_reader_init (&br, data, size);
 
   result = parse_uncompressed_data_chunk (parser, &br, frame_hdr);
-  if (result != GST_VP8_PARSER_OK)
+  if (result != VP8_PARSER_OK)
     return result;
 
   /* Frame Header */
   if (frame_hdr->data_chunk_size + frame_hdr->first_part_size > size)
-    return GST_VP8_PARSER_BROKEN_DATA;
+    return VP8_PARSER_BROKEN_DATA;
 
   data += frame_hdr->data_chunk_size;
   size -= frame_hdr->data_chunk_size;
-  if (!gst_vp8_range_decoder_init (&rd, data, frame_hdr->first_part_size))
-    return GST_VP8_PARSER_BROKEN_DATA;
+  if (!vp8_range_decoder_init (&rd, data, frame_hdr->first_part_size))
+    return VP8_PARSER_BROKEN_DATA;
 
   result = parse_frame_header (parser, &rd, frame_hdr);
-  if (result != GST_VP8_PARSER_OK)
+  if (result != VP8_PARSER_OK)
     return result;
 
   /* Calculate partition sizes */
   if (!calc_partition_sizes (frame_hdr, data, size))
-    return GST_VP8_PARSER_BROKEN_DATA;
+    return VP8_PARSER_BROKEN_DATA;
 
   /* Sync range decoder state */
-  gst_vp8_range_decoder_get_state (&rd, &rd_state);
+  vp8_range_decoder_get_state (&rd, &rd_state);
   frame_hdr->rd_range = rd_state.range;
   frame_hdr->rd_value = rd_state.value;
   frame_hdr->rd_count = rd_state.count;
-  return GST_VP8_PARSER_OK;
+  return VP8_PARSER_OK;
 }

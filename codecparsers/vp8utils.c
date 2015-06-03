@@ -13,7 +13,7 @@
 
 /*---- entropy.c ----*/
 /* *INDENT-OFF* */
-const guint8 vp8_norm[256] = {
+const uint8_t vp8_norm[256] = {
   0, 7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,
   3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
   2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
@@ -35,7 +35,7 @@ const guint8 vp8_norm[256] = {
 
 /*---- entropymv.c ----*/
 /* *INDENT-OFF* */
-static const guint8 vp8_mv_update_probs[2][19] = {
+static const uint8_t vp8_mv_update_probs[2][19] = {
   {
     237,
     246,
@@ -52,7 +52,7 @@ static const guint8 vp8_mv_update_probs[2][19] = {
 /* *INDENT-ON* */
 
 /* *INDENT-OFF* */
-static const guint8 vp8_default_mv_probs[2][19] = {
+static const uint8_t vp8_default_mv_probs[2][19] = {
   {
     /* row */
     162,                                        /* is short */
@@ -71,25 +71,25 @@ static const guint8 vp8_default_mv_probs[2][19] = {
 /* *INDENT-ON* */
 
 /*---- vp8_entropymodedata.h ----*/
-static const guint8 vp8_nk_y_mode_probs[4] = {
+static const uint8_t vp8_nk_y_mode_probs[4] = {
   112, 86, 140, 37
 };
 
-static const guint8 vp8_kf_y_mode_probs[4] = {
+static const uint8_t vp8_kf_y_mode_probs[4] = {
   145, 156, 163, 128
 };
 
-static const guint8 vp8_nk_uv_mode_probs[3] = {
+static const uint8_t vp8_nk_uv_mode_probs[3] = {
   162, 101, 204
 };
 
-static const guint8 vp8_kf_uv_mode_probs[3] = {
+static const uint8_t vp8_kf_uv_mode_probs[3] = {
   142, 114, 183
 };
 
 /*--- coefupdateprobs.h ----*/
 /* *INDENT-OFF* */
-static const guint8 vp8_token_update_probs[4][8][3][11] = {
+static const uint8_t vp8_token_update_probs[4][8][3][11] = {
   {
     {
       {255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, },
@@ -263,7 +263,7 @@ static const guint8 vp8_token_update_probs[4][8][3][11] = {
 
 /*---- default_coef_probs.h ----*/
 /* *INDENT-OFF* */
-static const guint8 vp8_default_token_probs[4][8][3][11] = {
+static const uint8_t vp8_default_token_probs[4][8][3][11] = {
   { /* Block Type ( 0 ) */
     { /* Coeff Band ( 0 )*/
       { 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128 },
@@ -436,32 +436,32 @@ static const guint8 vp8_default_token_probs[4][8][3][11] = {
 /* *INDENT-ON* */
 
 void
-gst_vp8_token_update_probs_init (GstVp8TokenProbs * probs)
+vp8_token_update_probs_init (Vp8TokenProbs * probs)
 {
   memcpy (probs->prob, vp8_token_update_probs, sizeof (vp8_token_update_probs));
 }
 
 void
-gst_vp8_token_probs_init_defaults (GstVp8TokenProbs * probs)
+vp8_token_probs_init_defaults (Vp8TokenProbs * probs)
 {
   memcpy (probs->prob, vp8_default_token_probs,
       sizeof (vp8_default_token_probs));
 }
 
 void
-gst_vp8_mv_update_probs_init (GstVp8MvProbs * probs)
+vp8_mv_update_probs_init (Vp8MvProbs * probs)
 {
   memcpy (probs->prob, vp8_mv_update_probs, sizeof (vp8_mv_update_probs));
 }
 
 void
-gst_vp8_mv_probs_init_defaults (GstVp8MvProbs * probs)
+vp8_mv_probs_init_defaults (Vp8MvProbs * probs)
 {
   memcpy (probs->prob, vp8_default_mv_probs, sizeof (vp8_default_mv_probs));
 }
 
 void
-gst_vp8_mode_probs_init_defaults (GstVp8ModeProbs * probs, gboolean key_frame)
+vp8_mode_probs_init_defaults (Vp8ModeProbs * probs, bool key_frame)
 {
   if (key_frame) {
     memcpy (probs->y_prob, vp8_kf_y_mode_probs, sizeof (vp8_kf_y_mode_probs));
