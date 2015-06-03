@@ -132,4 +132,4 @@ static inline int vp8dx_bool_error(BOOL_DECODER *br)
     return 0;
 }
 
-#endif  // DBOOLHUFF_H_
+#endif  /* DBOOLHUFF_H_*/

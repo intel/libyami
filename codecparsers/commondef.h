@@ -8,7 +8,7 @@
 #include <string.h>
 #include "common/log.h"
 
-//mixed-language compiling
+/*mixed-language compiling*/
 #ifdef __cplusplus
     #define G_BEGIN_DECLS extern "C" {
 #else
@@ -67,11 +67,11 @@
 
 #define G_N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
 
-//The maximum value which can be held in a signed char
+/*The maximum value which can be held in a signed char*/
 #define G_MAXINT8	((signed char)  0x7f)
-//The maximum value which can be held in a unsigned short
+/*The maximum value which can be held in a unsigned short*/
 #define G_MAXUINT16	((unsigned short) 0xffff)
-//The maximum value which can be held in a unsigned int
+/*The maximum value which can be held in a unsigned int*/
 #define G_MAXUINT UINT_MAX
 
 /* Define PUT and GET functions for unaligned memory */
@@ -464,6 +464,6 @@ typedef struct _GArray {
 #define VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME    3   /* frame-tag */
 #define VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME        10  /* frame tag + magic number + frame width/height */
 
-typedef void(*GDestroyNotify)(void* data);  //for h265parser.c:2482
+typedef void(*GDestroyNotify)(void* data);  /*for h265parser.c:2482*/
 
-#endif //end of commondef.h
+#endif /*end of commondef.h*/
