@@ -1,8 +1,8 @@
-/* H.265 bitstream parser
+/* reamer H.265 bitstream parser
  * Copyright (C) 2013 Intel Corporation
  * Copyright (C) 2013 Sreerenj Balachandran <sreerenj.balachandran@intel.com>
  *
- * Contact: Sreerenj Balachandran <sreerenj.balachandran@intel.com>
+ *  Contact: Sreerenj Balachandran <sreerenj.balachandran@intel.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
@@ -23,13 +23,14 @@
 #ifndef __H265_PARSER_H__
 #define __H265_PARSER_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#ifndef USE_UNSTABLE_API
+#warning "The H.265 parsing library is unstable API and may change in future."
+#warning "You can define USE_UNSTABLE_API to avoid this warning."
+#endif
 
-#include <stdint.h>
-#include <string.h>
-#include "common/common_def.h"
+#include "commondef.h"
+
+G_BEGIN_DECLS
 
 #define H265_MAX_SUB_LAYERS   8
 #define H265_MAX_VPS_COUNT   16
@@ -39,11 +40,6 @@ extern "C" {
 #define H265_IS_B_SLICE(slice)  ((slice)->type == H265_B_SLICE)
 #define H265_IS_P_SLICE(slice)  ((slice)->type == H265_P_SLICE)
 #define H265_IS_I_SLICE(slice)  ((slice)->type == H265_I_SLICE)
-
-#ifndef G_MAXUINT32 //lyb add ------
-    typedef unsigned int guint32;
-    #define G_MAXUINT32	((guint32)0xffffffff)
-#endif //add end
 
 /**
  * H265Profile:
@@ -278,7 +274,7 @@ struct _H265NalUnit
   uint32_t size;
   uint32_t offset;
   uint32_t sc_offset;
-  BOOL valid;
+  bool valid;
 
   uint8_t *data;
   uint8_t header_bytes;
@@ -500,7 +496,7 @@ struct _H265VPS {
 
   uint8_t vps_extension;
 
-  BOOL valid;
+  bool valid;
 };
 /**
  * H265ShortTermRefPicSet:
@@ -770,7 +766,7 @@ struct _H265SPS
   int32_t crop_rect_width, crop_rect_height;
   int32_t crop_rect_x, crop_rect_y;
   int32_t fps_num, fps_den;
-  BOOL valid;
+  bool valid;
 };
 
 /**
@@ -831,7 +827,7 @@ struct _H265PPS
 
   uint8_t pps_extension_flag;
 
-  BOOL valid;
+  bool valid;
 };
 
 struct _H265RefPicListModification
@@ -1033,16 +1029,15 @@ H265ParserResult h265_parser_parse_vps       (H265Parser   * parser,
 H265ParserResult h265_parser_parse_sps       (H265Parser   * parser,
                                                      H265NalUnit  * nalu,
                                                      H265SPS      * sps,
-                                                     BOOL          parse_vui_params);
+                                                     bool          parse_vui_params);
 
 H265ParserResult h265_parser_parse_pps       (H265Parser   * parser,
                                                      H265NalUnit  * nalu,
                                                      H265PPS      * pps);
-/*
+
 H265ParserResult h265_parser_parse_sei       (H265Parser   * parser,
                                                      H265NalUnit  * nalu,
                                                      GArray **messages);
-*/
 
 void                h265_parser_free            (H265Parser  * parser);
 
@@ -1052,18 +1047,18 @@ H265ParserResult h265_parse_vps              (H265NalUnit * nalu,
 H265ParserResult h265_parse_sps              (H265Parser  * parser,
                                                      H265NalUnit * nalu,
                                                      H265SPS     * sps,
-                                                     BOOL         parse_vui_params);
+                                                     bool         parse_vui_params);
 
 H265ParserResult h265_parse_pps              (H265Parser  * parser,
                                                      H265NalUnit * nalu,
                                                      H265PPS     * pps);
 
-BOOL            h265_slice_hdr_copy (H265SliceHdr       * dst_slice,
+bool            h265_slice_hdr_copy (H265SliceHdr       * dst_slice,
                                              const H265SliceHdr * src_slice);
 
 void                h265_slice_hdr_free (H265SliceHdr * slice_hdr);
 
-BOOL            h265_sei_copy       (H265SEIMessage       * dest_sei,
+bool            h265_sei_copy       (H265SEIMessage       * dest_sei,
                                              const H265SEIMessage * src_sei);
 
 void                h265_sei_free       (H265SEIMessage * sei);
@@ -1089,7 +1084,5 @@ void    h265_quant_matrix_8x8_get_raster_from_zigzag (uint8_t out_quant[64],
 #define h265_quant_matrix_32x32_get_raster_from_zigzag \
         h265_quant_matrix_8x8_get_raster_from_zigzag
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
+G_END_DECLS
 #endif

@@ -22,16 +22,20 @@
 #ifndef __VC1_PARSER_H__
 #define __VC1_PARSER_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#ifndef USE_UNSTABLE_API
+#warning "The VC1 parsing library is unstable API and may change in future."
+#warning "You can define USE_UNSTABLE_API to avoid this warning."
+#endif
 
-#include "bitreader.h"
+#include "commondef.h"
+
+G_BEGIN_DECLS
 
 #define MAX_HRD_NUM_LEAKY_BUCKETS 31
 
 /**
- * @VC1_BFRACTION_BASIS: The @bfraction variable should be divided
+ * VC1_BFRACTION_BASIS:
+ * The @bfraction variable should be divided
  * by this constant to have the actual value.
  */
 #define VC1_BFRACTION_BASIS 840
@@ -80,8 +84,8 @@ typedef enum
 typedef enum
 {
     VC1_LEVEL_LOW    = 0,    /* Simple/Main profile low level */
-    VC1_LEVEL_MEDIUM = 1,    /* Simple/Main profile medium level */
-    VC1_LEVEL_HIGH   = 2,   /* Main profile high level */
+    VC1_LEVEL_MEDIUM = 2,    /* Simple/Main profile medium level */
+    VC1_LEVEL_HIGH   = 4,   /* Main profile high level */
 
     VC1_LEVEL_L0    = 0,    /* Advanced profile level 0 */
     VC1_LEVEL_L1    = 1,    /* Advanced profile level 1 */
@@ -573,68 +577,66 @@ struct _VC1BDU
 };
 
 VC1ParserResult vc1_identify_next_bdu           (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1BDU *bdu);
+                                                        size_t size,
+                                                        VC1BDU *bdu);
 
 
 VC1ParserResult vc1_parse_sequence_header       (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1SeqHdr * seqhdr);
+                                                        size_t size,
+                                                        VC1SeqHdr * seqhdr);
 
 VC1ParserResult vc1_parse_entry_point_header    (const  uint8_t *data,
-                                                 size_t size,
-                                                 VC1EntryPointHdr * entrypoint,
-                                                 VC1SeqHdr *seqhdr);
+                                                        size_t size,
+                                                        VC1EntryPointHdr * entrypoint,
+                                                        VC1SeqHdr *seqhdr);
 
 VC1ParserResult vc1_parse_sequence_layer        (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1SeqLayer * seqlayer);
+                                                        size_t size,
+                                                        VC1SeqLayer * seqlayer);
 
 VC1ParserResult
-vc1_parse_sequence_header_struct_a              (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1SeqStructA *structa);
+vc1_parse_sequence_header_struct_a                 (const uint8_t *data,
+                                                        size_t size,
+                                                        VC1SeqStructA *structa);
 VC1ParserResult
-vc1_parse_sequence_header_struct_b              (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1SeqStructB *structb);
+vc1_parse_sequence_header_struct_b                 (const uint8_t *data,
+                                                        size_t size,
+                                                        VC1SeqStructB *structb);
 
 VC1ParserResult
-vc1_parse_sequence_header_struct_c              (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1SeqStructC *structc);
+vc1_parse_sequence_header_struct_c                 (const uint8_t *data,
+                                                        size_t size,
+                                                        VC1SeqStructC *structc);
 
 VC1ParserResult vc1_parse_frame_layer           (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1FrameLayer * framelayer);
+                                                        size_t size,
+                                                        VC1FrameLayer * framelayer);
 
 VC1ParserResult vc1_parse_frame_header          (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1FrameHdr * framehdr,
-                                                 VC1SeqHdr *seqhdr,
-                                                 VC1BitPlanes *bitplanes);
+                                                        size_t size,
+                                                        VC1FrameHdr * framehdr,
+                                                        VC1SeqHdr *seqhdr,
+                                                        VC1BitPlanes *bitplanes);
 
 VC1ParserResult vc1_parse_field_header          (const uint8_t *data,
-                                                 size_t size,
-                                                 VC1FrameHdr * fieldhdr,
-                                                 VC1SeqHdr *seqhdr,
-                                                 VC1BitPlanes *bitplanes);
+                                                        size_t size,
+                                                        VC1FrameHdr * fieldhdr,
+                                                        VC1SeqHdr *seqhdr,
+                                                        VC1BitPlanes *bitplanes);
 
 VC1ParserResult vc1_parse_slice_header           (const uint8_t *data,
-                                                  size_t size,
-                                                  VC1SliceHdr *slicehdr, 
-                                                  VC1SeqHdr *seqhdr);
+                                                         size_t size,
+                                                         VC1SliceHdr *slicehdr, 
+                                                         VC1SeqHdr *seqhdr);
 
 VC1BitPlanes *  vc1_bitplanes_new               (void);
 
-void   vc1_bitplanes_free                       (VC1BitPlanes *bitplanes);
+void               vc1_bitplanes_free              (VC1BitPlanes *bitplanes);
 
-void   vc1_bitplanes_free_1                     (VC1BitPlanes *bitplanes);
+void               vc1_bitplanes_free_1            (VC1BitPlanes *bitplanes);
 
-BOOL   vc1_bitplanes_ensure_size             (VC1BitPlanes *bitplanes,
-                                                 VC1SeqHdr *seqhdr);
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
+bool           vc1_bitplanes_ensure_size       (VC1BitPlanes *bitplanes,
+                                                        VC1SeqHdr *seqhdr);
 
+G_END_DECLS
 #endif

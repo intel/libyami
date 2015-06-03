@@ -1,4 +1,4 @@
-/* Gstreamer
+/* reamer
  * Copyright (C) <2011> Intel Corporation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -30,13 +30,14 @@
 #ifndef __H264_PARSER_H__
 #define __H264_PARSER_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#ifndef USE_UNSTABLE_API
+#warning "The H.264 parsing library is unstable API and may change in future."
+#warning "You can define USE_UNSTABLE_API to avoid this warning."
+#endif
 
-#include <stdint.h>
-#include <string.h>
-#include "common/common_def.h"
+#include "commondef.h"
+
+G_BEGIN_DECLS
 
 #define H264_MAX_SPS_COUNT   32
 #define H264_MAX_PPS_COUNT   256
@@ -49,10 +50,30 @@ extern "C" {
 #define H264_IS_SP_SLICE(slice) (((slice)->type % 5) == H264_SP_SLICE)
 #define H264_IS_SI_SLICE(slice) (((slice)->type % 5) == H264_SI_SLICE)
 
+/**
+ * H264_IS_SVC_NALU:
+ * @nalu: a #H264NalUnit
+ *
+ * Check if @nalu is a scalable extension NAL unit.
+ *
+ * Since: 1.6
+ */
+#define H264_IS_SVC_NALU(nalu) \
+  ((nalu)->extension_type == H264_NAL_EXTENSION_SVC)
+
+/**
+ * H264_IS_MVC_NALU:
+ * @nalu: a #H264NalUnit
+ *
+ * Check if @nalu is a multiview extension NAL unit.
+ *
+ * Since: 1.6
+ */
 #define H264_IS_MVC_NALU(nalu) \
   ((nalu)->extension_type == H264_NAL_EXTENSION_MVC)
 
 /**
+ * H264Profile:
  * @H264_PROFILE_BASELINE: Baseline profile (A.2.1)
  * @H264_PROFILE_MAIN: Main profile (A.2.2)
  * @H264_PROFILE_EXTENDED: Extended profile (A.2.3)
@@ -104,7 +125,9 @@ typedef enum {
  * @H264_NAL_SEQ_END: End of sequence nal unit
  * @H264_NAL_STREAM_END: End of stream nal unit
  * @H264_NAL_FILLER_DATA: Filler data nal lunit
+ * @H264_NAL_SPS_EXT: Sequence parameter set (SPS) extension NAL unit
  * @H264_NAL_PREFIX_UNIT: Prefix NAL unit
+ * @H264_NAL_SUBSET_SPS: Subset sequence parameter set (SPS) NAL unit
  * @H264_NAL_SLICE_AUX: Auxiliary coded picture without partitioning NAL unit
  * @H264_NAL_SLICE_EXT: Coded slice extension NAL unit
  *
@@ -135,13 +158,17 @@ typedef enum
 /**
  * H264NalUnitExtensionType:
  * @H264_NAL_EXTENSION_NONE: No NAL unit header extension is available
+ * @H264_NAL_EXTENSION_SVC: NAL unit header extension for SVC (Annex G)
  * @H264_NAL_EXTENSION_MVC: NAL unit header extension for MVC (Annex H)
  *
  * Indicates the type of H.264 NAL unit extension.
+ *
+ * Since: 1.6
  */
 typedef enum
 {
   H264_NAL_EXTENSION_NONE = 0,
+  H264_NAL_EXTENSION_SVC,
   H264_NAL_EXTENSION_MVC,
 } H264NalUnitExtensionType;
 
@@ -150,7 +177,7 @@ typedef enum
  * @H264_PARSER_OK: The parsing succeded
  * @H264_PARSER_BROKEN_DATA: The data to parse is broken
  * @H264_PARSER_BROKEN_LINK: The link to structure needed for the parsing couldn't be found
- * @H264_PARSER_ERROR: An error accured when parsing
+ * @H264_PARSER_ERROR: An error occured when parsing
  * @H264_PARSER_NO_NAL: No nal found during the parsing
  * @H264_PARSER_NO_NAL_END: Start of the nal found, but not the end.
  *
@@ -167,9 +194,39 @@ typedef enum
 } H264ParserResult;
 
 /**
+ * H264FramePackingType:
+ * @H264_FRAME_PACKING_NONE: A complete 2D frame without any frame packing
+ * @H264_FRAME_PACKING_CHECKERBOARD_INTERLEAVING: Checkerboard
+ *   based interleaving
+ * @H264_FRAME_PACKING_COLUMN_INTERLEAVING: Column based interleaving
+ * @H264_FRAME_PACKING_ROW_INTERLEAVING: Row based interleaving
+ * @H264_FRAME_PACKING_SIDE_BY_SIDE: Side-by-side packing
+ * @H264_FRMAE_PACKING_TOP_BOTTOM: Top-Bottom packing
+ * @H264_FRAME_PACKING_TEMPORAL_INTERLEAVING: Temporal interleaving
+ *
+ * Frame packing arrangement types.
+ *
+ * Since: 1.6
+ */
+typedef enum
+{
+  H264_FRAME_PACKING_NONE                           = 6,
+  H264_FRAME_PACKING_CHECKERBOARD_INTERLEAVING      = 0,
+  H264_FRAME_PACKING_COLUMN_INTERLEAVING            = 1,
+  H264_FRAME_PACKING_ROW_INTERLEAVING               = 2,
+  H264_FRAME_PACKING_SIDE_BY_SIDE                   = 3,
+  H264_FRMAE_PACKING_TOP_BOTTOM                     = 4,
+  H264_FRAME_PACKING_TEMPORAL_INTERLEAVING          = 5
+} H264FramePackingType;
+
+/**
  * H264SEIPayloadType:
  * @H264_SEI_BUF_PERIOD: Buffering Period SEI Message
  * @H264_SEI_PIC_TIMING: Picture Timing SEI Message
+ * @H264_SEI_RECOVERY_POINT: Recovery Point SEI Message (D.2.7)
+ * @H264_SEI_STEREO_VIDEO_INFO: stereo video info SEI message (Since: 1.6)
+ * @H264_SEI_FRAME_PACKING: Frame Packing Arrangement (FPA) message that
+ *     contains the 3D arrangement for stereoscopic 3D video (Since: 1.6)
  * ...
  *
  * The type of SEI message.
@@ -177,7 +234,10 @@ typedef enum
 typedef enum
 {
   H264_SEI_BUF_PERIOD = 0,
-  H264_SEI_PIC_TIMING = 1
+  H264_SEI_PIC_TIMING = 1,
+  H264_SEI_RECOVERY_POINT = 6,
+  H264_SEI_STEREO_VIDEO_INFO = 21,
+  H264_SEI_FRAME_PACKING = 45
       /* and more...  */
 } H264SEIPayloadType;
 
@@ -254,6 +314,9 @@ typedef struct _H264SliceHdr               H264SliceHdr;
 typedef struct _H264ClockTimestamp         H264ClockTimestamp;
 typedef struct _H264PicTiming              H264PicTiming;
 typedef struct _H264BufferingPeriod        H264BufferingPeriod;
+typedef struct _H264RecoveryPoint          H264RecoveryPoint;
+typedef struct _H264StereoVideoInfo        H264StereoVideoInfo;
+typedef struct _H264FramePacking           H264FramePacking;
 typedef struct _H264SEIMessage             H264SEIMessage;
 
 /**
@@ -268,6 +331,8 @@ typedef struct _H264SEIMessage             H264SEIMessage;
  * @inter_view_flag: If equal to 0, it specifies that the current view
  *   component is not used for inter-view prediction by any other view
  *   component in the current access unit
+ *
+ * Since: 1.6
  */
 struct _H264NalUnitExtensionMVC
 {
@@ -281,19 +346,24 @@ struct _H264NalUnitExtensionMVC
 
 /**
  * H264NalUnit:
- * @ref_idc: not equal to 0 specifies that the content of the NAL unit contains a sequence
- *  parameter set, a sequence * parameter set extension, a subset sequence parameter set, a
- *  picture parameter set, a slice of a reference picture, a slice data partition of a
- *  reference picture, or a prefix NAL unit preceding a slice of a reference picture.
+ * @ref_idc: not equal to 0 specifies that the content of the NAL unit
+ *  contains a sequence parameter set, a sequence parameter set
+ *  extension, a subset sequence parameter set, a picture parameter
+ *  set, a slice of a reference picture, a slice data partition of a
+ *  reference picture, or a prefix NAL unit preceding a slice of a
+ *  reference picture.
  * @type: A #H264NalUnitType
  * @idr_pic_flag: calculated idr_pic_flag
- * @size: The size of the nal unit starting from @offset
- * @offset: The offset of the actual start of the nal unit
- * @sc_offset:The offset of the start code of the nal unit
- * @valid: If the nal unit is valid, which mean it has
+ * @size: The size of the nal unit starting from @offset, thus
+ *  including the header bytes. e.g. @type (nal_unit_type)
+ * @offset: The offset of the actual start of the nal unit, thus
+ *  including the header bytes
+ * @sc_offset: The offset of the start code of the nal unit
+ * @valid: If the nal unit is valid, which means it has
  * already been parsed
  * @data: The data from which the Nalu has been parsed
- * @header_bytes: The size of the NALU header in bytes
+ * @header_bytes: The size of the NALU header in bytes (Since 1.6)
+ * @extension_type: the extension type (Since 1.6)
  *
  * Structure defining the Nal unit headers
  */
@@ -307,7 +377,7 @@ struct _H264NalUnit
   uint32_t size;
   uint32_t offset;
   uint32_t sc_offset;
-  BOOL valid;
+  bool valid;
 
   uint8_t *data;
 
@@ -348,7 +418,7 @@ struct _H264HRDParams
 
   uint32_t bit_rate_value_minus1[32];
   uint32_t cpb_size_value_minus1[32];
-  uint8_t  cbr_flag[32];
+  uint8_t cbr_flag[32];
 
   uint8_t initial_cpb_removal_delay_length_minus1;
   uint8_t cpb_removal_delay_length_minus1;
@@ -445,7 +515,7 @@ struct _H264VUIParams
   H264HRDParams nal_hrd_parameters;
 
   uint8_t vcl_hrd_parameters_present_flag;
-  /* if nal_hrd_parameters_present_flag */
+  /* if vcl_hrd_parameters_present_flag */
   H264HRDParams vcl_hrd_parameters;
 
   uint8_t low_delay_hrd_flag;
@@ -493,6 +563,8 @@ struct _H264VUIParams
  *
  * Represents inter-view dependency relationships for the coded video
  * sequence.
+ *
+ * Since: 1.6
  */
 struct _H264SPSExtMVCView
 {
@@ -511,6 +583,8 @@ struct _H264SPSExtMVCView
  * H264SPSExtMVCLevelValueOp:
  *
  * Represents an operation point for the coded video sequence.
+ *
+ * Since: 1.6
  */
 struct _H264SPSExtMVCLevelValueOp
 {
@@ -530,6 +604,8 @@ struct _H264SPSExtMVCLevelValueOp
  *
  * Represents level values for a subset of the operation points for
  * the coded video sequence.
+ *
+ * Since: 1.6
  */
 struct _H264SPSExtMVCLevelValue
 {
@@ -548,7 +624,9 @@ struct _H264SPSExtMVCLevelValue
  * @level_value: array of #H264SPSExtMVCLevelValue
  *
  * Represents the parsed seq_parameter_set_mvc_extension().
- */
+ *
+ * Since: 1.6
+	 */
 struct _H264SPSExtMVC
 {
   uint16_t num_views_minus1;
@@ -620,14 +698,16 @@ struct _H264SPS
 
   uint8_t vui_parameters_present_flag;
   /* if vui_parameters_present_flag */
- H264VUIParams vui_parameters;
+  H264VUIParams vui_parameters;
 
   /* calculated values */
   uint8_t chroma_array_type;
   uint32_t max_frame_num;
   int32_t width, height;
+  int32_t crop_rect_width, crop_rect_height;
+  int32_t crop_rect_x, crop_rect_y;
   int32_t fps_num, fps_den;
-  BOOL valid;
+  bool valid;
 
   /* Subset SPS extensions */
   uint8_t extension_type;
@@ -684,7 +764,7 @@ struct _H264PPS
 
   uint8_t second_chroma_qp_index_offset;
 
-  BOOL valid;
+  bool valid;
 };
 
 struct _H264RefPicListModification
@@ -798,16 +878,13 @@ struct _H264SliceHdr
 
   /* calculated values */
   uint32_t max_pic_num;
-  BOOL valid;
+  bool valid;
 
   /* Size of the slice_header() in bits */
   uint32_t header_size;
 
   /* Number of emulation prevention bytes (EPB) in this slice_header() */
   uint32_t n_emulation_prevention_bytes;
-
-  /* slice nal header bytes */
-  uint32_t nal_header_bytes;
 };
 
 
@@ -832,6 +909,46 @@ struct _H264ClockTimestamp
   uint32_t time_offset;
 };
 
+/**
+ * H264FramePacking:
+ *
+ * Since: 1.6
+ */
+struct _H264FramePacking
+{
+  uint32_t frame_packing_id;
+  uint8_t frame_packing_cancel_flag;
+  uint8_t frame_packing_type; /* H264FramePackingType */
+  uint8_t quincunx_sampling_flag;
+  uint8_t content_interpretation_type;
+  uint8_t spatial_flipping_flag;
+  uint8_t frame0_flipped_flag;
+  uint8_t field_views_flag;
+  uint8_t current_frame_is_frame0_flag;
+  uint8_t frame0_self_contained_flag;
+  uint8_t frame1_self_contained_flag;
+  uint8_t frame0_grid_position_x;
+  uint8_t frame0_grid_position_y;
+  uint8_t frame1_grid_position_x;
+  uint8_t frame1_grid_position_y;
+  uint16_t frame_packing_repetition_period;
+};
+
+/**
+ * H264StereoVideoInfo:
+ *
+ * Since: 1.6
+ */
+struct _H264StereoVideoInfo
+{
+  uint8_t field_views_flag;
+  uint8_t top_field_is_left_view_flag;
+  uint8_t current_frame_is_left_view_flag;
+  uint8_t next_frame_is_second_view_flag;
+  uint8_t left_view_self_contained_flag;
+  uint8_t right_view_self_contained_flag;
+};
+
 struct _H264PicTiming
 {
   uint32_t cpb_removal_delay;
@@ -850,12 +967,20 @@ struct _H264BufferingPeriod
   H264SPS *sps;
 
   /* seq->vui_parameters->nal_hrd_parameters_present_flag */
-  uint8_t nal_initial_cpb_removal_delay[32];
-  uint8_t nal_initial_cpb_removal_delay_offset[32];
+  uint32_t nal_initial_cpb_removal_delay[32];
+  uint32_t nal_initial_cpb_removal_delay_offset[32];
 
   /* seq->vui_parameters->vcl_hrd_parameters_present_flag */
-  uint8_t vcl_initial_cpb_removal_delay[32];
-  uint8_t vcl_initial_cpb_removal_delay_offset[32];
+  uint32_t vcl_initial_cpb_removal_delay[32];
+  uint32_t vcl_initial_cpb_removal_delay_offset[32];
+};
+
+struct _H264RecoveryPoint
+{
+  uint32_t recovery_frame_cnt;
+  uint8_t exact_match_flag;
+  uint8_t broken_link_flag;
+  uint8_t changing_slice_group_idc;
 };
 
 struct _H264SEIMessage
@@ -865,6 +990,9 @@ struct _H264SEIMessage
   union {
     H264BufferingPeriod buffering_period;
     H264PicTiming pic_timing;
+    H264RecoveryPoint recovery_point;
+    H264StereoVideoInfo stereo_video_info;
+    H264FramePacking frame_packing;
     /* ... could implement more */
   } payload;
 };
@@ -901,38 +1029,50 @@ H264ParserResult h264_parser_parse_nal         (H264NalParser *nalparser,
                                                        H264NalUnit *nalu);
 
 H264ParserResult h264_parser_parse_slice_hdr   (H264NalParser *nalparser, H264NalUnit *nalu,
-                                                       H264SliceHdr *slice, BOOL parse_pred_weight_table,
-                                                       BOOL parse_dec_ref_pic_marking);
-
-H264ParserResult h264_parser_parse_sps         (H264NalParser *nalparser, H264NalUnit *nalu,
-                                                       H264SPS *sps, BOOL parse_vui_params);
+                                                       H264SliceHdr *slice, bool parse_pred_weight_table,
+                                                       bool parse_dec_ref_pic_marking);
 
 H264ParserResult h264_parser_parse_subset_sps  (H264NalParser *nalparser, H264NalUnit *nalu,
-                                                       H264SPS *sps, BOOL parse_vui_params);
+                                                       H264SPS *sps, bool parse_vui_params);
+
+H264ParserResult h264_parser_parse_sps         (H264NalParser *nalparser, H264NalUnit *nalu,
+                                                       H264SPS *sps, bool parse_vui_params);
 
 H264ParserResult h264_parser_parse_pps         (H264NalParser *nalparser,
                                                        H264NalUnit *nalu, H264PPS *pps);
 
 H264ParserResult h264_parser_parse_sei         (H264NalParser *nalparser,
-                                                       H264NalUnit *nalu, H264SEIMessage *sei);
+                                                       H264NalUnit *nalu, GArray ** messages);
 
-void h264_nal_parser_free                      (H264NalParser *nalparser);
-
-H264ParserResult h264_parse_sps                (H264NalUnit *nalu,
-                                                       H264SPS *sps, BOOL parse_vui_params);
+void h264_nal_parser_free                         (H264NalParser *nalparser);
 
 H264ParserResult h264_parse_subset_sps         (H264NalUnit *nalu,
-                                                       H264SPS *sps, BOOL parse_vui_params);
+                                                       H264SPS *sps, bool parse_vui_params);
+
+H264ParserResult h264_parse_sps                (H264NalUnit *nalu,
+                                                       H264SPS *sps, bool parse_vui_params);
 
 H264ParserResult h264_parse_pps                (H264NalParser *nalparser,
                                                        H264NalUnit *nalu, H264PPS *pps);
 
-BOOL          h264_sps_copy                 (H264SPS * dst_sps,
-                                                       const H264SPS * src_sps);
+void                h264_sps_clear                (H264SPS *sps);
+void                h264_pps_clear                (H264PPS *pps);
 
-void             h264_sps_free_1               (H264SPS *sps);
+void    h264_quant_matrix_8x8_get_zigzag_from_raster (uint8_t out_quant[64],
+                                                          const uint8_t quant[64]);
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
+void    h264_quant_matrix_8x8_get_raster_from_zigzag (uint8_t out_quant[64],
+                                                          const uint8_t quant[64]);
+
+void    h264_quant_matrix_4x4_get_zigzag_from_raster (uint8_t out_quant[16],
+                                                          const uint8_t quant[16]);
+
+void    h264_quant_matrix_4x4_get_raster_from_zigzag (uint8_t out_quant[16],
+                                                          const uint8_t quant[16]);
+
+void h264_video_calculate_framerate (const H264SPS * sps, uint32_t field_pic_flag,
+    uint32_t pic_struct, int32_t * fps_num, int32_t * fps_den);
+
+G_END_DECLS
+
 #endif

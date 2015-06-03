@@ -22,25 +22,16 @@
 #ifndef BIT_WRITER_H
 #define BIT_WRITER_H
 
+#include "commondef.h"
 #include <string.h>
-#include <stdlib.h>
-#include <assert.h>
-/*FIXME: review this*/
-#define G_LIKELY(a) (a)
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif                          /* __cplusplus */
-
-#include <stdint.h>
-#include "common/common_def.h"
+G_BEGIN_DECLS
 
 #define BIT_WRITER_DATA(writer)     ((writer)->data)
 #define BIT_WRITER_BIT_SIZE(writer) ((writer)->bit_size)
 #define BIT_WRITER(writer)          ((BitWriter *) (writer))
 
-  typedef struct _BitWriter BitWriter;
+typedef struct _BitWriter BitWriter;
 
 /**
  * BitWriter:
@@ -53,92 +44,104 @@ extern "C"
  *
  * A bit writer instance.
  */
-  struct _BitWriter
-  {
-    uint8_t *data;
-    uint32_t bit_size;
+struct _BitWriter
+{
+  uint8_t *data;
+  uint32_t bit_size;
 
-    /*< private > */
-    uint32_t bit_capacity;
-    BOOL auto_grow;
-  };
+  /*< private >*/
+  uint32_t bit_capacity;
+  bool auto_grow;
+  void* _reserved[PADDING];
+};
 
-  BitWriter *bit_writer_new (uint32_t reserved_bits);
+BitWriter *
+bit_writer_new (uint32_t reserved_bits) G_GNUC_MALLOC;
 
-  BitWriter *bit_writer_new_fill (uint8_t * data, uint32_t bits);
+BitWriter *
+bit_writer_new_fill (uint8_t * data, uint32_t bits) G_GNUC_MALLOC;
 
-  void bit_writer_free (BitWriter * writer, BOOL free_data);
+void
+bit_writer_free (BitWriter * writer, bool free_data);
 
-  void bit_writer_init (BitWriter * bitwriter, uint32_t reserved_bits);
+void
+bit_writer_init (BitWriter * bitwriter, uint32_t reserved_bits);
 
-  void bit_writer_init_fill (BitWriter * bitwriter, uint8_t * data, uint32_t bits);
+void
+bit_writer_init_fill (BitWriter * bitwriter, uint8_t * data, uint32_t bits);
 
-  void bit_writer_clear (BitWriter * bitwriter, BOOL free_data);
+void
+bit_writer_clear (BitWriter * bitwriter, bool free_data);
 
-  uint bit_writer_get_size (BitWriter * bitwriter);
+uint32_t
+bit_writer_get_size (BitWriter * bitwriter);
 
-  uint8_t *bit_writer_get_data (BitWriter * bitwriter);
+uint8_t *
+bit_writer_get_data (BitWriter * bitwriter);
 
-  BOOL bit_writer_set_pos (BitWriter * bitwriter, uint32_t pos);
+bool
+bit_writer_set_pos (BitWriter * bitwriter, uint32_t pos);
 
-  uint bit_writer_get_space (BitWriter * bitwriter);
+uint32_t
+bit_writer_get_space (BitWriter * bitwriter);
 
-    BOOL
-      bit_writer_put_bits_uint8 (BitWriter * bitwriter,
-      uint8_t value, uint32_t nbits);
+bool
+bit_writer_put_bits_uint8 (BitWriter * bitwriter,
+                               uint8_t value, uint32_t nbits);
 
-    BOOL
-      bit_writer_put_bits_uint16 (BitWriter * bitwriter,
-      uint16_t value, uint32_t nbits);
+bool
+bit_writer_put_bits_uint16 (BitWriter * bitwriter,
+                                uint16_t value, uint32_t nbits);
 
-    BOOL
-      bit_writer_put_bits_uint32 (BitWriter * bitwriter,
-      uint32_t value, uint32_t nbits);
+bool
+bit_writer_put_bits_uint32 (BitWriter * bitwriter,
+                                uint32_t value, uint32_t nbits);
 
-    BOOL
-      bit_writer_put_bits_uint64 (BitWriter * bitwriter,
-      uint64_t value, uint32_t nbits);
+bool
+bit_writer_put_bits_uint64 (BitWriter * bitwriter,
+                                uint64_t value, uint32_t nbits);
 
-    BOOL
-      bit_writer_put_bytes (BitWriter * bitwriter, const uint8_t * data,
-      uint32_t nbytes);
+bool
+bit_writer_put_bytes (BitWriter * bitwriter, const uint8_t * data,
+    uint32_t nbytes);
 
-    BOOL bit_writer_align_bytes (BitWriter * bitwriter, uint8_t trailing_bit);
+bool
+bit_writer_align_bytes (BitWriter * bitwriter, uint8_t trailing_bit);
 
-  static const uint8_t _bit_writer_bit_filling_mask[9] = {
+static const uint8_t _bit_writer_bit_filling_mask[9] = {
     0x00, 0x01, 0x03, 0x07,
     0x0F, 0x1F, 0x3F, 0x7F,
     0xFF
-  };
+};
 
 /* Aligned to 256 bytes */
 #define __BITS_WRITER_ALIGNMENT_MASK 2047
 #define __BITS_WRITER_ALIGNED(bitsize)                   \
     (((bitsize) + __BITS_WRITER_ALIGNMENT_MASK)&(~__BITS_WRITER_ALIGNMENT_MASK))
 
-  static inline BOOL
-      _bit_writer_check_space (BitWriter * bitwriter, uint32_t bits)
-  {
-    uint32_t new_bit_size = bits + bitwriter->bit_size;
-    uint32_t clear_pos;
+static inline bool
+_bit_writer_check_space (BitWriter * bitwriter, uint32_t bits)
+{
+  uint32_t new_bit_size = bits + bitwriter->bit_size;
+  uint32_t clear_pos;
 
-    assert (bitwriter->bit_size <= bitwriter->bit_capacity);
-    if (new_bit_size <= bitwriter->bit_capacity)
-      return TRUE;
-
-    if (!bitwriter->auto_grow)
-      return FALSE;
-
-    /* auto grow space */
-    new_bit_size = __BITS_WRITER_ALIGNED (new_bit_size);
-    assert (new_bit_size
-        && ((new_bit_size & __BITS_WRITER_ALIGNMENT_MASK) == 0));
-    clear_pos = ((bitwriter->bit_size + 7) >> 3);
-    bitwriter->data = realloc (bitwriter->data, (new_bit_size >> 3));
-    memset (bitwriter->data + clear_pos, 0, (new_bit_size >> 3) - clear_pos);
-    bitwriter->bit_capacity = new_bit_size;
+  g_assert (bitwriter->bit_size <= bitwriter->bit_capacity);
+  if (new_bit_size <= bitwriter->bit_capacity)
     return TRUE;
-  }
+
+  if (!bitwriter->auto_grow)
+    return FALSE;
+
+  /* auto grow space */
+  new_bit_size = __BITS_WRITER_ALIGNED (new_bit_size);
+  g_assert (new_bit_size
+      && ((new_bit_size & __BITS_WRITER_ALIGNMENT_MASK) == 0));
+  clear_pos = ((bitwriter->bit_size + 7) >> 3);
+  bitwriter->data = g_realloc (bitwriter->data, (new_bit_size >> 3));
+  memset (bitwriter->data + clear_pos, 0, (new_bit_size >> 3) - clear_pos);
+  bitwriter->bit_capacity = new_bit_size;
+  return TRUE;
+}
 
 #undef __BITS_WRITER_ALIGNMENT_MASK
 #undef __BITS_WRITER_ALIGNED
@@ -158,8 +161,8 @@ bit_writer_put_bits_uint##bits##_unchecked( \
     byte_pos = (bitwriter->bit_size >> 3); \
     bit_offset = (bitwriter->bit_size & 0x07); \
     cur_byte = bitwriter->data + byte_pos; \
-    assert (nbits <= bits); \
-    assert( bit_offset < 8 && \
+    g_assert (nbits <= bits); \
+    g_assert( bit_offset < 8 && \
             bitwriter->bit_size <= bitwriter->bit_capacity); \
     \
     while (nbits) { \
@@ -172,82 +175,86 @@ bit_writer_put_bits_uint##bits##_unchecked( \
         ++cur_byte; \
         bit_offset = 0; \
     } \
-    assert(cur_byte <= \
+    g_assert(cur_byte <= \
            (bitwriter->data + (bitwriter->bit_capacity >> 3))); \
 }
 
-  __BIT_WRITER_WRITE_BITS_UNCHECKED (8)
-      __BIT_WRITER_WRITE_BITS_UNCHECKED (16)
-      __BIT_WRITER_WRITE_BITS_UNCHECKED (32)
-      __BIT_WRITER_WRITE_BITS_UNCHECKED (64)
+__BIT_WRITER_WRITE_BITS_UNCHECKED (8)
+__BIT_WRITER_WRITE_BITS_UNCHECKED (16)
+__BIT_WRITER_WRITE_BITS_UNCHECKED (32)
+__BIT_WRITER_WRITE_BITS_UNCHECKED (64)
 #undef __BIT_WRITER_WRITE_BITS_UNCHECKED
-  static inline uint bit_writer_get_size_unchecked (BitWriter * bitwriter)
-  {
-    return BIT_WRITER_BIT_SIZE (bitwriter);
-  }
 
-  static inline uint8_t *bit_writer_get_data_unchecked (BitWriter * bitwriter)
-  {
-    return BIT_WRITER_DATA (bitwriter);
-  }
+static inline uint32_t
+bit_writer_get_size_unchecked (BitWriter * bitwriter)
+{
+  return BIT_WRITER_BIT_SIZE (bitwriter);
+}
 
-  static inline BOOL
-      bit_writer_set_pos_unchecked (BitWriter * bitwriter, uint32_t pos)
-  {
-    BIT_WRITER_BIT_SIZE (bitwriter) = pos;
-    return TRUE;
-  }
+static inline uint8_t *
+bit_writer_get_data_unchecked (BitWriter * bitwriter)
+{
+  return BIT_WRITER_DATA (bitwriter);
+}
 
-  static inline uint bit_writer_get_space_unchecked (BitWriter * bitwriter)
-  {
-    return bitwriter->bit_capacity - bitwriter->bit_size;
-  }
+static inline bool
+bit_writer_set_pos_unchecked (BitWriter * bitwriter, uint32_t pos)
+{
+  BIT_WRITER_BIT_SIZE (bitwriter) = pos;
+  return TRUE;
+}
 
-  static inline void
-      bit_writer_put_bytes_unchecked (BitWriter * bitwriter,
-      const uint8_t * data, uint32_t nbytes)
-  {
-    if ((bitwriter->bit_size & 0x07) == 0) {
-      memcpy (&bitwriter->data[bitwriter->bit_size >> 3], data, nbytes);
-      bitwriter->bit_size += (nbytes << 3);
-    } else {
-      assert (0);
-      while (nbytes) {
-        bit_writer_put_bits_uint8_unchecked (bitwriter, *data, 8);
-        --nbytes;
-        ++data;
-      }
+static inline uint32_t
+bit_writer_get_space_unchecked (BitWriter * bitwriter)
+{
+  return bitwriter->bit_capacity - bitwriter->bit_size;
+}
+
+static inline void
+bit_writer_put_bytes_unchecked (BitWriter * bitwriter,
+    const uint8_t * data, uint32_t nbytes)
+{
+  if ((bitwriter->bit_size & 0x07) == 0) {
+    memcpy (&bitwriter->data[bitwriter->bit_size >> 3], data, nbytes);
+    bitwriter->bit_size += (nbytes << 3);
+  } else {
+    g_assert (0);
+    while (nbytes) {
+      bit_writer_put_bits_uint8_unchecked (bitwriter, *data, 8);
+      --nbytes;
+      ++data;
     }
   }
+}
 
-  static inline void
-      bit_writer_align_bytes_unchecked (BitWriter * bitwriter,
-      uint8_t trailing_bit)
-  {
-    uint32_t bit_offset, bit_left;
-    uint8_t value = 0;
+static inline void
+bit_writer_align_bytes_unchecked (BitWriter * bitwriter,
+    uint8_t trailing_bit)
+{
+  uint32_t bit_offset, bit_left;
+  uint8_t value = 0;
 
-    bit_offset = (bitwriter->bit_size & 0x07);
-    if (!bit_offset)
-      return;
+  bit_offset = (bitwriter->bit_size & 0x07);
+  if (!bit_offset)
+    return;
 
-    bit_left = 8 - bit_offset;
-    if (trailing_bit)
-      value = _bit_writer_bit_filling_mask[bit_left];
-    return bit_writer_put_bits_uint8_unchecked (bitwriter, value, bit_left);
-  }
+  bit_left = 8 - bit_offset;
+  if (trailing_bit)
+    value = _bit_writer_bit_filling_mask[bit_left];
+  return bit_writer_put_bits_uint8_unchecked (bitwriter, value, bit_left);
+}
 
 #define __BIT_WRITER_WRITE_BITS_INLINE(bits) \
-static inline BOOL \
+static inline bool \
 _bit_writer_put_bits_uint##bits##_inline( \
     BitWriter *bitwriter, \
     uint##bits##_t value, \
     uint32_t nbits \
 ) \
 { \
-    RETURN_VAL_IF_FAIL(bitwriter != NULL, FALSE); \
-    RETURN_VAL_IF_FAIL(nbits != 0, FALSE); \
-    RETURN_VAL_IF_FAIL(nbits <= bits, FALSE); \
+    g_return_val_if_fail(bitwriter != NULL, FALSE); \
+    g_return_val_if_fail(nbits != 0, FALSE); \
+    g_return_val_if_fail(nbits <= bits, FALSE); \
     \
     if (!_bit_writer_check_space(bitwriter, nbits)) \
         return FALSE; \
@@ -255,68 +262,73 @@ _bit_writer_put_bits_uint##bits##_inline( \
     return TRUE; \
 }
 
-  __BIT_WRITER_WRITE_BITS_INLINE (8)
-      __BIT_WRITER_WRITE_BITS_INLINE (16)
-      __BIT_WRITER_WRITE_BITS_INLINE (32)
-      __BIT_WRITER_WRITE_BITS_INLINE (64)
+__BIT_WRITER_WRITE_BITS_INLINE (8)
+__BIT_WRITER_WRITE_BITS_INLINE (16)
+__BIT_WRITER_WRITE_BITS_INLINE (32)
+__BIT_WRITER_WRITE_BITS_INLINE (64)
 #undef __BIT_WRITER_WRITE_BITS_INLINE
-  static inline uint _bit_writer_get_size_inline (BitWriter * bitwriter)
-  {
-    RETURN_VAL_IF_FAIL (bitwriter != NULL, 0);
 
-    return bit_writer_get_size_unchecked (bitwriter);
-  }
+static inline uint32_t
+_bit_writer_get_size_inline (BitWriter * bitwriter)
+{
+  g_return_val_if_fail (bitwriter != NULL, 0);
 
-  static inline uint8_t *_bit_writer_get_data_inline (BitWriter * bitwriter)
-  {
-    RETURN_VAL_IF_FAIL (bitwriter != NULL, NULL);
+  return bit_writer_get_size_unchecked (bitwriter);
+}
 
-    return bit_writer_get_data_unchecked (bitwriter);
-  }
+static inline uint8_t *
+_bit_writer_get_data_inline (BitWriter * bitwriter)
+{
+  g_return_val_if_fail (bitwriter != NULL, NULL);
 
-  static inline BOOL
-      _bit_writer_set_pos_inline (BitWriter * bitwriter, uint32_t pos)
-  {
-    RETURN_VAL_IF_FAIL (bitwriter != NULL, FALSE);
-    RETURN_VAL_IF_FAIL (pos <= bitwriter->bit_capacity, FALSE);
+  return bit_writer_get_data_unchecked (bitwriter);
+}
 
-    return bit_writer_set_pos_unchecked (bitwriter, pos);
-  }
+static inline bool
+_bit_writer_set_pos_inline (BitWriter * bitwriter, uint32_t pos)
+{
+  g_return_val_if_fail (bitwriter != NULL, FALSE);
+  g_return_val_if_fail (pos <= bitwriter->bit_capacity, FALSE);
 
-  static inline uint _bit_writer_get_space_inline (BitWriter * bitwriter)
-  {
-    RETURN_VAL_IF_FAIL (bitwriter != NULL, 0);
-    RETURN_VAL_IF_FAIL (bitwriter->bit_size < bitwriter->bit_capacity, 0);
+  return bit_writer_set_pos_unchecked (bitwriter, pos);
+}
 
-    return bit_writer_get_space_unchecked (bitwriter);
-  }
+static inline uint32_t
+_bit_writer_get_space_inline (BitWriter * bitwriter)
+{
+  g_return_val_if_fail (bitwriter != NULL, 0);
+  g_return_val_if_fail (bitwriter->bit_size < bitwriter->bit_capacity, 0);
 
-  static inline BOOL
-      _bit_writer_put_bytes_inline (BitWriter * bitwriter,
-      const uint8_t * data, uint32_t nbytes)
-  {
-    RETURN_VAL_IF_FAIL (bitwriter != NULL, FALSE);
-    RETURN_VAL_IF_FAIL (data != NULL, FALSE);
-    RETURN_VAL_IF_FAIL (nbytes, FALSE);
+  return bit_writer_get_space_unchecked (bitwriter);
+}
 
-    if (!_bit_writer_check_space (bitwriter, nbytes * 8))
-      return FALSE;
+static inline bool
+_bit_writer_put_bytes_inline (BitWriter * bitwriter,
+    const uint8_t * data, uint32_t nbytes)
+{
+  g_return_val_if_fail (bitwriter != NULL, FALSE);
+  g_return_val_if_fail (data != NULL, FALSE);
+  g_return_val_if_fail (nbytes, FALSE);
 
-    bit_writer_put_bytes_unchecked (bitwriter, data, nbytes);
-    return TRUE;
-  }
+  if (!_bit_writer_check_space (bitwriter, nbytes * 8))
+    return FALSE;
 
-  static inline BOOL
-      _bit_writer_align_bytes_inline (BitWriter * bitwriter, uint8_t trailing_bit)
-  {
-    RETURN_VAL_IF_FAIL (bitwriter != NULL, FALSE);
-    RETURN_VAL_IF_FAIL ((trailing_bit == 0 || trailing_bit == 1), FALSE);
-    RETURN_VAL_IF_FAIL (((bitwriter->bit_size + 7) & (~7)) <=
-        bitwriter->bit_capacity, FALSE);
+  bit_writer_put_bytes_unchecked (bitwriter, data, nbytes);
+  return TRUE;
+}
 
-    bit_writer_align_bytes_unchecked (bitwriter, trailing_bit);
-    return TRUE;
-  }
+static inline bool
+_bit_writer_align_bytes_inline (BitWriter * bitwriter,
+    uint8_t trailing_bit)
+{
+  g_return_val_if_fail (bitwriter != NULL, FALSE);
+  g_return_val_if_fail ((trailing_bit == 0 || trailing_bit == 1), FALSE);
+  g_return_val_if_fail (((bitwriter->bit_size + 7) & (~7)) <=
+      bitwriter->bit_capacity, FALSE);
+
+  bit_writer_align_bytes_unchecked (bitwriter, trailing_bit);
+  return TRUE;
+}
 
 #ifndef BIT_WRITER_DISABLE_INLINES
 #define bit_writer_get_size(bitwriter) \
@@ -344,8 +356,6 @@ _bit_writer_put_bits_uint##bits##_inline( \
     G_LIKELY (_bit_writer_align_bytes_inline(bitwriter, trailing_bit))
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+G_END_DECLS
 
 #endif /* BIT_WRITER_H */

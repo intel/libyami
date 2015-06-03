@@ -24,7 +24,7 @@
  */
 
 /**
- * SECTION:gstmpegvideoparser
+ * SECTION:mpegvideoparser
  * @short_description: Convenience library for mpeg1 and 2 video
  * bitstream parsing.
  *
@@ -35,12 +35,16 @@
  * </refsect2>
  */
 
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include "mpegvideoparser.h"
+#include "parserutils.h"
+
 #include <string.h>
 #include "bitreader.h"
 #include "bytereader.h"
-#include "parserutils.h"
-
-#include "mpegvideoparser.h"
 
 #define MARKER_BIT 0x1
 
@@ -74,37 +78,62 @@ static const uint8_t mpeg_zigzag_8x8[64] = {
   53, 60, 61, 54, 47, 55, 62, 63
 };
 
-static BOOL initialized = FALSE;
-
-static inline BOOL
-find_start_code (BitReader * b)
+enum
 {
-  uint32_t bits;
+  MPEG_VIDEO_MACROBLOCK_ESCAPE = G_MAXUINT,
+};
 
-  /* 0 bits until byte aligned */
-  while (b->bit != 0) {
-    GET_BITS (b, 1, &bits);
-  }
+/* Table B-1: Variable length codes for macroblock_address_increment */
+static const VLCTable mpeg2_mbaddr_vlc_table[] = {
+  {1, 0x01, 1},
+  {2, 0x03, 3},
+  {3, 0x02, 3},
+  {4, 0x03, 4},
+  {5, 0x02, 4},
+  {6, 0x03, 5},
+  {7, 0x02, 5},
+  {8, 0x07, 7},
+  {9, 0x06, 7},
+  {10, 0x0b, 8},
+  {11, 0x0a, 8},
+  {12, 0x09, 8},
+  {13, 0x08, 8},
+  {14, 0x07, 8},
+  {15, 0x06, 8},
+  {16, 0x17, 10},
+  {17, 0x16, 10},
+  {18, 0x15, 10},
+  {19, 0x14, 10},
+  {20, 0x13, 10},
+  {21, 0x12, 10},
+  {22, 0x23, 11},
+  {23, 0x22, 11},
+  {24, 0x21, 11},
+  {25, 0x20, 11},
+  {26, 0x1f, 11},
+  {27, 0x1e, 11},
+  {28, 0x1d, 11},
+  {29, 0x1c, 11},
+  {30, 0x1b, 11},
+  {31, 0x1a, 11},
+  {32, 0x19, 11},
+  {33, 0x18, 11},
+  {MPEG_VIDEO_MACROBLOCK_ESCAPE, 0x08, 11}
+};
 
-  /* 0 bytes until startcode */
-  while (bit_reader_peek_bits_uint32 (b, &bits, 32)) {
-    if (bits >> 8 == 0x1) {
-      return TRUE;
-    } else if (bit_reader_skip (b, 8) == FALSE)
-      break;
-  }
+DEBUG_CATEGORY (mpegvideo_parser_debug);
+#define CAT_DEFAULT mpegvideo_parser_debug
 
-  return FALSE;
+#define INITIALIZE_DEBUG_CATEGORY \
+  DEBUG_CATEGORY_INIT (mpegvideo_parser_debug, "codecparsers_mpegvideo", \
+      0, "Mpegvideo parser library");
 
-failed:
-  return FALSE;
-}
 
 /* Set the Pixel Aspect Ratio in our hdr from a ASR code in the data */
 static void
 set_par_from_asr_mpeg1 (MpegVideoSequenceHdr * seqhdr, uint8_t asr_code)
 {
-  int32_t ratios[16][2] = {
+  int ratios[16][2] = {
     {0, 0},                     /* 0, Invalid */
     {1, 1},                     /* 1, 1.0 */
     {10000, 6735},              /* 2, 0.6735 */
@@ -150,17 +179,16 @@ set_fps_from_code (MpegVideoSequenceHdr * seqhdr, uint8_t fps_code)
 }
 
 /* @size and @offset are wrt current reader position */
-static inline uint32_t
+static inline int32_t
 scan_for_start_codes (const ByteReader * reader, uint32_t offset, uint32_t size)
 {
   const uint8_t *data;
   uint32_t i = 0;
 
-  RETURN_VAL_IF_FAIL ((uint64_t) offset + size <= reader->size - reader->byte,
-      -1);
+  g_assert ((uint64_t) offset + size <= reader->size - reader->byte);
 
   /* we can't find the pattern with less than 4 bytes */
-  if (size < 4)
+  if (G_UNLIKELY (size < 4))
     return -1;
 
   data = reader->data + reader->byte + offset;
@@ -188,25 +216,26 @@ scan_for_start_codes (const ByteReader * reader, uint32_t offset, uint32_t size)
 
 /**
  * mpeg_video_parse:
+ * @packet: a #MpegVideoPacket to fill with the data and offset of the
+ *     next packet found
  * @data: The data to parse
  * @size: The size of @data
  * @offset: The offset from which to start parsing
  *
- * Parses the MPEG 1/2 video bitstream contained in @data , and returns the
- * detect packets as a list of #MpegVideoTypeOffsetSize.
+ * Parses the MPEG 1/2 video bitstream contained in @data, and returns the
+ * offset, and if known also the size, in @packet. This function will scan
+ * the data to find the next packet if needed.
  *
- * Returns: TRUE if a packet start code was found
+ * Returns: TRUE if a packet start code was found, otherwise FALSE.
  */
-BOOL
+bool
 mpeg_video_parse (MpegVideoPacket * packet,
     const uint8_t * data, size_t size, uint32_t offset)
 {
   int32_t off;
   ByteReader br;
 
-  if (!initialized) {
-    initialized = TRUE;
-  }
+  INITIALIZE_DEBUG_CATEGORY;
 
   if (size <= offset) {
     DEBUG ("Can't parse from offset %d, buffer is to small", offset);
@@ -250,32 +279,33 @@ failed:
 }
 
 /**
- * mpeg_video_parse_sequence_header:
+ * mpeg_video_packet_parse_sequence_header:
+ * @packet: The #MpegVideoPacket that carries the data
  * @seqhdr: (out): The #MpegVideoSequenceHdr structure to fill
- * @data: The data from which to parse the sequence header
- * @size: The size of @data
- * @offset: The offset in byte from which to start parsing @data
  *
- * Parses the @seqhdr Mpeg Video Sequence Header structure members from @data
+ * Parses the @seqhdr MPEG Video Sequence Header structure members
+ * from video @packet
  *
  * Returns: %TRUE if the seqhdr could be parsed correctly, %FALSE otherwize.
+ *
+ * Since: 1.2
  */
-BOOL
-mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
-    const uint8_t * data, size_t size, uint32_t offset)
+bool
+mpeg_video_packet_parse_sequence_header (const MpegVideoPacket * packet,
+    MpegVideoSequenceHdr * seqhdr)
 {
   BitReader br;
   uint8_t bits;
   uint8_t load_intra_flag, load_non_intra_flag;
 
-  RETURN_VAL_IF_FAIL (seqhdr != NULL, FALSE);
+  g_return_val_if_fail (seqhdr != NULL, FALSE);
 
-  size -= offset;
-
-  if (size < 4)
+  if (packet->size < 8)
     return FALSE;
 
-  bit_reader_init (&br, &data[offset], size);
+  INITIALIZE_DEBUG_CATEGORY;
+
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   /* Setting the height/width codes */
   READ_UINT16 (&br, seqhdr->width, 12);
@@ -295,7 +325,7 @@ mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
     seqhdr->bitrate = 0;
   } else {
     /* Value in header is in units of 400 bps */
-    seqhdr->bitrate *= 400;
+    seqhdr->bitrate = seqhdr->bitrate_value * 400;
   }
 
   READ_UINT8 (&br, bits, 1);
@@ -345,32 +375,31 @@ failed:
 }
 
 /**
- * mpeg_video_parse_sequence_extension:
+ * mpeg_video_packet_parse_sequence_extension:
+ * @packet: The #MpegVideoPacket that carries the data
  * @seqext: (out): The #MpegVideoSequenceExt structure to fill
- * @data: The data from which to parse the sequence extension
- * @size: The size of @data
- * @offset: The offset in byte from which to start parsing @data
  *
- * Parses the @seqext Mpeg Video Sequence Extension structure members from @data
+ * Parses the @seqext MPEG Video Sequence Extension structure members
+ * from video @packet
  *
  * Returns: %TRUE if the seqext could be parsed correctly, %FALSE otherwize.
+ *
+ * Since: 1.2
  */
-BOOL
-mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
-    const uint8_t * data, size_t size, uint32_t offset)
+bool
+mpeg_video_packet_parse_sequence_extension (const MpegVideoPacket *
+    packet, MpegVideoSequenceExt * seqext)
 {
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (seqext != NULL, FALSE);
+  g_return_val_if_fail (seqext != NULL, FALSE);
 
-  size -= offset;
-
-  if (size < 6) {
+  if (packet->size < 6) {
     DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
-  bit_reader_init (&br, &data[offset], size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_SEQUENCE) {
@@ -410,23 +439,33 @@ mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
   return TRUE;
 }
 
-BOOL
-mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
-    * seqdisplayext, const uint8_t * data, size_t size, uint32_t offset)
+/**
+ * mpeg_video_packet_parse_sequence_display_extension:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @seqdisplayext: (out): The #MpegVideoSequenceDisplayExt
+ *   structure to fill
+ *
+ * Parses the @seqext MPEG Video Sequence Display Extension structure
+ * members from video @packet
+ *
+ * Returns: %TRUE if the seqext could be parsed correctly, %FALSE otherwize.
+ *
+ * Since: 1.2
+ */
+bool
+mpeg_video_packet_parse_sequence_display_extension (const MpegVideoPacket
+    * packet, MpegVideoSequenceDisplayExt * seqdisplayext)
 {
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (seqdisplayext != NULL, FALSE);
-  if (offset > size)
-    return FALSE;
+  g_return_val_if_fail (seqdisplayext != NULL, FALSE);
 
-  size -= offset;
-  if (size < 5) {
+  if (packet->size < 5) {
     DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
-  bit_reader_init (&br, &data[offset], size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_SEQUENCE_DISPLAY) {
@@ -463,7 +502,71 @@ mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
   return TRUE;
 }
 
-BOOL
+/**
+ * mpeg_video_packet_parse_sequence_scalable_extension:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @seqscaleext: (out): The #MpegVideoSequenceScalableExt structure to fill
+ *
+ * Parses the @seqscaleext MPEG Video Sequence Scalable Extension structure
+ * members from video @packet
+ *
+ * Returns: %TRUE if the seqext could be parsed correctly, %FALSE otherwize.
+ *
+ * Since: 1.2
+ */
+bool
+    mpeg_video_packet_parse_sequence_scalable_extension
+    (const MpegVideoPacket * packet,
+    MpegVideoSequenceScalableExt * seqscaleext) {
+  BitReader br;
+
+  g_return_val_if_fail (seqscaleext != NULL, FALSE);
+
+  if (packet->size < 2) {
+    DEBUG ("not enough bytes to parse the extension");
+    return FALSE;
+  }
+
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+
+  if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
+      MPEG_VIDEO_PACKET_EXT_SEQUENCE_SCALABLE) {
+    DEBUG ("Not parsing a sequence scalable extension");
+    return FALSE;
+  }
+
+  READ_UINT8 (&br, seqscaleext->scalable_mode, 2);
+  READ_UINT8 (&br, seqscaleext->layer_id, 4);
+
+  if (seqscaleext->scalable_mode == MPEG_VIDEO_SEQ_SCALABLE_MODE_SPATIAL) {
+    READ_UINT16 (&br, seqscaleext->lower_layer_prediction_horizontal_size, 14);
+
+    SKIP (&br, 1);
+
+    READ_UINT16 (&br, seqscaleext->lower_layer_prediction_vertical_size, 14);
+
+    READ_UINT8 (&br, seqscaleext->horizontal_subsampling_factor_m, 5);
+    READ_UINT8 (&br, seqscaleext->horizontal_subsampling_factor_n, 5);
+    READ_UINT8 (&br, seqscaleext->vertical_subsampling_factor_m, 5);
+    READ_UINT8 (&br, seqscaleext->vertical_subsampling_factor_n, 5);
+  }
+
+  if (seqscaleext->scalable_mode == MPEG_VIDEO_SEQ_SCALABLE_MODE_TEMPORAL) {
+    READ_UINT8 (&br, seqscaleext->picture_mux_enable, 1);
+    if (seqscaleext->picture_mux_enable)
+      READ_UINT8 (&br, seqscaleext->mux_to_progressive_sequence, 1);
+    READ_UINT8 (&br, seqscaleext->picture_mux_order, 3);
+    READ_UINT8 (&br, seqscaleext->picture_mux_factor, 3);
+  }
+
+  return TRUE;
+
+failed:
+  WARNING ("error parsing \"Sequence Scalable Extension\"");
+  return FALSE;
+}
+
+bool
 mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr * seqhdr,
     MpegVideoSequenceExt * seqext,
     MpegVideoSequenceDisplayExt * displayext)
@@ -477,14 +580,20 @@ mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr * seqhdr,
     /* Extend width and height to 14 bits by adding the extension bits */
     seqhdr->width |= (seqext->horiz_size_ext << 12);
     seqhdr->height |= (seqext->vert_size_ext << 12);
+    seqhdr->bitrate += (seqext->bitrate_ext << 18) * 400;
   }
 
   w = seqhdr->width;
   h = seqhdr->height;
   if (displayext) {
-    /* Use the display size for calculating PAR when display ext present */
-    w = displayext->display_horizontal_size;
-    h = displayext->display_vertical_size;
+    /* Use the display size for calculating PAR when display ext present.
+     * But we are handling this like what DVD players are doing. Which means,
+     * ignore the display extension values if they are greater than the width/height
+     * values provided by seqhdr and calculate the PAR based on the seqhdr values. */
+    if (displayext->display_horizontal_size < w)
+      w = displayext->display_horizontal_size;
+    if (displayext->display_vertical_size < h)
+      h = displayext->display_vertical_size;
   }
 
   /* Pixel_width = DAR_width * display_vertical_size */
@@ -515,35 +624,33 @@ mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr * seqhdr,
 }
 
 /**
- * mpeg_video_parse_quant_matrix_extension:
+ * mpeg_video_packet_parse_quant_matrix_extension:
+ * @packet: The #MpegVideoPacket that carries the data
  * @quant: (out): The #MpegVideoQuantMatrixExt structure to fill
- * @data: The data from which to parse the Quantization Matrix extension
- * @size: The size of @data
- * @offset: The offset in byte from which to start the parsing
  *
- * Parses the @quant Mpeg Video Quant Matrix Extension structure members from
- * @data
+ * Parses the @quant MPEG Video Quantization Matrix Extension
+ * structure members from video @packet
  *
  * Returns: %TRUE if the quant matrix extension could be parsed correctly,
  * %FALSE otherwize.
+ *
+ * Since: 1.2
  */
-BOOL
-mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
-    const uint8_t * data, size_t size, uint32_t offset)
+bool
+mpeg_video_packet_parse_quant_matrix_extension (const MpegVideoPacket *
+    packet, MpegVideoQuantMatrixExt * quant)
 {
   uint8_t i;
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (quant != NULL, FALSE);
+  g_return_val_if_fail (quant != NULL, FALSE);
 
-  size -= offset;
-
-  if (size < 1) {
+  if (packet->size < 1) {
     DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
-  bit_reader_init (&br, &data[offset], size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_QUANT_MATRIX) {
@@ -587,35 +694,34 @@ failed:
 }
 
 /**
- * mpeg_video_parse_picture_extension:
+ * mpeg_video_packet_parse_picture_extension:
+ * @packet: The #MpegVideoPacket that carries the data
  * @ext: (out): The #MpegVideoPictureExt structure to fill
- * @data: The data from which to parse the picture extension
- * @size: The size of @data
- * @offset: The offset in byte from which to start the parsing
  *
- * Parse the @ext Mpeg Video Picture Extension structure members from @data
+ * Parse the @ext MPEG Video Picture Extension structure members from
+ * video @packet
  *
  * Returns: %TRUE if the picture extension could be parsed correctly,
  * %FALSE otherwize.
+ *
+ * Since: 1.2
  */
-BOOL
-mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
-    const uint8_t * data, size_t size, uint32_t offset)
+bool
+mpeg_video_packet_parse_picture_extension (const MpegVideoPacket *
+    packet, MpegVideoPictureExt * ext)
 {
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (ext != NULL, FALSE);
+  g_return_val_if_fail (ext != NULL, FALSE);
 
-  size -= offset;
-
-  if (size < 4)
+  if (packet->size < 5)
     return FALSE;
 
-  bit_reader_init (&br, &data[offset], size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
       MPEG_VIDEO_PACKET_EXT_PICTURE) {
-    DEBUG ("Not parsing a picture extension");
+    DEBUG ("Extension is not a picture extension");
     return FALSE;
   }
 
@@ -688,29 +794,28 @@ failed:
 }
 
 /**
- * mpeg_video_parse_picture_header:
- * @hdr: (out): The #MpegVideoPictureHdr structure to fill
- * @data: The data from which to parse the picture header
- * @size: The size of @data
- * @offset: The offset in byte from which to start the parsing
+ * mpeg_video_packet_parse_picture_header:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @pichdr: (out): The #MpegVideoPictureHdr structure to fill
  *
- * Parsers the @hdr Mpeg Video Picture Header structure members from @data
+ * Parsers the @pichdr MPEG Video Picture Header structure members
+ * from video @packet
  *
  * Returns: %TRUE if the picture sequence could be parsed correctly, %FALSE
  * otherwize.
+ *
+ * Since: 1.2
  */
-BOOL
-mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
-    const uint8_t * data, size_t size, uint32_t offset)
+bool
+mpeg_video_packet_parse_picture_header (const MpegVideoPacket * packet,
+    MpegVideoPictureHdr * hdr)
 {
   BitReader br;
 
-  size = size - offset;
-
-  if (size < 4)
+  if (packet->size < 4)
     goto failed;
 
-  bit_reader_init (&br, &data[offset], size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   /* temperal sequence number */
   if (!bit_reader_get_bits_uint16 (&br, &hdr->tsn, 10))
@@ -723,7 +828,7 @@ mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
 
 
   if (hdr->pic_type == 0 || hdr->pic_type > 4)
-    goto failed;                /* Corrupted picture packet */
+    goto bad_pic_type;          /* Corrupted picture packet */
 
   /* skip VBV delay */
   if (!bit_reader_skip (&br, 16))
@@ -753,38 +858,43 @@ mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
 
   return TRUE;
 
+bad_pic_type:
+  {
+    WARNING ("Unsupported picture type : %d", hdr->pic_type);
+    return FALSE;
+  }
+
 failed:
   {
-    WARNING ("Failed to parse picture header");
+    WARNING ("Not enough data to parse picture header");
     return FALSE;
   }
 }
 
 /**
- * mpeg_video_parse_gop:
+ * mpeg_video_packet_parse_gop:
+ * @packet: The #MpegVideoPacket that carries the data
  * @gop: (out): The #MpegVideoGop structure to fill
- * @data: The data from which to parse the gop
- * @size: The size of @data
- * @offset: The offset in byte from which to start the parsing
  *
- * Parses the @gop Mpeg Video Group of Picture structure members from @data
+ * Parses the @gop MPEG Video Group of Picture structure members from
+ * video @packet
  *
  * Returns: %TRUE if the gop could be parsed correctly, %FALSE otherwize.
+ *
+ * Since: 1.2
  */
-BOOL
-mpeg_video_parse_gop (MpegVideoGop * gop, const uint8_t * data,
-    size_t size, uint32_t offset)
+bool
+mpeg_video_packet_parse_gop (const MpegVideoPacket * packet,
+    MpegVideoGop * gop)
 {
   BitReader br;
 
-  RETURN_VAL_IF_FAIL (gop != NULL, FALSE);
+  g_return_val_if_fail (gop != NULL, FALSE);
 
-  size -= offset;
-
-  if (size < 4)
+  if (packet->size < 4)
     return FALSE;
 
-  bit_reader_init (&br, &data[offset], size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   READ_UINT8 (&br, gop->drop_frame_flag, 1);
 
@@ -812,6 +922,95 @@ failed:
 }
 
 /**
+ * mpeg_video_packet_parse_slice_header:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @slice_hdr: (out): The #MpegVideoSliceHdr structure to fill
+ * @seqhdr: The #MpegVideoSequenceHdr header
+ * @seqscaleext: The #MpegVideoSequenceScalableExt header
+ *
+ * Parses the @MpegVideoSliceHdr  structure members from @data
+ *
+ * Returns: %TRUE if the slice could be parsed correctly, %FALSE otherwize.
+ *
+ * Since: 1.2
+ */
+bool
+mpeg_video_packet_parse_slice_header (const MpegVideoPacket * packet,
+    MpegVideoSliceHdr * slice_hdr, MpegVideoSequenceHdr * seqhdr,
+    MpegVideoSequenceScalableExt * seqscaleext)
+{
+  BitReader br;
+  uint32_t height;
+  uint32_t mb_inc;
+  uint8_t bits, extra_bits;
+  uint8_t vertical_position, vertical_position_extension = 0;
+
+  g_return_val_if_fail (seqhdr != NULL, FALSE);
+
+  if (packet->size < 1)
+    return FALSE;
+
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+
+  if (packet->type < MPEG_VIDEO_PACKET_SLICE_MIN ||
+      packet->type > MPEG_VIDEO_PACKET_SLICE_MAX) {
+    DEBUG ("Not parsing a slice");
+    return FALSE;
+  }
+  vertical_position = packet->type - MPEG_VIDEO_PACKET_SLICE_MIN;
+
+  height = seqhdr->height;
+  if (height > 2800)
+    READ_UINT8 (&br, vertical_position_extension, 3);
+
+  if (seqscaleext)
+    if (seqscaleext->scalable_mode ==
+        MPEG_VIDEO_SEQ_SCALABLE_MODE_DATA_PARTITIONING)
+      READ_UINT8 (&br, slice_hdr->priority_breakpoint, 7);
+
+  READ_UINT8 (&br, slice_hdr->quantiser_scale_code, 5);
+
+  READ_UINT8 (&br, extra_bits, 1);
+  if (!extra_bits)
+    slice_hdr->intra_slice = 0;
+  else {
+    READ_UINT8 (&br, slice_hdr->intra_slice, 1);
+    SKIP (&br, 1);
+    READ_UINT8 (&br, slice_hdr->slice_picture_id, 6);
+
+    READ_UINT8 (&br, bits, 1);
+    while (bits) {
+      READ_UINT8 (&br, extra_bits, 8);
+      READ_UINT8 (&br, bits, 1);
+    }
+  }
+
+  slice_hdr->header_size = bit_reader_get_pos (&br);
+
+  if (height > 2800)
+    slice_hdr->mb_row = (vertical_position_extension << 7) + vertical_position;
+  else
+    slice_hdr->mb_row = vertical_position;
+
+  slice_hdr->mb_column = -1;
+  do {
+    if (!decode_vlc (&br, &mb_inc, mpeg2_mbaddr_vlc_table,
+            G_N_ELEMENTS (mpeg2_mbaddr_vlc_table))) {
+      WARNING ("failed to decode first macroblock_address_increment");
+      goto failed;
+    }
+    slice_hdr->mb_column +=
+        mb_inc == MPEG_VIDEO_MACROBLOCK_ESCAPE ? 33 : mb_inc;
+  } while (mb_inc == MPEG_VIDEO_MACROBLOCK_ESCAPE);
+
+  return TRUE;
+
+failed:
+  WARNING ("error parsing \"Slice\"");
+  return FALSE;
+}
+
+/**
  * mpeg_video_quant_matrix_get_raster_from_zigzag:
  * @out_quant: (out): The resulting quantization matrix
  * @quant: The source quantization matrix
@@ -830,7 +1029,7 @@ mpeg_video_quant_matrix_get_raster_from_zigzag (uint8_t out_quant[64],
 {
   uint32_t i;
 
-  RETURN_IF_FAIL (out_quant != quant);
+  g_return_if_fail (out_quant != quant);
 
   for (i = 0; i < 64; i++)
     out_quant[mpeg_zigzag_8x8[i]] = quant[i];
@@ -855,8 +1054,233 @@ mpeg_video_quant_matrix_get_zigzag_from_raster (uint8_t out_quant[64],
 {
   uint32_t i;
 
-  RETURN_IF_FAIL (out_quant != quant);
+  g_return_if_fail (out_quant != quant);
 
   for (i = 0; i < 64; i++)
     out_quant[i] = quant[mpeg_zigzag_8x8[i]];
 }
+
+/****** Deprecated API *******/
+
+/**
+ * mpeg_video_parse_sequence_header:
+ * @seqhdr: (out): The #MpegVideoSequenceHdr structure to fill
+ * @data: The data from which to parse the sequence header
+ * @size: The size of @data
+ * @offset: The offset in byte from which to start parsing @data
+ *
+ * Parses the @seqhdr Mpeg Video Sequence Header structure members from @data
+ *
+ * Returns: %TRUE if the seqhdr could be parsed correctly, %FALSE otherwize.
+ *
+ * Deprecated: Use mpeg_video_packet_parse_sequence_header() instead.
+ */
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
+    const uint8_t * data, size_t size, uint32_t offset);
+#endif
+bool
+mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
+    const uint8_t * data, size_t size, uint32_t offset)
+{
+  MpegVideoPacket packet;
+
+  packet.data = data;
+  packet.type = MPEG_VIDEO_PACKET_SEQUENCE;
+  packet.offset = offset;
+  packet.size = size - offset;
+  return mpeg_video_packet_parse_sequence_header (&packet, seqhdr);
+}
+#endif
+
+/**
+ * mpeg_video_parse_sequence_extension:
+ * @seqext: (out): The #MpegVideoSequenceExt structure to fill
+ * @data: The data from which to parse the sequence extension
+ * @size: The size of @data
+ * @offset: The offset in byte from which to start parsing @data
+ *
+ * Parses the @seqext Mpeg Video Sequence Extension structure members from @data
+ *
+ * Returns: %TRUE if the seqext could be parsed correctly, %FALSE otherwize.
+ *
+ * Deprecated: Use mpeg_video_packet_parse_sequence_extension() instead.
+ */
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
+    const uint8_t * data, size_t size, uint32_t offset);
+#endif
+bool
+mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
+    const uint8_t * data, size_t size, uint32_t offset)
+{
+  MpegVideoPacket packet;
+
+  packet.data = data;
+  packet.type = MPEG_VIDEO_PACKET_EXTENSION;
+  packet.offset = offset;
+  packet.size = size - offset;
+  return mpeg_video_packet_parse_sequence_extension (&packet, seqext);
+}
+#endif
+
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
+    * seqdisplayext, const uint8_t * data, size_t size, uint32_t offset);
+#endif
+bool
+mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
+    * seqdisplayext, const uint8_t * data, size_t size, uint32_t offset)
+{
+  MpegVideoPacket packet;
+
+  packet.data = data;
+  packet.type = MPEG_VIDEO_PACKET_EXTENSION;
+  packet.offset = offset;
+  packet.size = size - offset;
+  return mpeg_video_packet_parse_sequence_display_extension (&packet,
+      seqdisplayext);
+}
+#endif
+
+/**
+ * mpeg_video_parse_quant_matrix_extension:
+ * @quant: (out): The #MpegVideoQuantMatrixExt structure to fill
+ * @data: The data from which to parse the Quantization Matrix extension
+ * @size: The size of @data
+ * @offset: The offset in byte from which to start the parsing
+ *
+ * Parses the @quant Mpeg Video Quant Matrix Extension structure members from
+ * @data
+ *
+ * Returns: %TRUE if the quant matrix extension could be parsed correctly,
+ * %FALSE otherwize.
+ *
+ * Deprecated: Use mpeg_video_packet_parse_quant_matrix_extension() instead.
+ */
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
+    const uint8_t * data, size_t size, uint32_t offset);
+#endif
+bool
+mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
+    const uint8_t * data, size_t size, uint32_t offset)
+{
+  MpegVideoPacket packet;
+
+  packet.data = data;
+  packet.type = MPEG_VIDEO_PACKET_EXTENSION;
+  packet.offset = offset;
+  packet.size = size - offset;
+  return mpeg_video_packet_parse_quant_matrix_extension (&packet, quant);
+}
+#endif
+
+/**
+ * mpeg_video_parse_picture_header:
+ * @hdr: (out): The #MpegVideoPictureHdr structure to fill
+ * @data: The data from which to parse the picture header
+ * @size: The size of @data
+ * @offset: The offset in byte from which to start the parsing
+ *
+ * Parsers the @hdr Mpeg Video Picture Header structure members from @data
+ *
+ * Returns: %TRUE if the picture sequence could be parsed correctly, %FALSE
+ * otherwize.
+ *
+ * Deprecated: Use mpeg_video_packet_parse_picture_header() instead.
+ */
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
+    const uint8_t * data, size_t size, uint32_t offset);
+#endif
+bool
+mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
+    const uint8_t * data, size_t size, uint32_t offset)
+{
+  MpegVideoPacket packet;
+
+  packet.data = data;
+  packet.type = MPEG_VIDEO_PACKET_PICTURE;
+  packet.offset = offset;
+  packet.size = size - offset;
+  return mpeg_video_packet_parse_picture_header (&packet, hdr);
+}
+#endif
+
+/**
+ * mpeg_video_parse_picture_extension:
+ * @ext: (out): The #MpegVideoPictureExt structure to fill
+ * @data: The data from which to parse the picture extension
+ * @size: The size of @data
+ * @offset: The offset in byte from which to start the parsing
+ *
+ * Parse the @ext Mpeg Video Picture Extension structure members from @data
+ *
+ * Returns: %TRUE if the picture extension could be parsed correctly,
+ * %FALSE otherwize.
+ *
+ * Deprecated: Use mpeg_video_packet_parse_picture_extension() instead.
+ */
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
+    const uint8_t * data, size_t size, uint32_t offset);
+#endif
+bool
+mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
+    const uint8_t * data, size_t size, uint32_t offset)
+{
+  MpegVideoPacket packet;
+
+  packet.data = data;
+  packet.type = MPEG_VIDEO_PACKET_EXTENSION;
+  packet.offset = offset;
+  packet.size = size - offset;
+  return mpeg_video_packet_parse_picture_extension (&packet, ext);
+}
+#endif
+
+/**
+ * mpeg_video_parse_gop:
+ * @gop: (out): The #MpegVideoGop structure to fill
+ * @data: The data from which to parse the gop
+ * @size: The size of @data
+ * @offset: The offset in byte from which to start the parsing
+ *
+ * Parses the @gop Mpeg Video Group of Picture structure members from @data
+ *
+ * Returns: %TRUE if the gop could be parsed correctly, %FALSE otherwize.
+ *
+ * Deprecated: Use mpeg_video_packet_parse_gop() instead.
+ */
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_gop (MpegVideoGop * gop, const uint8_t * data,
+    size_t size, uint32_t offset);
+#endif
+bool
+mpeg_video_parse_gop (MpegVideoGop * gop, const uint8_t * data,
+    size_t size, uint32_t offset)
+{
+  MpegVideoPacket packet;
+
+  packet.data = data;
+  packet.type = MPEG_VIDEO_PACKET_GOP;
+  packet.offset = offset;
+  packet.size = size - offset;
+  return mpeg_video_packet_parse_gop (&packet, gop);
+}
+#endif

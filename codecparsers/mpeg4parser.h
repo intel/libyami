@@ -1,5 +1,5 @@
 /*
- * GStreamer
+ * reamer
  * Copyright (C) 2009 Carl-Anton Ingmarsson <ca.ingmarsson@gmail.com>
  *
  * This library is free software; you can redistribute it and/or
@@ -18,17 +18,12 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef __MPEG4_PARSER_H__
-#define __MPEG4_PARSER_H__
+#ifndef __MPEG4UTIL_H__
+#define __MPEG4UTIL_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#include "commondef.h"
 
-#include <stdint.h>
-#include "common/common_def.h"
-#include "bitreader.h"
-#include <stdint.h>
+G_BEGIN_DECLS
 
 typedef struct _Mpeg4VisualObjectSequence    Mpeg4VisualObjectSequence;
 typedef struct _Mpeg4VisualObject            Mpeg4VisualObject;
@@ -150,7 +145,7 @@ typedef enum {
 } Mpeg4VideoObjectCodingType;
 
 /**
- * Mpeg4ChromaFormat
+ * Mpeg4ChromaFormat:
  *
  * The chroma format in use as
  * defined in: Table 6-13 -- Meaning of chroma_format
@@ -254,6 +249,8 @@ struct _Mpeg4VisualObjectSequence {
 };
 
 /**
+ * Mpeg4VisualObject:
+ *
  * The visual object structure as defined in:
  * 6.2.2 Visual Object Sequence and Visual Object
  */
@@ -535,54 +532,52 @@ struct _Mpeg4Packet
   Mpeg4StartCode type;
 };
 
-Mpeg4ParseResult gst_h263_parse       (Mpeg4Packet * packet,
-                                       const uint8_t * data, uint32_t offset,
-                                       size_t size);
+Mpeg4ParseResult h263_parse       (Mpeg4Packet * packet,
+                                          const uint8_t * data, uint32_t offset,
+                                          size_t size);
 
 
-Mpeg4ParseResult gst_mpeg4_parse      (Mpeg4Packet * packet,
-                                       BOOL skip_user_data,
-                                       Mpeg4VideoObjectPlane *vop,
-                                       const uint8_t * data, uint32_t offset,
-                                       size_t size);
+Mpeg4ParseResult mpeg4_parse      (Mpeg4Packet * packet,
+                                          bool skip_user_data,
+                                          Mpeg4VideoObjectPlane *vop,
+                                          const uint8_t * data, uint32_t offset,
+                                          size_t size);
 
 Mpeg4ParseResult
-gst_mpeg4_parse_video_object_plane       (Mpeg4VideoObjectPlane *vop,
+mpeg4_parse_video_object_plane       (Mpeg4VideoObjectPlane *vop,
                                           Mpeg4SpriteTrajectory *sprite_trajectory,
                                           Mpeg4VideoObjectLayer *vol,
                                           const uint8_t * data,
                                           size_t size);
 
 Mpeg4ParseResult
-gst_mpeg4_parse_group_of_vop             (Mpeg4GroupOfVOP *gov,
+mpeg4_parse_group_of_vop             (Mpeg4GroupOfVOP *gov,
                                           const uint8_t * data, size_t size);
 
 Mpeg4ParseResult
-gst_mpeg4_parse_video_object_layer       (Mpeg4VideoObjectLayer *vol,
+mpeg4_parse_video_object_layer       (Mpeg4VideoObjectLayer *vol,
                                           Mpeg4VisualObject *vo,
                                           const uint8_t * data, size_t size);
 
 Mpeg4ParseResult
-gst_mpeg4_parse_visual_object            (Mpeg4VisualObject *vo,
+mpeg4_parse_visual_object            (Mpeg4VisualObject *vo,
                                           Mpeg4VideoSignalType *signal_type,
                                           const uint8_t * data, size_t size);
 
 Mpeg4ParseResult
-gst_mpeg4_parse_visual_object_sequence   (Mpeg4VisualObjectSequence *vos,
+mpeg4_parse_visual_object_sequence   (Mpeg4VisualObjectSequence *vos,
                                           const uint8_t * data, size_t size);
 Mpeg4ParseResult
-gst_mpeg4_parse_video_plane_short_header (Mpeg4VideoPlaneShortHdr * shorthdr,
+mpeg4_parse_video_plane_short_header (Mpeg4VideoPlaneShortHdr * shorthdr,
                                           const uint8_t * data, size_t size);
 
 Mpeg4ParseResult
-gst_mpeg4_parse_video_packet_header      (Mpeg4VideoPacketHdr * videopackethdr,
+mpeg4_parse_video_packet_header      (Mpeg4VideoPacketHdr * videopackethdr,
                                           Mpeg4VideoObjectLayer * vol,
                                           Mpeg4VideoObjectPlane * vop,
                                           Mpeg4SpriteTrajectory * sprite_trajectory,
                                           const uint8_t * data, size_t size);
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
+G_END_DECLS
 
 #endif /* __MPEG4UTIL_H__ */

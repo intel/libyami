@@ -1,4 +1,4 @@
-/* Gstreamer
+/* reamer
  * Copyright (C) <2011> Intel Corporation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -26,12 +26,15 @@
 #ifndef __MPEG_VIDEO_UTILS_H__
 #define __MPEG_VIDEO_UTILS_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* __cplusplus */
+#ifndef USE_UNSTABLE_API
+#warning "The Mpeg video parsing library is unstable API and may change in future."
+#warning "You can define USE_UNSTABLE_API to avoid this warning."
+#endif
 
-#include <stdint.h>
-#include "common/common_def.h"
+#include "commondef.h"
+
+G_BEGIN_DECLS
+
 /**
  * MpegVideoPacketTypeCode:
  * @MPEG_VIDEO_PACKET_PICTURE: Picture packet starting code
@@ -68,13 +71,14 @@ typedef enum {
  * else %FALSE.
  */
 #define MPEG_VIDEO_PACKET_IS_SLICE(typecode) ((typecode) >= MPEG_VIDEO_PACKET_SLICE_MIN && \
-						  (typecode) <= MPEG_VIDEO_PACKET_SLICE_MAX)
+                                                  (typecode) <= MPEG_VIDEO_PACKET_SLICE_MAX)
 
 /**
  * MpegVideoPacketExtensionCode:
  * @MPEG_VIDEO_PACKET_EXT_SEQUENCE: Sequence extension code
  * @MPEG_VIDEO_PACKET_EXT_SEQUENCE_DISPLAY: Sequence Display extension code
  * @MPEG_VIDEO_PACKET_EXT_QUANT_MATRIX: Quantization Matrix extension code
+ * @MPEG_VIDEO_PACKET_EXT_SEQUENCE_SCALABLE: Sequence Scalable extension code
  * @MPEG_VIDEO_PACKET_EXT_PICTURE: Picture coding extension
  *
  * Indicates what type of packets are in this block, some are mutually
@@ -82,11 +86,26 @@ typedef enum {
  * Picture may occur together or separately.
  */
 typedef enum {
-  MPEG_VIDEO_PACKET_EXT_SEQUENCE         = 0x01,
-  MPEG_VIDEO_PACKET_EXT_SEQUENCE_DISPLAY = 0x02,
-  MPEG_VIDEO_PACKET_EXT_QUANT_MATRIX     = 0x03,
-  MPEG_VIDEO_PACKET_EXT_PICTURE          = 0x08
+  MPEG_VIDEO_PACKET_EXT_SEQUENCE          = 0x01,
+  MPEG_VIDEO_PACKET_EXT_SEQUENCE_DISPLAY  = 0x02,
+  MPEG_VIDEO_PACKET_EXT_QUANT_MATRIX      = 0x03,
+  MPEG_VIDEO_PACKET_EXT_SEQUENCE_SCALABLE = 0x05,
+  MPEG_VIDEO_PACKET_EXT_PICTURE           = 0x08
 } MpegVideoPacketExtensionCode;
+
+/**
+ * MpegVideoSequenceScalableMode:
+ * @MPEG_VIDEO_SEQ_SCALABLE_MODE_DATA_PARTITIONING: Data partitioning
+ * @MPEG_VIDEO_SEQ_SCALABLE_MODE_SPATIAL: Spatial Scalability
+ * @MPEG_VIDEO_SEQ_SCALABLE_MODE_SNR: SNR Scalability
+ * @MPEG_VIDEO_SEQ_SCALABLE_MODE_TEMPORAL: Temporal Scalability
+ */
+typedef enum {
+  MPEG_VIDEO_SEQ_SCALABLE_MODE_DATA_PARTITIONING  = 0x00,
+  MPEG_VIDEO_SEQ_SCALABLE_MODE_SPATIAL            = 0x01,
+  MPEG_VIDEO_SEQ_SCALABLE_MODE_SNR                = 0x02,
+  MPEG_VIDEO_SEQ_SCALABLE_MODE_TEMPORAL           = 0x03
+} MpegVideoSequenceScalableMode;
 
 /**
  * MpegVideoLevel:
@@ -173,10 +192,12 @@ typedef enum {
 typedef struct _MpegVideoSequenceHdr     MpegVideoSequenceHdr;
 typedef struct _MpegVideoSequenceExt     MpegVideoSequenceExt;
 typedef struct _MpegVideoSequenceDisplayExt MpegVideoSequenceDisplayExt;
+typedef struct _MpegVideoSequenceScalableExt MpegVideoSequenceScalableExt;
 typedef struct _MpegVideoPictureHdr      MpegVideoPictureHdr;
 typedef struct _MpegVideoGop             MpegVideoGop;
 typedef struct _MpegVideoPictureExt      MpegVideoPictureExt;
 typedef struct _MpegVideoQuantMatrixExt  MpegVideoQuantMatrixExt;
+typedef struct _MpegVideoSliceHdr        MpegVideoSliceHdr;
 typedef struct _MpegVideoPacket          MpegVideoPacket;
 
 /**
@@ -267,6 +288,45 @@ struct _MpegVideoSequenceDisplayExt
 
   uint16_t display_horizontal_size;
   uint16_t display_vertical_size;
+};
+
+/**
+ * MpegVideoSequenceScalableExt:
+ * @scalable_mode:
+ * @layer_id:
+ * @lower_layer_prediction_horizontal_size:
+ * @lower_layer_prediction_vertical_size:
+ * @horizontal_subsampling_factor_m:
+ * @horizontal_subsampling_factor_n:
+ * @vertical_subsampling_factor_m:
+ * @vertical_subsampling_factor_n:
+ * @picture_mux_enable:
+ * @mux_to_progressive_sequence:
+ * @picture_mux_order:
+ * @picture_mux_factor:
+ *
+ * The Sequence Scalable Extension structure.
+ *
+ * Since: 1.2
+ */
+struct _MpegVideoSequenceScalableExt
+{
+  uint8_t scalable_mode;
+  uint8_t layer_id;
+
+  /* if spatial scalability */
+  uint16_t lower_layer_prediction_horizontal_size;
+  uint16_t lower_layer_prediction_vertical_size;
+  uint8_t horizontal_subsampling_factor_m;
+  uint8_t horizontal_subsampling_factor_n;
+  uint8_t vertical_subsampling_factor_m;
+  uint8_t vertical_subsampling_factor_n;
+
+  /* if temporal scalability */
+  uint8_t picture_mux_enable;
+  uint8_t mux_to_progressive_sequence;
+  uint8_t picture_mux_order;
+  uint8_t picture_mux_factor;
 };
 
 /**
@@ -380,12 +440,39 @@ struct _MpegVideoGop
 };
 
 /**
- * MpegVideoTypeOffsetSize:
+ * MpegVideoSliceHdr:
+ * @slice_vertical_position_extension: Extension to slice_vertical_position
+ * @priority_breakpoint: Point where the bitstream shall be partitioned
+ * @quantiser_scale_code: Quantiser value (range: 1-31)
+ * @intra_slice: Equal to one if all the macroblocks are intra macro blocks.
+ * @slice_picture_id: Intended to aid recovery on severe bursts of
+ *   errors for certain types of applications
  *
- * @type: the type of the packet that start at @offset
+ * The Mpeg2 Video Slice Header structure.
+ *
+ * Since: 1.2
+ */
+struct _MpegVideoSliceHdr
+{
+  uint8_t priority_breakpoint;
+  uint8_t quantiser_scale_code;
+  uint8_t intra_slice;
+  uint8_t slice_picture_id;
+
+  /* Calculated values */
+  uint32_t header_size;            /* slice_header size in bits */
+  int32_t mb_row;                  /* macroblock row */
+  int32_t mb_column;               /* macroblock column */
+};
+
+/**
+ * MpegVideoPacket:
+ * @type: the type of the packet that start at @offset, as a #MpegVideoPacketTypeCode
  * @data: the data containing the packet starting at @offset
- * @offset: the offset of the packet start in bytes, it is the exact, start of the packet, no sync code included
- * @size: The size in bytes of the packet or -1 if the end wasn't found. It is the exact size of the packet, no sync code included
+ * @offset: the offset of the packet start in bytes from @data. This is the
+ *     start of the packet itself without the sync code
+ * @size: The size in bytes of the packet or -1 if the end wasn't found. This
+ *     is the size of the packet itself without the sync code
  *
  * A structure that contains the type of a packet, its offset and its size
  */
@@ -397,41 +484,71 @@ struct _MpegVideoPacket
   int32_t   size;
 };
 
-BOOL gst_mpeg_video_parse                         (MpegVideoPacket * packet,
+bool mpeg_video_parse                         (MpegVideoPacket * packet,
                                                        const uint8_t * data, size_t size, uint32_t offset);
 
-BOOL gst_mpeg_video_parse_sequence_header         (MpegVideoSequenceHdr * params,
-                                                       const uint8_t * data, size_t size, uint32_t offset);
+bool mpeg_video_packet_parse_sequence_header    (const MpegVideoPacket * packet,
+                                                         MpegVideoSequenceHdr * seqhdr);
+
+bool mpeg_video_packet_parse_sequence_extension (const MpegVideoPacket * packet,
+                                                         MpegVideoSequenceExt * seqext);
+
+bool mpeg_video_packet_parse_sequence_display_extension (const MpegVideoPacket * packet,
+                                                         MpegVideoSequenceDisplayExt * seqdisplayext);
+
+bool mpeg_video_packet_parse_sequence_scalable_extension (const MpegVideoPacket * packet,
+                                                         MpegVideoSequenceScalableExt * seqscaleext);
+
+bool mpeg_video_packet_parse_picture_header     (const MpegVideoPacket * packet,
+                                                         MpegVideoPictureHdr* pichdr);
+
+bool mpeg_video_packet_parse_picture_extension  (const MpegVideoPacket * packet,
+                                                         MpegVideoPictureExt *picext);
+
+bool mpeg_video_packet_parse_gop                (const MpegVideoPacket * packet,
+                                                         MpegVideoGop * gop);
+
+bool mpeg_video_packet_parse_slice_header       (const MpegVideoPacket * packet,
+                                                         MpegVideoSliceHdr * slice_hdr,
+                                                         MpegVideoSequenceHdr * seq_hdr,
+                                                         MpegVideoSequenceScalableExt * seqscaleext);
+
+bool mpeg_video_packet_parse_quant_matrix_extension (const MpegVideoPacket * packet,
+                                                         MpegVideoQuantMatrixExt * quant);
 
 /* seqext and displayext may be NULL if not received */
-BOOL gst_mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr *hdr,
+bool mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr *hdr,
    MpegVideoSequenceExt *seqext, MpegVideoSequenceDisplayExt *displayext);
 
-BOOL gst_mpeg_video_parse_picture_header          (MpegVideoPictureHdr* hdr,
+#ifndef DISABLE_DEPRECATED
+bool mpeg_video_parse_picture_header          (MpegVideoPictureHdr* hdr,
                                                        const uint8_t * data, size_t size, uint32_t offset);
 
-BOOL gst_mpeg_video_parse_picture_extension       (MpegVideoPictureExt *ext,
+bool mpeg_video_parse_picture_extension       (MpegVideoPictureExt *ext,
                                                        const uint8_t * data, size_t size, uint32_t offset);
 
-BOOL gst_mpeg_video_parse_gop                     (MpegVideoGop * gop,
+bool mpeg_video_parse_gop                     (MpegVideoGop * gop,
                                                        const uint8_t * data, size_t size, uint32_t offset);
 
-BOOL gst_mpeg_video_parse_sequence_extension      (MpegVideoSequenceExt * seqext,
+bool mpeg_video_parse_sequence_header         (MpegVideoSequenceHdr * seqhdr,
                                                        const uint8_t * data, size_t size, uint32_t offset);
 
-BOOL gst_mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt * seqdisplayext,
+bool mpeg_video_parse_sequence_extension      (MpegVideoSequenceExt * seqext,
                                                        const uint8_t * data, size_t size, uint32_t offset);
 
-BOOL gst_mpeg_video_parse_quant_matrix_extension  (MpegVideoQuantMatrixExt * quant,
+bool mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt * seqdisplayext,
                                                        const uint8_t * data, size_t size, uint32_t offset);
 
-void gst_mpeg_video_quant_matrix_get_raster_from_zigzag (uint8_t out_quant[64],
+bool mpeg_video_parse_quant_matrix_extension  (MpegVideoQuantMatrixExt * quant,
+                                                       const uint8_t * data, size_t size, uint32_t offset);
+#endif
+
+void     mpeg_video_quant_matrix_get_raster_from_zigzag (uint8_t out_quant[64],
                                                              const uint8_t quant[64]);
 
-void gst_mpeg_video_quant_matrix_get_zigzag_from_raster (uint8_t out_quant[64],
+void     mpeg_video_quant_matrix_get_zigzag_from_raster (uint8_t out_quant[64],
+                                                             const uint8_t quant[64]);
 
-#ifdef __cplusplus
-}
-#endif /* __cplusplus */
-                                                            const uint8_t quant[64]);
+G_END_DECLS
+
 #endif
