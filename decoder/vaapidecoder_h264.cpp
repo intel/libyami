@@ -114,11 +114,11 @@ static VaapiChromaType getH264ChromaType(H264SPS * sps)
 
 
 static inline uint32_t
-getSliceDataBitOffset(SliceHeaderPtr sliceHdr, H264NalUnit * nalu)
+getSliceDataBitOffset(SliceHeaderPtr sliceHdr, uint32_t nal_header_bytes)
 {
     uint32_t epbCount;
     epbCount = sliceHdr->n_emulation_prevention_bytes;
-    return 8 * sliceHdr->nal_header_bytes + sliceHdr->header_size -
+    return 8 * nal_header_bytes + sliceHdr->header_size -
         epbCount * 8;
 }
 
@@ -322,6 +322,7 @@ Decode_Status VaapiDecoderH264::decodePPS(H264NalUnit * nalu)
 
 Decode_Status VaapiDecoderH264::decodeSEI(H264NalUnit * nalu)
 {
+#if 0
     H264SEIMessage sei;
     H264ParserResult result;
 
@@ -333,6 +334,7 @@ Decode_Status VaapiDecoderH264::decodeSEI(H264NalUnit * nalu)
         WARNING("failed to decode SEI, payload type:%d", sei.payloadType);
         return getStatus(result);
     }
+#endif
 
     return DECODE_SUCCESS;
 }
@@ -869,7 +871,7 @@ bool VaapiDecoderH264::fillSlice(VASliceParameterBufferH264 * sliceParam,
 {
     /* Fill in VASliceParameterBufferH264 */
     sliceParam->slice_data_bit_offset =
-        getSliceDataBitOffset(sliceHdr, nalu);
+        getSliceDataBitOffset(sliceHdr, nalu->header_bytes);
     sliceParam->first_mb_in_slice = sliceHdr->first_mb_in_slice;
     sliceParam->slice_type = sliceHdr->type % 5;
     sliceParam->direct_spatial_mv_pred_flag =
