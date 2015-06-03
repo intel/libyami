@@ -1,5 +1,5 @@
 /*
- * gstvp8parser.h - VP8 parser
+ * vp8parser.h - VP8 parser
  *
  * Copyright (C) 2013-2014 Intel Corporation
  *   Author: Halley Zhao <halley.zhao@intel.com>
@@ -21,38 +21,38 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef GST_VP8_PARSER_H
-#define GST_VP8_PARSER_H
+#ifndef VP8_PARSER_H
+#define VP8_PARSER_H
 
-#include <gst/gst.h>
+#include "commondef.h"
 
 G_BEGIN_DECLS
 
-typedef struct _GstVp8FrameHdr          GstVp8FrameHdr;
-typedef struct _GstVp8QuantIndices      GstVp8QuantIndices;
-typedef struct _GstVp8Segmentation      GstVp8Segmentation;
-typedef struct _GstVp8MbLfAdjustments   GstVp8MbLfAdjustments;
-typedef struct _GstVp8TokenProbs        GstVp8TokenProbs;
-typedef struct _GstVp8MvProbs           GstVp8MvProbs;
-typedef struct _GstVp8ModeProbs         GstVp8ModeProbs;
-typedef struct _GstVp8Parser            GstVp8Parser;
+typedef struct _Vp8FrameHdr          Vp8FrameHdr;
+typedef struct _Vp8QuantIndices      Vp8QuantIndices;
+typedef struct _Vp8Segmentation      Vp8Segmentation;
+typedef struct _Vp8MbLfAdjustments   Vp8MbLfAdjustments;
+typedef struct _Vp8TokenProbs        Vp8TokenProbs;
+typedef struct _Vp8MvProbs           Vp8MvProbs;
+typedef struct _Vp8ModeProbs         Vp8ModeProbs;
+typedef struct _Vp8Parser            Vp8Parser;
 
 /**
- * GstVp8ParserResult:
- * @GST_VP8_PARSER_OK: The parsing succeeded
- * @GST_VP8_PARSER_BROKEN_DATA: The data to parse is broken
- * @GST_VP8_PARSER_ERROR: An error accured when parsing
+ * Vp8ParserResult:
+ * @VP8_PARSER_OK: The parsing succeeded
+ * @VP8_PARSER_BROKEN_DATA: The data to parse is broken
+ * @VP8_PARSER_ERROR: An error accured when parsing
  *
  * The result of parsing VP8 data.
  */
 typedef enum {
-  GST_VP8_PARSER_OK,
-  GST_VP8_PARSER_BROKEN_DATA,
-  GST_VP8_PARSER_ERROR,
-} GstVp8ParserResult;
+  VP8_PARSER_OK,
+  VP8_PARSER_BROKEN_DATA,
+  VP8_PARSER_ERROR,
+} Vp8ParserResult;
 
 /**
- * GstVpQuantIndices:
+ * VpQuantIndices:
  * @y_ac_qi: indicates the dequantization table index used for the
  *   luma AC coefficients
  * @y_dc_delta: indicates the delta value that is added to the
@@ -73,18 +73,18 @@ typedef enum {
  *
  * Dequantization indices.
  */ 
-struct _GstVp8QuantIndices
+struct _Vp8QuantIndices
 {
-  guint8 y_ac_qi;
-  gint8 y_dc_delta;
-  gint8 y2_dc_delta;
-  gint8 y2_ac_delta;
-  gint8 uv_dc_delta;
-  gint8 uv_ac_delta;
+  uint8_t y_ac_qi;
+  int8_t y_dc_delta;
+  int8_t y2_dc_delta;
+  int8_t y2_ac_delta;
+  int8_t uv_dc_delta;
+  int8_t uv_ac_delta;
 };
 
 /**
- * GstVp8Segmentation:
+ * Vp8Segmentation:
  * @segmentation_enabled: enables the segmentation feature for the
  *   current frame
  * @update_mb_segmentation_map: determines if the MB segmentation map
@@ -101,23 +101,23 @@ struct _GstVp8QuantIndices
  *
  * Segmentation feature data.
  */
-struct _GstVp8Segmentation
+struct _Vp8Segmentation
 {
-  guint8 segmentation_enabled;
-  guint8 update_mb_segmentation_map;
-  guint8 update_segment_feature_data;
+  uint8_t segmentation_enabled;
+  uint8_t update_mb_segmentation_map;
+  uint8_t update_segment_feature_data;
 
   /* if update_segment_feature_data == 1 */
-  guint8 segment_feature_mode;
-  gint8 quantizer_update_value[4];
-  gint8 lf_update_value[4];
+  uint8_t segment_feature_mode;
+  int8_t quantizer_update_value[4];
+  int8_t lf_update_value[4];
 
   /* if update_mb_segmentation_map == 1 */
-  guint8 segment_prob[3];
+  uint8_t segment_prob[3];
 };
 
 /**
- * GstVp8MbLfAdjustments:
+ * Vp8MbLfAdjustments:
  * @loop_filter_adj_enable: indicates if the MB-level loop filter
  *   adjustment is on for the current frame
  * @mode_ref_lf_delta_update: indicates if the delta values used in an
@@ -129,18 +129,18 @@ struct _GstVp8Segmentation
  *
  * MB-level loop filter adjustments.
  */
-struct _GstVp8MbLfAdjustments
+struct _Vp8MbLfAdjustments
 {
-  guint8 loop_filter_adj_enable;
-  guint8 mode_ref_lf_delta_update;
+  uint8_t loop_filter_adj_enable;
+  uint8_t mode_ref_lf_delta_update;
 
   /* if mode_ref_lf_delta_update == 1 */
-  gint8 ref_frame_delta[4];
-  gint8 mb_mode_delta[4];
+  int8_t ref_frame_delta[4];
+  int8_t mb_mode_delta[4];
 };
 
 /**
- * GstVp8TokenProbs:
+ * Vp8TokenProbs:
  * @prob: token probability
  *
  * Token probabilities, with cumulative updates applied.
@@ -148,13 +148,13 @@ struct _GstVp8MbLfAdjustments
  * Each probability value in this matrix is live across frames, until
  * they are reset to their default values on key frame.
  */
-struct _GstVp8TokenProbs
+struct _Vp8TokenProbs
 {
-  guint8 prob[4][8][3][11];
+  uint8_t prob[4][8][3][11];
 };
 
 /**
- * GstVp8MvProbs:
+ * Vp8MvProbs:
  * @prob: MV probability
  *
  * Probabilities used for motion vector decoding, with cumulative
@@ -163,13 +163,13 @@ struct _GstVp8TokenProbs
  * Each probability value in this matrix is live across frames, until
  * they are reset to their default values on key frame.
  */
-struct _GstVp8MvProbs
+struct _Vp8MvProbs
 {
-  guint8 prob[2][19];
+  uint8_t prob[2][19];
 };
 
 /**
- * GstVp8ModeProbs:
+ * Vp8ModeProbs:
  * @y_prob: indicates the branch probabilities of the luma
  *   intra-prediction mode decoding tree
  * @uv_prob: indicates the branch probabilities of the chroma
@@ -180,14 +180,14 @@ struct _GstVp8MvProbs
  * Each probability value in thie structure is live across frames,
  * until they are reset to their default values on key frame.
  */
-struct _GstVp8ModeProbs
+struct _Vp8ModeProbs
 {
-  guint8 y_prob[4];
-  guint8 uv_prob[3];
+  uint8_t y_prob[4];
+  uint8_t uv_prob[3];
 };
 
 /**
- * GstVp8FrameHdr:
+ * Vp8FrameHdr:
  * @key_frame: indicates whether the frame is a key frame (1), or an
  *   inter frame (0)
  * @version: version number
@@ -212,12 +212,12 @@ struct _GstVp8ModeProbs
  * @partition_size: determines the size of each separate partition
  *   containing the DCT coefficients of the macroblocks, including the
  *   very last one (calculated size)
- * @quant_indices: dequantization indices (see #GstVp8QuantIndices)
- * @token_probs: token probabilities (see #GstVp8TokenProbs)
+ * @quant_indices: dequantization indices (see #Vp8QuantIndices)
+ * @token_probs: token probabilities (see #Vp8TokenProbs)
  * @mv_probs: probabilities used for motion vector decoding
- *   (see #GstVp8MvProbs)
+ *   (see #Vp8MvProbs)
  * @mode_probs: probabilities used for intra-prediction mode decoding
- *   tree (see #GstVp8ModeProbs)
+ *   tree (see #Vp8ModeProbs)
  * @refresh_entropy_probs: determines whether updated token
  *   probabilities are used only for this frame or until further update
  * @refresh_golden_frame: determines if the current decoded frame
@@ -251,62 +251,62 @@ struct _GstVp8ModeProbs
  *
  * Frame header.
  */
-struct _GstVp8FrameHdr
+struct _Vp8FrameHdr
 {
-  guint8 key_frame;
-  guint8 version;
-  guint8 show_frame;
-  guint8 data_chunk_size;
-  guint32 first_part_size;
+  uint8_t key_frame;
+  uint8_t version;
+  uint8_t show_frame;
+  uint8_t data_chunk_size;
+  uint32_t first_part_size;
 
   /* if key_frame == 1 */
-  guint16 width;
-  guint16 height;
-  guint8 horiz_scale_code;
-  guint8 vert_scale_code;
-  guint8 color_space;
-  guint8 clamping_type;
+  uint16_t width;
+  uint16_t height;
+  uint8_t horiz_scale_code;
+  uint8_t vert_scale_code;
+  uint8_t color_space;
+  uint8_t clamping_type;
 
-  guint8 filter_type;
-  guint8 loop_filter_level;
-  guint8 sharpness_level;
-  guint8 log2_nbr_of_dct_partitions;
-  guint partition_size[8];
+  uint8_t filter_type;
+  uint8_t loop_filter_level;
+  uint8_t sharpness_level;
+  uint8_t log2_nbr_of_dct_partitions;
+  uint32_t partition_size[8];
 
-  GstVp8QuantIndices quant_indices;
-  GstVp8TokenProbs token_probs;
-  GstVp8MvProbs mv_probs;
-  GstVp8ModeProbs mode_probs;
+  Vp8QuantIndices quant_indices;
+  Vp8TokenProbs token_probs;
+  Vp8MvProbs mv_probs;
+  Vp8ModeProbs mode_probs;
 
-  guint8 refresh_entropy_probs;
-  guint8 refresh_last;
+  uint8_t refresh_entropy_probs;
+  uint8_t refresh_last;
   /* if key_frame != 1 */
-  guint8 refresh_golden_frame;
-  guint8 refresh_alternate_frame;
-  guint8 copy_buffer_to_golden;
-  guint8 copy_buffer_to_alternate;
-  guint8 sign_bias_golden;
-  guint8 sign_bias_alternate;
+  uint8_t refresh_golden_frame;
+  uint8_t refresh_alternate_frame;
+  uint8_t copy_buffer_to_golden;
+  uint8_t copy_buffer_to_alternate;
+  uint8_t sign_bias_golden;
+  uint8_t sign_bias_alternate;
 
-  guint8 mb_no_skip_coeff;
-  guint8 prob_skip_false;
+  uint8_t mb_no_skip_coeff;
+  uint8_t prob_skip_false;
 
   /* if key_frame != 1 */
-  guint8 prob_intra;
-  guint8 prob_last;
-  guint8 prob_gf;
+  uint8_t prob_intra;
+  uint8_t prob_last;
+  uint8_t prob_gf;
 
   /* Range decoder state */
-  guint8 rd_range;
-  guint8 rd_value;
-  guint8 rd_count;
+  uint8_t rd_range;
+  uint8_t rd_value;
+  uint8_t rd_count;
 
   /* Size of the Frame Header in bits */
-  guint header_size;
+  uint32_t header_size;
 };
 
 /**
- * GstVp8Parser:
+ * Vp8Parser:
  * @segmentation: segmentation feature data
  * @mb_lf_adjust: MB-level loop filter adjustments
  * @token_probs: token probabilities
@@ -314,25 +314,25 @@ struct _GstVp8FrameHdr
  * @mode_probs: probabilities used for intra-prediction mode decoding tree.
  *
  * Parser context that needs to be live across frames. For instance
- * the probabilities tables stored in #GstVp8FrameHdr may depend on
+ * the probabilities tables stored in #Vp8FrameHdr may depend on
  * the previous frames.
  */
-struct _GstVp8Parser
+struct _Vp8Parser
 {
-  GstVp8Segmentation segmentation;
-  GstVp8MbLfAdjustments mb_lf_adjust;
-  GstVp8TokenProbs token_probs;
-  GstVp8MvProbs mv_probs;
-  GstVp8ModeProbs mode_probs;
+  Vp8Segmentation segmentation;
+  Vp8MbLfAdjustments mb_lf_adjust;
+  Vp8TokenProbs token_probs;
+  Vp8MvProbs mv_probs;
+  Vp8ModeProbs mode_probs;
 };
 
 void
-gst_vp8_parser_init (GstVp8Parser * parser);
+vp8_parser_init (Vp8Parser * parser);
 
-GstVp8ParserResult
-gst_vp8_parser_parse_frame_header (GstVp8Parser * parser,
-    GstVp8FrameHdr * frame_hdr, const guint8 * data, gsize size);
+Vp8ParserResult
+vp8_parser_parse_frame_header (Vp8Parser * parser,
+    Vp8FrameHdr * frame_hdr, const uint8_t * data, size_t size);
 
 G_END_DECLS
 
-#endif /* GST_VP8_PARSER_H */
+#endif /* VP8_PARSER_H */

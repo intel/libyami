@@ -20,24 +20,24 @@
  * Boston, MA 02110-1301, USA.
  */
 
-#ifndef GST_VP8_UTILS_H
-#define GST_VP8_UTILS_H
+#ifndef VP8_UTILS_H
+#define VP8_UTILS_H
 
-#include <gst/codecparsers/gstvp8parser.h>
-
-void
-gst_vp8_token_update_probs_init (GstVp8TokenProbs * probs);
+#include "vp8parser.h"
 
 void
-gst_vp8_token_probs_init_defaults (GstVp8TokenProbs * probs);
+vp8_token_update_probs_init (Vp8TokenProbs * probs);
 
 void
-gst_vp8_mv_update_probs_init (GstVp8MvProbs * probs);
+vp8_token_probs_init_defaults (Vp8TokenProbs * probs);
 
 void
-gst_vp8_mv_probs_init_defaults (GstVp8MvProbs * probs);
+vp8_mv_update_probs_init (Vp8MvProbs * probs);
 
 void
-gst_vp8_mode_probs_init_defaults (GstVp8ModeProbs * probs, gboolean key_frame);
+vp8_mv_probs_init_defaults (Vp8MvProbs * probs);
 
-#endif /* GST_VP8_UTILS_H */
+void
+vp8_mode_probs_init_defaults (Vp8ModeProbs * probs, bool key_frame);
+
+#endif /* VP8_UTILS_H */

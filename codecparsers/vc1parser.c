@@ -1,4 +1,4 @@
-/* Gstreamer
+/* reamer
  * Copyright (C) <2011> Intel
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -19,7 +19,7 @@
  * Boston, MA 02110-1301, USA.
  */
 /**
- * SECTION:gstvc1parser
+ * SECTION:vc1parser
  * @short_description: Convenience library for parsing vc1 video
  * bitstream.
  *
@@ -32,41 +32,41 @@
 #  include "config.h"
 #endif
 
-#include "gstvc1parser.h"
+#include "vc1parser.h"
 #include "parserutils.h"
-#include <gst/base/gstbytereader.h>
-#include <gst/base/gstbytewriter.h>
-#include <gst/base/gstbitreader.h>
+#include "bytereader.h"
+#include "bytewriter.h"
+#include "bitreader.h"
 #include <string.h>
 
-#ifndef GST_DISABLE_GST_DEBUG
+#ifndef DISABLE_DEBUG
 
-#define GST_CAT_DEFAULT ensure_debug_category()
+#define CAT_DEFAULT ensure_debug_category()
 
-static GstDebugCategory *
+static DebugCategory *
 ensure_debug_category (void)
 {
-  static gsize cat_gonce = 0;
+  static size_t cat_gonce = 0;
 
   if (g_once_init_enter (&cat_gonce)) {
-    gsize cat_done;
+    size_t cat_done;
 
-    cat_done = (gsize) _gst_debug_category_new ("codecparsers_vc1", 0,
+    cat_done = (size_t) _gst_debug_category_new ("codecparsers_vc1", 0,
         "VC1 codec parsing library");
 
     g_once_init_leave (&cat_gonce, cat_done);
   }
 
-  return (GstDebugCategory *) cat_gonce;
+  return (DebugCategory *) cat_gonce;
 }
 
 #else
 
 #define ensure_debug_category() /* NOOP */
 
-#endif /* GST_DISABLE_GST_DEBUG */
+#endif /* DISABLE_DEBUG */
 
-static const guint8 vc1_pquant_table[3][32] = {
+static const uint8_t vc1_pquant_table[3][32] = {
   {                             /* Implicit quantizer */
         0, 1, 2, 3, 4, 5, 6, 7, 8, 6, 7, 8, 9, 10, 11, 12,
       13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 27, 29, 31},
@@ -78,63 +78,63 @@ static const guint8 vc1_pquant_table[3][32] = {
       14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 29, 31}
 };
 
-static const guint8 vc1_mvmode_table[2][5] = {
+static const uint8_t vc1_mvmode_table[2][5] = {
   /* Table 47: P Picture High rate (PQUANT <= 12) MVMODE code table */
   {
-        GST_VC1_MVMODE_1MV,
-        GST_VC1_MVMODE_MIXED_MV,
-        GST_VC1_MVMODE_1MV_HPEL,
-        GST_VC1_MVMODE_INTENSITY_COMP,
-      GST_VC1_MVMODE_1MV_HPEL_BILINEAR},
+        VC1_MVMODE_1MV,
+        VC1_MVMODE_MIXED_MV,
+        VC1_MVMODE_1MV_HPEL,
+        VC1_MVMODE_INTENSITY_COMP,
+      VC1_MVMODE_1MV_HPEL_BILINEAR},
   /* Table 46: P Picture Low rate (PQUANT > 12) MVMODE code table */
   {
-        GST_VC1_MVMODE_1MV_HPEL_BILINEAR,
-        GST_VC1_MVMODE_1MV,
-        GST_VC1_MVMODE_1MV_HPEL,
-        GST_VC1_MVMODE_INTENSITY_COMP,
-      GST_VC1_MVMODE_MIXED_MV}
+        VC1_MVMODE_1MV_HPEL_BILINEAR,
+        VC1_MVMODE_1MV,
+        VC1_MVMODE_1MV_HPEL,
+        VC1_MVMODE_INTENSITY_COMP,
+      VC1_MVMODE_MIXED_MV}
 };
 
-static const guint8 vc1_mvmode2_table[2][4] = {
+static const uint8_t vc1_mvmode2_table[2][4] = {
   /* Table 50: P Picture High rate (PQUANT <= 12) MVMODE2 code table */
   {
-        GST_VC1_MVMODE_1MV,
-        GST_VC1_MVMODE_MIXED_MV,
-        GST_VC1_MVMODE_1MV_HPEL,
-      GST_VC1_MVMODE_1MV_HPEL_BILINEAR},
+        VC1_MVMODE_1MV,
+        VC1_MVMODE_MIXED_MV,
+        VC1_MVMODE_1MV_HPEL,
+      VC1_MVMODE_1MV_HPEL_BILINEAR},
   /* Table 49: P Picture Low rate (PQUANT > 12) MVMODE2 code table */
   {
-        GST_VC1_MVMODE_1MV_HPEL_BILINEAR,
-        GST_VC1_MVMODE_1MV,
-        GST_VC1_MVMODE_1MV_HPEL,
-      GST_VC1_MVMODE_MIXED_MV}
+        VC1_MVMODE_1MV_HPEL_BILINEAR,
+        VC1_MVMODE_1MV,
+        VC1_MVMODE_1MV_HPEL,
+      VC1_MVMODE_MIXED_MV}
 };
 
 /* Table 40: BFRACTION VLC Table */
 static const VLCTable vc1_bfraction_vlc_table[] = {
-  {GST_VC1_BFRACTION_BASIS / 2, 0x00, 3},
-  {GST_VC1_BFRACTION_BASIS / 3, 0x01, 3},
-  {(GST_VC1_BFRACTION_BASIS * 2) / 3, 0x02, 3},
-  {GST_VC1_BFRACTION_BASIS / 4, 0x02, 3},
-  {(GST_VC1_BFRACTION_BASIS * 3) / 4, 0x04, 3},
-  {GST_VC1_BFRACTION_BASIS / 5, 0x05, 3},
-  {(GST_VC1_BFRACTION_BASIS * 2) / 5, 0x06, 3},
-  {(GST_VC1_BFRACTION_BASIS * 3) / 5, 0x70, 7},
-  {(GST_VC1_BFRACTION_BASIS * 4) / 5, 0x71, 7},
-  {GST_VC1_BFRACTION_BASIS / 6, 0x72, 7},
-  {(GST_VC1_BFRACTION_BASIS * 5) / 6, 0x73, 7},
-  {GST_VC1_BFRACTION_BASIS / 7, 0x74, 7},
-  {(GST_VC1_BFRACTION_BASIS * 2) / 7, 0x75, 7},
-  {(GST_VC1_BFRACTION_BASIS * 3) / 7, 0x76, 7},
-  {(GST_VC1_BFRACTION_BASIS * 4) / 7, 0x77, 7},
-  {(GST_VC1_BFRACTION_BASIS * 5) / 7, 0x78, 7},
-  {(GST_VC1_BFRACTION_BASIS * 6) / 7, 0x79, 7},
-  {GST_VC1_BFRACTION_BASIS / 8, 0x7a, 7},
-  {(GST_VC1_BFRACTION_BASIS * 3) / 8, 0x7b, 7},
-  {(GST_VC1_BFRACTION_BASIS * 5) / 8, 0x7c, 7},
-  {(GST_VC1_BFRACTION_BASIS * 7) / 8, 0x7d, 7},
-  {GST_VC1_BFRACTION_RESERVED, 0x7e, 7},
-  {GST_VC1_BFRACTION_PTYPE_BI, 0x7f, 7}
+  {VC1_BFRACTION_BASIS / 2, 0x00, 3},
+  {VC1_BFRACTION_BASIS / 3, 0x01, 3},
+  {(VC1_BFRACTION_BASIS * 2) / 3, 0x02, 3},
+  {VC1_BFRACTION_BASIS / 4, 0x02, 3},
+  {(VC1_BFRACTION_BASIS * 3) / 4, 0x04, 3},
+  {VC1_BFRACTION_BASIS / 5, 0x05, 3},
+  {(VC1_BFRACTION_BASIS * 2) / 5, 0x06, 3},
+  {(VC1_BFRACTION_BASIS * 3) / 5, 0x70, 7},
+  {(VC1_BFRACTION_BASIS * 4) / 5, 0x71, 7},
+  {VC1_BFRACTION_BASIS / 6, 0x72, 7},
+  {(VC1_BFRACTION_BASIS * 5) / 6, 0x73, 7},
+  {VC1_BFRACTION_BASIS / 7, 0x74, 7},
+  {(VC1_BFRACTION_BASIS * 2) / 7, 0x75, 7},
+  {(VC1_BFRACTION_BASIS * 3) / 7, 0x76, 7},
+  {(VC1_BFRACTION_BASIS * 4) / 7, 0x77, 7},
+  {(VC1_BFRACTION_BASIS * 5) / 7, 0x78, 7},
+  {(VC1_BFRACTION_BASIS * 6) / 7, 0x79, 7},
+  {VC1_BFRACTION_BASIS / 8, 0x7a, 7},
+  {(VC1_BFRACTION_BASIS * 3) / 8, 0x7b, 7},
+  {(VC1_BFRACTION_BASIS * 5) / 8, 0x7c, 7},
+  {(VC1_BFRACTION_BASIS * 7) / 8, 0x7d, 7},
+  {VC1_BFRACTION_RESERVED, 0x7e, 7},
+  {VC1_BFRACTION_PTYPE_BI, 0x7f, 7}
 };
 
 /* Imode types */
@@ -239,7 +239,7 @@ static const VLCTable vc1_norm6_vlc_table[64] = {
 /* SMPTE 421M Table 7 */
 typedef struct
 {
-  gint par_n, par_d;
+  int32_t par_n, par_d;
 } PAR;
 
 static const PAR aspect_ratios[] = {
@@ -262,7 +262,7 @@ static const PAR aspect_ratios[] = {
 };
 
 /* SMPTE 421M Table 8 */
-static const guint framerates_n[] = {
+static const uint32_t framerates_n[] = {
   0,
   24 * 1000,
   25 * 1000,
@@ -274,21 +274,21 @@ static const guint framerates_n[] = {
 };
 
 /* SMPTE 421M Table 9 */
-static const guint framerates_d[] = {
+static const uint32_t framerates_d[] = {
   0,
   1000,
   1001
 };
 
 
-static inline gboolean
-decode_colskip (GstBitReader * br, guint8 * data, guint width, guint height,
-    guint stride, guint invert)
+static inline bool
+decode_colskip (BitReader * br, uint8_t * data, uint32_t width, uint32_t height,
+    uint32_t stride, uint32_t invert)
 {
-  guint x, y;
-  guint8 colskip, v;
+  uint32_t x, y;
+  uint8_t colskip, v;
 
-  GST_DEBUG ("Parsing colskip");
+  DEBUG ("Parsing colskip");
 
   invert &= 1;
   for (x = 0; x < width; x++) {
@@ -312,19 +312,19 @@ decode_colskip (GstBitReader * br, guint8 * data, guint width, guint height,
   return TRUE;
 
 failed:
-  GST_WARNING ("Failed to parse colskip");
+  WARNING ("Failed to parse colskip");
 
   return FALSE;
 }
 
-static inline gboolean
-decode_rowskip (GstBitReader * br, guint8 * data, guint width, guint height,
-    guint stride, guint invert)
+static inline bool
+decode_rowskip (BitReader * br, uint8_t * data, uint32_t width, uint32_t height,
+    uint32_t stride, uint32_t invert)
 {
-  guint x, y;
-  guint8 rowskip, v;
+  uint32_t x, y;
+  uint8_t rowskip, v;
 
-  GST_DEBUG ("Parsing rowskip");
+  DEBUG ("Parsing rowskip");
 
   invert &= 1;
   for (y = 0; y < height; y++) {
@@ -347,15 +347,15 @@ decode_rowskip (GstBitReader * br, guint8 * data, guint width, guint height,
   return TRUE;
 
 failed:
-  GST_WARNING ("Failed to parse rowskip");
+  WARNING ("Failed to parse rowskip");
 
   return FALSE;
 }
 
-static inline gint8
-decode012 (GstBitReader * br)
+static inline int8_t
+decode012 (BitReader * br)
 {
-  guint8 n;
+  uint8_t n;
 
   READ_UINT8 (br, n, 1);
 
@@ -367,14 +367,14 @@ decode012 (GstBitReader * br)
   return n + 1;
 
 failed:
-  GST_WARNING ("Could not decode 0 1 2 returning -1");
+  WARNING ("Could not decode 0 1 2 returning -1");
 
   return -1;
 }
 
-static inline guint
-calculate_nb_pan_scan_win (GstVC1AdvancedSeqHdr * advseqhdr,
-    GstVC1PicAdvanced * pic)
+static inline uint32_t
+calculate_nb_pan_scan_win (VC1AdvancedSeqHdr * advseqhdr,
+    VC1PicAdvanced * pic)
 {
   if (advseqhdr->interlace && !advseqhdr->psf) {
     if (advseqhdr->pulldown)
@@ -390,13 +390,13 @@ calculate_nb_pan_scan_win (GstVC1AdvancedSeqHdr * advseqhdr,
   }
 }
 
-static gboolean
-decode_refdist (GstBitReader * br, guint16 * value)
+static bool
+decode_refdist (BitReader * br, uint16_t * value)
 {
-  guint16 tmp;
-  gint i = 2;
+  uint16_t tmp;
+  int32_t i = 2;
 
-  if (!gst_bit_reader_peek_bits_uint16 (br, &tmp, i))
+  if (!bit_reader_peek_bits_uint16 (br, &tmp, i))
     goto failed;
 
   if (tmp < 0x03) {
@@ -408,7 +408,7 @@ decode_refdist (GstBitReader * br, guint16 * value)
   do {
     i++;
 
-    if (!gst_bit_reader_peek_bits_uint16 (br, &tmp, i))
+    if (!bit_reader_peek_bits_uint16 (br, &tmp, i))
       goto failed;
 
     if (!(tmp >> i)) {
@@ -421,23 +421,23 @@ decode_refdist (GstBitReader * br, guint16 * value)
 
 failed:
   {
-    GST_WARNING ("Could not decode end 0 returning");
+    WARNING ("Could not decode end 0 returning");
 
     return FALSE;
   }
 }
 
 /*** bitplanes decoding ***/
-static gboolean
-bitplane_decoding (GstBitReader * br, guint8 * data,
-    GstVC1SeqHdr * seqhdr, guint8 * is_raw)
+static bool
+bitplane_decoding (BitReader * br, uint8_t * data,
+    VC1SeqHdr * seqhdr, uint8_t * is_raw)
 {
-  const guint width = seqhdr->mb_width;
-  const guint height = seqhdr->mb_height;
-  const guint stride = seqhdr->mb_stride;
-  guint imode, invert, invert_mask;
-  guint x, y, v, o;
-  guint8 *pdata = data;
+  const uint32_t width = seqhdr->mb_width;
+  const uint32_t height = seqhdr->mb_height;
+  const uint32_t stride = seqhdr->mb_stride;
+  uint32_t imode, invert, invert_mask;
+  uint32_t x, y, v, o;
+  uint8_t *pdata = data;
 
   *is_raw = FALSE;
 
@@ -451,7 +451,7 @@ bitplane_decoding (GstBitReader * br, guint8 * data,
   switch (imode) {
     case IMODE_RAW:
 
-      GST_DEBUG ("Parsing IMODE_RAW");
+      DEBUG ("Parsing IMODE_RAW");
 
       *is_raw = TRUE;
       return TRUE;
@@ -462,7 +462,7 @@ bitplane_decoding (GstBitReader * br, guint8 * data,
     case IMODE_NORM2:
       invert_mask &= 3;
 
-      GST_DEBUG ("Parsing IMODE_DIFF2 or IMODE_NORM2 biplane");
+      DEBUG ("Parsing IMODE_DIFF2 or IMODE_NORM2 biplane");
 
       x = 0;
       o = (height * width) & 1;
@@ -502,7 +502,7 @@ bitplane_decoding (GstBitReader * br, guint8 * data,
       /* fall-through */
     case IMODE_NORM6:
 
-      GST_DEBUG ("Parsing IMODE_DIFF6 or IMODE_NORM6 biplane");
+      DEBUG ("Parsing IMODE_DIFF6 or IMODE_NORM6 biplane");
 
       if (!(height % 3) && (width % 3)) {       /* decode 2x3 "vertical" tiles */
         for (y = 0; y < height; y += 3) {
@@ -571,14 +571,14 @@ bitplane_decoding (GstBitReader * br, guint8 * data,
       break;
     case IMODE_ROWSKIP:
 
-      GST_DEBUG ("Parsing IMODE_ROWSKIP biplane");
+      DEBUG ("Parsing IMODE_ROWSKIP biplane");
 
       if (!decode_rowskip (br, data, width, height, stride, invert_mask))
         goto failed;
       break;
     case IMODE_COLSKIP:
 
-      GST_DEBUG ("Parsing IMODE_COLSKIP biplane");
+      DEBUG ("Parsing IMODE_COLSKIP biplane");
 
       if (!decode_colskip (br, data, width, height, stride, invert_mask))
         goto failed;
@@ -612,17 +612,17 @@ bitplane_decoding (GstBitReader * br, guint8 * data,
   return TRUE;
 
 failed:
-  GST_WARNING ("Failed to decode bitplane");
+  WARNING ("Failed to decode bitplane");
 
   return FALSE;
 }
 
-static gboolean
-parse_vopdquant (GstBitReader * br, GstVC1FrameHdr * framehdr, guint8 dquant)
+static bool
+parse_vopdquant (BitReader * br, VC1FrameHdr * framehdr, uint8_t dquant)
 {
-  GstVC1VopDquant *vopdquant = &framehdr->vopdquant;
+  VC1VopDquant *vopdquant = &framehdr->vopdquant;
 
-  GST_DEBUG ("Parsing vopdquant");
+  DEBUG ("Parsing vopdquant");
 
   vopdquant->dqbilevel = 0;
 
@@ -639,25 +639,25 @@ parse_vopdquant (GstBitReader * br, GstVC1FrameHdr * framehdr, guint8 dquant)
     }
   } else {
     READ_UINT8 (br, vopdquant->dquantfrm, 1);
-    GST_DEBUG (" %u DquantFrm %u", gst_bit_reader_get_pos (br),
+    DEBUG (" %u DquantFrm %u", bit_reader_get_pos (br),
         vopdquant->dquantfrm);
 
     if (vopdquant->dquantfrm) {
       READ_UINT8 (br, vopdquant->dqprofile, 2);
 
       switch (vopdquant->dqprofile) {
-        case GST_VC1_DQPROFILE_SINGLE_EDGE:
-        case GST_VC1_DQPROFILE_DOUBLE_EDGES:
+        case VC1_DQPROFILE_SINGLE_EDGE:
+        case VC1_DQPROFILE_DOUBLE_EDGES:
           READ_UINT8 (br, vopdquant->dqbedge, 2);
           break;
 
-        case GST_VC1_DQPROFILE_ALL_MBS:
+        case VC1_DQPROFILE_ALL_MBS:
           READ_UINT8 (br, vopdquant->dqbilevel, 1);
           break;
       }
 
       if (vopdquant->dqbilevel
-          || vopdquant->dqprofile != GST_VC1_DQPROFILE_ALL_MBS) {
+          || vopdquant->dqprofile != VC1_DQPROFILE_ALL_MBS) {
         {
           READ_UINT8 (br, vopdquant->pqdiff, 3);
 
@@ -675,30 +675,30 @@ parse_vopdquant (GstBitReader * br, GstVC1FrameHdr * framehdr, guint8 dquant)
   return TRUE;
 
 failed:
-  GST_WARNING ("Failed to parse vopdquant");
+  WARNING ("Failed to parse vopdquant");
 
   return FALSE;
 }
 
-static inline gint
-scan_for_start_codes (const guint8 * data, guint size)
+static inline int32_t
+scan_for_start_codes (const uint8_t * data, uint32_t size)
 {
-  GstByteReader br;
-  gst_byte_reader_init (&br, data, size);
+  ByteReader br;
+  byte_reader_init (&br, data, size);
 
   /* NALU not empty, so we can at least expect 1 (even 2) bytes following sc */
-  return gst_byte_reader_masked_scan_uint32 (&br, 0xffffff00, 0x00000100,
+  return byte_reader_masked_scan_uint32 (&br, 0xffffff00, 0x00000100,
       0, size);
 }
 
-static inline gint
-get_unary (GstBitReader * br, gint stop, gint len)
+static inline int32_t
+get_unary (BitReader * br, int32_t stop, int32_t len)
 {
   int i;
-  guint8 current = 0xff;
+  uint8_t current = 0xff;
 
   for (i = 0; i < len; i++) {
-    current = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+    current = bit_reader_get_bits_uint8_unchecked (br, 1);
     if (current == stop)
       return i;
   }
@@ -707,8 +707,8 @@ get_unary (GstBitReader * br, gint stop, gint len)
 }
 
 static inline void
-calculate_framerate_bitrate (guint8 frmrtq_postproc, guint8 bitrtq_postproc,
-    guint * framerate, guint * bitrate)
+calculate_framerate_bitrate (uint8_t frmrtq_postproc, uint8_t bitrtq_postproc,
+    uint32_t * framerate, uint32_t * bitrate)
 {
   if (frmrtq_postproc == 0 && bitrtq_postproc == 31) {
     *framerate = 0;
@@ -734,56 +734,56 @@ calculate_framerate_bitrate (guint8 frmrtq_postproc, guint8 bitrtq_postproc,
 }
 
 static inline void
-calculate_mb_size (GstVC1SeqHdr * seqhdr, guint width, guint height)
+calculate_mb_size (VC1SeqHdr * seqhdr, uint32_t width, uint32_t height)
 {
   seqhdr->mb_width = (width + 15) >> 4;
   seqhdr->mb_height = (height + 15) >> 4;
   seqhdr->mb_stride = seqhdr->mb_width + 1;
 }
 
-static GstVC1ParserResult
-parse_hrd_param_flag (GstBitReader * br, GstVC1HrdParam * hrd_param)
+static VC1ParserResult
+parse_hrd_param_flag (BitReader * br, VC1HrdParam * hrd_param)
 {
-  guint i;
+  uint32_t i;
 
-  GST_DEBUG ("Parsing Hrd param flag");
+  DEBUG ("Parsing Hrd param flag");
 
 
-  if (gst_bit_reader_get_remaining (br) < 13)
+  if (bit_reader_get_remaining (br) < 13)
     goto failed;
 
   hrd_param->hrd_num_leaky_buckets =
-      gst_bit_reader_get_bits_uint8_unchecked (br, 5);
+      bit_reader_get_bits_uint8_unchecked (br, 5);
   hrd_param->bit_rate_exponent =
-      gst_bit_reader_get_bits_uint8_unchecked (br, 4);
+      bit_reader_get_bits_uint8_unchecked (br, 4);
   hrd_param->buffer_size_exponent =
-      gst_bit_reader_get_bits_uint8_unchecked (br, 4);
+      bit_reader_get_bits_uint8_unchecked (br, 4);
 
-  if (gst_bit_reader_get_remaining (br) <
+  if (bit_reader_get_remaining (br) <
       (32 * hrd_param->hrd_num_leaky_buckets))
     goto failed;
 
   for (i = 0; i < hrd_param->hrd_num_leaky_buckets; i++) {
-    hrd_param->hrd_rate[i] = gst_bit_reader_get_bits_uint16_unchecked (br, 16);
+    hrd_param->hrd_rate[i] = bit_reader_get_bits_uint16_unchecked (br, 16);
     hrd_param->hrd_buffer[i] =
-        gst_bit_reader_get_bits_uint16_unchecked (br, 16);
+        bit_reader_get_bits_uint16_unchecked (br, 16);
   }
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 
 failed:
-  GST_WARNING ("Failed to parse hrd param flag");
+  WARNING ("Failed to parse hrd param flag");
 
-  return GST_VC1_PARSER_ERROR;
+  return VC1_PARSER_ERROR;
 }
 
-static GstVC1ParserResult
-parse_sequence_header_advanced (GstVC1SeqHdr * seqhdr, GstBitReader * br)
+static VC1ParserResult
+parse_sequence_header_advanced (VC1SeqHdr * seqhdr, BitReader * br)
 {
-  GstVC1AdvancedSeqHdr *advanced = &seqhdr->advanced;
-  guint8 tmp;
+  VC1AdvancedSeqHdr *advanced = &seqhdr->advanced;
+  uint8_t tmp;
 
-  GST_DEBUG ("Parsing sequence header in advanced mode");
+  DEBUG ("Parsing sequence header in advanced mode");
 
   READ_UINT8 (br, tmp, 3);
   advanced->level = tmp;
@@ -799,37 +799,37 @@ parse_sequence_header_advanced (GstVC1SeqHdr * seqhdr, GstBitReader * br)
   calculate_framerate_bitrate (advanced->frmrtq_postproc,
       advanced->bitrtq_postproc, &advanced->framerate, &advanced->bitrate);
 
-  GST_DEBUG ("level %u, colordiff_format %u , frmrtq_postproc %u,"
+  DEBUG ("level %u, colordiff_format %u , frmrtq_postproc %u,"
       " bitrtq_postproc %u", advanced->level, advanced->colordiff_format,
       advanced->frmrtq_postproc, advanced->bitrtq_postproc);
 
-  if (gst_bit_reader_get_remaining (br) < 32)
+  if (bit_reader_get_remaining (br) < 32)
     goto failed;
 
-  advanced->postprocflag = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  advanced->max_coded_width = gst_bit_reader_get_bits_uint16_unchecked (br, 12);
+  advanced->postprocflag = bit_reader_get_bits_uint8_unchecked (br, 1);
+  advanced->max_coded_width = bit_reader_get_bits_uint16_unchecked (br, 12);
   advanced->max_coded_height =
-      gst_bit_reader_get_bits_uint16_unchecked (br, 12);
+      bit_reader_get_bits_uint16_unchecked (br, 12);
   advanced->max_coded_width = (advanced->max_coded_width + 1) << 1;
   advanced->max_coded_height = (advanced->max_coded_height + 1) << 1;
   calculate_mb_size (seqhdr, advanced->max_coded_width,
       advanced->max_coded_height);
-  advanced->pulldown = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  advanced->interlace = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  advanced->tfcntrflag = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  advanced->finterpflag = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  advanced->pulldown = bit_reader_get_bits_uint8_unchecked (br, 1);
+  advanced->interlace = bit_reader_get_bits_uint8_unchecked (br, 1);
+  advanced->tfcntrflag = bit_reader_get_bits_uint8_unchecked (br, 1);
+  advanced->finterpflag = bit_reader_get_bits_uint8_unchecked (br, 1);
 
-  GST_DEBUG ("postprocflag %u, max_coded_width %u, max_coded_height %u,"
+  DEBUG ("postprocflag %u, max_coded_width %u, max_coded_height %u,"
       "pulldown %u, interlace %u, tfcntrflag %u, finterpflag %u",
       advanced->postprocflag, advanced->max_coded_width,
       advanced->max_coded_height, advanced->pulldown,
       advanced->interlace, advanced->tfcntrflag, advanced->finterpflag);
 
   /* Skipping reserved bit */
-  gst_bit_reader_skip_unchecked (br, 1);
+  bit_reader_skip_unchecked (br, 1);
 
-  advanced->psf = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  advanced->display_ext = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  advanced->psf = bit_reader_get_bits_uint8_unchecked (br, 1);
+  advanced->display_ext = bit_reader_get_bits_uint8_unchecked (br, 1);
   if (advanced->display_ext) {
     READ_UINT16 (br, advanced->disp_horiz_size, 14);
     READ_UINT16 (br, advanced->disp_vert_size, 14);
@@ -878,111 +878,111 @@ parse_sequence_header_advanced (GstVC1SeqHdr * seqhdr, GstBitReader * br)
     READ_UINT8 (br, advanced->color_format_flag, 1);
 
     if (advanced->color_format_flag) {
-      if (gst_bit_reader_get_remaining (br) < 24)
+      if (bit_reader_get_remaining (br) < 24)
         goto failed;
 
-      advanced->color_prim = gst_bit_reader_get_bits_uint8_unchecked (br, 8);
-      advanced->transfer_char = gst_bit_reader_get_bits_uint8_unchecked (br, 8);
-      advanced->matrix_coef = gst_bit_reader_get_bits_uint8_unchecked (br, 8);
+      advanced->color_prim = bit_reader_get_bits_uint8_unchecked (br, 8);
+      advanced->transfer_char = bit_reader_get_bits_uint8_unchecked (br, 8);
+      advanced->matrix_coef = bit_reader_get_bits_uint8_unchecked (br, 8);
     }
   }
   READ_UINT8 (br, advanced->hrd_param_flag, 1);
   if (advanced->hrd_param_flag)
     return parse_hrd_param_flag (br, &advanced->hrd_param);
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 
 failed:
-  GST_WARNING ("Failed to parse advanced headers");
+  WARNING ("Failed to parse advanced headers");
 
-  return GST_VC1_PARSER_ERROR;
+  return VC1_PARSER_ERROR;
 }
 
-static GstVC1ParserResult
-parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
-    GstVC1SeqHdr * seqhdr, GstVC1BitPlanes * bitplanes, gboolean field2)
+static VC1ParserResult
+parse_frame_header_advanced (BitReader * br, VC1FrameHdr * framehdr,
+    VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes, bool field2)
 {
-  GstVC1AdvancedSeqHdr *advhdr = &seqhdr->advanced;
-  GstVC1PicAdvanced *pic = &framehdr->pic.advanced;
-  GstVC1EntryPointHdr *entrypthdr = &advhdr->entrypoint;
-  guint8 mvmodeidx;
+  VC1AdvancedSeqHdr *advhdr = &seqhdr->advanced;
+  VC1PicAdvanced *pic = &framehdr->pic.advanced;
+  VC1EntryPointHdr *entrypthdr = &advhdr->entrypoint;
+  uint8_t mvmodeidx;
 
-  GST_DEBUG ("Parsing Frame header advanced %u", advhdr->interlace);
+  DEBUG ("Parsing Frame header advanced %u", advhdr->interlace);
 
   /* Set the conveninence fields */
   framehdr->profile = seqhdr->profile;
   framehdr->dquant = entrypthdr->dquant;
 
   if (advhdr->interlace) {
-    gint8 fcm = decode012 (br);
+    int8_t fcm = decode012 (br);
 
     if (fcm < 0)
       goto failed;
 
-    pic->fcm = (guint8) fcm;
+    pic->fcm = (uint8_t) fcm;
   } else
-    pic->fcm = GST_VC1_FRAME_PROGRESSIVE;
+    pic->fcm = VC1_FRAME_PROGRESSIVE;
 
-  if (pic->fcm == GST_VC1_FIELD_INTERLACE) {
+  if (pic->fcm == VC1_FIELD_INTERLACE) {
     READ_UINT8 (br, pic->fptype, 3);
     if (field2) {
       switch (pic->fptype) {
         case 0x00:
         case 0x02:
-          framehdr->ptype = GST_VC1_PICTURE_TYPE_I;
+          framehdr->ptype = VC1_PICTURE_TYPE_I;
           break;
         case 0x01:
         case 0x03:
-          framehdr->ptype = GST_VC1_PICTURE_TYPE_P;
+          framehdr->ptype = VC1_PICTURE_TYPE_P;
           break;
         case 0x04:
         case 0x06:
-          framehdr->ptype = GST_VC1_PICTURE_TYPE_B;
+          framehdr->ptype = VC1_PICTURE_TYPE_B;
           break;
         case 0x05:
         case 0x07:
-          framehdr->ptype = GST_VC1_PICTURE_TYPE_BI;
+          framehdr->ptype = VC1_PICTURE_TYPE_BI;
           break;
       }
     } else {
       switch (pic->fptype) {
         case 0x00:
         case 0x01:
-          framehdr->ptype = GST_VC1_PICTURE_TYPE_I;
+          framehdr->ptype = VC1_PICTURE_TYPE_I;
           break;
         case 0x02:
         case 0x03:
-          framehdr->ptype = GST_VC1_PICTURE_TYPE_P;
+          framehdr->ptype = VC1_PICTURE_TYPE_P;
           break;
         case 0x04:
         case 0x05:
-          framehdr->ptype = GST_VC1_PICTURE_TYPE_B;
+          framehdr->ptype = VC1_PICTURE_TYPE_B;
           break;
         case 0x06:
         case 0x07:
-          framehdr->ptype = GST_VC1_PICTURE_TYPE_BI;
+          framehdr->ptype = VC1_PICTURE_TYPE_BI;
           break;
       }
     }
   } else
-    framehdr->ptype = (guint8) get_unary (br, 0, 4);
+    framehdr->ptype = (uint8_t) get_unary (br, 0, 4);
 
   if (advhdr->tfcntrflag) {
     READ_UINT8 (br, pic->tfcntr, 8);
-    GST_DEBUG ("tfcntr %u", pic->tfcntr);
+    DEBUG ("tfcntr %u", pic->tfcntr);
   }
 
   if (advhdr->pulldown) {
     if (!advhdr->interlace || advhdr->psf) {
 
       READ_UINT8 (br, pic->rptfrm, 2);
-      GST_DEBUG ("rptfrm %u", pic->rptfrm);
+      DEBUG ("rptfrm %u", pic->rptfrm);
 
     } else {
 
       READ_UINT8 (br, pic->tff, 1);
       READ_UINT8 (br, pic->rff, 1);
-      GST_DEBUG ("tff %u, rff %u", pic->tff, pic->rff);
+      DEBUG ("tff %u, rff %u", pic->tff, pic->rff);
     }
   }
 
@@ -990,29 +990,29 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
     READ_UINT8 (br, pic->ps_present, 1);
 
     if (pic->ps_present) {
-      guint i, nb_pan_scan_win = calculate_nb_pan_scan_win (advhdr, pic);
+      uint32_t i, nb_pan_scan_win = calculate_nb_pan_scan_win (advhdr, pic);
 
-      if (gst_bit_reader_get_remaining (br) < 64 * nb_pan_scan_win)
+      if (bit_reader_get_remaining (br) < 64 * nb_pan_scan_win)
         goto failed;
 
       for (i = 0; i < nb_pan_scan_win; i++) {
-        pic->ps_hoffset = gst_bit_reader_get_bits_uint32_unchecked (br, 18);
-        pic->ps_voffset = gst_bit_reader_get_bits_uint32_unchecked (br, 18);
-        pic->ps_width = gst_bit_reader_get_bits_uint16_unchecked (br, 14);
-        pic->ps_height = gst_bit_reader_get_bits_uint16_unchecked (br, 14);
+        pic->ps_hoffset = bit_reader_get_bits_uint32_unchecked (br, 18);
+        pic->ps_voffset = bit_reader_get_bits_uint32_unchecked (br, 18);
+        pic->ps_width = bit_reader_get_bits_uint16_unchecked (br, 14);
+        pic->ps_height = bit_reader_get_bits_uint16_unchecked (br, 14);
       }
     }
   }
 
-  if (framehdr->ptype == GST_VC1_PICTURE_TYPE_SKIPPED)
-    return GST_VC1_PARSER_OK;
+  if (framehdr->ptype == VC1_PICTURE_TYPE_SKIPPED)
+    return VC1_PARSER_OK;
 
   READ_UINT8 (br, pic->rndctrl, 1);
 
   if (advhdr->interlace) {
     READ_UINT8 (br, pic->uvsamp, 1);
-    GST_DEBUG ("uvsamp %u", pic->uvsamp);
-    if (pic->fcm == GST_VC1_FIELD_INTERLACE && entrypthdr->refdist_flag &&
+    DEBUG ("uvsamp %u", pic->uvsamp);
+    if (pic->fcm == VC1_FIELD_INTERLACE && entrypthdr->refdist_flag &&
         pic->fptype < 4)
       decode_refdist (br, &pic->refdist);
     else
@@ -1021,24 +1021,24 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
 
   if (advhdr->finterpflag) {
     READ_UINT8 (br, framehdr->interpfrm, 1);
-    GST_DEBUG ("interpfrm %u", framehdr->interpfrm);
+    DEBUG ("interpfrm %u", framehdr->interpfrm);
   }
 
-  if ((pic->fcm != GST_VC1_FIELD_INTERLACE &&
-          framehdr->ptype == GST_VC1_PICTURE_TYPE_B) ||
-      (pic->fcm == GST_VC1_FIELD_INTERLACE && (pic->fptype > 4))) {
+  if ((pic->fcm != VC1_FIELD_INTERLACE &&
+          framehdr->ptype == VC1_PICTURE_TYPE_B) ||
+      (pic->fcm == VC1_FIELD_INTERLACE && (pic->fptype > 4))) {
 
-    guint bfraction;
+    uint32_t bfraction;
 
     if (!decode_vlc (br, &bfraction, vc1_bfraction_vlc_table,
             G_N_ELEMENTS (vc1_bfraction_vlc_table)))
       goto failed;
 
     pic->bfraction = bfraction;
-    GST_DEBUG ("bfraction %u", pic->bfraction);
+    DEBUG ("bfraction %u", pic->bfraction);
 
-    if (pic->bfraction == GST_VC1_BFRACTION_PTYPE_BI) {
-      framehdr->ptype = GST_VC1_PICTURE_TYPE_BI;
+    if (pic->bfraction == VC1_BFRACTION_PTYPE_BI) {
+      framehdr->ptype = VC1_PICTURE_TYPE_BI;
     }
 
   }
@@ -1048,15 +1048,15 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
     goto failed;
 
   /* compute pquant */
-  if (entrypthdr->quantizer == GST_VC1_QUANTIZER_IMPLICITLY)
+  if (entrypthdr->quantizer == VC1_QUANTIZER_IMPLICITLY)
     framehdr->pquant = vc1_pquant_table[0][framehdr->pqindex];
   else
     framehdr->pquant = vc1_pquant_table[1][framehdr->pqindex];
 
   framehdr->pquantizer = 1;
-  if (entrypthdr->quantizer == GST_VC1_QUANTIZER_IMPLICITLY)
+  if (entrypthdr->quantizer == VC1_QUANTIZER_IMPLICITLY)
     framehdr->pquantizer = framehdr->pqindex < 9;
-  if (entrypthdr->quantizer == GST_VC1_QUANTIZER_NON_UNIFORM)
+  if (entrypthdr->quantizer == VC1_QUANTIZER_NON_UNIFORM)
     framehdr->pquantizer = 0;
 
   if (framehdr->pqindex <= 8)
@@ -1064,21 +1064,21 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
   else
     framehdr->halfqp = 0;
 
-  if (entrypthdr->quantizer == GST_VC1_QUANTIZER_EXPLICITLY) {
+  if (entrypthdr->quantizer == VC1_QUANTIZER_EXPLICITLY) {
     READ_UINT8 (br, framehdr->pquantizer, 1);
   }
 
   if (advhdr->postprocflag)
     READ_UINT8 (br, pic->postproc, 2);
 
-  GST_DEBUG ("Parsing %u picture, pqindex %u, pquant %u pquantizer %u"
+  DEBUG ("Parsing %u picture, pqindex %u, pquant %u pquantizer %u"
       "halfqp %u", framehdr->ptype, framehdr->pqindex, framehdr->pquant,
       framehdr->pquantizer, framehdr->halfqp);
 
   switch (framehdr->ptype) {
-    case GST_VC1_PICTURE_TYPE_I:
-    case GST_VC1_PICTURE_TYPE_BI:
-      if (pic->fcm == GST_VC1_FRAME_INTERLACE) {
+    case VC1_PICTURE_TYPE_I:
+    case VC1_PICTURE_TYPE_BI:
+      if (pic->fcm == VC1_FRAME_INTERLACE) {
         if (!bitplane_decoding (br, bitplanes ? bitplanes->fieldtx : NULL,
                 seqhdr, &pic->fieldtx))
           goto failed;
@@ -1091,15 +1091,15 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
       if (entrypthdr->overlap && framehdr->pquant <= 8) {
         pic->condover = decode012 (br);
 
-        if (pic->condover == (guint8) - 1)
+        if (pic->condover == (uint8_t) - 1)
           goto failed;
 
-        else if (pic->condover == GST_VC1_CONDOVER_SELECT) {
+        else if (pic->condover == VC1_CONDOVER_SELECT) {
           if (!bitplane_decoding (br, bitplanes ? bitplanes->overflags : NULL,
                   seqhdr, &pic->overflags))
             goto failed;
 
-          GST_DEBUG ("overflags %u", pic->overflags);
+          DEBUG ("overflags %u", pic->overflags);
         }
       }
 
@@ -1110,29 +1110,29 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
       if (framehdr->dquant)
         parse_vopdquant (br, framehdr, framehdr->dquant);
 
-      GST_DEBUG
+      DEBUG
           ("acpred %u, condover %u, transacfrm %u, transacfrm2 %u, transdctab %u",
           pic->acpred, pic->condover, framehdr->transacfrm, pic->transacfrm2,
           framehdr->transdctab);
       break;
 
-    case GST_VC1_PICTURE_TYPE_B:
+    case VC1_PICTURE_TYPE_B:
       if (entrypthdr->extended_mv)
         pic->mvrange = get_unary (br, 0, 3);
       else
         pic->mvrange = 0;
 
-      if (pic->fcm != GST_VC1_FRAME_PROGRESSIVE) {
+      if (pic->fcm != VC1_FRAME_PROGRESSIVE) {
         if (entrypthdr->extended_dmv)
           pic->dmvrange = get_unary (br, 0, 3);
       }
 
-      if (pic->fcm == GST_VC1_FRAME_INTERLACE)
+      if (pic->fcm == VC1_FRAME_INTERLACE)
         READ_UINT8 (br, pic->intcomp, 1);
       else
         READ_UINT8 (br, pic->mvmode, 1);
 
-      if (pic->fcm == GST_VC1_FIELD_INTERLACE) {
+      if (pic->fcm == VC1_FIELD_INTERLACE) {
 
         if (!bitplane_decoding (br, bitplanes ? bitplanes->forwardmb : NULL,
                 seqhdr, &pic->forwardmb))
@@ -1148,20 +1148,20 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
           goto failed;
       }
 
-      if (pic->fcm != GST_VC1_FRAME_PROGRESSIVE) {
-        if (gst_bit_reader_get_remaining (br) < 7)
+      if (pic->fcm != VC1_FRAME_PROGRESSIVE) {
+        if (bit_reader_get_remaining (br) < 7)
           goto failed;
 
-        pic->mbmodetab = gst_bit_reader_get_bits_uint8_unchecked (br, 2);
-        pic->imvtab = gst_bit_reader_get_bits_uint8_unchecked (br, 2);
-        pic->icbptab = gst_bit_reader_get_bits_uint8_unchecked (br, 3);
+        pic->mbmodetab = bit_reader_get_bits_uint8_unchecked (br, 2);
+        pic->imvtab = bit_reader_get_bits_uint8_unchecked (br, 2);
+        pic->icbptab = bit_reader_get_bits_uint8_unchecked (br, 3);
 
-        if (pic->fcm == GST_VC1_FRAME_INTERLACE)
+        if (pic->fcm == VC1_FRAME_INTERLACE)
           READ_UINT8 (br, pic->mvbptab2, 2);
 
-        if (pic->fcm == GST_VC1_FRAME_INTERLACE ||
-            (pic->fcm == GST_VC1_FIELD_INTERLACE
-                && pic->mvmode == GST_VC1_MVMODE_MIXED_MV))
+        if (pic->fcm == VC1_FRAME_INTERLACE ||
+            (pic->fcm == VC1_FIELD_INTERLACE
+                && pic->mvmode == VC1_MVMODE_MIXED_MV))
           READ_UINT8 (br, pic->mvbptab4, 2);
 
       } else {
@@ -1184,14 +1184,14 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
       framehdr->transacfrm = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      GST_DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
+      DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
           "cbptab %u directmb %u skipmb %u", framehdr->transacfrm,
           framehdr->transdctab, pic->mvmode, pic->mvtab, pic->cbptab,
           pic->directmb, pic->skipmb);
 
       break;
-    case GST_VC1_PICTURE_TYPE_P:
-      if (pic->fcm == GST_VC1_FIELD_INTERLACE) {
+    case VC1_PICTURE_TYPE_P:
+      if (pic->fcm == VC1_FIELD_INTERLACE) {
         READ_UINT8 (br, pic->numref, 1);
 
         if (pic->numref)
@@ -1203,12 +1203,12 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
       else
         pic->mvrange = 0;
 
-      if (pic->fcm != GST_VC1_FRAME_PROGRESSIVE) {
+      if (pic->fcm != VC1_FRAME_PROGRESSIVE) {
         if (entrypthdr->extended_dmv)
           pic->dmvrange = get_unary (br, 0, 3);
       }
 
-      if (pic->fcm == GST_VC1_FRAME_INTERLACE) {
+      if (pic->fcm == VC1_FRAME_INTERLACE) {
         READ_UINT8 (br, pic->mvswitch4, 1);
         READ_UINT8 (br, pic->intcomp, 1);
 
@@ -1221,64 +1221,64 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
         mvmodeidx = framehdr->pquant > 12;
         pic->mvmode = vc1_mvmode_table[mvmodeidx][get_unary (br, 1, 4)];
 
-        if (pic->mvmode == GST_VC1_MVMODE_INTENSITY_COMP) {
+        if (pic->mvmode == VC1_MVMODE_INTENSITY_COMP) {
           pic->mvmode2 = vc1_mvmode2_table[mvmodeidx][get_unary (br, 1, 3)];
 
-          if (pic->fcm == GST_VC1_FIELD_INTERLACE)
+          if (pic->fcm == VC1_FIELD_INTERLACE)
             pic->intcompfield = decode012 (br);
 
           READ_UINT8 (br, pic->lumscale, 6);
           READ_UINT8 (br, pic->lumshift, 6);
-          GST_DEBUG ("lumscale %u lumshift %u", pic->lumscale, pic->lumshift);
+          DEBUG ("lumscale %u lumshift %u", pic->lumscale, pic->lumshift);
 
-          if (pic->fcm == GST_VC1_FIELD_INTERLACE && pic->intcompfield) {
+          if (pic->fcm == VC1_FIELD_INTERLACE && pic->intcompfield) {
             READ_UINT8 (br, pic->lumscale2, 6);
             READ_UINT8 (br, pic->lumshift2, 6);
           }
         }
 
-        if (pic->fcm == GST_VC1_FRAME_PROGRESSIVE) {
-          if (pic->mvmode == GST_VC1_MVMODE_MIXED_MV ||
-              (pic->mvmode == GST_VC1_MVMODE_INTENSITY_COMP &&
-                  pic->mvmode2 == GST_VC1_MVMODE_MIXED_MV)) {
+        if (pic->fcm == VC1_FRAME_PROGRESSIVE) {
+          if (pic->mvmode == VC1_MVMODE_MIXED_MV ||
+              (pic->mvmode == VC1_MVMODE_INTENSITY_COMP &&
+                  pic->mvmode2 == VC1_MVMODE_MIXED_MV)) {
 
             if (!bitplane_decoding (br, bitplanes ? bitplanes->mvtypemb : NULL,
                     seqhdr, &pic->mvtypemb))
               goto failed;
 
-            GST_DEBUG ("mvtypemb %u", pic->mvtypemb);
+            DEBUG ("mvtypemb %u", pic->mvtypemb);
           }
         }
       }
 
-      if (pic->fcm != GST_VC1_FIELD_INTERLACE) {
+      if (pic->fcm != VC1_FIELD_INTERLACE) {
         if (!bitplane_decoding (br, bitplanes ? bitplanes->skipmb : NULL,
                 seqhdr, &pic->skipmb))
           goto failed;
       }
 
-      if (pic->fcm != GST_VC1_FRAME_PROGRESSIVE) {
-        if (gst_bit_reader_get_remaining (br) < 7)
+      if (pic->fcm != VC1_FRAME_PROGRESSIVE) {
+        if (bit_reader_get_remaining (br) < 7)
           goto failed;
 
-        pic->mbmodetab = gst_bit_reader_get_bits_uint8_unchecked (br, 2);
-        pic->imvtab = gst_bit_reader_get_bits_uint8_unchecked (br, 2);
-        pic->icbptab = gst_bit_reader_get_bits_uint8_unchecked (br, 3);
+        pic->mbmodetab = bit_reader_get_bits_uint8_unchecked (br, 2);
+        pic->imvtab = bit_reader_get_bits_uint8_unchecked (br, 2);
+        pic->icbptab = bit_reader_get_bits_uint8_unchecked (br, 3);
 
-        if (pic->fcm != GST_VC1_FIELD_INTERLACE) {
+        if (pic->fcm != VC1_FIELD_INTERLACE) {
           READ_UINT8 (br, pic->mvbptab2, 2);
 
           if (pic->mvswitch4)
             READ_UINT8 (br, pic->mvbptab4, 2);
 
-        } else if (pic->mvmode == GST_VC1_MVMODE_MIXED_MV)
+        } else if (pic->mvmode == VC1_MVMODE_MIXED_MV)
           READ_UINT8 (br, pic->mvbptab4, 2);
 
       } else {
-        if (gst_bit_reader_get_remaining (br) < 4)
+        if (bit_reader_get_remaining (br) < 4)
           goto failed;
-        pic->mvtab = gst_bit_reader_get_bits_uint8_unchecked (br, 2);
-        pic->cbptab = gst_bit_reader_get_bits_uint8_unchecked (br, 2);
+        pic->mvtab = bit_reader_get_bits_uint8_unchecked (br, 2);
+        pic->cbptab = bit_reader_get_bits_uint8_unchecked (br, 2);
       }
 
       if (framehdr->dquant) {
@@ -1296,7 +1296,7 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
       framehdr->transacfrm = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      GST_DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
+      DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
           "cbptab %u skipmb %u", framehdr->transacfrm, framehdr->transdctab,
           pic->mvmode, pic->mvtab, pic->cbptab, pic->skipmb);
 
@@ -1307,23 +1307,23 @@ parse_frame_header_advanced (GstBitReader * br, GstVC1FrameHdr * framehdr,
       break;
   }
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 
 failed:
-  GST_WARNING ("Failed to parse frame header");
+  WARNING ("Failed to parse frame header");
 
-  return GST_VC1_PARSER_ERROR;
+  return VC1_PARSER_ERROR;
 }
 
-static GstVC1ParserResult
-parse_frame_header (GstBitReader * br, GstVC1FrameHdr * framehdr,
-    GstVC1SeqHdr * seqhdr, GstVC1BitPlanes * bitplanes)
+static VC1ParserResult
+parse_frame_header (BitReader * br, VC1FrameHdr * framehdr,
+    VC1SeqHdr * seqhdr, VC1BitPlanes * bitplanes)
 {
-  guint8 mvmodeidx, tmp;
-  GstVC1PicSimpleMain *pic = &framehdr->pic.simple;
-  GstVC1SeqStructC *structc = &seqhdr->struct_c;
+  uint8_t mvmodeidx, tmp;
+  VC1PicSimpleMain *pic = &framehdr->pic.simple;
+  VC1SeqStructC *structc = &seqhdr->struct_c;
 
-  GST_DEBUG ("Parsing frame header in simple or main mode");
+  DEBUG ("Parsing frame header in simple or main mode");
 
   /* Set the conveninence fields */
   framehdr->profile = seqhdr->profile;
@@ -1349,52 +1349,52 @@ parse_frame_header (GstBitReader * br, GstVC1FrameHdr * framehdr,
       READ_UINT8 (br, tmp, 1);
 
       if (tmp)
-        framehdr->ptype = GST_VC1_PICTURE_TYPE_I;
+        framehdr->ptype = VC1_PICTURE_TYPE_I;
       else
-        framehdr->ptype = GST_VC1_PICTURE_TYPE_B;
+        framehdr->ptype = VC1_PICTURE_TYPE_B;
 
     } else
-      framehdr->ptype = GST_VC1_PICTURE_TYPE_P;
+      framehdr->ptype = VC1_PICTURE_TYPE_P;
 
   } else {
     if (framehdr->ptype)
-      framehdr->ptype = GST_VC1_PICTURE_TYPE_P;
+      framehdr->ptype = VC1_PICTURE_TYPE_P;
     else
-      framehdr->ptype = GST_VC1_PICTURE_TYPE_I;
+      framehdr->ptype = VC1_PICTURE_TYPE_I;
   }
 
 
-  if (framehdr->ptype == GST_VC1_PICTURE_TYPE_B) {
-    guint bfraction;
+  if (framehdr->ptype == VC1_PICTURE_TYPE_B) {
+    uint32_t bfraction;
     if (!decode_vlc (br, &bfraction, vc1_bfraction_vlc_table,
             G_N_ELEMENTS (vc1_bfraction_vlc_table)))
       goto failed;
 
     pic->bfraction = bfraction;
-    GST_DEBUG ("bfraction %d", pic->bfraction);
+    DEBUG ("bfraction %d", pic->bfraction);
 
-    if (pic->bfraction == GST_VC1_BFRACTION_PTYPE_BI) {
-      framehdr->ptype = GST_VC1_PICTURE_TYPE_BI;
+    if (pic->bfraction == VC1_BFRACTION_PTYPE_BI) {
+      framehdr->ptype = VC1_PICTURE_TYPE_BI;
     }
   }
 
-  if (framehdr->ptype == GST_VC1_PICTURE_TYPE_I ||
-      framehdr->ptype == GST_VC1_PICTURE_TYPE_BI)
+  if (framehdr->ptype == VC1_PICTURE_TYPE_I ||
+      framehdr->ptype == VC1_PICTURE_TYPE_BI)
     READ_UINT8 (br, pic->bf, 7);
 
   READ_UINT8 (br, framehdr->pqindex, 5);
   if (!framehdr->pqindex)
-    return GST_VC1_PARSER_ERROR;
+    return VC1_PARSER_ERROR;
 
-  GST_DEBUG ("pqindex %u", framehdr->pqindex);
+  DEBUG ("pqindex %u", framehdr->pqindex);
 
   /* compute pquant */
-  if (structc->quantizer == GST_VC1_QUANTIZER_IMPLICITLY)
+  if (structc->quantizer == VC1_QUANTIZER_IMPLICITLY)
     framehdr->pquant = vc1_pquant_table[0][framehdr->pqindex];
   else
     framehdr->pquant = vc1_pquant_table[1][framehdr->pqindex];
 
-  GST_DEBUG ("pquant %u", framehdr->pquant);
+  DEBUG ("pquant %u", framehdr->pquant);
 
   if (framehdr->pqindex <= 8)
     READ_UINT8 (br, framehdr->halfqp, 1);
@@ -1403,58 +1403,58 @@ parse_frame_header (GstBitReader * br, GstVC1FrameHdr * framehdr,
 
   /* Set pquantizer */
   framehdr->pquantizer = 1;
-  if (structc->quantizer == GST_VC1_QUANTIZER_IMPLICITLY)
+  if (structc->quantizer == VC1_QUANTIZER_IMPLICITLY)
     framehdr->pquantizer = framehdr->pqindex < 9;
-  else if (structc->quantizer == GST_VC1_QUANTIZER_NON_UNIFORM)
+  else if (structc->quantizer == VC1_QUANTIZER_NON_UNIFORM)
     framehdr->pquantizer = 0;
 
-  if (structc->quantizer == GST_VC1_QUANTIZER_EXPLICITLY)
+  if (structc->quantizer == VC1_QUANTIZER_EXPLICITLY)
     READ_UINT8 (br, framehdr->pquantizer, 1);
 
   if (structc->extended_mv == 1) {
     pic->mvrange = get_unary (br, 0, 3);
-    GST_DEBUG ("mvrange %u", pic->mvrange);
+    DEBUG ("mvrange %u", pic->mvrange);
   }
 
-  if (structc->multires && (framehdr->ptype == GST_VC1_PICTURE_TYPE_P ||
-          framehdr->ptype == GST_VC1_PICTURE_TYPE_I)) {
+  if (structc->multires && (framehdr->ptype == VC1_PICTURE_TYPE_P ||
+          framehdr->ptype == VC1_PICTURE_TYPE_I)) {
     READ_UINT8 (br, pic->respic, 2);
-    GST_DEBUG ("Respic %u", pic->respic);
+    DEBUG ("Respic %u", pic->respic);
   }
 
-  GST_DEBUG ("Parsing %u Frame, pquantizer %u, halfqp %u, rangeredfrm %u, "
+  DEBUG ("Parsing %u Frame, pquantizer %u, halfqp %u, rangeredfrm %u, "
       "interpfrm %u", framehdr->ptype, framehdr->pquantizer, framehdr->halfqp,
       pic->rangeredfrm, framehdr->interpfrm);
 
   switch (framehdr->ptype) {
-    case GST_VC1_PICTURE_TYPE_I:
-    case GST_VC1_PICTURE_TYPE_BI:
+    case VC1_PICTURE_TYPE_I:
+    case VC1_PICTURE_TYPE_BI:
       framehdr->transacfrm = get_unary (br, 0, 2);
       pic->transacfrm2 = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      GST_DEBUG ("transacfrm %u, transacfrm2 %u, transdctab %u",
+      DEBUG ("transacfrm %u, transacfrm2 %u, transdctab %u",
           framehdr->transacfrm, pic->transacfrm2, framehdr->transdctab);
       break;
 
-    case GST_VC1_PICTURE_TYPE_P:
+    case VC1_PICTURE_TYPE_P:
       mvmodeidx = framehdr->pquant > 12;
       pic->mvmode = vc1_mvmode_table[mvmodeidx][get_unary (br, 1, 4)];
 
-      if (pic->mvmode == GST_VC1_MVMODE_INTENSITY_COMP) {
+      if (pic->mvmode == VC1_MVMODE_INTENSITY_COMP) {
         pic->mvmode2 = vc1_mvmode2_table[mvmodeidx][get_unary (br, 1, 3)];
         READ_UINT8 (br, pic->lumscale, 6);
         READ_UINT8 (br, pic->lumshift, 6);
-        GST_DEBUG ("lumscale %u lumshift %u", pic->lumscale, pic->lumshift);
+        DEBUG ("lumscale %u lumshift %u", pic->lumscale, pic->lumshift);
       }
 
-      if (pic->mvmode == GST_VC1_MVMODE_MIXED_MV ||
-          (pic->mvmode == GST_VC1_MVMODE_INTENSITY_COMP &&
-              pic->mvmode2 == GST_VC1_MVMODE_MIXED_MV)) {
+      if (pic->mvmode == VC1_MVMODE_MIXED_MV ||
+          (pic->mvmode == VC1_MVMODE_INTENSITY_COMP &&
+              pic->mvmode2 == VC1_MVMODE_MIXED_MV)) {
         if (!bitplane_decoding (br, bitplanes ? bitplanes->mvtypemb : NULL,
                 seqhdr, &pic->mvtypemb))
           goto failed;
-        GST_DEBUG ("mvtypemb %u", pic->mvtypemb);
+        DEBUG ("mvtypemb %u", pic->mvtypemb);
       }
       if (!bitplane_decoding (br, bitplanes ? bitplanes->skipmb : NULL,
               seqhdr, &pic->skipmb))
@@ -1469,23 +1469,23 @@ parse_frame_header (GstBitReader * br, GstVC1FrameHdr * framehdr,
 
       if (structc->vstransform) {
         READ_UINT8 (br, pic->ttmbf, 1);
-        GST_DEBUG ("ttmbf %u", pic->ttmbf);
+        DEBUG ("ttmbf %u", pic->ttmbf);
 
         if (pic->ttmbf) {
           READ_UINT8 (br, pic->ttfrm, 2);
-          GST_DEBUG ("ttfrm %u", pic->ttfrm);
+          DEBUG ("ttfrm %u", pic->ttfrm);
         }
       }
 
       framehdr->transacfrm = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      GST_DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
+      DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
           "cbptab %u skipmb %u", framehdr->transacfrm, framehdr->transdctab,
           pic->mvmode, pic->mvtab, pic->cbptab, pic->skipmb);
       break;
 
-    case GST_VC1_PICTURE_TYPE_B:
+    case VC1_PICTURE_TYPE_B:
       READ_UINT8 (br, pic->mvmode, 1);
       if (!bitplane_decoding (br, bitplanes ? bitplanes->directmb : NULL,
               seqhdr, &pic->directmb))
@@ -1512,7 +1512,7 @@ parse_frame_header (GstBitReader * br, GstVC1FrameHdr * framehdr,
       framehdr->transacfrm = get_unary (br, 0, 2);
       READ_UINT8 (br, framehdr->transdctab, 1);
 
-      GST_DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
+      DEBUG ("transacfrm %u transdctab %u mvmode %u mvtab %u,"
           "cbptab %u directmb %u skipmb %u", framehdr->transacfrm,
           framehdr->transdctab, pic->mvmode, pic->mvtab, pic->cbptab,
           pic->directmb, pic->skipmb);
@@ -1524,107 +1524,107 @@ parse_frame_header (GstBitReader * br, GstVC1FrameHdr * framehdr,
       break;
   }
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 
 failed:
-  GST_WARNING ("Failed to parse Simple picture header");
+  WARNING ("Failed to parse Simple picture header");
 
-  return GST_VC1_PARSER_ERROR;
+  return VC1_PARSER_ERROR;
 }
 
-static GstVC1ParserResult
-parse_sequence_header_struct_a (GstBitReader * br, GstVC1SeqStructA * structa)
+static VC1ParserResult
+parse_sequence_header_struct_a (BitReader * br, VC1SeqStructA * structa)
 {
-  if (gst_bit_reader_get_remaining (br) < 64) {
-    GST_WARNING ("Failed to parse struct A");
+  if (bit_reader_get_remaining (br) < 64) {
+    WARNING ("Failed to parse struct A");
 
-    return GST_VC1_PARSER_ERROR;
+    return VC1_PARSER_ERROR;
   }
 
-  structa->vert_size = gst_bit_reader_get_bits_uint32_unchecked (br, 32);
-  structa->horiz_size = gst_bit_reader_get_bits_uint32_unchecked (br, 32);
+  structa->vert_size = bit_reader_get_bits_uint32_unchecked (br, 32);
+  structa->horiz_size = bit_reader_get_bits_uint32_unchecked (br, 32);
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 }
 
-static GstVC1ParserResult
-parse_sequence_header_struct_b (GstBitReader * br, GstVC1SeqStructB * structb)
+static VC1ParserResult
+parse_sequence_header_struct_b (BitReader * br, VC1SeqStructB * structb)
 {
-  if (gst_bit_reader_get_remaining (br) < 96) {
-    GST_WARNING ("Failed to parse sequence header");
+  if (bit_reader_get_remaining (br) < 96) {
+    WARNING ("Failed to parse sequence header");
 
-    return GST_VC1_PARSER_ERROR;
+    return VC1_PARSER_ERROR;
   }
 
-  structb->level = gst_bit_reader_get_bits_uint8_unchecked (br, 3);
-  structb->cbr = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  structb->level = bit_reader_get_bits_uint8_unchecked (br, 3);
+  structb->cbr = bit_reader_get_bits_uint8_unchecked (br, 1);
 
   /* res4 */
-  gst_bit_reader_skip_unchecked (br, 4);
+  bit_reader_skip_unchecked (br, 4);
 
-  structb->hrd_buffer = gst_bit_reader_get_bits_uint32_unchecked (br, 24);
-  structb->hrd_rate = gst_bit_reader_get_bits_uint32_unchecked (br, 32);
-  structb->framerate = gst_bit_reader_get_bits_uint32_unchecked (br, 32);
+  structb->hrd_buffer = bit_reader_get_bits_uint32_unchecked (br, 24);
+  structb->hrd_rate = bit_reader_get_bits_uint32_unchecked (br, 32);
+  structb->framerate = bit_reader_get_bits_uint32_unchecked (br, 32);
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 }
 
-static GstVC1ParserResult
-parse_sequence_header_struct_c (GstBitReader * br, GstVC1SeqStructC * structc)
+static VC1ParserResult
+parse_sequence_header_struct_c (BitReader * br, VC1SeqStructC * structc)
 {
-  guint8 old_interlaced_mode, tmp;
+  uint8_t old_interlaced_mode, tmp;
 
   READ_UINT8 (br, tmp, 2);
   structc->profile = tmp;
 
-  if (structc->profile == GST_VC1_PROFILE_ADVANCED)
-    return GST_VC1_PARSER_OK;
+  if (structc->profile == VC1_PROFILE_ADVANCED)
+    return VC1_PARSER_OK;
 
-  GST_DEBUG ("Parsing sequence header in simple or main mode");
+  DEBUG ("Parsing sequence header in simple or main mode");
 
-  if (gst_bit_reader_get_remaining (br) < 29)
+  if (bit_reader_get_remaining (br) < 29)
     goto failed;
 
   /* Reserved bits */
-  old_interlaced_mode = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  old_interlaced_mode = bit_reader_get_bits_uint8_unchecked (br, 1);
   if (old_interlaced_mode)
-    GST_WARNING ("Old interlaced mode used");
+    WARNING ("Old interlaced mode used");
 
-  structc->wmvp = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->wmvp = bit_reader_get_bits_uint8_unchecked (br, 1);
   if (structc->wmvp)
-    GST_DEBUG ("WMVP mode");
+    DEBUG ("WMVP mode");
 
-  structc->frmrtq_postproc = gst_bit_reader_get_bits_uint8_unchecked (br, 3);
-  structc->bitrtq_postproc = gst_bit_reader_get_bits_uint8_unchecked (br, 5);
-  structc->loop_filter = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->frmrtq_postproc = bit_reader_get_bits_uint8_unchecked (br, 3);
+  structc->bitrtq_postproc = bit_reader_get_bits_uint8_unchecked (br, 5);
+  structc->loop_filter = bit_reader_get_bits_uint8_unchecked (br, 1);
 
   calculate_framerate_bitrate (structc->frmrtq_postproc,
       structc->bitrtq_postproc, &structc->framerate, &structc->bitrate);
 
   /* Skipping reserved3 bit */
-  gst_bit_reader_skip_unchecked (br, 1);
+  bit_reader_skip_unchecked (br, 1);
 
-  structc->multires = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->multires = bit_reader_get_bits_uint8_unchecked (br, 1);
 
   /* Skipping reserved4 bit */
-  gst_bit_reader_skip_unchecked (br, 1);
+  bit_reader_skip_unchecked (br, 1);
 
-  structc->fastuvmc = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  structc->extended_mv = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  structc->dquant = gst_bit_reader_get_bits_uint8_unchecked (br, 2);
-  structc->vstransform = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->fastuvmc = bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->extended_mv = bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->dquant = bit_reader_get_bits_uint8_unchecked (br, 2);
+  structc->vstransform = bit_reader_get_bits_uint8_unchecked (br, 1);
 
   /* Skipping reserved5 bit */
-  gst_bit_reader_skip_unchecked (br, 1);
+  bit_reader_skip_unchecked (br, 1);
 
-  structc->overlap = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  structc->syncmarker = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  structc->rangered = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
-  structc->maxbframes = gst_bit_reader_get_bits_uint8_unchecked (br, 3);
-  structc->quantizer = gst_bit_reader_get_bits_uint8_unchecked (br, 2);
-  structc->finterpflag = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->overlap = bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->syncmarker = bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->rangered = bit_reader_get_bits_uint8_unchecked (br, 1);
+  structc->maxbframes = bit_reader_get_bits_uint8_unchecked (br, 3);
+  structc->quantizer = bit_reader_get_bits_uint8_unchecked (br, 2);
+  structc->finterpflag = bit_reader_get_bits_uint8_unchecked (br, 1);
 
-  GST_DEBUG ("frmrtq_postproc %u, bitrtq_postproc %u, loop_filter %u, "
+  DEBUG ("frmrtq_postproc %u, bitrtq_postproc %u, loop_filter %u, "
       "multires %u, fastuvmc %u, extended_mv %u, dquant %u, vstransform %u, "
       "overlap %u, syncmarker %u, rangered %u, maxbframes %u, quantizer %u, "
       "finterpflag %u", structc->frmrtq_postproc, structc->bitrtq_postproc,
@@ -1634,75 +1634,75 @@ parse_sequence_header_struct_c (GstBitReader * br, GstVC1SeqStructC * structc)
       structc->maxbframes, structc->quantizer, structc->finterpflag);
 
   if (structc->wmvp) {
-    if (gst_bit_reader_get_remaining (br) < 29)
+    if (bit_reader_get_remaining (br) < 29)
       goto failed;
 
-    structc->coded_width = gst_bit_reader_get_bits_uint16_unchecked (br, 11);
-    structc->coded_height = gst_bit_reader_get_bits_uint16_unchecked (br, 11);
-    structc->framerate = gst_bit_reader_get_bits_uint8_unchecked (br, 5);
-    gst_bit_reader_skip_unchecked (br, 1);
-    structc->slice_code = gst_bit_reader_get_bits_uint8_unchecked (br, 1);
+    structc->coded_width = bit_reader_get_bits_uint16_unchecked (br, 11);
+    structc->coded_height = bit_reader_get_bits_uint16_unchecked (br, 11);
+    structc->framerate = bit_reader_get_bits_uint8_unchecked (br, 5);
+    bit_reader_skip_unchecked (br, 1);
+    structc->slice_code = bit_reader_get_bits_uint8_unchecked (br, 1);
 
-    GST_DEBUG ("coded_width %u, coded_height %u, framerate %u slice_code %u",
+    DEBUG ("coded_width %u, coded_height %u, framerate %u slice_code %u",
         structc->coded_width, structc->coded_height, structc->framerate,
         structc->slice_code);
   }
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 
 failed:
-  GST_WARNING ("Failed to struct C");
+  WARNING ("Failed to struct C");
 
-  return GST_VC1_PARSER_ERROR;
+  return VC1_PARSER_ERROR;
 }
 
 /**** API ****/
 /**
- * gst_vc1_identify_next_bdu:
+ * vc1_identify_next_bdu:
  * @data: The data to parse
  * @size: the size of @data
- * @bdu: (out): The #GstVC1BDU where to store parsed bdu headers
+ * @bdu: (out): The #VC1BDU where to store parsed bdu headers
  *
  * Parses @data and fills @bdu fields
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_identify_next_bdu (const guint8 * data, gsize size, GstVC1BDU * bdu)
+VC1ParserResult
+vc1_identify_next_bdu (const uint8_t * data, size_t size, VC1BDU * bdu)
 {
-  gint off1, off2;
+  int32_t off1, off2;
 
-  g_return_val_if_fail (bdu != NULL, GST_VC1_PARSER_ERROR);
+  g_return_val_if_fail (bdu != NULL, VC1_PARSER_ERROR);
 
   if (size < 4) {
-    GST_DEBUG ("Can't parse, buffer has too small size %" G_GSIZE_FORMAT, size);
-    return GST_VC1_PARSER_ERROR;
+    DEBUG ("Can't parse, buffer has too small size %" G_GSIZE_FORMAT, size);
+    return VC1_PARSER_ERROR;
   }
 
   off1 = scan_for_start_codes (data, size);
 
   if (off1 < 0) {
-    GST_DEBUG ("No start code prefix in this buffer");
-    return GST_VC1_PARSER_NO_BDU;
+    DEBUG ("No start code prefix in this buffer");
+    return VC1_PARSER_NO_BDU;
   }
 
   bdu->sc_offset = off1;
 
   bdu->offset = off1 + 4;
-  bdu->data = (guint8 *) data;
-  bdu->type = (GstVC1StartCode) (data[bdu->offset - 1]);
+  bdu->data = (uint8_t *) data;
+  bdu->type = (VC1StartCode) (data[bdu->offset - 1]);
 
-  if (bdu->type == GST_VC1_END_OF_SEQ) {
-    GST_DEBUG ("End-of-Seq BDU found");
+  if (bdu->type == VC1_END_OF_SEQ) {
+    DEBUG ("End-of-Seq BDU found");
     bdu->size = 0;
-    return GST_VC1_PARSER_OK;
+    return VC1_PARSER_OK;
   }
 
   off2 = scan_for_start_codes (data + bdu->offset, size - bdu->offset);
   if (off2 < 0) {
-    GST_DEBUG ("Bdu start %d, No end found", bdu->offset);
+    DEBUG ("Bdu start %d, No end found", bdu->offset);
 
-    return GST_VC1_PARSER_NO_BDU_END;
+    return VC1_PARSER_NO_BDU_END;
   }
 
   if (off2 > 0 && data[bdu->offset + off2 - 1] == 00)
@@ -1710,50 +1710,50 @@ gst_vc1_identify_next_bdu (const guint8 * data, gsize size, GstVC1BDU * bdu)
 
   bdu->size = off2;
 
-  GST_DEBUG ("Complete bdu found. Off: %d, Size: %d", bdu->offset, bdu->size);
-  return GST_VC1_PARSER_OK;
+  DEBUG ("Complete bdu found. Off: %d, Size: %d", bdu->offset, bdu->size);
+  return VC1_PARSER_OK;
 }
 
 /**
- * gst_vc1_parse_sequence_layer:
+ * vc1_parse_sequence_layer:
  * @data: The data to parse
  * @size: the size of @data
- * @seqlayer: The #GstVC1SeqLayer to set.
+ * @seqlayer: The #VC1SeqLayer to set.
  *
  * Parses @data, and fills @seqlayer fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_parse_sequence_layer (const guint8 * data, gsize size,
-    GstVC1SeqLayer * seqlayer)
+VC1ParserResult
+vc1_parse_sequence_layer (const uint8_t * data, size_t size,
+    VC1SeqLayer * seqlayer)
 {
-  guint32 tmp;
-  guint8 tmp8;
-  guint8 structA[8] = { 0, };
-  guint8 structB[12] = { 0, };
-  GstBitReader br;
-  GstByteReader byter = GST_BYTE_READER_INIT (data, size);
-  GstByteWriter bytew;
+  uint32_t tmp;
+  uint8_t tmp8;
+  uint8_t structA[8] = { 0, };
+  uint8_t structB[12] = { 0, };
+  BitReader br;
+  ByteReader byter = BYTE_READER_INIT (data, size);
+  ByteWriter bytew;
 
-  g_return_val_if_fail (seqlayer != NULL, GST_VC1_PARSER_ERROR);
+  g_return_val_if_fail (seqlayer != NULL, VC1_PARSER_ERROR);
 
   /* Thanks to the specification, structA and structB fields are defined
    * as unisgned integer msb first.
    * But in sequence-layer there are serialized in little-endian byte order,
    * so we must take care of their endianness before using bit reader */
 
-  if (!gst_byte_reader_get_uint24_le (&byter, &seqlayer->numframes))
+  if (!byte_reader_get_uint24_le (&byter, &seqlayer->numframes))
     goto failed;
 
-  if (!gst_byte_reader_get_uint8 (&byter, &tmp8))
+  if (!byte_reader_get_uint8 (&byter, &tmp8))
     goto failed;
 
   if (tmp8 != 0xC5)
     goto failed;
 
   /* 0x00000004 */
-  if (!gst_byte_reader_get_uint32_le (&byter, &tmp))
+  if (!byte_reader_get_uint32_le (&byter, &tmp))
     goto failed;
 
   if (tmp != 0x04)
@@ -1761,203 +1761,203 @@ gst_vc1_parse_sequence_layer (const guint8 * data, gsize size,
 
   /* As an exception, structC is serialized in big-endian byte order so
    * no endianness issue here but we should at least have 4 bytes */
-  if (gst_byte_reader_get_remaining (&byter) < 4)
+  if (byte_reader_get_remaining (&byter) < 4)
     goto failed;
 
-  gst_bit_reader_init (&br, data + gst_byte_reader_get_pos (&byter), 4);
+  bit_reader_init (&br, data + byte_reader_get_pos (&byter), 4);
   if (parse_sequence_header_struct_c (&br, &seqlayer->struct_c) ==
-      GST_VC1_PARSER_ERROR)
+      VC1_PARSER_ERROR)
     goto failed;
 
-  gst_byte_reader_skip (&byter, 4);
+  byte_reader_skip (&byter, 4);
 
   /* structA */
-  gst_byte_writer_init_with_data (&bytew, structA, 8, TRUE);
-  gst_byte_reader_get_uint32_le (&byter, &tmp);
-  gst_byte_writer_put_uint32_be (&bytew, tmp);
-  gst_byte_reader_get_uint32_le (&byter, &tmp);
-  gst_byte_writer_put_uint32_be (&bytew, tmp);
+  byte_writer_init_with_data (&bytew, structA, 8, TRUE);
+  byte_reader_get_uint32_le (&byter, &tmp);
+  byte_writer_put_uint32_be (&bytew, tmp);
+  byte_reader_get_uint32_le (&byter, &tmp);
+  byte_writer_put_uint32_be (&bytew, tmp);
 
-  gst_bit_reader_init (&br, structA, 8);
+  bit_reader_init (&br, structA, 8);
   if (parse_sequence_header_struct_a (&br, &seqlayer->struct_a) ==
-      GST_VC1_PARSER_ERROR)
+      VC1_PARSER_ERROR)
     goto failed;
 
   /* 0x0000000C */
-  if (!gst_byte_reader_get_uint32_le (&byter, &tmp))
+  if (!byte_reader_get_uint32_le (&byter, &tmp))
     goto failed;
 
   if (tmp != 0x0C)
     goto failed;
 
   /* structB */
-  gst_byte_writer_reset (&bytew);
-  gst_byte_writer_init_with_data (&bytew, structB, 12, TRUE);
-  gst_byte_reader_get_uint32_le (&byter, &tmp);
-  gst_byte_writer_put_uint32_be (&bytew, tmp);
-  gst_byte_reader_get_uint32_le (&byter, &tmp);
-  gst_byte_writer_put_uint32_be (&bytew, tmp);
-  gst_byte_reader_get_uint32_le (&byter, &tmp);
-  gst_byte_writer_put_uint32_be (&bytew, tmp);
+  byte_writer_reset (&bytew);
+  byte_writer_init_with_data (&bytew, structB, 12, TRUE);
+  byte_reader_get_uint32_le (&byter, &tmp);
+  byte_writer_put_uint32_be (&bytew, tmp);
+  byte_reader_get_uint32_le (&byter, &tmp);
+  byte_writer_put_uint32_be (&bytew, tmp);
+  byte_reader_get_uint32_le (&byter, &tmp);
+  byte_writer_put_uint32_be (&bytew, tmp);
 
-  gst_bit_reader_init (&br, structB, 12);
+  bit_reader_init (&br, structB, 12);
   if (parse_sequence_header_struct_b (&br, &seqlayer->struct_b) ==
-      GST_VC1_PARSER_ERROR)
+      VC1_PARSER_ERROR)
     goto failed;
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 
 failed:
-  GST_WARNING ("Failed to parse sequence layer");
+  WARNING ("Failed to parse sequence layer");
 
-  return GST_VC1_PARSER_ERROR;
+  return VC1_PARSER_ERROR;
 }
 
 /**
- * gst_vc1_parse_sequence_header_struct_a:
+ * vc1_parse_sequence_header_struct_a:
  * @data: The data to parse
  * @size: the size of @data
- * @structa: The #GstVC1SeqStructA to set.
+ * @structa: The #VC1SeqStructA to set.
  *
  * Parses @data, and fills @structa fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_parse_sequence_header_struct_a (const guint8 * data,
-    gsize size, GstVC1SeqStructA * structa)
+VC1ParserResult
+vc1_parse_sequence_header_struct_a (const uint8_t * data,
+    size_t size, VC1SeqStructA * structa)
 {
-  GstBitReader br = GST_BIT_READER_INIT (data, size);
+  BitReader br = BIT_READER_INIT (data, size);
 
-  g_return_val_if_fail (structa != NULL, GST_VC1_PARSER_ERROR);
+  g_return_val_if_fail (structa != NULL, VC1_PARSER_ERROR);
 
   return parse_sequence_header_struct_a (&br, structa);
 }
 
 /**
- * gst_vc1_parse_sequence_header_struct_b:
+ * vc1_parse_sequence_header_struct_b:
  * @data: The data to parse
  * @size: the size of @data
- * @structb: The #GstVC1SeqStructB to set.
+ * @structb: The #VC1SeqStructB to set.
  *
  * Parses @data, and fills @structb fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_parse_sequence_header_struct_b (const guint8 * data,
-    gsize size, GstVC1SeqStructB * structb)
+VC1ParserResult
+vc1_parse_sequence_header_struct_b (const uint8_t * data,
+    size_t size, VC1SeqStructB * structb)
 {
-  GstBitReader br = GST_BIT_READER_INIT (data, size);
+  BitReader br = BIT_READER_INIT (data, size);
 
-  g_return_val_if_fail (structb != NULL, GST_VC1_PARSER_ERROR);
+  g_return_val_if_fail (structb != NULL, VC1_PARSER_ERROR);
 
   return parse_sequence_header_struct_b (&br, structb);
 }
 
 /**
- * gst_vc1_parse_sequence_header_struct_c:
+ * vc1_parse_sequence_header_struct_c:
  * @data: The data to parse
  * @size: the size of @data
- * @structc: The #GstVC1SeqStructC to set.
+ * @structc: The #VC1SeqStructC to set.
  *
  * Parses @data, and fills @structc fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_parse_sequence_header_struct_c (const guint8 * data, gsize size,
-    GstVC1SeqStructC * structc)
+VC1ParserResult
+vc1_parse_sequence_header_struct_c (const uint8_t * data, size_t size,
+    VC1SeqStructC * structc)
 {
-  GstBitReader br = GST_BIT_READER_INIT (data, size);
+  BitReader br = BIT_READER_INIT (data, size);
 
-  g_return_val_if_fail (structc != NULL, GST_VC1_PARSER_ERROR);
+  g_return_val_if_fail (structc != NULL, VC1_PARSER_ERROR);
 
   return parse_sequence_header_struct_c (&br, structc);
 }
 
 /**
-* gst_vc1_parse_sequence_header:
+* vc1_parse_sequence_header:
 * @data: The data to parse
 * @size: the size of @data
-* @seqhdr: The #GstVC1SeqHdr to set.
+* @seqhdr: The #VC1SeqHdr to set.
  *
  * Parses @data, and fills @seqhdr fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_parse_sequence_header (const guint8 * data, gsize size,
-    GstVC1SeqHdr * seqhdr)
+VC1ParserResult
+vc1_parse_sequence_header (const uint8_t * data, size_t size,
+    VC1SeqHdr * seqhdr)
 {
-  GstBitReader br = GST_BIT_READER_INIT (data, size);
+  BitReader br = BIT_READER_INIT (data, size);
 
-  g_return_val_if_fail (seqhdr != NULL, GST_VC1_PARSER_ERROR);
+  g_return_val_if_fail (seqhdr != NULL, VC1_PARSER_ERROR);
 
   if (parse_sequence_header_struct_c (&br, &seqhdr->struct_c) ==
-      GST_VC1_PARSER_ERROR)
+      VC1_PARSER_ERROR)
     goto failed;
 
   /*  Convenience field */
   seqhdr->profile = seqhdr->struct_c.profile;
 
-  if (seqhdr->profile == GST_VC1_PROFILE_ADVANCED)
+  if (seqhdr->profile == VC1_PROFILE_ADVANCED)
     return parse_sequence_header_advanced (seqhdr, &br);
 
   /* Compute MB height and width */
   calculate_mb_size (seqhdr, seqhdr->struct_c.coded_width,
       seqhdr->struct_c.coded_height);
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 
 failed:
-  GST_WARNING ("Failed to parse sequence header");
+  WARNING ("Failed to parse sequence header");
 
-  return GST_VC1_PARSER_ERROR;
+  return VC1_PARSER_ERROR;
 }
 
 /**
- * gst_vc1_parse_entry_point_header:
+ * vc1_parse_entry_point_header:
  * @data: The data to parse
  * @size: the size of @data
- * @entrypoint: (out): The #GstVC1EntryPointHdr to set.
- * @seqhdr: The #GstVC1SeqHdr currently being parsed
+ * @entrypoint: (out): The #VC1EntryPointHdr to set.
+ * @seqhdr: The #VC1SeqHdr currently being parsed
  *
  * Parses @data, and sets @entrypoint fields.
  *
- * Returns: a #GstVC1EntryPointHdr
+ * Returns: a #VC1EntryPointHdr
  */
-GstVC1ParserResult
-gst_vc1_parse_entry_point_header (const guint8 * data, gsize size,
-    GstVC1EntryPointHdr * entrypoint, GstVC1SeqHdr * seqhdr)
+VC1ParserResult
+vc1_parse_entry_point_header (const uint8_t * data, size_t size,
+    VC1EntryPointHdr * entrypoint, VC1SeqHdr * seqhdr)
 {
-  GstBitReader br;
-  guint8 i;
-  GstVC1AdvancedSeqHdr *advanced = &seqhdr->advanced;
+  BitReader br;
+  uint8_t i;
+  VC1AdvancedSeqHdr *advanced = &seqhdr->advanced;
 
-  g_return_val_if_fail (entrypoint != NULL, GST_VC1_PARSER_ERROR);
+  g_return_val_if_fail (entrypoint != NULL, VC1_PARSER_ERROR);
 
-  gst_bit_reader_init (&br, data, size);
+  bit_reader_init (&br, data, size);
 
-  if (gst_bit_reader_get_remaining (&br) < 13)
+  if (bit_reader_get_remaining (&br) < 13)
     goto failed;
 
-  entrypoint->broken_link = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->closed_entry = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->panscan_flag = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->refdist_flag = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->loopfilter = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->fastuvmc = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->extended_mv = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->dquant = gst_bit_reader_get_bits_uint8_unchecked (&br, 2);
-  entrypoint->vstransform = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->overlap = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  entrypoint->quantizer = gst_bit_reader_get_bits_uint8_unchecked (&br, 2);
+  entrypoint->broken_link = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->closed_entry = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->panscan_flag = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->refdist_flag = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->loopfilter = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->fastuvmc = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->extended_mv = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->dquant = bit_reader_get_bits_uint8_unchecked (&br, 2);
+  entrypoint->vstransform = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->overlap = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  entrypoint->quantizer = bit_reader_get_bits_uint8_unchecked (&br, 2);
 
   if (advanced->hrd_param_flag) {
     if (seqhdr->advanced.hrd_param.hrd_num_leaky_buckets >
         MAX_HRD_NUM_LEAKY_BUCKETS) {
-      GST_WARNING
+      WARNING
           ("hrd_num_leaky_buckets (%d) > MAX_HRD_NUM_LEAKY_BUCKETS (%d)",
           seqhdr->advanced.hrd_param.hrd_num_leaky_buckets,
           MAX_HRD_NUM_LEAKY_BUCKETS);
@@ -1990,43 +1990,43 @@ gst_vc1_parse_entry_point_header (const guint8 * data, gsize size,
 
   advanced->entrypoint = *entrypoint;
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 
 failed:
-  GST_WARNING ("Failed to parse entry point header");
+  WARNING ("Failed to parse entry point header");
 
-  return GST_VC1_PARSER_ERROR;
+  return VC1_PARSER_ERROR;
 }
 
 /**
- * gst_vc1_parse_frame_layer:
+ * vc1_parse_frame_layer:
  * @data: The data to parse
  * @size: the size of @data
- * @framelayer: The #GstVC1FrameLayer to fill.
+ * @framelayer: The #VC1FrameLayer to fill.
  *
  * Parses @data, and fills @framelayer fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_parse_frame_layer (const guint8 * data, gsize size,
-    GstVC1FrameLayer * framelayer)
+VC1ParserResult
+vc1_parse_frame_layer (const uint8_t * data, size_t size,
+    VC1FrameLayer * framelayer)
 {
-  GstBitReader br = GST_BIT_READER_INIT (data, size);
+  BitReader br = BIT_READER_INIT (data, size);
 
-  if (gst_bit_reader_get_remaining (&br) < 64) {
-    GST_WARNING ("Could not parse frame layer");
+  if (bit_reader_get_remaining (&br) < 64) {
+    WARNING ("Could not parse frame layer");
 
-    return GST_VC1_PARSER_ERROR;
+    return VC1_PARSER_ERROR;
   }
 
   /* set default values */
   framelayer->skiped_p_frame = 0;
 
-  framelayer->key = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
-  gst_bit_reader_skip_unchecked (&br, 7);
+  framelayer->key = bit_reader_get_bits_uint8_unchecked (&br, 1);
+  bit_reader_skip_unchecked (&br, 7);
 
-  framelayer->framesize = gst_bit_reader_get_bits_uint32_unchecked (&br, 24);
+  framelayer->framesize = bit_reader_get_bits_uint32_unchecked (&br, 24);
 
   if (framelayer->framesize == 0 || framelayer->framesize == 1)
     framelayer->skiped_p_frame = 1;
@@ -2034,64 +2034,64 @@ gst_vc1_parse_frame_layer (const guint8 * data, gsize size,
   /* compute  next_framelayer_offset */
   framelayer->next_framelayer_offset = framelayer->framesize + 8;
 
-  framelayer->timestamp = gst_bit_reader_get_bits_uint32_unchecked (&br, 32);
+  framelayer->timestamp = bit_reader_get_bits_uint32_unchecked (&br, 32);
 
-  return GST_VC1_PARSER_OK;
+  return VC1_PARSER_OK;
 }
 
 /**
- * gst_vc1_parse_frame_header:
+ * vc1_parse_frame_header:
  * @data: The data to parse
  * @size: the size of @data
- * @framehdr: The #GstVC1FrameHdr to fill.
- * @seqhdr: The #GstVC1SeqHdr currently being parsed
- * @bitplanes: The #GstVC1BitPlanes to store bitplanes in or %NULL
+ * @framehdr: The #VC1FrameHdr to fill.
+ * @seqhdr: The #VC1SeqHdr currently being parsed
+ * @bitplanes: The #VC1BitPlanes to store bitplanes in or %NULL
  *
  * Parses @data, and fills @entrypoint fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_parse_frame_header (const guint8 * data, gsize size,
-    GstVC1FrameHdr * framehdr, GstVC1SeqHdr * seqhdr,
-    GstVC1BitPlanes * bitplanes)
+VC1ParserResult
+vc1_parse_frame_header (const uint8_t * data, size_t size,
+    VC1FrameHdr * framehdr, VC1SeqHdr * seqhdr,
+    VC1BitPlanes * bitplanes)
 {
-  GstBitReader br;
-  GstVC1ParserResult result;
+  BitReader br;
+  VC1ParserResult result;
 
-  gst_bit_reader_init (&br, data, size);
+  bit_reader_init (&br, data, size);
 
-  if (seqhdr->profile == GST_VC1_PROFILE_ADVANCED)
+  if (seqhdr->profile == VC1_PROFILE_ADVANCED)
     result = parse_frame_header_advanced (&br, framehdr, seqhdr, bitplanes,
         FALSE);
   else
     result = parse_frame_header (&br, framehdr, seqhdr, bitplanes);
 
-  framehdr->header_size = gst_bit_reader_get_pos (&br);
+  framehdr->header_size = bit_reader_get_pos (&br);
   return result;
 }
 
 /**
- * gst_vc1_parse_field_header:
+ * vc1_parse_field_header:
  * @data: The data to parse
  * @size: the size of @data
- * @fieldhdr: The #GstVC1FrameHdr to fill.
- * @seqhdr: The #GstVC1SeqHdr currently being parsed
- * @bitplanes: The #GstVC1BitPlanes to store bitplanes in or %NULL
+ * @fieldhdr: The #VC1FrameHdr to fill.
+ * @seqhdr: The #VC1SeqHdr currently being parsed
+ * @bitplanes: The #VC1BitPlanes to store bitplanes in or %NULL
  *
  * Parses @data, and fills @fieldhdr fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  */
-GstVC1ParserResult
-gst_vc1_parse_field_header (const guint8 * data, gsize size,
-    GstVC1FrameHdr * fieldhdr, GstVC1SeqHdr * seqhdr,
-    GstVC1BitPlanes * bitplanes)
+VC1ParserResult
+vc1_parse_field_header (const uint8_t * data, size_t size,
+    VC1FrameHdr * fieldhdr, VC1SeqHdr * seqhdr,
+    VC1BitPlanes * bitplanes)
 {
-  GstBitReader br;
-  GstVC1ParserResult result;
+  BitReader br;
+  VC1ParserResult result;
 
-  gst_bit_reader_init (&br, data, size);
+  bit_reader_init (&br, data, size);
 
   result = parse_frame_header_advanced (&br, fieldhdr, seqhdr, bitplanes, TRUE);
 
@@ -2099,84 +2099,84 @@ gst_vc1_parse_field_header (const guint8 * data, gsize size,
 }
 
 /**
- * gst_vc1_parse_slice_header:
+ * vc1_parse_slice_header:
  * @data: The data to parse
  * @size: The size of @data
- * @slicehdr: The #GstVC1SliceHdr to fill
- * @seqhdr: The #GstVC1SeqHdr that was previously parsed
+ * @slicehdr: The #VC1SliceHdr to fill
+ * @seqhdr: The #VC1SeqHdr that was previously parsed
  *
  * Parses @data, and fills @slicehdr fields.
  *
- * Returns: a #GstVC1ParserResult
+ * Returns: a #VC1ParserResult
  *
  * Since: 1.2
  */
-GstVC1ParserResult
-gst_vc1_parse_slice_header (const guint8 * data, gsize size,
-    GstVC1SliceHdr * slicehdr, GstVC1SeqHdr * seqhdr)
+VC1ParserResult
+vc1_parse_slice_header (const uint8_t * data, size_t size,
+    VC1SliceHdr * slicehdr, VC1SeqHdr * seqhdr)
 {
-  GstBitReader br;
-  GstVC1FrameHdr framehdr;
-  GstVC1ParserResult result;
-  guint8 pic_header_flag;
+  BitReader br;
+  VC1FrameHdr framehdr;
+  VC1ParserResult result;
+  uint8_t pic_header_flag;
 
-  GST_DEBUG ("Parsing slice header");
+  DEBUG ("Parsing slice header");
 
-  if (seqhdr->profile != GST_VC1_PROFILE_ADVANCED)
-    return GST_VC1_PARSER_BROKEN_DATA;
+  if (seqhdr->profile != VC1_PROFILE_ADVANCED)
+    return VC1_PARSER_BROKEN_DATA;
 
-  gst_bit_reader_init (&br, data, size);
+  bit_reader_init (&br, data, size);
 
   READ_UINT16 (&br, slicehdr->slice_addr, 9);
   READ_UINT8 (&br, pic_header_flag, 1);
   if (pic_header_flag)
     result = parse_frame_header_advanced (&br, &framehdr, seqhdr, NULL, FALSE);
   else
-    result = GST_VC1_PARSER_OK;
+    result = VC1_PARSER_OK;
 
-  slicehdr->header_size = gst_bit_reader_get_pos (&br);
+  slicehdr->header_size = bit_reader_get_pos (&br);
   return result;
 
 failed:
-  GST_WARNING ("Failed to parse slice header");
-  return GST_VC1_PARSER_ERROR;
+  WARNING ("Failed to parse slice header");
+  return VC1_PARSER_ERROR;
 }
 
 /**
- * gst_vc1_bitplanes_new:
+ * vc1_bitplanes_new:
  *
- * Creates a new #GstVC1BitPlanes. It should be freed with
- * gst_vc1_bitplanes_free() after use.
+ * Creates a new #VC1BitPlanes. It should be freed with
+ * vc1_bitplanes_free() after use.
  *
- * Returns: a new #GstVC1BitPlanes
+ * Returns: a new #VC1BitPlanes
  */
-GstVC1BitPlanes *
-gst_vc1_bitplanes_new (void)
+VC1BitPlanes *
+vc1_bitplanes_new (void)
 {
-  return g_slice_new0 (GstVC1BitPlanes);
+  return g_slice_new0 (VC1BitPlanes);
 }
 
 /**
- * gst_vc1_bitplane_free:
- * @bitplanes: the #GstVC1BitPlanes to free
+ * vc1_bitplane_free:
+ * @bitplanes: the #VC1BitPlanes to free
  *
  * Frees @bitplanes.
  */
 void
-gst_vc1_bitplanes_free (GstVC1BitPlanes * bitplanes)
+vc1_bitplanes_free (VC1BitPlanes * bitplanes)
 {
-  gst_vc1_bitplanes_free_1 (bitplanes);
-  g_slice_free (GstVC1BitPlanes, bitplanes);
+  vc1_bitplanes_free_1 (bitplanes);
+  g_slice_free (VC1BitPlanes, bitplanes);
 }
 
 /**
- * gst_vc1_bitplane_free_1:
- * @bitplanes: The #GstVC1BitPlanes to free
+ * vc1_bitplane_free_1:
+ * @bitplanes: The #VC1BitPlanes to free
  *
  * Frees @bitplanes fields.
  */
 void
-gst_vc1_bitplanes_free_1 (GstVC1BitPlanes * bitplanes)
+vc1_bitplanes_free_1 (VC1BitPlanes * bitplanes)
 {
   g_free (bitplanes->acpred);
   g_free (bitplanes->fieldtx);
@@ -2188,20 +2188,20 @@ gst_vc1_bitplanes_free_1 (GstVC1BitPlanes * bitplanes)
 }
 
 /**
- * gst_vc1_bitplanes_ensure_size:
- * @bitplanes: The #GstVC1BitPlanes to reset
- * @seqhdr: The #GstVC1SeqHdr from which to set @bitplanes
+ * vc1_bitplanes_ensure_size:
+ * @bitplanes: The #VC1BitPlanes to reset
+ * @seqhdr: The #VC1SeqHdr from which to set @bitplanes
  *
  * Fills the @bitplanes structure from @seqhdr, this function
- * should be called after #gst_vc1_parse_sequence_header if
- * in simple or main mode, or after #gst_vc1_parse_entry_point_header
+ * should be called after #vc1_parse_sequence_header if
+ * in simple or main mode, or after #vc1_parse_entry_point_header
  * if in advanced mode.
  *
  * Returns: %TRUE if everything went fine, %FALSE otherwize
  */
-gboolean
-gst_vc1_bitplanes_ensure_size (GstVC1BitPlanes * bitplanes,
-    GstVC1SeqHdr * seqhdr)
+bool
+vc1_bitplanes_ensure_size (VC1BitPlanes * bitplanes,
+    VC1SeqHdr * seqhdr)
 {
   g_return_val_if_fail (bitplanes != NULL, FALSE);
   g_return_val_if_fail (seqhdr != NULL, FALSE);
@@ -2209,28 +2209,28 @@ gst_vc1_bitplanes_ensure_size (GstVC1BitPlanes * bitplanes,
   if (bitplanes->size) {
     bitplanes->size = seqhdr->mb_height * seqhdr->mb_stride;
     bitplanes->acpred =
-        g_realloc_n (bitplanes->acpred, bitplanes->size, sizeof (guint8));
+        g_realloc_n (bitplanes->acpred, bitplanes->size, sizeof (uint8_t));
     bitplanes->fieldtx =
-        g_realloc_n (bitplanes->fieldtx, bitplanes->size, sizeof (guint8));
+        g_realloc_n (bitplanes->fieldtx, bitplanes->size, sizeof (uint8_t));
     bitplanes->overflags =
-        g_realloc_n (bitplanes->overflags, bitplanes->size, sizeof (guint8));
+        g_realloc_n (bitplanes->overflags, bitplanes->size, sizeof (uint8_t));
     bitplanes->mvtypemb =
-        g_realloc_n (bitplanes->mvtypemb, bitplanes->size, sizeof (guint8));
+        g_realloc_n (bitplanes->mvtypemb, bitplanes->size, sizeof (uint8_t));
     bitplanes->skipmb =
-        g_realloc_n (bitplanes->skipmb, bitplanes->size, sizeof (guint8));
+        g_realloc_n (bitplanes->skipmb, bitplanes->size, sizeof (uint8_t));
     bitplanes->directmb =
-        g_realloc_n (bitplanes->directmb, bitplanes->size, sizeof (guint8));
+        g_realloc_n (bitplanes->directmb, bitplanes->size, sizeof (uint8_t));
     bitplanes->forwardmb =
-        g_realloc_n (bitplanes->forwardmb, bitplanes->size, sizeof (guint8));
+        g_realloc_n (bitplanes->forwardmb, bitplanes->size, sizeof (uint8_t));
   } else {
     bitplanes->size = seqhdr->mb_height * seqhdr->mb_stride;
-    bitplanes->acpred = g_malloc0 (bitplanes->size * sizeof (guint8));
-    bitplanes->fieldtx = g_malloc0 (bitplanes->size * sizeof (guint8));
-    bitplanes->overflags = g_malloc0 (bitplanes->size * sizeof (guint8));
-    bitplanes->mvtypemb = g_malloc0 (bitplanes->size * sizeof (guint8));
-    bitplanes->skipmb = g_malloc0 (bitplanes->size * sizeof (guint8));
-    bitplanes->directmb = g_malloc0 (bitplanes->size * sizeof (guint8));
-    bitplanes->forwardmb = g_malloc0 (bitplanes->size * sizeof (guint8));
+    bitplanes->acpred = g_malloc0 (bitplanes->size * sizeof (uint8_t));
+    bitplanes->fieldtx = g_malloc0 (bitplanes->size * sizeof (uint8_t));
+    bitplanes->overflags = g_malloc0 (bitplanes->size * sizeof (uint8_t));
+    bitplanes->mvtypemb = g_malloc0 (bitplanes->size * sizeof (uint8_t));
+    bitplanes->skipmb = g_malloc0 (bitplanes->size * sizeof (uint8_t));
+    bitplanes->directmb = g_malloc0 (bitplanes->size * sizeof (uint8_t));
+    bitplanes->forwardmb = g_malloc0 (bitplanes->size * sizeof (uint8_t));
   }
 
   return TRUE;

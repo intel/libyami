@@ -1,4 +1,4 @@
-/* Gstreamer
+/* reamer
  * Copyright (C) <2011> Intel Corporation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -40,10 +40,10 @@
 /* Compute Ceil(Log2(v)) */
 /* Derived from branchless code for integer log2(v) from:
    <http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog> */
-guint
-ceil_log2 (guint32 v)
+uint32_t
+ceil_log2 (uint32_t v)
 {
-  guint r, shift;
+  uint32_t r, shift;
 
   v--;
   r = (v > 0xFFFF) << 4;
@@ -64,7 +64,7 @@ ceil_log2 (guint32 v)
 /****** Nal parser ******/
 
 void
-nal_reader_init (NalReader * nr, const guint8 * data, guint size)
+nal_reader_init (NalReader * nr, const uint8_t * data, uint32_t size)
 {
   nr->data = data;
   nr->size = size;
@@ -77,18 +77,18 @@ nal_reader_init (NalReader * nr, const guint8 * data, guint size)
   nr->cache = 0xff;
 }
 
-inline gboolean
-nal_reader_read (NalReader * nr, guint nbits)
+inline bool
+nal_reader_read (NalReader * nr, uint32_t nbits)
 {
   if (G_UNLIKELY (nr->byte * 8 + (nbits - nr->bits_in_cache) > nr->size * 8)) {
-    GST_DEBUG ("Can not read %u bits, bits in cache %u, Byte * 8 %u, size in "
+    DEBUG ("Can not read %u bits, bits in cache %u, Byte * 8 %u, size in "
         "bits %u", nbits, nr->bits_in_cache, nr->byte * 8, nr->size * 8);
     return FALSE;
   }
 
   while (nr->bits_in_cache < nbits) {
-    guint8 byte;
-    gboolean check_three_byte;
+    uint8_t byte;
+    bool check_three_byte;
 
     check_three_byte = TRUE;
   next_byte:
@@ -115,8 +115,8 @@ nal_reader_read (NalReader * nr, guint nbits)
 
 /* Skips the specified amount of bits. This is only suitable to a
    cacheable number of bits */
-inline gboolean
-nal_reader_skip (NalReader * nr, guint nbits)
+inline bool
+nal_reader_skip (NalReader * nr, uint32_t nbits)
 {
   g_assert (nbits <= 8 * sizeof (nr->cache));
 
@@ -129,12 +129,12 @@ nal_reader_skip (NalReader * nr, guint nbits)
 }
 
 /* Generic version to skip any number of bits */
-gboolean
-nal_reader_skip_long (NalReader * nr, guint nbits)
+bool
+nal_reader_skip_long (NalReader * nr, uint32_t nbits)
 {
   /* Leave out enough bits in the cache once we are finished */
-  const guint skip_size = 4 * sizeof (nr->cache);
-  guint remaining = nbits;
+  const uint32_t skip_size = 4 * sizeof (nr->cache);
+  uint32_t remaining = nbits;
 
   nbits %= skip_size;
   while (remaining > 0) {
@@ -146,29 +146,29 @@ nal_reader_skip_long (NalReader * nr, guint nbits)
   return TRUE;
 }
 
-inline guint
+inline uint32_t
 nal_reader_get_pos (const NalReader * nr)
 {
   return nr->byte * 8 - nr->bits_in_cache;
 }
 
-inline guint
+inline uint32_t
 nal_reader_get_remaining (const NalReader * nr)
 {
   return (nr->size - nr->byte) * 8 + nr->bits_in_cache;
 }
 
-inline guint
+inline uint32_t
 nal_reader_get_epb_count (const NalReader * nr)
 {
   return nr->n_epb;
 }
 
 #define NAL_READER_READ_BITS(bits) \
-gboolean \
-nal_reader_get_bits_uint##bits (NalReader *nr, guint##bits *val, guint nbits) \
+bool \
+nal_reader_get_bits_uint##bits (NalReader *nr, uint##bits##_t *val, uint32_t nbits) \
 { \
-  guint shift; \
+  uint32_t shift; \
   \
   if (!nal_reader_read (nr, nbits)) \
     return FALSE; \
@@ -180,7 +180,7 @@ nal_reader_get_bits_uint##bits (NalReader *nr, guint##bits *val, guint nbits) \
   *val |= nr->cache << (8 - shift); \
   /* mask out required bits */ \
   if (nbits < bits) \
-    *val &= ((guint##bits)1 << nbits) - 1; \
+    *val &= ((uint##bits##_t)1 << nbits) - 1; \
   \
   nr->bits_in_cache = shift; \
   \
@@ -192,8 +192,8 @@ NAL_READER_READ_BITS (16);
 NAL_READER_READ_BITS (32);
 
 #define NAL_READER_PEEK_BITS(bits) \
-gboolean \
-nal_reader_peek_bits_uint##bits (const NalReader *nr, guint##bits *val, guint nbits) \
+bool \
+nal_reader_peek_bits_uint##bits (const NalReader *nr, uint##bits##_t *val, uint32_t nbits) \
 { \
   NalReader tmp; \
   \
@@ -203,12 +203,12 @@ nal_reader_peek_bits_uint##bits (const NalReader *nr, guint##bits *val, guint nb
 
 NAL_READER_PEEK_BITS (8);
 
-gboolean
-nal_reader_get_ue (NalReader * nr, guint32 * val)
+bool
+nal_reader_get_ue (NalReader * nr, uint32_t * val)
 {
-  guint i = 0;
-  guint8 bit;
-  guint32 value;
+  uint32_t i = 0;
+  uint8_t bit;
+  uint32_t value;
 
   if (G_UNLIKELY (!nal_reader_get_bits_uint8 (nr, &bit, 1))) {
 
@@ -233,10 +233,10 @@ nal_reader_get_ue (NalReader * nr, guint32 * val)
   return TRUE;
 }
 
-inline gboolean
-nal_reader_get_se (NalReader * nr, gint32 * val)
+inline bool
+nal_reader_get_se (NalReader * nr, int32_t * val)
 {
-  guint32 value;
+  uint32_t value;
 
   if (G_UNLIKELY (!nal_reader_get_ue (nr, &value)))
     return FALSE;
@@ -249,7 +249,7 @@ nal_reader_get_se (NalReader * nr, gint32 * val)
   return TRUE;
 }
 
-gboolean
+bool
 nal_reader_is_byte_aligned (NalReader * nr)
 {
   if (nr->bits_in_cache != 0)
@@ -257,12 +257,12 @@ nal_reader_is_byte_aligned (NalReader * nr)
   return TRUE;
 }
 
-gboolean
+bool
 nal_reader_has_more_data (NalReader * nr)
 {
   NalReader nr_tmp;
-  guint remaining, nbits;
-  guint8 rbsp_stop_one_bit, zero_bits;
+  uint32_t remaining, nbits;
+  uint8_t rbsp_stop_one_bit, zero_bits;
 
   remaining = nal_reader_get_remaining (nr);
   if (remaining == 0)
@@ -300,13 +300,13 @@ nal_reader_has_more_data (NalReader * nr)
 
 /***********  end of nal parser ***************/
 
-inline gint
-scan_for_start_codes (const guint8 * data, guint size)
+inline int32_t
+scan_for_start_codes (const uint8_t * data, uint32_t size)
 {
-  GstByteReader br;
-  gst_byte_reader_init (&br, data, size);
+  ByteReader br;
+  byte_reader_init (&br, data, size);
 
   /* NALU not empty, so we can at least expect 1 (even 2) bytes following sc */
-  return gst_byte_reader_masked_scan_uint32 (&br, 0xffffff00, 0x00000100,
+  return byte_reader_masked_scan_uint32 (&br, 0xffffff00, 0x00000100,
       0, size);
 }
