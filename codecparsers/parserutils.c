@@ -1,4 +1,4 @@
-/* Gstreamer
+/* reamer
  * Copyright (C) <2011> Intel Corporation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -21,18 +21,18 @@
 
 #include "parserutils.h"
 
-gboolean
-decode_vlc (GstBitReader * br, guint * res, const VLCTable * table,
-    guint length)
+bool
+decode_vlc (BitReader * br, uint32_t * res, const VLCTable * table,
+    uint32_t length)
 {
-  guint8 i;
-  guint cbits = 0;
-  guint32 value = 0;
+  uint8_t i;
+  uint32_t cbits = 0;
+  uint32_t value = 0;
 
   for (i = 0; i < length; i++) {
     if (cbits != table[i].cbits) {
       cbits = table[i].cbits;
-      if (!gst_bit_reader_peek_bits_uint32 (br, &value, cbits)) {
+      if (!bit_reader_peek_bits_uint32 (br, &value, cbits)) {
         goto failed;
       }
     }
@@ -46,11 +46,11 @@ decode_vlc (GstBitReader * br, guint * res, const VLCTable * table,
     }
   }
 
-  GST_DEBUG ("Did not find code");
+  DEBUG ("Did not find code");
 
 failed:
   {
-    GST_WARNING ("Could not decode VLC returning");
+    WARNING ("Could not decode VLC returning");
 
     return FALSE;
   }

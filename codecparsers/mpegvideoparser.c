@@ -1,4 +1,4 @@
-/* Gstreamer
+/* reamer
  * Copyright (C) <2011> Intel Corporation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -24,7 +24,7 @@
  */
 
 /**
- * SECTION:gstmpegvideoparser
+ * SECTION:mpegvideoparser
  * @short_description: Convenience library for mpeg1 and 2 video
  * bitstream parsing.
  *
@@ -39,17 +39,17 @@
 #  include "config.h"
 #endif
 
-#include "gstmpegvideoparser.h"
+#include "mpegvideoparser.h"
 #include "parserutils.h"
 
 #include <string.h>
-#include <gst/base/gstbitreader.h>
-#include <gst/base/gstbytereader.h>
+#include "bitreader.h"
+#include "bytereader.h"
 
 #define MARKER_BIT 0x1
 
 /* default intra quant matrix, in zig-zag order */
-static const guint8 default_intra_quantizer_matrix[64] = {
+static const uint8_t default_intra_quantizer_matrix[64] = {
   8,
   16, 16,
   19, 16, 19,
@@ -67,7 +67,7 @@ static const guint8 default_intra_quantizer_matrix[64] = {
   83
 };
 
-static const guint8 mpeg_zigzag_8x8[64] = {
+static const uint8_t mpeg_zigzag_8x8[64] = {
   0, 1, 8, 16, 9, 2, 3, 10,
   17, 24, 32, 25, 18, 11, 4, 5,
   12, 19, 26, 33, 40, 48, 41, 34,
@@ -80,7 +80,7 @@ static const guint8 mpeg_zigzag_8x8[64] = {
 
 enum
 {
-  GST_MPEG_VIDEO_MACROBLOCK_ESCAPE = G_MAXUINT,
+  MPEG_VIDEO_MACROBLOCK_ESCAPE = G_MAXUINT,
 };
 
 /* Table B-1: Variable length codes for macroblock_address_increment */
@@ -118,20 +118,20 @@ static const VLCTable mpeg2_mbaddr_vlc_table[] = {
   {31, 0x1a, 11},
   {32, 0x19, 11},
   {33, 0x18, 11},
-  {GST_MPEG_VIDEO_MACROBLOCK_ESCAPE, 0x08, 11}
+  {MPEG_VIDEO_MACROBLOCK_ESCAPE, 0x08, 11}
 };
 
-GST_DEBUG_CATEGORY (mpegvideo_parser_debug);
-#define GST_CAT_DEFAULT mpegvideo_parser_debug
+DEBUG_CATEGORY (mpegvideo_parser_debug);
+#define CAT_DEFAULT mpegvideo_parser_debug
 
 #define INITIALIZE_DEBUG_CATEGORY \
-  GST_DEBUG_CATEGORY_INIT (mpegvideo_parser_debug, "codecparsers_mpegvideo", \
+  DEBUG_CATEGORY_INIT (mpegvideo_parser_debug, "codecparsers_mpegvideo", \
       0, "Mpegvideo parser library");
 
 
 /* Set the Pixel Aspect Ratio in our hdr from a ASR code in the data */
 static void
-set_par_from_asr_mpeg1 (GstMpegVideoSequenceHdr * seqhdr, guint8 asr_code)
+set_par_from_asr_mpeg1 (MpegVideoSequenceHdr * seqhdr, uint8_t asr_code)
 {
   int ratios[16][2] = {
     {0, 0},                     /* 0, Invalid */
@@ -158,9 +158,9 @@ set_par_from_asr_mpeg1 (GstMpegVideoSequenceHdr * seqhdr, guint8 asr_code)
 }
 
 static void
-set_fps_from_code (GstMpegVideoSequenceHdr * seqhdr, guint8 fps_code)
+set_fps_from_code (MpegVideoSequenceHdr * seqhdr, uint8_t fps_code)
 {
-  const gint framerates[][2] = {
+  const int32_t framerates[][2] = {
     {30, 1}, {24000, 1001}, {24, 1}, {25, 1},
     {30000, 1001}, {30, 1}, {50, 1}, {60000, 1001},
     {60, 1}, {30, 1}
@@ -170,7 +170,7 @@ set_fps_from_code (GstMpegVideoSequenceHdr * seqhdr, guint8 fps_code)
     seqhdr->fps_n = framerates[fps_code][0];
     seqhdr->fps_d = framerates[fps_code][1];
   } else {
-    GST_DEBUG ("unknown/invalid frame_rate_code %d", fps_code);
+    DEBUG ("unknown/invalid frame_rate_code %d", fps_code);
     /* Force a valid framerate */
     /* FIXME or should this be kept unknown ?? */
     seqhdr->fps_n = 30000;
@@ -179,13 +179,13 @@ set_fps_from_code (GstMpegVideoSequenceHdr * seqhdr, guint8 fps_code)
 }
 
 /* @size and @offset are wrt current reader position */
-static inline gint
-scan_for_start_codes (const GstByteReader * reader, guint offset, guint size)
+static inline int32_t
+scan_for_start_codes (const ByteReader * reader, uint32_t offset, uint32_t size)
 {
-  const guint8 *data;
-  guint i = 0;
+  const uint8_t *data;
+  uint32_t i = 0;
 
-  g_assert ((guint64) offset + size <= reader->size - reader->byte);
+  g_assert ((uint64_t) offset + size <= reader->size - reader->byte);
 
   /* we can't find the pattern with less than 4 bytes */
   if (G_UNLIKELY (size < 4))
@@ -215,8 +215,8 @@ scan_for_start_codes (const GstByteReader * reader, guint offset, guint size)
 /****** API *******/
 
 /**
- * gst_mpeg_video_parse:
- * @packet: a #GstMpegVideoPacket to fill with the data and offset of the
+ * mpeg_video_parse:
+ * @packet: a #MpegVideoPacket to fill with the data and offset of the
  *     next packet found
  * @data: The data to parse
  * @size: The size of @data
@@ -228,34 +228,34 @@ scan_for_start_codes (const GstByteReader * reader, guint offset, guint size)
  *
  * Returns: TRUE if a packet start code was found, otherwise FALSE.
  */
-gboolean
-gst_mpeg_video_parse (GstMpegVideoPacket * packet,
-    const guint8 * data, gsize size, guint offset)
+bool
+mpeg_video_parse (MpegVideoPacket * packet,
+    const uint8_t * data, size_t size, uint32_t offset)
 {
-  gint off;
-  GstByteReader br;
+  int32_t off;
+  ByteReader br;
 
   INITIALIZE_DEBUG_CATEGORY;
 
   if (size <= offset) {
-    GST_DEBUG ("Can't parse from offset %d, buffer is to small", offset);
+    DEBUG ("Can't parse from offset %d, buffer is to small", offset);
     return FALSE;
   }
 
   size -= offset;
-  gst_byte_reader_init (&br, &data[offset], size);
+  byte_reader_init (&br, &data[offset], size);
 
   off = scan_for_start_codes (&br, 0, size);
 
   if (off < 0) {
-    GST_DEBUG ("No start code prefix in this buffer");
+    DEBUG ("No start code prefix in this buffer");
     return FALSE;
   }
 
-  if (gst_byte_reader_skip (&br, off + 3) == FALSE)
+  if (byte_reader_skip (&br, off + 3) == FALSE)
     goto failed;
 
-  if (gst_byte_reader_get_uint8 (&br, &packet->type) == FALSE)
+  if (byte_reader_get_uint8 (&br, &packet->type) == FALSE)
     goto failed;
 
   packet->data = data;
@@ -273,15 +273,15 @@ gst_mpeg_video_parse (GstMpegVideoPacket * packet,
 
 failed:
   {
-    GST_WARNING ("Failed to parse");
+    WARNING ("Failed to parse");
     return FALSE;
   }
 }
 
 /**
- * gst_mpeg_video_packet_parse_sequence_header:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @seqhdr: (out): The #GstMpegVideoSequenceHdr structure to fill
+ * mpeg_video_packet_parse_sequence_header:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @seqhdr: (out): The #MpegVideoSequenceHdr structure to fill
  *
  * Parses the @seqhdr MPEG Video Sequence Header structure members
  * from video @packet
@@ -290,13 +290,13 @@ failed:
  *
  * Since: 1.2
  */
-gboolean
-gst_mpeg_video_packet_parse_sequence_header (const GstMpegVideoPacket * packet,
-    GstMpegVideoSequenceHdr * seqhdr)
+bool
+mpeg_video_packet_parse_sequence_header (const MpegVideoPacket * packet,
+    MpegVideoSequenceHdr * seqhdr)
 {
-  GstBitReader br;
-  guint8 bits;
-  guint8 load_intra_flag, load_non_intra_flag;
+  BitReader br;
+  uint8_t bits;
+  uint8_t load_intra_flag, load_non_intra_flag;
 
   g_return_val_if_fail (seqhdr != NULL, FALSE);
 
@@ -305,7 +305,7 @@ gst_mpeg_video_packet_parse_sequence_header (const GstMpegVideoPacket * packet,
 
   INITIALIZE_DEBUG_CATEGORY;
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   /* Setting the height/width codes */
   READ_UINT16 (&br, seqhdr->width, 12);
@@ -341,7 +341,7 @@ gst_mpeg_video_packet_parse_sequence_header (const GstMpegVideoPacket * packet,
   /* load_intra_quantiser_matrix */
   READ_UINT8 (&br, load_intra_flag, 1);
   if (load_intra_flag) {
-    gint i;
+    int32_t i;
     for (i = 0; i < 64; i++)
       READ_UINT8 (&br, seqhdr->intra_quantizer_matrix[i], 8);
   } else
@@ -350,24 +350,24 @@ gst_mpeg_video_packet_parse_sequence_header (const GstMpegVideoPacket * packet,
   /* non intra quantizer matrix */
   READ_UINT8 (&br, load_non_intra_flag, 1);
   if (load_non_intra_flag) {
-    gint i;
+    int32_t i;
     for (i = 0; i < 64; i++)
       READ_UINT8 (&br, seqhdr->non_intra_quantizer_matrix[i], 8);
   } else
     memset (seqhdr->non_intra_quantizer_matrix, 16, 64);
 
   /* dump some info */
-  GST_LOG ("width x height: %d x %d", seqhdr->width, seqhdr->height);
-  GST_LOG ("fps: %d/%d", seqhdr->fps_n, seqhdr->fps_d);
-  GST_LOG ("par: %d/%d", seqhdr->par_w, seqhdr->par_h);
-  GST_LOG ("bitrate: %d", seqhdr->bitrate);
+  INFO ("width x height: %d x %d", seqhdr->width, seqhdr->height);
+  INFO ("fps: %d/%d", seqhdr->fps_n, seqhdr->fps_d);
+  INFO ("par: %d/%d", seqhdr->par_w, seqhdr->par_h);
+  INFO ("bitrate: %d", seqhdr->bitrate);
 
   return TRUE;
 
   /* ERRORS */
 failed:
   {
-    GST_WARNING ("Failed to parse sequence header");
+    WARNING ("Failed to parse sequence header");
     /* clear out stuff */
     memset (seqhdr, 0, sizeof (*seqhdr));
     return FALSE;
@@ -375,9 +375,9 @@ failed:
 }
 
 /**
- * gst_mpeg_video_packet_parse_sequence_extension:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @seqext: (out): The #GstMpegVideoSequenceExt structure to fill
+ * mpeg_video_packet_parse_sequence_extension:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @seqext: (out): The #MpegVideoSequenceExt structure to fill
  *
  * Parses the @seqext MPEG Video Sequence Extension structure members
  * from video @packet
@@ -386,63 +386,63 @@ failed:
  *
  * Since: 1.2
  */
-gboolean
-gst_mpeg_video_packet_parse_sequence_extension (const GstMpegVideoPacket *
-    packet, GstMpegVideoSequenceExt * seqext)
+bool
+mpeg_video_packet_parse_sequence_extension (const MpegVideoPacket *
+    packet, MpegVideoSequenceExt * seqext)
 {
-  GstBitReader br;
+  BitReader br;
 
   g_return_val_if_fail (seqext != NULL, FALSE);
 
   if (packet->size < 6) {
-    GST_DEBUG ("not enough bytes to parse the extension");
+    DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
-  if (gst_bit_reader_get_bits_uint8_unchecked (&br, 4) !=
-      GST_MPEG_VIDEO_PACKET_EXT_SEQUENCE) {
-    GST_DEBUG ("Not parsing a sequence extension");
+  if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
+      MPEG_VIDEO_PACKET_EXT_SEQUENCE) {
+    DEBUG ("Not parsing a sequence extension");
     return FALSE;
   }
 
   /* skip profile and level escape bit */
-  gst_bit_reader_skip_unchecked (&br, 1);
+  bit_reader_skip_unchecked (&br, 1);
 
-  seqext->profile = gst_bit_reader_get_bits_uint8_unchecked (&br, 3);
-  seqext->level = gst_bit_reader_get_bits_uint8_unchecked (&br, 4);
+  seqext->profile = bit_reader_get_bits_uint8_unchecked (&br, 3);
+  seqext->level = bit_reader_get_bits_uint8_unchecked (&br, 4);
 
   /* progressive */
-  seqext->progressive = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
+  seqext->progressive = bit_reader_get_bits_uint8_unchecked (&br, 1);
 
   /* chroma format */
-  seqext->chroma_format = gst_bit_reader_get_bits_uint8_unchecked (&br, 2);
+  seqext->chroma_format = bit_reader_get_bits_uint8_unchecked (&br, 2);
 
   /* resolution extension */
-  seqext->horiz_size_ext = gst_bit_reader_get_bits_uint8_unchecked (&br, 2);
-  seqext->vert_size_ext = gst_bit_reader_get_bits_uint8_unchecked (&br, 2);
+  seqext->horiz_size_ext = bit_reader_get_bits_uint8_unchecked (&br, 2);
+  seqext->vert_size_ext = bit_reader_get_bits_uint8_unchecked (&br, 2);
 
-  seqext->bitrate_ext = gst_bit_reader_get_bits_uint16_unchecked (&br, 12);
+  seqext->bitrate_ext = bit_reader_get_bits_uint16_unchecked (&br, 12);
 
   /* skip marker bits */
-  gst_bit_reader_skip_unchecked (&br, 1);
+  bit_reader_skip_unchecked (&br, 1);
 
   seqext->vbv_buffer_size_extension =
-      gst_bit_reader_get_bits_uint8_unchecked (&br, 8);
-  seqext->low_delay = gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
+      bit_reader_get_bits_uint8_unchecked (&br, 8);
+  seqext->low_delay = bit_reader_get_bits_uint8_unchecked (&br, 1);
 
   /* framerate extension */
-  seqext->fps_n_ext = gst_bit_reader_get_bits_uint8_unchecked (&br, 2);
-  seqext->fps_d_ext = gst_bit_reader_get_bits_uint8_unchecked (&br, 2);
+  seqext->fps_n_ext = bit_reader_get_bits_uint8_unchecked (&br, 2);
+  seqext->fps_d_ext = bit_reader_get_bits_uint8_unchecked (&br, 2);
 
   return TRUE;
 }
 
 /**
- * gst_mpeg_video_packet_parse_sequence_display_extension:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @seqdisplayext: (out): The #GstMpegVideoSequenceDisplayExt
+ * mpeg_video_packet_parse_sequence_display_extension:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @seqdisplayext: (out): The #MpegVideoSequenceDisplayExt
  *   structure to fill
  *
  * Parses the @seqext MPEG Video Sequence Display Extension structure
@@ -452,60 +452,60 @@ gst_mpeg_video_packet_parse_sequence_extension (const GstMpegVideoPacket *
  *
  * Since: 1.2
  */
-gboolean
-gst_mpeg_video_packet_parse_sequence_display_extension (const GstMpegVideoPacket
-    * packet, GstMpegVideoSequenceDisplayExt * seqdisplayext)
+bool
+mpeg_video_packet_parse_sequence_display_extension (const MpegVideoPacket
+    * packet, MpegVideoSequenceDisplayExt * seqdisplayext)
 {
-  GstBitReader br;
+  BitReader br;
 
   g_return_val_if_fail (seqdisplayext != NULL, FALSE);
 
   if (packet->size < 5) {
-    GST_DEBUG ("not enough bytes to parse the extension");
+    DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
-  if (gst_bit_reader_get_bits_uint8_unchecked (&br, 4) !=
-      GST_MPEG_VIDEO_PACKET_EXT_SEQUENCE_DISPLAY) {
-    GST_DEBUG ("Not parsing a sequence display extension");
+  if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
+      MPEG_VIDEO_PACKET_EXT_SEQUENCE_DISPLAY) {
+    DEBUG ("Not parsing a sequence display extension");
     return FALSE;
   }
 
   seqdisplayext->video_format =
-      gst_bit_reader_get_bits_uint8_unchecked (&br, 3);
+      bit_reader_get_bits_uint8_unchecked (&br, 3);
   seqdisplayext->colour_description_flag =
-      gst_bit_reader_get_bits_uint8_unchecked (&br, 1);
+      bit_reader_get_bits_uint8_unchecked (&br, 1);
 
   if (seqdisplayext->colour_description_flag) {
     seqdisplayext->colour_primaries =
-        gst_bit_reader_get_bits_uint8_unchecked (&br, 8);
+        bit_reader_get_bits_uint8_unchecked (&br, 8);
     seqdisplayext->transfer_characteristics =
-        gst_bit_reader_get_bits_uint8_unchecked (&br, 8);
+        bit_reader_get_bits_uint8_unchecked (&br, 8);
     seqdisplayext->matrix_coefficients =
-        gst_bit_reader_get_bits_uint8_unchecked (&br, 8);
+        bit_reader_get_bits_uint8_unchecked (&br, 8);
   }
 
-  if (gst_bit_reader_get_remaining (&br) < 29) {
-    GST_DEBUG ("Not enough remaining bytes to parse the extension");
+  if (bit_reader_get_remaining (&br) < 29) {
+    DEBUG ("Not enough remaining bytes to parse the extension");
     return FALSE;
   }
 
   seqdisplayext->display_horizontal_size =
-      gst_bit_reader_get_bits_uint16_unchecked (&br, 14);
+      bit_reader_get_bits_uint16_unchecked (&br, 14);
   /* skip marker bit */
-  gst_bit_reader_skip_unchecked (&br, 1);
+  bit_reader_skip_unchecked (&br, 1);
   seqdisplayext->display_vertical_size =
-      gst_bit_reader_get_bits_uint16_unchecked (&br, 14);
+      bit_reader_get_bits_uint16_unchecked (&br, 14);
 
   return TRUE;
 }
 
 /**
- * gst_mpeg_video_packet_parse_sequence_scalable_extension:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @seqscaleext: (out): The #GstMpegVideoSequenceScalableExt structure to fill
+ * mpeg_video_packet_parse_sequence_scalable_extension:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @seqscaleext: (out): The #MpegVideoSequenceScalableExt structure to fill
  *
  * Parses the @seqscaleext MPEG Video Sequence Scalable Extension structure
  * members from video @packet
@@ -514,31 +514,31 @@ gst_mpeg_video_packet_parse_sequence_display_extension (const GstMpegVideoPacket
  *
  * Since: 1.2
  */
-gboolean
-    gst_mpeg_video_packet_parse_sequence_scalable_extension
-    (const GstMpegVideoPacket * packet,
-    GstMpegVideoSequenceScalableExt * seqscaleext) {
-  GstBitReader br;
+bool
+    mpeg_video_packet_parse_sequence_scalable_extension
+    (const MpegVideoPacket * packet,
+    MpegVideoSequenceScalableExt * seqscaleext) {
+  BitReader br;
 
   g_return_val_if_fail (seqscaleext != NULL, FALSE);
 
   if (packet->size < 2) {
-    GST_DEBUG ("not enough bytes to parse the extension");
+    DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
-  if (gst_bit_reader_get_bits_uint8_unchecked (&br, 4) !=
-      GST_MPEG_VIDEO_PACKET_EXT_SEQUENCE_SCALABLE) {
-    GST_DEBUG ("Not parsing a sequence scalable extension");
+  if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
+      MPEG_VIDEO_PACKET_EXT_SEQUENCE_SCALABLE) {
+    DEBUG ("Not parsing a sequence scalable extension");
     return FALSE;
   }
 
   READ_UINT8 (&br, seqscaleext->scalable_mode, 2);
   READ_UINT8 (&br, seqscaleext->layer_id, 4);
 
-  if (seqscaleext->scalable_mode == GST_MPEG_VIDEO_SEQ_SCALABLE_MODE_SPATIAL) {
+  if (seqscaleext->scalable_mode == MPEG_VIDEO_SEQ_SCALABLE_MODE_SPATIAL) {
     READ_UINT16 (&br, seqscaleext->lower_layer_prediction_horizontal_size, 14);
 
     SKIP (&br, 1);
@@ -551,7 +551,7 @@ gboolean
     READ_UINT8 (&br, seqscaleext->vertical_subsampling_factor_n, 5);
   }
 
-  if (seqscaleext->scalable_mode == GST_MPEG_VIDEO_SEQ_SCALABLE_MODE_TEMPORAL) {
+  if (seqscaleext->scalable_mode == MPEG_VIDEO_SEQ_SCALABLE_MODE_TEMPORAL) {
     READ_UINT8 (&br, seqscaleext->picture_mux_enable, 1);
     if (seqscaleext->picture_mux_enable)
       READ_UINT8 (&br, seqscaleext->mux_to_progressive_sequence, 1);
@@ -562,17 +562,17 @@ gboolean
   return TRUE;
 
 failed:
-  GST_WARNING ("error parsing \"Sequence Scalable Extension\"");
+  WARNING ("error parsing \"Sequence Scalable Extension\"");
   return FALSE;
 }
 
-gboolean
-gst_mpeg_video_finalise_mpeg2_sequence_header (GstMpegVideoSequenceHdr * seqhdr,
-    GstMpegVideoSequenceExt * seqext,
-    GstMpegVideoSequenceDisplayExt * displayext)
+bool
+mpeg_video_finalise_mpeg2_sequence_header (MpegVideoSequenceHdr * seqhdr,
+    MpegVideoSequenceExt * seqext,
+    MpegVideoSequenceDisplayExt * displayext)
 {
-  guint32 w;
-  guint32 h;
+  uint32_t w;
+  uint32_t h;
 
   if (seqext) {
     seqhdr->fps_n = seqhdr->fps_n * (seqext->fps_n_ext + 1);
@@ -615,7 +615,7 @@ gst_mpeg_video_finalise_mpeg2_sequence_header (GstMpegVideoSequenceHdr * seqhdr,
       seqhdr->par_h = 100 * w;
       break;
     default:
-      GST_DEBUG ("unknown/invalid aspect_ratio_information %d",
+      DEBUG ("unknown/invalid aspect_ratio_information %d",
           seqhdr->aspect_ratio_info);
       break;
   }
@@ -624,9 +624,9 @@ gst_mpeg_video_finalise_mpeg2_sequence_header (GstMpegVideoSequenceHdr * seqhdr,
 }
 
 /**
- * gst_mpeg_video_packet_parse_quant_matrix_extension:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @quant: (out): The #GstMpegVideoQuantMatrixExt structure to fill
+ * mpeg_video_packet_parse_quant_matrix_extension:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @quant: (out): The #MpegVideoQuantMatrixExt structure to fill
  *
  * Parses the @quant MPEG Video Quantization Matrix Extension
  * structure members from video @packet
@@ -636,25 +636,25 @@ gst_mpeg_video_finalise_mpeg2_sequence_header (GstMpegVideoSequenceHdr * seqhdr,
  *
  * Since: 1.2
  */
-gboolean
-gst_mpeg_video_packet_parse_quant_matrix_extension (const GstMpegVideoPacket *
-    packet, GstMpegVideoQuantMatrixExt * quant)
+bool
+mpeg_video_packet_parse_quant_matrix_extension (const MpegVideoPacket *
+    packet, MpegVideoQuantMatrixExt * quant)
 {
-  guint8 i;
-  GstBitReader br;
+  uint8_t i;
+  BitReader br;
 
   g_return_val_if_fail (quant != NULL, FALSE);
 
   if (packet->size < 1) {
-    GST_DEBUG ("not enough bytes to parse the extension");
+    DEBUG ("not enough bytes to parse the extension");
     return FALSE;
   }
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
-  if (gst_bit_reader_get_bits_uint8_unchecked (&br, 4) !=
-      GST_MPEG_VIDEO_PACKET_EXT_QUANT_MATRIX) {
-    GST_DEBUG ("Not parsing a quant matrix extension");
+  if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
+      MPEG_VIDEO_PACKET_EXT_QUANT_MATRIX) {
+    DEBUG ("Not parsing a quant matrix extension");
     return FALSE;
   }
 
@@ -689,14 +689,14 @@ gst_mpeg_video_packet_parse_quant_matrix_extension (const GstMpegVideoPacket *
   return TRUE;
 
 failed:
-  GST_WARNING ("error parsing \"Quant Matrix Extension\"");
+  WARNING ("error parsing \"Quant Matrix Extension\"");
   return FALSE;
 }
 
 /**
- * gst_mpeg_video_packet_parse_picture_extension:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @ext: (out): The #GstMpegVideoPictureExt structure to fill
+ * mpeg_video_packet_parse_picture_extension:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @ext: (out): The #MpegVideoPictureExt structure to fill
  *
  * Parse the @ext MPEG Video Picture Extension structure members from
  * video @packet
@@ -706,22 +706,22 @@ failed:
  *
  * Since: 1.2
  */
-gboolean
-gst_mpeg_video_packet_parse_picture_extension (const GstMpegVideoPacket *
-    packet, GstMpegVideoPictureExt * ext)
+bool
+mpeg_video_packet_parse_picture_extension (const MpegVideoPacket *
+    packet, MpegVideoPictureExt * ext)
 {
-  GstBitReader br;
+  BitReader br;
 
   g_return_val_if_fail (ext != NULL, FALSE);
 
   if (packet->size < 5)
     return FALSE;
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
-  if (gst_bit_reader_get_bits_uint8_unchecked (&br, 4) !=
-      GST_MPEG_VIDEO_PACKET_EXT_PICTURE) {
-    GST_DEBUG ("Extension is not a picture extension");
+  if (bit_reader_get_bits_uint8_unchecked (&br, 4) !=
+      MPEG_VIDEO_PACKET_EXT_PICTURE) {
+    DEBUG ("Extension is not a picture extension");
     return FALSE;
   }
 
@@ -788,15 +788,15 @@ gst_mpeg_video_packet_parse_picture_extension (const GstMpegVideoPacket *
   return TRUE;
 
 failed:
-  GST_WARNING ("error parsing \"Picture Coding Extension\"");
+  WARNING ("error parsing \"Picture Coding Extension\"");
   return FALSE;
 
 }
 
 /**
- * gst_mpeg_video_packet_parse_picture_header:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @pichdr: (out): The #GstMpegVideoPictureHdr structure to fill
+ * mpeg_video_packet_parse_picture_header:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @pichdr: (out): The #MpegVideoPictureHdr structure to fill
  *
  * Parsers the @pichdr MPEG Video Picture Header structure members
  * from video @packet
@@ -806,24 +806,24 @@ failed:
  *
  * Since: 1.2
  */
-gboolean
-gst_mpeg_video_packet_parse_picture_header (const GstMpegVideoPacket * packet,
-    GstMpegVideoPictureHdr * hdr)
+bool
+mpeg_video_packet_parse_picture_header (const MpegVideoPacket * packet,
+    MpegVideoPictureHdr * hdr)
 {
-  GstBitReader br;
+  BitReader br;
 
   if (packet->size < 4)
     goto failed;
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   /* temperal sequence number */
-  if (!gst_bit_reader_get_bits_uint16 (&br, &hdr->tsn, 10))
+  if (!bit_reader_get_bits_uint16 (&br, &hdr->tsn, 10))
     goto failed;
 
 
   /* frame type */
-  if (!gst_bit_reader_get_bits_uint8 (&br, (guint8 *) & hdr->pic_type, 3))
+  if (!bit_reader_get_bits_uint8 (&br, (uint8_t *) & hdr->pic_type, 3))
     goto failed;
 
 
@@ -831,11 +831,11 @@ gst_mpeg_video_packet_parse_picture_header (const GstMpegVideoPacket * packet,
     goto bad_pic_type;          /* Corrupted picture packet */
 
   /* skip VBV delay */
-  if (!gst_bit_reader_skip (&br, 16))
+  if (!bit_reader_skip (&br, 16))
     goto failed;
 
-  if (hdr->pic_type == GST_MPEG_VIDEO_PICTURE_TYPE_P
-      || hdr->pic_type == GST_MPEG_VIDEO_PICTURE_TYPE_B) {
+  if (hdr->pic_type == MPEG_VIDEO_PICTURE_TYPE_P
+      || hdr->pic_type == MPEG_VIDEO_PICTURE_TYPE_B) {
 
     READ_UINT8 (&br, hdr->full_pel_forward_vector, 1);
 
@@ -846,7 +846,7 @@ gst_mpeg_video_packet_parse_picture_header (const GstMpegVideoPacket * packet,
     hdr->f_code[0][0] = hdr->f_code[0][1] = 0;
   }
 
-  if (hdr->pic_type == GST_MPEG_VIDEO_PICTURE_TYPE_B) {
+  if (hdr->pic_type == MPEG_VIDEO_PICTURE_TYPE_B) {
     READ_UINT8 (&br, hdr->full_pel_backward_vector, 1);
 
     READ_UINT8 (&br, hdr->f_code[1][0], 3);
@@ -860,21 +860,21 @@ gst_mpeg_video_packet_parse_picture_header (const GstMpegVideoPacket * packet,
 
 bad_pic_type:
   {
-    GST_WARNING ("Unsupported picture type : %d", hdr->pic_type);
+    WARNING ("Unsupported picture type : %d", hdr->pic_type);
     return FALSE;
   }
 
 failed:
   {
-    GST_WARNING ("Not enough data to parse picture header");
+    WARNING ("Not enough data to parse picture header");
     return FALSE;
   }
 }
 
 /**
- * gst_mpeg_video_packet_parse_gop:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @gop: (out): The #GstMpegVideoGop structure to fill
+ * mpeg_video_packet_parse_gop:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @gop: (out): The #MpegVideoGop structure to fill
  *
  * Parses the @gop MPEG Video Group of Picture structure members from
  * video @packet
@@ -883,18 +883,18 @@ failed:
  *
  * Since: 1.2
  */
-gboolean
-gst_mpeg_video_packet_parse_gop (const GstMpegVideoPacket * packet,
-    GstMpegVideoGop * gop)
+bool
+mpeg_video_packet_parse_gop (const MpegVideoPacket * packet,
+    MpegVideoGop * gop)
 {
-  GstBitReader br;
+  BitReader br;
 
   g_return_val_if_fail (gop != NULL, FALSE);
 
   if (packet->size < 4)
     return FALSE;
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
   READ_UINT8 (&br, gop->drop_frame_flag, 1);
 
@@ -903,7 +903,7 @@ gst_mpeg_video_packet_parse_gop (const GstMpegVideoPacket * packet,
   READ_UINT8 (&br, gop->minute, 6);
 
   /* skip unused bit */
-  if (!gst_bit_reader_skip (&br, 1))
+  if (!bit_reader_skip (&br, 1))
     return FALSE;
 
   READ_UINT8 (&br, gop->second, 6);
@@ -917,47 +917,47 @@ gst_mpeg_video_packet_parse_gop (const GstMpegVideoPacket * packet,
   return TRUE;
 
 failed:
-  GST_WARNING ("error parsing \"GOP\"");
+  WARNING ("error parsing \"GOP\"");
   return FALSE;
 }
 
 /**
- * gst_mpeg_video_packet_parse_slice_header:
- * @packet: The #GstMpegVideoPacket that carries the data
- * @slice_hdr: (out): The #GstMpegVideoSliceHdr structure to fill
- * @seqhdr: The #GstMpegVideoSequenceHdr header
- * @seqscaleext: The #GstMpegVideoSequenceScalableExt header
+ * mpeg_video_packet_parse_slice_header:
+ * @packet: The #MpegVideoPacket that carries the data
+ * @slice_hdr: (out): The #MpegVideoSliceHdr structure to fill
+ * @seqhdr: The #MpegVideoSequenceHdr header
+ * @seqscaleext: The #MpegVideoSequenceScalableExt header
  *
- * Parses the @GstMpegVideoSliceHdr  structure members from @data
+ * Parses the @MpegVideoSliceHdr  structure members from @data
  *
  * Returns: %TRUE if the slice could be parsed correctly, %FALSE otherwize.
  *
  * Since: 1.2
  */
-gboolean
-gst_mpeg_video_packet_parse_slice_header (const GstMpegVideoPacket * packet,
-    GstMpegVideoSliceHdr * slice_hdr, GstMpegVideoSequenceHdr * seqhdr,
-    GstMpegVideoSequenceScalableExt * seqscaleext)
+bool
+mpeg_video_packet_parse_slice_header (const MpegVideoPacket * packet,
+    MpegVideoSliceHdr * slice_hdr, MpegVideoSequenceHdr * seqhdr,
+    MpegVideoSequenceScalableExt * seqscaleext)
 {
-  GstBitReader br;
-  guint height;
-  guint mb_inc;
-  guint8 bits, extra_bits;
-  guint8 vertical_position, vertical_position_extension = 0;
+  BitReader br;
+  uint32_t height;
+  uint32_t mb_inc;
+  uint8_t bits, extra_bits;
+  uint8_t vertical_position, vertical_position_extension = 0;
 
   g_return_val_if_fail (seqhdr != NULL, FALSE);
 
   if (packet->size < 1)
     return FALSE;
 
-  gst_bit_reader_init (&br, &packet->data[packet->offset], packet->size);
+  bit_reader_init (&br, &packet->data[packet->offset], packet->size);
 
-  if (packet->type < GST_MPEG_VIDEO_PACKET_SLICE_MIN ||
-      packet->type > GST_MPEG_VIDEO_PACKET_SLICE_MAX) {
-    GST_DEBUG ("Not parsing a slice");
+  if (packet->type < MPEG_VIDEO_PACKET_SLICE_MIN ||
+      packet->type > MPEG_VIDEO_PACKET_SLICE_MAX) {
+    DEBUG ("Not parsing a slice");
     return FALSE;
   }
-  vertical_position = packet->type - GST_MPEG_VIDEO_PACKET_SLICE_MIN;
+  vertical_position = packet->type - MPEG_VIDEO_PACKET_SLICE_MIN;
 
   height = seqhdr->height;
   if (height > 2800)
@@ -965,7 +965,7 @@ gst_mpeg_video_packet_parse_slice_header (const GstMpegVideoPacket * packet,
 
   if (seqscaleext)
     if (seqscaleext->scalable_mode ==
-        GST_MPEG_VIDEO_SEQ_SCALABLE_MODE_DATA_PARTITIONING)
+        MPEG_VIDEO_SEQ_SCALABLE_MODE_DATA_PARTITIONING)
       READ_UINT8 (&br, slice_hdr->priority_breakpoint, 7);
 
   READ_UINT8 (&br, slice_hdr->quantiser_scale_code, 5);
@@ -985,7 +985,7 @@ gst_mpeg_video_packet_parse_slice_header (const GstMpegVideoPacket * packet,
     }
   }
 
-  slice_hdr->header_size = gst_bit_reader_get_pos (&br);
+  slice_hdr->header_size = bit_reader_get_pos (&br);
 
   if (height > 2800)
     slice_hdr->mb_row = (vertical_position_extension << 7) + vertical_position;
@@ -996,22 +996,22 @@ gst_mpeg_video_packet_parse_slice_header (const GstMpegVideoPacket * packet,
   do {
     if (!decode_vlc (&br, &mb_inc, mpeg2_mbaddr_vlc_table,
             G_N_ELEMENTS (mpeg2_mbaddr_vlc_table))) {
-      GST_WARNING ("failed to decode first macroblock_address_increment");
+      WARNING ("failed to decode first macroblock_address_increment");
       goto failed;
     }
     slice_hdr->mb_column +=
-        mb_inc == GST_MPEG_VIDEO_MACROBLOCK_ESCAPE ? 33 : mb_inc;
-  } while (mb_inc == GST_MPEG_VIDEO_MACROBLOCK_ESCAPE);
+        mb_inc == MPEG_VIDEO_MACROBLOCK_ESCAPE ? 33 : mb_inc;
+  } while (mb_inc == MPEG_VIDEO_MACROBLOCK_ESCAPE);
 
   return TRUE;
 
 failed:
-  GST_WARNING ("error parsing \"Slice\"");
+  WARNING ("error parsing \"Slice\"");
   return FALSE;
 }
 
 /**
- * gst_mpeg_video_quant_matrix_get_raster_from_zigzag:
+ * mpeg_video_quant_matrix_get_raster_from_zigzag:
  * @out_quant: (out): The resulting quantization matrix
  * @quant: The source quantization matrix
  *
@@ -1024,10 +1024,10 @@ failed:
  * Since: 1.2
  */
 void
-gst_mpeg_video_quant_matrix_get_raster_from_zigzag (guint8 out_quant[64],
-    const guint8 quant[64])
+mpeg_video_quant_matrix_get_raster_from_zigzag (uint8_t out_quant[64],
+    const uint8_t quant[64])
 {
-  guint i;
+  uint32_t i;
 
   g_return_if_fail (out_quant != quant);
 
@@ -1036,7 +1036,7 @@ gst_mpeg_video_quant_matrix_get_raster_from_zigzag (guint8 out_quant[64],
 }
 
 /**
- * gst_mpeg_video_quant_matrix_get_zigzag_from_raster:
+ * mpeg_video_quant_matrix_get_zigzag_from_raster:
  * @out_quant: (out): The resulting quantization matrix
  * @quant: The source quantization matrix
  *
@@ -1049,10 +1049,10 @@ gst_mpeg_video_quant_matrix_get_raster_from_zigzag (guint8 out_quant[64],
  * Since: 1.2
  */
 void
-gst_mpeg_video_quant_matrix_get_zigzag_from_raster (guint8 out_quant[64],
-    const guint8 quant[64])
+mpeg_video_quant_matrix_get_zigzag_from_raster (uint8_t out_quant[64],
+    const uint8_t quant[64])
 {
-  guint i;
+  uint32_t i;
 
   g_return_if_fail (out_quant != quant);
 
@@ -1063,8 +1063,8 @@ gst_mpeg_video_quant_matrix_get_zigzag_from_raster (guint8 out_quant[64],
 /****** Deprecated API *******/
 
 /**
- * gst_mpeg_video_parse_sequence_header:
- * @seqhdr: (out): The #GstMpegVideoSequenceHdr structure to fill
+ * mpeg_video_parse_sequence_header:
+ * @seqhdr: (out): The #MpegVideoSequenceHdr structure to fill
  * @data: The data from which to parse the sequence header
  * @size: The size of @data
  * @offset: The offset in byte from which to start parsing @data
@@ -1073,31 +1073,31 @@ gst_mpeg_video_quant_matrix_get_zigzag_from_raster (guint8 out_quant[64],
  *
  * Returns: %TRUE if the seqhdr could be parsed correctly, %FALSE otherwize.
  *
- * Deprecated: Use gst_mpeg_video_packet_parse_sequence_header() instead.
+ * Deprecated: Use mpeg_video_packet_parse_sequence_header() instead.
  */
-#ifndef GST_REMOVE_DEPRECATED
-#ifdef GST_DISABLE_DEPRECATED
-gboolean
-gst_mpeg_video_parse_sequence_header (GstMpegVideoSequenceHdr * seqhdr,
-    const guint8 * data, gsize size, guint offset);
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
+    const uint8_t * data, size_t size, uint32_t offset);
 #endif
-gboolean
-gst_mpeg_video_parse_sequence_header (GstMpegVideoSequenceHdr * seqhdr,
-    const guint8 * data, gsize size, guint offset)
+bool
+mpeg_video_parse_sequence_header (MpegVideoSequenceHdr * seqhdr,
+    const uint8_t * data, size_t size, uint32_t offset)
 {
-  GstMpegVideoPacket packet;
+  MpegVideoPacket packet;
 
   packet.data = data;
-  packet.type = GST_MPEG_VIDEO_PACKET_SEQUENCE;
+  packet.type = MPEG_VIDEO_PACKET_SEQUENCE;
   packet.offset = offset;
   packet.size = size - offset;
-  return gst_mpeg_video_packet_parse_sequence_header (&packet, seqhdr);
+  return mpeg_video_packet_parse_sequence_header (&packet, seqhdr);
 }
 #endif
 
 /**
- * gst_mpeg_video_parse_sequence_extension:
- * @seqext: (out): The #GstMpegVideoSequenceExt structure to fill
+ * mpeg_video_parse_sequence_extension:
+ * @seqext: (out): The #MpegVideoSequenceExt structure to fill
  * @data: The data from which to parse the sequence extension
  * @size: The size of @data
  * @offset: The offset in byte from which to start parsing @data
@@ -1106,52 +1106,52 @@ gst_mpeg_video_parse_sequence_header (GstMpegVideoSequenceHdr * seqhdr,
  *
  * Returns: %TRUE if the seqext could be parsed correctly, %FALSE otherwize.
  *
- * Deprecated: Use gst_mpeg_video_packet_parse_sequence_extension() instead.
+ * Deprecated: Use mpeg_video_packet_parse_sequence_extension() instead.
  */
-#ifndef GST_REMOVE_DEPRECATED
-#ifdef GST_DISABLE_DEPRECATED
-gboolean
-gst_mpeg_video_parse_sequence_extension (GstMpegVideoSequenceExt * seqext,
-    const guint8 * data, gsize size, guint offset);
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
+    const uint8_t * data, size_t size, uint32_t offset);
 #endif
-gboolean
-gst_mpeg_video_parse_sequence_extension (GstMpegVideoSequenceExt * seqext,
-    const guint8 * data, gsize size, guint offset)
+bool
+mpeg_video_parse_sequence_extension (MpegVideoSequenceExt * seqext,
+    const uint8_t * data, size_t size, uint32_t offset)
 {
-  GstMpegVideoPacket packet;
+  MpegVideoPacket packet;
 
   packet.data = data;
-  packet.type = GST_MPEG_VIDEO_PACKET_EXTENSION;
+  packet.type = MPEG_VIDEO_PACKET_EXTENSION;
   packet.offset = offset;
   packet.size = size - offset;
-  return gst_mpeg_video_packet_parse_sequence_extension (&packet, seqext);
+  return mpeg_video_packet_parse_sequence_extension (&packet, seqext);
 }
 #endif
 
-#ifndef GST_REMOVE_DEPRECATED
-#ifdef GST_DISABLE_DEPRECATED
-gboolean
-gst_mpeg_video_parse_sequence_display_extension (GstMpegVideoSequenceDisplayExt
-    * seqdisplayext, const guint8 * data, gsize size, guint offset);
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
+    * seqdisplayext, const uint8_t * data, size_t size, uint32_t offset);
 #endif
-gboolean
-gst_mpeg_video_parse_sequence_display_extension (GstMpegVideoSequenceDisplayExt
-    * seqdisplayext, const guint8 * data, gsize size, guint offset)
+bool
+mpeg_video_parse_sequence_display_extension (MpegVideoSequenceDisplayExt
+    * seqdisplayext, const uint8_t * data, size_t size, uint32_t offset)
 {
-  GstMpegVideoPacket packet;
+  MpegVideoPacket packet;
 
   packet.data = data;
-  packet.type = GST_MPEG_VIDEO_PACKET_EXTENSION;
+  packet.type = MPEG_VIDEO_PACKET_EXTENSION;
   packet.offset = offset;
   packet.size = size - offset;
-  return gst_mpeg_video_packet_parse_sequence_display_extension (&packet,
+  return mpeg_video_packet_parse_sequence_display_extension (&packet,
       seqdisplayext);
 }
 #endif
 
 /**
- * gst_mpeg_video_parse_quant_matrix_extension:
- * @quant: (out): The #GstMpegVideoQuantMatrixExt structure to fill
+ * mpeg_video_parse_quant_matrix_extension:
+ * @quant: (out): The #MpegVideoQuantMatrixExt structure to fill
  * @data: The data from which to parse the Quantization Matrix extension
  * @size: The size of @data
  * @offset: The offset in byte from which to start the parsing
@@ -1162,31 +1162,31 @@ gst_mpeg_video_parse_sequence_display_extension (GstMpegVideoSequenceDisplayExt
  * Returns: %TRUE if the quant matrix extension could be parsed correctly,
  * %FALSE otherwize.
  *
- * Deprecated: Use gst_mpeg_video_packet_parse_quant_matrix_extension() instead.
+ * Deprecated: Use mpeg_video_packet_parse_quant_matrix_extension() instead.
  */
-#ifndef GST_REMOVE_DEPRECATED
-#ifdef GST_DISABLE_DEPRECATED
-gboolean
-gst_mpeg_video_parse_quant_matrix_extension (GstMpegVideoQuantMatrixExt * quant,
-    const guint8 * data, gsize size, guint offset);
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
+    const uint8_t * data, size_t size, uint32_t offset);
 #endif
-gboolean
-gst_mpeg_video_parse_quant_matrix_extension (GstMpegVideoQuantMatrixExt * quant,
-    const guint8 * data, gsize size, guint offset)
+bool
+mpeg_video_parse_quant_matrix_extension (MpegVideoQuantMatrixExt * quant,
+    const uint8_t * data, size_t size, uint32_t offset)
 {
-  GstMpegVideoPacket packet;
+  MpegVideoPacket packet;
 
   packet.data = data;
-  packet.type = GST_MPEG_VIDEO_PACKET_EXTENSION;
+  packet.type = MPEG_VIDEO_PACKET_EXTENSION;
   packet.offset = offset;
   packet.size = size - offset;
-  return gst_mpeg_video_packet_parse_quant_matrix_extension (&packet, quant);
+  return mpeg_video_packet_parse_quant_matrix_extension (&packet, quant);
 }
 #endif
 
 /**
- * gst_mpeg_video_parse_picture_header:
- * @hdr: (out): The #GstMpegVideoPictureHdr structure to fill
+ * mpeg_video_parse_picture_header:
+ * @hdr: (out): The #MpegVideoPictureHdr structure to fill
  * @data: The data from which to parse the picture header
  * @size: The size of @data
  * @offset: The offset in byte from which to start the parsing
@@ -1196,31 +1196,31 @@ gst_mpeg_video_parse_quant_matrix_extension (GstMpegVideoQuantMatrixExt * quant,
  * Returns: %TRUE if the picture sequence could be parsed correctly, %FALSE
  * otherwize.
  *
- * Deprecated: Use gst_mpeg_video_packet_parse_picture_header() instead.
+ * Deprecated: Use mpeg_video_packet_parse_picture_header() instead.
  */
-#ifndef GST_REMOVE_DEPRECATED
-#ifdef GST_DISABLE_DEPRECATED
-gboolean
-gst_mpeg_video_parse_picture_header (GstMpegVideoPictureHdr * hdr,
-    const guint8 * data, gsize size, guint offset);
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
+    const uint8_t * data, size_t size, uint32_t offset);
 #endif
-gboolean
-gst_mpeg_video_parse_picture_header (GstMpegVideoPictureHdr * hdr,
-    const guint8 * data, gsize size, guint offset)
+bool
+mpeg_video_parse_picture_header (MpegVideoPictureHdr * hdr,
+    const uint8_t * data, size_t size, uint32_t offset)
 {
-  GstMpegVideoPacket packet;
+  MpegVideoPacket packet;
 
   packet.data = data;
-  packet.type = GST_MPEG_VIDEO_PACKET_PICTURE;
+  packet.type = MPEG_VIDEO_PACKET_PICTURE;
   packet.offset = offset;
   packet.size = size - offset;
-  return gst_mpeg_video_packet_parse_picture_header (&packet, hdr);
+  return mpeg_video_packet_parse_picture_header (&packet, hdr);
 }
 #endif
 
 /**
- * gst_mpeg_video_parse_picture_extension:
- * @ext: (out): The #GstMpegVideoPictureExt structure to fill
+ * mpeg_video_parse_picture_extension:
+ * @ext: (out): The #MpegVideoPictureExt structure to fill
  * @data: The data from which to parse the picture extension
  * @size: The size of @data
  * @offset: The offset in byte from which to start the parsing
@@ -1230,31 +1230,31 @@ gst_mpeg_video_parse_picture_header (GstMpegVideoPictureHdr * hdr,
  * Returns: %TRUE if the picture extension could be parsed correctly,
  * %FALSE otherwize.
  *
- * Deprecated: Use gst_mpeg_video_packet_parse_picture_extension() instead.
+ * Deprecated: Use mpeg_video_packet_parse_picture_extension() instead.
  */
-#ifndef GST_REMOVE_DEPRECATED
-#ifdef GST_DISABLE_DEPRECATED
-gboolean
-gst_mpeg_video_parse_picture_extension (GstMpegVideoPictureExt * ext,
-    const guint8 * data, gsize size, guint offset);
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
+    const uint8_t * data, size_t size, uint32_t offset);
 #endif
-gboolean
-gst_mpeg_video_parse_picture_extension (GstMpegVideoPictureExt * ext,
-    const guint8 * data, gsize size, guint offset)
+bool
+mpeg_video_parse_picture_extension (MpegVideoPictureExt * ext,
+    const uint8_t * data, size_t size, uint32_t offset)
 {
-  GstMpegVideoPacket packet;
+  MpegVideoPacket packet;
 
   packet.data = data;
-  packet.type = GST_MPEG_VIDEO_PACKET_EXTENSION;
+  packet.type = MPEG_VIDEO_PACKET_EXTENSION;
   packet.offset = offset;
   packet.size = size - offset;
-  return gst_mpeg_video_packet_parse_picture_extension (&packet, ext);
+  return mpeg_video_packet_parse_picture_extension (&packet, ext);
 }
 #endif
 
 /**
- * gst_mpeg_video_parse_gop:
- * @gop: (out): The #GstMpegVideoGop structure to fill
+ * mpeg_video_parse_gop:
+ * @gop: (out): The #MpegVideoGop structure to fill
  * @data: The data from which to parse the gop
  * @size: The size of @data
  * @offset: The offset in byte from which to start the parsing
@@ -1263,24 +1263,24 @@ gst_mpeg_video_parse_picture_extension (GstMpegVideoPictureExt * ext,
  *
  * Returns: %TRUE if the gop could be parsed correctly, %FALSE otherwize.
  *
- * Deprecated: Use gst_mpeg_video_packet_parse_gop() instead.
+ * Deprecated: Use mpeg_video_packet_parse_gop() instead.
  */
-#ifndef GST_REMOVE_DEPRECATED
-#ifdef GST_DISABLE_DEPRECATED
-gboolean
-gst_mpeg_video_parse_gop (GstMpegVideoGop * gop, const guint8 * data,
-    gsize size, guint offset);
+#ifndef REMOVE_DEPRECATED
+#ifdef DISABLE_DEPRECATED
+bool
+mpeg_video_parse_gop (MpegVideoGop * gop, const uint8_t * data,
+    size_t size, uint32_t offset);
 #endif
-gboolean
-gst_mpeg_video_parse_gop (GstMpegVideoGop * gop, const guint8 * data,
-    gsize size, guint offset)
+bool
+mpeg_video_parse_gop (MpegVideoGop * gop, const uint8_t * data,
+    size_t size, uint32_t offset)
 {
-  GstMpegVideoPacket packet;
+  MpegVideoPacket packet;
 
   packet.data = data;
-  packet.type = GST_MPEG_VIDEO_PACKET_GOP;
+  packet.type = MPEG_VIDEO_PACKET_GOP;
   packet.offset = offset;
   packet.size = size - offset;
-  return gst_mpeg_video_packet_parse_gop (&packet, gop);
+  return mpeg_video_packet_parse_gop (&packet, gop);
 }
 #endif

@@ -1,4 +1,4 @@
-/* Gstreamer
+/* reamer
  * Copyright (C) <2011> Intel Corporation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -35,54 +35,54 @@
 #  include "config.h"
 #endif
 
-#include <gst/base/gstbytereader.h>
-#include <gst/base/gstbitreader.h>
+#include "bytereader.h"
+#include "bitreader.h"
 #include <string.h>
 
-guint ceil_log2 (guint32 v);
+uint32_t ceil_log2 (uint32_t v);
 
 typedef struct
 {
-  const guint8 *data;
-  guint size;
+  const uint8_t *data;
+  uint32_t size;
 
-  guint n_epb;                  /* Number of emulation prevention bytes */
-  guint byte;                   /* Byte position */
-  guint bits_in_cache;          /* bitpos in the cache of next bit */
-  guint8 first_byte;
-  guint64 cache;                /* cached bytes */
+  uint32_t n_epb;                  /* Number of emulation prevention bytes */
+  uint32_t byte;                   /* Byte position */
+  uint32_t bits_in_cache;          /* bitpos in the cache of next bit */
+  uint8_t first_byte;
+  uint64_t cache;                /* cached bytes */
 } NalReader;
 
-void nal_reader_init (NalReader * nr, const guint8 * data, guint size);
+void nal_reader_init (NalReader * nr, const uint8_t * data, uint32_t size);
 
-gboolean nal_reader_read (NalReader * nr, guint nbits);
-gboolean nal_reader_skip (NalReader * nr, guint nbits);
-gboolean nal_reader_skip_long (NalReader * nr, guint nbits);
-guint nal_reader_get_pos (const NalReader * nr);
-guint nal_reader_get_remaining (const NalReader * nr);
-guint nal_reader_get_epb_count (const NalReader * nr);
+bool nal_reader_read (NalReader * nr, uint32_t nbits);
+bool nal_reader_skip (NalReader * nr, uint32_t nbits);
+bool nal_reader_skip_long (NalReader * nr, uint32_t nbits);
+uint32_t nal_reader_get_pos (const NalReader * nr);
+uint32_t nal_reader_get_remaining (const NalReader * nr);
+uint32_t nal_reader_get_epb_count (const NalReader * nr);
 
-gboolean nal_reader_is_byte_aligned (NalReader * nr);
-gboolean nal_reader_has_more_data (NalReader * nr);
+bool nal_reader_is_byte_aligned (NalReader * nr);
+bool nal_reader_has_more_data (NalReader * nr);
 
 #define NAL_READER_READ_BITS_H(bits) \
-gboolean nal_reader_get_bits_uint##bits (NalReader *nr, guint##bits *val, guint nbits)
+bool nal_reader_get_bits_uint##bits (NalReader *nr, uint##bits##_t *val, uint32_t nbits)
 
 NAL_READER_READ_BITS_H (8);
 NAL_READER_READ_BITS_H (16);
 NAL_READER_READ_BITS_H (32);
 
 #define NAL_READER_PEEK_BITS_H(bits) \
-gboolean nal_reader_peek_bits_uint##bits (const NalReader *nr, guint##bits *val, guint nbits)
+bool nal_reader_peek_bits_uint##bits (const NalReader *nr, uint##bits##_t *val, uint32_t nbits)
 
 NAL_READER_PEEK_BITS_H (8);
 
-gboolean nal_reader_get_ue (NalReader * nr, guint32 * val);
-gboolean nal_reader_get_se (NalReader * nr, gint32 * val);
+bool nal_reader_get_ue (NalReader * nr, uint32_t * val);
+bool nal_reader_get_se (NalReader * nr, int32_t * val);
 
 #define CHECK_ALLOWED_MAX(val, max) { \
   if (val > max) { \
-    GST_WARNING ("value greater than max. value: %d, max %d", \
+    WARNING ("value greater than max. value: %d, max %d", \
                      val, max); \
     goto error; \
   } \
@@ -90,7 +90,7 @@ gboolean nal_reader_get_se (NalReader * nr, gint32 * val);
 
 #define CHECK_ALLOWED(val, min, max) { \
   if (val < min || val > max) { \
-    GST_WARNING ("value not in allowed range. value: %d, range %d-%d", \
+    WARNING ("value not in allowed range. value: %d, range %d-%d", \
                      val, min, max); \
     goto error; \
   } \
@@ -98,48 +98,48 @@ gboolean nal_reader_get_se (NalReader * nr, gint32 * val);
 
 #define READ_UINT8(nr, val, nbits) { \
   if (!nal_reader_get_bits_uint8 (nr, &val, nbits)) { \
-    GST_WARNING ("failed to read uint8, nbits: %d", nbits); \
+    WARNING ("failed to read uint8, nbits: %d", nbits); \
     goto error; \
   } \
 }
 
 #define READ_UINT16(nr, val, nbits) { \
   if (!nal_reader_get_bits_uint16 (nr, &val, nbits)) { \
-  GST_WARNING ("failed to read uint16, nbits: %d", nbits); \
+  WARNING ("failed to read uint16, nbits: %d", nbits); \
     goto error; \
   } \
 }
 
 #define READ_UINT32(nr, val, nbits) { \
   if (!nal_reader_get_bits_uint32 (nr, &val, nbits)) { \
-  GST_WARNING ("failed to read uint32, nbits: %d", nbits); \
+  WARNING ("failed to read uint32, nbits: %d", nbits); \
     goto error; \
   } \
 }
 
 #define READ_UINT64(nr, val, nbits) { \
   if (!nal_reader_get_bits_uint64 (nr, &val, nbits)) { \
-    GST_WARNING ("failed to read uint32, nbits: %d", nbits); \
+    WARNING ("failed to read uint32, nbits: %d", nbits); \
     goto error; \
   } \
 }
 
 #define READ_UE(nr, val) { \
   if (!nal_reader_get_ue (nr, &val)) { \
-    GST_WARNING ("failed to read UE"); \
+    WARNING ("failed to read UE"); \
     goto error; \
   } \
 }
 
 #define READ_UE_ALLOWED(nr, val, min, max) { \
-  guint32 tmp; \
+  uint32_t tmp; \
   READ_UE (nr, tmp); \
   CHECK_ALLOWED (tmp, min, max); \
   val = tmp; \
 }
 
 #define READ_UE_MAX(nr, val, max) { \
-  guint32 tmp; \
+  uint32_t tmp; \
   READ_UE (nr, tmp); \
   CHECK_ALLOWED_MAX (tmp, max); \
   val = tmp; \
@@ -147,16 +147,16 @@ gboolean nal_reader_get_se (NalReader * nr, gint32 * val);
 
 #define READ_SE(nr, val) { \
   if (!nal_reader_get_se (nr, &val)) { \
-    GST_WARNING ("failed to read SE"); \
+    WARNING ("failed to read SE"); \
     goto error; \
   } \
 }
 
 #define READ_SE_ALLOWED(nr, val, min, max) { \
-  gint32 tmp; \
+  int32_t tmp; \
   READ_SE (nr, tmp); \
   CHECK_ALLOWED (tmp, min, max); \
   val = tmp; \
 }
 
-gint scan_for_start_codes (const guint8 * data, guint size);
+int32_t scan_for_start_codes (const uint8_t * data, uint32_t size);
