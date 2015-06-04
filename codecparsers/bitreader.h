@@ -21,7 +21,7 @@
 #ifndef __BIT_READER_H__
 #define __BIT_READER_H__
 
-#include "commondef.h"
+#include "gst/gst.h"
 
 /* FIXME: inline functions */
 

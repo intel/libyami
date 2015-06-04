@@ -35,7 +35,7 @@
 #warning "You can define USE_UNSTABLE_API to avoid this warning."
 #endif
 
-#include "commondef.h"
+#include "gst/gst.h"
 
 G_BEGIN_DECLS
 

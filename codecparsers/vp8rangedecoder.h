@@ -23,7 +23,7 @@
 #ifndef VP8_RANGE_DECODER_H
 #define VP8_RANGE_DECODER_H
 
-#include "commondef.h"
+#include "gst/gst.h"
 
 typedef struct _Vp8RangeDecoder      Vp8RangeDecoder;
 typedef struct _Vp8RangeDecoderState Vp8RangeDecoderState;

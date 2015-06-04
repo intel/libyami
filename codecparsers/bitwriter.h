@@ -22,7 +22,7 @@
 #ifndef BIT_WRITER_H
 #define BIT_WRITER_H
 
-#include "commondef.h"
+#include "gst/gst.h"
 #include <string.h>
 
 G_BEGIN_DECLS
