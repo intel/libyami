@@ -10,6 +10,7 @@ replace()
     fi
     
     sed -i '/[<]gst\/gstconfig.h[>]/d' "$1"
+	sed -i 's/[<]gst\/codecparsers\/gstmpegvideoparser.h[>]/"mpegvideoparser.h"/g' "$1"
     sed -i 's/[<]gst\/codecparsers\/gstvp8parser.h[>]/"vp8parser.h"/g' "$1"
     sed -i 's/[<]glib.h[>]/"commondef.h"/g' "$1"
     sed -i 's/guint##bits/uint##bits##_t/g' "$1"
@@ -22,7 +23,7 @@ replace()
     sed -i 's/GST_READ/YAMI_READ/g' "$1"
     sed -i 's/_gst_debug_category_new/_yami_debug_category_new/g' "$1"
     
-    sed -i 's/[<]gst\/gst.h[>]/"commondef.h"/g' "$1"
+	sed -i 's/[<]gst\/gst.h[>]/"gst\/gst.h"/g' "$1"
     sed -i 's/\<GST_LOG\>/INFO/g' "$1"
     #remove gst and gst_, ignore case 
     sed -i "s/[gG][sS][Tt]_\?//g" "$1"
