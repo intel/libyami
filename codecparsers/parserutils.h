@@ -22,7 +22,7 @@
 #ifndef __PARSER_UTILS__
 #define __PARSER_UTILS__
 
-#include "commondef.h"
+#include "gst/gst.h"
 #include "bitreader.h"
 
 /* Parsing utils */

@@ -22,7 +22,7 @@
 #ifndef __BYTE_READER_H__
 #define __BYTE_READER_H__
 
-#include "commondef.h"
+#include "gst/gst.h"
 
 G_BEGIN_DECLS
 

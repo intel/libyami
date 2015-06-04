@@ -21,7 +21,7 @@
 #ifndef __BYTE_WRITER_H__
 #define __BYTE_WRITER_H__
 
-#include "commondef.h"
+#include "gst/gst.h"
 #include "bytereader.h"
 
 #include <string.h>

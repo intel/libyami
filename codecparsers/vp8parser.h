@@ -24,7 +24,7 @@
 #ifndef VP8_PARSER_H
 #define VP8_PARSER_H
 
-#include "commondef.h"
+#include "gst/gst.h"
 
 G_BEGIN_DECLS
 

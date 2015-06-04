@@ -25,8 +25,8 @@
 #warning "You can define USE_UNSTABLE_API to avoid this warning."
 #endif
 
-#include "commondef.h"
-#include </codecparsers/mpegvideoparser.h>
+#include "gst/gst.h"
+#include "mpegvideoparser.h"
 
 G_BEGIN_DECLS
 

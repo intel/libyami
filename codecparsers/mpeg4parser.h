@@ -21,7 +21,7 @@
 #ifndef __MPEG4UTIL_H__
 #define __MPEG4UTIL_H__
 
-#include "commondef.h"
+#include "gst/gst.h"
 
 G_BEGIN_DECLS
 
