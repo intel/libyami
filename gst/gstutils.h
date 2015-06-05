@@ -21,7 +21,6 @@
  * Boston, MA 02110-1301, USA.
  */
 
-
 #ifndef __GST_UTILS_H__
 #define __GST_UTILS_H__
 

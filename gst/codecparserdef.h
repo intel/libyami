@@ -1,12 +1,29 @@
+/* GLIB - Library of useful routines for C programming
+ * Copyright (C) 1995-1997  Peter Mattis, Spencer Kimball and Josh MacDonald
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
+ */
+
+/*
+ * Modified by the GLib Team and others 1997-2000.  See the AUTHORS
+ * file for a list of people on the GLib Team.  See the ChangeLog
+ * files for a list of changes.  These files are distributed with
+ * GLib at ftp://ftp.gtk.org/pub/gtk/.
+ */
+
 #ifndef __CODEC_PARSER_DEF__
 #define __CODEC_PARSER_DEF__
-
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <limits.h>
-#include <string.h>
-#include "common/log.h"
 
 /*mixed-language compiling*/
 #ifdef __cplusplus
@@ -21,114 +38,24 @@
     #define G_END_DECLS
 #endif
 
-#define g_once_init_enter(location) true
-#define g_once_init_leave(location, result) 
-
-/***** padding for very extensible base classes *****/
-#define PADDING_LARGE 20
-/***** default padding of structures *****/
-#define PADDING 4
-
-#define     G_STMT_START    do
-#define     G_STMT_END      while(0)
-
-#define g_assert(expr) assert(expr)
-
-#define G_GNUC_MALLOC __attribute__((__malloc__))
-#define g_malloc(size) malloc(size)
-#define g_malloc0(n_bytes) calloc(1, n_bytes)
-#define g_realloc(ptr, size) realloc(ptr, size)
-#define g_realloc_n(mem, n_blocks, n_block_bytes) \
-		g_realloc(mem, n_blocks * n_block_bytes)
-#define g_try_realloc(ptr, size) realloc(ptr, size)
-
 #ifndef TRUE
     #define TRUE true
 #endif
-
 #ifndef FALSE
     #define FALSE false
 #endif
 
-#ifndef G_MAXUINT32
-    #define G_MAXUINT32	((unsigned int)0xffffffff)
-#endif
+#define     G_STMT_START    do
+#define     G_STMT_END      while(0)
 
-#define G_LIKELY(a) (a)
+#define g_once_init_enter(location) true
+#define g_once_init_leave(location, result) 
+
 #define TRACE(...)
-
-#ifndef MIN(a, b)
-#define MIN(a, b) (((a)>(b))?(b):(a))
-#endif
-
-#ifndef MAX(a, b)
-#define MAX(a, b) (((a)>(b)?(a):(b)))
-#endif
-
-#define G_N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
-
-/*The maximum value which can be held in a signed char*/
-#define G_MAXINT8	((signed char)  0x7f)
-/*The maximum value which can be held in a unsigned short*/
-#define G_MAXUINT16	((unsigned short) 0xffff)
-/*The maximum value which can be held in a unsigned int*/
-#define G_MAXUINT UINT_MAX
-
-static inline uint32_t 
-g_bit_storage(uint32_t value)
-{
-  uint32_t bits = 0;
-  while (value >> bits)
-     bits ++;
-  
-  return bits;
-}
-
-#define g_new(struct_type, n_structs)  \
-    (struct_type*)malloc(sizeof(struct_type)*(n_structs))
-
-#define g_new0(struct_type, n_structs)  \
-    ({ struct_type* tmp = (struct_type*)malloc(sizeof(struct_type)*(n_structs)); \
-    if(tmp) \
-        memset(tmp, 0, sizeof(struct_type)*(n_structs));\
-	tmp; })
-
-#define g_slice_new(struct_type) \
-    (struct_type*)malloc(sizeof(struct_type))
-
-#define g_slice_new0(struct_type) \
-    ({ struct_type* tmp = (struct_type*)malloc(sizeof(struct_type)); \
-    if(tmp) \
-        memset(tmp, 0, sizeof(struct_type));\
-	tmp; })
-
-#define g_slice_free(type, mem) \
-    free(mem)
-
-inline static void* 
-g_memdup (const void* mem, uint32_t byte_size)
-{
-    void* new_mem;
-
-    if (mem)
-    {
-        new_mem = malloc(byte_size);
-        memcpy (new_mem, mem, byte_size);
-    }
-    else
-        new_mem = NULL;
-
-    return new_mem;
-}
-
-inline static void
-g_free (void* mem)
-{
-    if(mem == NULL)
-        return;
-    else
-        free(mem);
-}
+#define G_LIKELY(a) (a)
+#define G_GSIZE_FORMAT "lu"
+#define g_assert(expr) assert(expr)
+#define G_UNLIKELY(expr) (__builtin_expect (_G_BOOLEAN_EXPR(expr), 0))
 
 #define g_return_if_fail(expr) { \
     if (!(expr)) \
@@ -152,10 +79,6 @@ g_free (void* mem)
             _g_boolean_var_; \
 	})
 
-#define G_UNLIKELY(expr) (__builtin_expect (_G_BOOLEAN_EXPR(expr), 0))
-
-#define G_GSIZE_FORMAT "lu"
-
 typedef struct _DebugCategory {
     /*< private >*/
     int32_t threshold;
@@ -172,9 +95,6 @@ typedef struct _GArray {
     char* data;
     uint32_t len;
 }GArray;
-
-#define VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME    3   /* frame-tag */
-#define VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME        10  /* frame tag + magic number + frame width/height */
 
 typedef void(*GDestroyNotify)(void* data);  /*for h265parser.c:2482*/
 
