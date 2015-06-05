@@ -74,7 +74,15 @@ public:
         attrib.type = VASurfaceAttribPixelFormat;
         attrib.value.type = VAGenericValueTypeInteger;
         attrib.value.value.i = fourcc;
-        VAStatus status = vaCreateSurfaces(*m_display, VA_RT_FORMAT_YUV420, width, height,
+        uint32_t rtformat;
+        if (fourcc == VA_FOURCC_BGRX
+            || fourcc == VA_FOURCC_BGRA) {
+            rtformat = VA_RT_FORMAT_RGB32;
+            ERROR("rgb32");
+        } else {
+            rtformat = VA_RT_FORMAT_YUV420;
+        }
+        VAStatus status = vaCreateSurfaces(*m_display, rtformat, width, height,
                                            &m_surfaces[0], m_surfaces.size(),&attrib, 1);
         if (status != VA_STATUS_SUCCESS) {
             ERROR("create surface failed fourcc = %d", fourcc);
