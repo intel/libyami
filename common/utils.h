@@ -52,6 +52,19 @@ class CalcFps
     uint64_t m_timeStart;
 };
 
+//slim version of CalcFps, hide all fps all fps detials.
+class FpsCalc
+{
+public:
+    FpsCalc();
+    void addFrame();
+    void log();
+private:
+    int m_frames;
+    uint64_t m_start;
+    uint64_t m_netStart;
+    static const int NET_FPS_START = 5;
+};
 };
 
 #endif
