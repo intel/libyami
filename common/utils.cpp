@@ -181,6 +181,35 @@ uint64_t getSystemTime()
     return tv.tv_usec/1000+tv.tv_sec*1000;
 }
 
+double  getFps(uint64_t current, uint64_t start, int frames)
+{
+    uint64_t sysTime = current - start;
+    double fps = frames*1000.0/sysTime;
+    return fps;
+}
+
+FpsCalc::FpsCalc():m_frames(0) {}
+
+void FpsCalc::addFrame()
+{
+    if (m_frames == 0) {
+        m_start = getSystemTime();
+    } else if (m_frames == NET_FPS_START){
+        m_netStart = getSystemTime();
+    }
+    m_frames++;
+}
+void FpsCalc::log()
+{
+    uint64_t current = getSystemTime();
+    if (m_frames > 0) {
+        printf("%d frame decoded, fps = %.2f. ", m_frames, getFps(current, m_start,m_frames));
+    }
+    if (m_frames > NET_FPS_START) {
+        printf("fps after %d frames = %.2f.", NET_FPS_START, getFps(current, m_netStart, m_frames-NET_FPS_START));
+    }
+    printf("\n");
+}
 void CalcFps::setAnchor()
 {
     m_timeStart = getSystemTime();
