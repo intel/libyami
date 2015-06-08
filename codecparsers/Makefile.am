@@ -12,6 +12,7 @@ libyami_codecparser_source_c = \
         vp8utils.c \
         vp8rangedecoder.c \
         vp8parser.c \
+        vp9parser.c\
         dboolhuff.c \
         jpegparser.c \
         parserutils.c \
@@ -31,6 +32,7 @@ libyami_codecparser_source_h_priv = \
         vp8utils.h \
         vp8rangedecoder.h \
         vp8parser.h \
+        vp9parser.h \
         jpegparser.h \
         parserutils.h \
         nalutils.h \
