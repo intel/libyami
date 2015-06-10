@@ -53,6 +53,7 @@ DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoCo
         surfaces.push_back(s);
     }
     pool.reset(new VaapiDecSurfacePool(display, surfaces));
+    return pool;
 }
 
 VaapiDecSurfacePool::VaapiDecSurfacePool(const DisplayPtr& display, std::vector<SurfacePtr> surfaces):
