@@ -156,6 +156,7 @@ bool VppOutput::getFormat(uint32_t& fourcc, int& width, int& height)
     fourcc = m_fourcc;
     width = m_width;
     height = m_height;
+    return true;
 }
 
 
@@ -180,6 +181,7 @@ bool VppOutputFile::init(const char* outputFileName)
 bool VppOutputFile::config(const SharedPtr<FrameWriter>& writer)
 {
     m_writer = writer;
+    return true;
 }
 
 VppOutputFile::~VppOutputFile()

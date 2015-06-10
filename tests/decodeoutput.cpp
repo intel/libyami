@@ -549,6 +549,7 @@ bool renderOutputFrames(DecodeOutput* output, bool drain)
     do {
         status = output->processOneFrame(drain);
     } while (status != RENDER_NO_AVAILABLE_FRAME && status > 0);
+    return true;
 }
 
 
