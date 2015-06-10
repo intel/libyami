@@ -83,6 +83,7 @@ SharedPtr<VppInput> createInput(const char* filename, const SharedPtr<VADisplay>
         SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, 5));
         inputFile->config(alloctor, reader);
     }
+    return inputFile;
 }
 
 SharedPtr<VppOutput> createOutput(const char* filename, const SharedPtr<VADisplay>& display)
