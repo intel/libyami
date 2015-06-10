@@ -30,11 +30,11 @@
 /***** default padding of structures *****/
 #define PADDING 4
 
-#ifndef MIN(a, b)
+#ifndef MIN
 #define MIN(a, b) (((a)>(b))?(b):(a))
 #endif
 
-#ifndef MAX(a, b)
+#ifndef MAX
 #define MAX(a, b) (((a)>(b)?(a):(b)))
 #endif
 
