@@ -105,6 +105,7 @@ bool VppOutputEncode::config(NativeDisplay& nativeDisplay)
     Encode_Status status = m_encoder->start();
     assert(status == ENCODE_SUCCESS);
     initOuputBuffer();
+    return true;
 }
 
 bool VppOutputEncode::output(const SharedPtr<VideoFrame>& frame)
