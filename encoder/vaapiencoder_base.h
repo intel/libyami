@@ -167,6 +167,7 @@ private:
     bool updateMaxOutputBufferCount() {
         if (m_maxOutputBuffer < m_videoParamCommon.leastInputCount + 3)
             m_maxOutputBuffer = m_videoParamCommon.leastInputCount + 3;
+        return true;
     }
 };
 

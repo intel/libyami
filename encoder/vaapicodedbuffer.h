@@ -38,8 +38,8 @@ public:
         return m_buf->getID();
     }
     bool copyInto(void* data);
-    bool setFlag(uint32_t flag) { m_flags |= flag; }
-    bool clearFlag(uint32_t flag) { m_flags &= !flag; }
+    bool setFlag(uint32_t flag) { m_flags |= flag; return true; }
+    bool clearFlag(uint32_t flag) { m_flags &= !flag; return true; }
     uint32_t getFlags() { return m_flags; }
 
 private:
