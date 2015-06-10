@@ -10,6 +10,8 @@ libyami 0.2.4 release
 +3 bug fix for vp8 encoder.
 +.gitignore file
 + update correct profile name for vp9 since libva updated.
++fix "resolution changed in v4l2 egl mode makes yami crash" issue
+-decode output dump can't gusss output fourcc from file extension
 
 
 
