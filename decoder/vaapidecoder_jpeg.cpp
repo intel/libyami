@@ -299,7 +299,6 @@ Decode_Status VaapiDecoderJpeg::fillHuffmanTable()
 
 Decode_Status VaapiDecoderJpeg::decodePictureStart()
 {
-    Decode_Status status;
     VAProfile profile;
 
     assert(m_profile == VAAPI_PROFILE_JPEG_BASELINE);

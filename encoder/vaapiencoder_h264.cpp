@@ -1162,7 +1162,6 @@ bool VaapiEncoderH264::fill(VAEncSequenceParameterBufferH264* seqParam) const
 bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const PicturePtr& picture,
                             const SurfacePtr& surface) const
 {
-    VaapiEncoderH264Ref *ref_pic;
     uint32_t i = 0;
 
     /* reference list,  */
@@ -1245,7 +1244,6 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture,
                                         const vector<ReferencePtr>& refList1) const
 {
     VAEncSliceParameterBufferH264 *sliceParam;
-    VaapiBufObject *slice;
     uint32_t sliceOfMbs, sliceModMbs, curSliceMbs;
     uint32_t mbSize;
     uint32_t lastMbIndex;

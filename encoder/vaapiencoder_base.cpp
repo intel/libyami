@@ -133,7 +133,6 @@ Encode_Status VaapiEncoderBase::encode(VideoFrameRawData* frame)
         return ENCODE_INVALID_PARAMS;
 
     FUNC_ENTER();
-    Encode_Status ret;
 
     if (isBusy())
         return ENCODE_IS_BUSY;

@@ -892,7 +892,7 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
 {
     H264SPS *const sps = pps->sequence;
     VAProfile parsedProfile;
-    VaapiChromaType parsedChroma;
+    /*VaapiChromaType parsedChroma;*/
     uint32_t mbWidth, mbHeight;
     bool resetContext = false;
     uint32_t DPBSize = 0;
@@ -905,7 +905,6 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
         m_DPBManager.reset(new VaapiDPBManager(this, DPBSize));
     }
 
-    VideoConfigBuffer *config = &m_configBuffer;
     parsedProfile = getH264VAProfile(pps);
     if (parsedProfile != m_configBuffer.profile) {
         DEBUG("H264: profile changed: old = %d, new = %d, \n",
@@ -1133,7 +1132,6 @@ Decode_Status
     PicturePtr picture;
     Decode_Status status;
     H264PPS *const pps = sliceHdr->pps;
-    H264SPS *const sps = pps->sequence;
 
     status = decodeCurrentPicture();
     if (status != DECODE_SUCCESS)
@@ -1179,7 +1177,6 @@ Decode_Status
 Decode_Status VaapiDecoderH264::decodeSlice(H264NalUnit * nalu)
 {
     Decode_Status status;
-    VaapiDecPictureH264 *picture;
     H264ParserResult result;
 
     SliceHeaderPtr sliceHdr(new H264SliceHdr);
@@ -1559,7 +1556,6 @@ bool VaapiDecoderH264::
 processForGapsInFrameNum(const PicturePtr& pic,
                          const SliceHeaderPtr& sliceHdr)
 {
-    VaapiDecPicBufLayer::Ptr& DPBLayer = m_DPBManager->DPBLayer;
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
     const int32_t maxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);

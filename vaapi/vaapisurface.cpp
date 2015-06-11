@@ -63,7 +63,7 @@ SurfacePtr VaapiSurface::create(const DisplayPtr& display,
                                 uint32_t surfAttribNum)
 {
     VAStatus status;
-    uint32_t format, i;
+    uint32_t format;
     VASurfaceAttrib *surfAttribs = (VASurfaceAttrib *) surfAttribArray;
     SurfacePtr surface;
     VASurfaceID id;
@@ -73,7 +73,6 @@ SurfacePtr VaapiSurface::create(const DisplayPtr& display,
 
 
     format = vaapiChromaToVaChroma(chromaType);
-    uint32_t externalBufHandle = 0;
     status = vaCreateSurfaces(display->getID(), format, width, height,
                               &id, 1, surfAttribs, surfAttribNum);
     if (!checkVaapiStatus(status, "vaCreateSurfacesWithAttribute()"))
