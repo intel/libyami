@@ -134,7 +134,7 @@ extern "C"
     assert (new_bit_size
         && ((new_bit_size & __BITS_WRITER_ALIGNMENT_MASK) == 0));
     clear_pos = ((bitwriter->bit_size + 7) >> 3);
-    bitwriter->data = realloc (bitwriter->data, (new_bit_size >> 3));
+    bitwriter->data = (uint8_t*)realloc (bitwriter->data, (new_bit_size >> 3));
     memset (bitwriter->data + clear_pos, 0, (new_bit_size >> 3) - clear_pos);
     bitwriter->bit_capacity = new_bit_size;
     return TRUE;

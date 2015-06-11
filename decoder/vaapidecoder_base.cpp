@@ -464,7 +464,7 @@ Decode_Status VaapiDecoderBase::flagNativeBuffer(void *pBuffer)
     return DECODE_SUCCESS;
 }
 
-void VaapiDecoderBase::releaseLock(bool lockable=false)
+void VaapiDecoderBase::releaseLock(bool lockable)
 {
     if (!m_surfacePool)
         return;
