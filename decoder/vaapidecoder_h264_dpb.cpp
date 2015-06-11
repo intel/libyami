@@ -328,7 +328,7 @@ void VaapiDPBManager::drainDPB()
 
 void VaapiDPBManager::debugDPBStatus()
 {
-    int i, j;
+    int i;
     VaapiFrameStore::Ptr frameStore;
 
     for (i = 0; i < DPBLayer->DPBCount; i++) {

@@ -299,7 +299,6 @@ void VaapiDecoderBase::renderDone(VideoFrameRawData* frame)
 
 Decode_Status VaapiDecoderBase::updateReference(void)
 {
-    Decode_Status status;
     // update reference frames
     if (m_renderTarget->referenceFrame) {
         // managing reference for MPEG4/H.263/WMV.
@@ -322,11 +321,6 @@ Decode_Status
     VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
 {
     INFO("base: setup VA");
-    uint32_t i;
-    VideoSurfaceBuffer *buf;
-    VaapiSurface *suf;
-    Decode_Status status;
-    VAStatus vaStatus = VA_STATUS_SUCCESS;
 
     if (m_enableNativeBuffersFlag == true) {
         numSurface = 20;        //NATIVE_WINDOW_COUNT;

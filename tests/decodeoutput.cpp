@@ -294,7 +294,7 @@ bool DecodeOutputX11::setVideoSize(int width, int height)
     if (m_window) {
         //todo, resize window;
     } else {
-        int screen = DefaultScreen(m_display);
+        DefaultScreen(m_display);
 
         XSetWindowAttributes x11WindowAttrib;
         x11WindowAttrib.event_mask = KeyPressMask;
