@@ -1,5 +1,5 @@
 /*
- *  simpleplayer.cpp - simpeplayer to demo API usage, no tricks
+ *  grid.cpp - grid application to demo mxn grid for m*n ways decode
  *
  *  Copyright (C) 2013-2014 Intel Corporation
  *
@@ -34,11 +34,406 @@
 #include <vector>
 #include <deque>
 
-#include <X11/Xlib.h>
-#include <va/va_x11.h>
 
 using namespace YamiMediaCodec;
 using namespace std;
+
+#include <errno.h>
+extern "C" {
+#include <libdrm/drm_fourcc.h>
+#include <libdrm/intel_bufmgr.h>
+}
+#include <va/va_drmcommon.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <map>
+#include "vaapi/vaapiutils.h"
+#include "common/common_def.h"
+
+
+bool checkDrmRet(int ret,const char* msg)
+{
+    if (ret) {
+        ERROR("%s failed: %s", msg, strerror(errno));
+        return false;
+    }
+    return true;
+}
+//this is an onscreen RGB Surface.
+//drm function uses getFbHandle
+//yami uses SharedPtr<VideoFrame>
+//but it all bind to same memory.
+class DrmFrame : public VideoFrame
+{
+public:
+    DrmFrame(VADisplay, int fd, uint32_t width, uint32_t height);
+    ~DrmFrame();
+    bool init();
+    uint32_t getFbHandle();
+private:
+    bool createBo();
+    //add current bo to frame buffer
+    bool addToFb();
+    //bind current bo to VA Surface
+    bool bindToVaSurface();
+    VADisplay m_display;
+    int m_fd;
+    int m_bo;
+    uint32_t m_handle;
+    uint32_t m_width;
+    uint32_t m_height;
+    uint32_t m_pitch;
+    static const uint32_t BPP = 32;
+};
+
+DrmFrame::DrmFrame(VADisplay display, int fd, uint32_t width, uint32_t height)
+    :m_display(display), m_fd(fd), m_width(width),m_height(height),m_bo(-1), m_handle(-1)
+{
+    //dirty but handy
+    VideoFrame* frame = static_cast<VideoFrame*>(this);
+    memset(frame, 0, sizeof(VideoFrame));
+    frame->surface = static_cast<intptr_t>(VA_INVALID_ID);
+}
+
+bool DrmFrame::createBo()
+{
+    struct drm_mode_create_dumb arg;
+    memset(&arg, 0, sizeof(arg));
+    arg.bpp = BPP;
+    arg.width = m_width,
+    arg.height = m_height;
+    int ret = drmIoctl(m_fd, DRM_IOCTL_MODE_CREATE_DUMB, &arg);
+    if (!checkDrmRet(ret, "DRM_IOCTL_MODE_CREATE_DUMB"))
+        return false;
+    m_bo = arg.handle;
+    m_pitch = arg.pitch;
+    return true;
+}
+
+bool DrmFrame::addToFb()
+{
+    int ret = drmModeAddFB(m_fd, m_width, m_height, 24,
+            BPP, m_pitch, m_bo, &m_handle);
+    return checkDrmRet(ret, "drmModeAddFB");
+}
+
+//bind m_bo to VaSurface.
+//vpp need this.
+bool DrmFrame::bindToVaSurface()
+{
+    int ret;
+
+    struct drm_gem_flink arg;
+    memset(&arg, 0, sizeof(arg));
+    arg.handle = m_bo;
+    ret = drmIoctl(m_fd, DRM_IOCTL_GEM_FLINK, &arg);
+    if (!checkDrmRet(ret, "DRM_IOCTL_PRIME_HANDLE_TO_FD"))
+        return false;
+
+    VASurfaceAttribExternalBuffers external;
+    unsigned long handle = (unsigned long)arg.name;
+    memset(&external, 0, sizeof(external));
+    external.pixel_format = VA_FOURCC_BGRX;
+    external.width = m_width;
+    external.height = m_height;
+    external.data_size = m_width * m_height * BPP / 8;
+    external.num_planes = 1;
+    external.pitches[0] = m_pitch;
+    external.buffers = &handle;
+    external.num_buffers = 1;
+
+    VASurfaceAttrib attribs[2];
+    attribs[0].flags = VA_SURFACE_ATTRIB_SETTABLE;
+    attribs[0].type = VASurfaceAttribMemoryType;
+    attribs[0].value.type = VAGenericValueTypeInteger;
+    attribs[0].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_KERNEL_DRM;
+
+    attribs[1].flags = VA_SURFACE_ATTRIB_SETTABLE;
+    attribs[1].type = VASurfaceAttribExternalBufferDescriptor;
+    attribs[1].value.type = VAGenericValueTypePointer;
+    attribs[1].value.value.p = &external;
+
+    VASurfaceID id;
+    VAStatus vaStatus = vaCreateSurfaces(m_display, VA_RT_FORMAT_RGB32, m_width, m_height,
+                                           &id, 1,attribs, N_ELEMENTS(attribs));
+    if (!checkVaapiStatus(vaStatus, "vaCreateSurfaces"))
+        return false;
+    this->surface = static_cast<intptr_t>(id);
+    return true;
+}
+
+bool DrmFrame::init()
+{
+    return createBo() && addToFb() && bindToVaSurface();
+}
+
+uint32_t DrmFrame::getFbHandle()
+{
+    return m_handle;
+}
+
+
+DrmFrame::~DrmFrame()
+{
+    int ret;
+    VASurfaceID id = static_cast<VASurfaceID>(this->surface);
+    if (id != VA_INVALID_ID) {
+        checkVaapiStatus(vaDestroySurfaces(m_display, &id, 1), "vaDestroySurfaces");
+    }
+    if (m_handle != -1) {
+        ret = drmModeRmFB(m_fd, m_handle);
+        checkDrmRet(ret, "drmModeRmFB");
+    }
+    if (m_bo != -1) {
+        drm_mode_destroy_dumb arg;
+        memset(&arg, 0, sizeof(arg));
+        arg.handle = m_bo;
+        ret = drmIoctl(m_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &arg);
+        checkDrmRet(ret, "DRM_IOCTL_MODE_DESTROY_DUMB");
+    }
+}
+
+class DrmRenderer
+{
+public:
+    ///init the render;
+    bool init();
+    ///deque the the screen back buffer, this give ownship to caller
+    ///you can render on it.
+    SharedPtr<VideoFrame> dequeue();
+
+    ///queue the frame, this will transfer owner ship to renderer.
+    ///it will flip the frame to screen
+    bool queue(const SharedPtr<VideoFrame>&);
+
+    //you dequeued the frame but did not draw validate data on it
+    //this will transfer owner ship to renderer.
+    //it will return to back buffers.
+    bool discard(const SharedPtr<VideoFrame>&);
+
+    uint32_t getWidth();
+    uint32_t getHeight();
+
+
+    DrmRenderer(VADisplay, int fd);
+    ~DrmRenderer();
+private:
+    bool createFrames(uint32_t width, uint32_t height, int size);
+    bool getConnector(drmModeRes *resource);
+    bool getCrtc(drmModeRes *resource);
+    bool getPlane();
+    bool setPlane();
+    bool initDrm();
+
+    VADisplay m_display;
+    int m_fd;
+    uint32_t m_connectorID;
+    uint32_t m_encoderID;
+    uint32_t m_crtcID;
+    uint32_t m_crtcIndex;
+    uint32_t m_planeID;
+    drmModeModeInfo m_mode;
+
+    std::deque<SharedPtr<DrmFrame> > m_backs;
+    std::deque<SharedPtr<DrmFrame> > m_fronts;
+    int m_frameCount;
+};
+
+DrmRenderer::DrmRenderer(VADisplay display, int fd)
+    :m_display(display), m_fd(fd), m_frameCount(0)
+{
+}
+
+bool DrmRenderer::createFrames(uint32_t width, uint32_t height, int size)
+{
+    for (int i = 0; i < size; i++) {
+        SharedPtr<DrmFrame> frame(new DrmFrame(m_display, m_fd, width, height));
+        if (!frame->init())
+            return false;
+        m_backs.push_back(frame);
+    }
+    m_frameCount = size;
+    return true;
+}
+
+uint32_t DrmRenderer::getWidth()
+{
+    return m_mode.hdisplay;
+}
+
+uint32_t DrmRenderer::getHeight()
+{
+    return m_mode.vdisplay;
+}
+
+bool DrmRenderer::getConnector(drmModeRes *resource)
+{
+    drmModeConnectorPtr connector = NULL;
+    for(int i = 0; i < resource->count_connectors; i++) {
+        connector = drmModeGetConnector(m_fd, resource->connectors[i]);
+        if(connector) {
+            if (connector->connection == DRM_MODE_CONNECTED) {
+                m_connectorID = connector->connector_id;
+                m_encoderID = connector->encoder_id;
+                m_mode  = *connector->modes;
+                drmModeFreeConnector(connector);
+                return true;
+            }
+            drmModeFreeConnector(connector);
+        }
+    }
+    ERROR("can't get connect connector");
+    return false;
+}
+
+bool DrmRenderer::getCrtc(drmModeRes *resource)
+{
+    bool ret = false;
+    drmModeEncoderPtr encoder = drmModeGetEncoder(m_fd, m_encoderID);
+    if (encoder) {
+        m_crtcID = encoder->crtc_id;
+        for (int i = 0; i < resource->count_crtcs; i++) {
+            if (resource->crtcs[i] == m_crtcID) {
+                m_crtcIndex = i;
+                ret = true;
+                break;
+            }
+        }
+        drmModeFreeEncoder(encoder);
+    } else {
+        ERROR("connect get encoder for id %d", m_encoderID);
+    }
+    return ret;
+}
+
+bool DrmRenderer::getPlane()
+{
+    drmModePlaneResPtr planes = drmModeGetPlaneResources(m_fd);
+    if (!planes) {
+        return false;
+    }
+    for (uint32_t i = 0; i < planes->count_planes; i++) {
+        drmModePlanePtr plane = drmModeGetPlane(m_fd, planes->planes[i]);
+        if (plane) {
+            if (plane->possible_crtcs & (1 << m_crtcIndex)) {
+                for (uint32_t j = 0; j < plane->count_formats; j++) {
+                    if (plane->formats[j] == DRM_FORMAT_XRGB8888) {
+                        m_planeID = plane->plane_id;
+                        drmModeFreePlane(plane);
+                        drmModeFreePlaneResources(planes);
+                        return true;
+                    }
+                }
+            }
+            drmModeFreePlane(plane);
+        }
+    }
+    drmModeFreePlaneResources(planes);
+    return false;
+}
+
+bool DrmRenderer::setPlane()
+{
+    SharedPtr<DrmFrame> frame = m_backs.front();
+    uint32_t handle = frame->getFbHandle();
+    int ret;
+    ret = drmModeSetCrtc(m_fd, m_crtcID, handle, 0, 0, &m_connectorID, 1, &m_mode);
+    if (!checkDrmRet(ret, "drmModeSetCrtc"))
+        return false;
+
+    m_backs.pop_front();
+    m_fronts.push_back(frame);
+    return true;
+}
+
+#define DEFAULT_DRM_BATCH_SIZE 0x80000
+bool DrmRenderer::initDrm()
+{
+    bool ret = false;
+
+    drmModeRes *resource = drmModeGetResources(m_fd);
+    if (resource) {
+        if (getConnector(resource) && getCrtc(resource) && getPlane()) {
+            ret = true;
+        }
+        drmModeFreeResources(resource);
+    }
+    return ret;
+}
+
+bool DrmRenderer::init()
+{
+    if (!initDrm())
+        return false;
+    if (!createFrames(m_mode.hdisplay, m_mode.vdisplay, 3) || !setPlane())
+        return false;
+    ERROR("%dx%d@%d", m_mode.hdisplay, m_mode.vdisplay, m_mode.vrefresh);
+    return true;
+}
+
+SharedPtr<VideoFrame> DrmRenderer::dequeue()
+{
+    SharedPtr<VideoFrame> frame;
+    if (m_backs.empty())
+        return frame;
+    frame = std::tr1::static_pointer_cast<VideoFrame>(m_backs.front());
+    m_backs.pop_front();
+    return frame;
+}
+
+bool DrmRenderer::queue(const SharedPtr<VideoFrame>& vframe)
+{
+    SharedPtr<DrmFrame> frame =
+        std::tr1::static_pointer_cast<DrmFrame>(vframe);
+    if (!frame) {
+        ERROR("invalid frame queued");
+        return false;
+    }
+    if (m_fronts.size() >= 2) {
+        //have two frame in flip chain, wait the flip done
+        drmEventContext evctx;
+        struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
+        fd_set fds;
+        memset(&evctx, 0, sizeof evctx);
+        evctx.version = DRM_EVENT_CONTEXT_VERSION;
+        evctx.vblank_handler = NULL;
+        FD_ZERO(&fds);
+        FD_SET(m_fd, &fds);
+        select(m_fd + 1, &fds, NULL, NULL, &timeout);
+        drmHandleEvent(m_fd, &evctx);
+
+        m_backs.push_back(m_fronts.front());
+        m_fronts.pop_front();
+    }
+    uint32_t handle = frame->getFbHandle();
+    int ret = drmModePageFlip(m_fd, m_crtcID, handle, DRM_MODE_PAGE_FLIP_EVENT, NULL);
+    if (!checkDrmRet(ret, "drmModePageFlip"))
+        return false;
+    m_fronts.push_back(frame);
+    return true;
+}
+
+bool DrmRenderer::discard(const SharedPtr<VideoFrame>& vframe)
+{
+    SharedPtr<DrmFrame> frame =
+        std::tr1::static_pointer_cast<DrmFrame>(vframe);
+    if (!frame) {
+        ERROR("invalid frame queued");
+        return false;
+    }
+    m_backs.push_back(frame);
+    return true;
+}
+
+DrmRenderer::~DrmRenderer()
+{
+    int count = m_backs.size() + m_fronts.size();
+    if (m_frameCount != count) {
+        ASSERT(0 && "!BUG, you need return all dequeued buffer before you destory render");
+    }
+    m_backs.clear();
+    m_fronts.clear();
+}
 
 class Grid
 {
@@ -49,8 +444,8 @@ class Grid
 public:
     bool init(int argc, char** argv)
     {
-        if (argc != 3) {
-            printf("usage: grid xxx.264\n");
+        if (!processCmdline(argc, argv)) {
+            usage("grid");
             return false;
         }
 
@@ -58,20 +453,12 @@ public:
             return false;
         }
 
-        resizeWindow(0, 0);
-        m_width = m_winWidth;
-        m_height = m_winHeight;
-/*        m_width = 4096;
-        m_height = 2160;*/
-        m_col = 4;
-        m_row = 4;
-
-
         int len = m_col * m_row;
         for (int i = 0; i < len; i++) {
             SharedPtr<VppInputDecode> input(new VppInputDecode);
-            if (!input->init(argv[i%2 + 1])) {
-                fprintf(stderr, "failed to open %s", argv[1]);
+            char* file = m_files[i % m_files.size()];
+            if (!input->init(file)) {
+                fprintf(stderr, "failed to open %s", file);
                 return false;
             }
             //set native display
@@ -91,13 +478,13 @@ public:
             return false;
         }
 
-        SharedPtr<VADisplay> vaDisplay(&m_vaDisplay, NullDeleter());
-        m_allocator.reset(new PooledFrameAllocator(vaDisplay, 3));
-
-        if (!m_allocator->setFormat(VA_FOURCC_RGBX, m_width, m_height)) {
-            ERROR("set alloctor format failed");
+        m_renderer.reset(new DrmRenderer(m_vaDisplay, m_fd));
+        if (!m_renderer->init()) {
+            ERROR("init drm renderer failed");
             return false;
         }
+        m_width = m_renderer->getWidth();
+        m_height = m_renderer->getHeight();
         return true;
     }
     bool run()
@@ -105,19 +492,19 @@ public:
         renderOutputs();
         return true;
     }
-    Grid():m_window(0), m_width(0), m_height(0), m_col(0), m_row(0) {}
+    Grid():m_fd(-1), m_width(0), m_height(0), m_col(0), m_row(0) {}
     ~Grid()
     {
         //reset before we terminate the va
+        m_renderer.reset();
         m_vpp.reset();
         m_inputs.clear();
-        m_allocator.reset();
 
         if (m_nativeDisplay) {
             vaTerminate(m_vaDisplay);
         }
-        if (m_window) {
-            XDestroyWindow(m_display.get(), m_window);
+        if (m_fd != 0) {
+            close(m_fd);
         }
     }
 private:
@@ -128,83 +515,27 @@ private:
         FpsCalc fps;
         int width = m_width / m_col;
         int height = m_height / m_row;
-
-
-
-        SharedPtr<VADisplay> vaDisplay(&m_vaDisplay, NullDeleter());
-
-        SharedPtr<VppOutput> output =  VppOutput::create("3840x2160.BGRX");
-        SharedPtr<VppOutputFile> outputFile = std::tr1::dynamic_pointer_cast<VppOutputFile>(output);
-        if (outputFile) {
-            SharedPtr<FrameWriter> writer(new VaapiFrameWriter(vaDisplay));
-            if (!outputFile->config(writer)) {
-                ERROR("config writer failed");
-                output.reset();
-                return;
-            }
-        }
-#if 1
-
-        SharedPtr<PooledFrameAllocator> allocator;
-        allocator.reset(new PooledFrameAllocator(vaDisplay, 3));
-
-        if (!allocator->setFormat(VA_FOURCC_NV12, 1920, 1080)) {
-            ERROR("set alloctor format failed");
-            return ;
-        }
-        #endif
         do {
-            SharedPtr<VideoFrame> dest = m_allocator->alloc();
-            //static deque<SharedPtr<VideoFrame> > ds;
-            //ds.push_back(dest);
+            SharedPtr<VideoFrame> dest = m_renderer->dequeue();
             for (int i = 0; i < m_row; i++) {
                 for (int j = 0; j < m_col; j++) {
                     SharedPtr<VppInputDecode>& input = m_inputs[i * m_col + j];
-                    if (!input->read(frame))
+                    if (!input->read(frame)) {
+                         m_renderer->discard(dest);
                         goto DONE;
+                    }
                     dest->crop.x = j * width;
                     dest->crop.y = i * height;
                     dest->crop.width = width;
                     dest->crop.height = height;
                     m_vpp->process(frame, dest);
-                    //status = vaPutSurface(m_vaDisplay, (VASurfaceID)frame->surface,
-                    //m_window, 0, 0, frame->crop.width, frame->crop.height,dest->crop.x, dest->crop.y, dest->crop.width, dest->crop.height,
-                    //NULL, 0, 0);
                 }
             }
-
-            #if 1
-            SharedPtr<VideoFrame> src = dest;
-            memset(&src->crop, 0, sizeof(src->crop));
-   /*                             src->crop.x = 0;
-                    src->crop.y = 0;
-                    src->crop.width = m_width/2;
-                    src->crop.height = m_height/2;
-*/
-            dest = allocator->alloc();
-            m_vpp->process(src, dest);
-            //output->output(dest);
-             //ERROR("width = %d, height = %d, win = %dx%d", m_width, m_height, m_winWidth, m_winHeight);
-            goto DONE;
-            #endif
-
-            #if 1
-            status = vaPutSurface(m_vaDisplay, (VASurfaceID)dest->surface,
-                m_window, 0, 0, 1920, 1080, 0, 0, m_winWidth, m_winHeight,
-                NULL, 0, 0);
-            #endif
-            #if 0
-            if (ds.size() > 2) {
-                dest = ds.front();
-                ds.pop_front();
+            if (!m_renderer->queue(dest)) {
+                ERROR("queue to drm failed");
+                goto DONE;
             }
-            vaSyncSurface(m_vaDisplay, (VASurfaceID)dest->surface);
-            dest.reset();
-            #endif
-            if (status != VA_STATUS_SUCCESS) {
-                ERROR("vaPutSurface return %d", status);
-                break;
-            }
+
             fps.addFrame();
         } while (1);
 DONE:
@@ -212,13 +543,12 @@ DONE:
     }
     bool initDisplay()
     {
-        Display* display = XOpenDisplay(NULL);
-        if (!display) {
-            fprintf(stderr, "Failed to XOpenDisplay \n");
+        m_fd = open("/dev/dri/card0", O_RDWR);
+        if (m_fd == -1) {
+            fprintf(stderr, "Failed to drm \n");
             return false;
         }
-        m_display.reset(display, XCloseDisplay);
-        m_vaDisplay = vaGetDisplay(m_display.get());
+        m_vaDisplay = vaGetDisplayDRM(m_fd);
         int major, minor;
         VAStatus status;
         status = vaInitialize(m_vaDisplay, &major, &minor);
@@ -232,52 +562,54 @@ DONE:
 
         return true;
     }
-    void resizeWindow(int width, int height)
+    bool processCmdline(int argc, char** argv)
     {
-        Display* display = m_display.get();
-        if (m_window) {
-        //todo, resize window;
-        } else {
-            Screen* screen = XDefaultScreenOfDisplay(display);
-            if (!screen) {
-                ERROR("can't get default screen");
-                return;
-            }
-            int screenWidth = WidthOfScreen(screen);
-            int screenHeight = HeightOfScreen(screen);
-            if (width == 0 || height == 0
-                || width > screenWidth || height > screenHeight) {
-                width = screenWidth;
-                height = screenHeight;
-                ERROR("width = %d, height = %d", width, height);
-            }
-
-            XSetWindowAttributes x11WindowAttrib;
-            x11WindowAttrib.event_mask = KeyPressMask;
-            m_window = XCreateWindow(display, DefaultRootWindow(display),
-                0, 0, width, height, 0, CopyFromParent, InputOutput,
-                CopyFromParent, CWEventMask, &x11WindowAttrib);
-            XMapWindow(display, m_window);
-        }
-        XSync(display, false);
+        char opt;
+        while ((opt = getopt(argc, argv, "c:r:")) != -1)
         {
-            DEBUG("m_window=0x%x", m_window);
-            XWindowAttributes wattr;
-            XGetWindowAttributes(display, m_window, &wattr);
+            switch (opt) {
+                case 'c':
+                    m_col = atoi(optarg);
+                    break;
+                case 'r':
+                    m_row = atoi(optarg);
+                    break;
+                default:
+                    return false;
+            }
         }
-        m_winWidth = width;
-        m_winHeight = height;
+        for (int i = optind; i < argc; i++) {
+            m_files.push_back(argv[i]);
+        }
+        if (m_files.empty())
+            return false;
+
+        if (!m_col) {
+            m_col = 4;
+        }
+        if (!m_row) {
+            m_row = 4;
+        }
+        return true;
     }
-    SharedPtr<Display> m_display;
+
+    void usage(const char* app) {
+            printf("%s: a tool to display MxN ways decode output in a grid\n", app);
+            printf("usage: %s <options> file1 [file2] ...\n", app);
+            printf("   -c <column> \n");
+            printf("   -r <row> \n");
+    }
+
+    int m_fd;
     SharedPtr<NativeDisplay> m_nativeDisplay;
     VADisplay m_vaDisplay;
-    Window   m_window;
+
     vector< SharedPtr<VppInputDecode> > m_inputs;
     SharedPtr<IVideoPostProcess> m_vpp;
-    SharedPtr<FrameAllocator> m_allocator;
-    int m_width, m_height;
+    SharedPtr<DrmRenderer> m_renderer;
+    uint32_t m_width, m_height;
     int m_col, m_row;
-    int m_winWidth, m_winHeight;
+    vector<char*> m_files;
 };
 
 int main(int argc, char** argv)

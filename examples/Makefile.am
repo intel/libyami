@@ -2,7 +2,11 @@ INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/tests
 
 bin_PROGRAMS =
 if ENABLE_X11
-bin_PROGRAMS += simpleplayer grid
+bin_PROGRAMS += simpleplayer
+endif
+
+if ENABLE_DMABUF
+bin_PROGRAMS += grid
 endif
 
 AM_CFLAGS = \
@@ -77,7 +81,11 @@ VPP_INPUT_CFLAGS = \
 if ENABLE_X11
 simpleplayer_LDADD = $(YAMI_DECODE_LIBS)
 simpleplayer_SOURCES	= simpleplayer.cpp $(DECODE_INPUT_SOURCES)
+endif
 
-grid_LDADD = $(VPP_INPUT_LIBS)
+if ENABLE_DMABUF
+grid_CFLAGS = $(LIBDRM_CFLAGS)
+grid_CXXFLAGS = $(LIBDRM_CFLAGS)
+grid_LDADD = $(VPP_INPUT_LIBS) $(LIBDRM_LIBS)
 grid_SOURCES = grid.cpp $(VPP_INPUT_SOURCES)
 endif
