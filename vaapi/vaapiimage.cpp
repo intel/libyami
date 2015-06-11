@@ -213,7 +213,7 @@ ImagePtr VaapiImage::create(const DisplayPtr& display,
 
     VAImagePtr vaImage(new VAImage);
 
-    status = vaCreateImage(display->getID(), vaFormat, width, height, vaImage.get());
+    status = vaCreateImage(display->getID(), const_cast<VAImageFormat*>(vaFormat), width, height, vaImage.get());
     if (status != VA_STATUS_SUCCESS ||
         vaImage->format.fourcc != vaFormat->fourcc) {
         ERROR("fourcc mismatch wated = 0x%x, got = 0x%x", vaFormat->fourcc, vaImage->format.fourcc);
