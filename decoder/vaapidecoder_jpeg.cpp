@@ -146,7 +146,6 @@ Decode_Status
 Decode_Status VaapiDecoderJpeg::fillPictureParam()
 {
     VAPictureParameterBufferJPEGBaseline *vaPicParam = NULL;
-    VaapiBufObject *object;
     uint32_t i;
 
     if (!m_picture->editPicture(vaPicParam))
@@ -156,10 +155,8 @@ Decode_Status VaapiDecoderJpeg::fillPictureParam()
     vaPicParam->picture_height = m_frameHdr.height;
     vaPicParam->num_components = m_frameHdr.num_components;
 
-    if (m_frameHdr.num_components > 4) {
-        object->unmap();
+    if (m_frameHdr.num_components > 4)
         return DECODE_FAIL;
-    }
 
     for (i = 0; i < vaPicParam->num_components; i++) {
         vaPicParam->components[i].component_id =

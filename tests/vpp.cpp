@@ -155,7 +155,7 @@ public:
 
         SharedPtr<VideoFrame> src, dest;
         YamiStatus  status;
-        int count;
+        int count = 0;
         while (m_input->read(src)) {
             dest = m_allocator->alloc();
             status = m_vpp->process(src, dest);

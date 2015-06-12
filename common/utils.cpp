@@ -70,7 +70,7 @@ bool guessResolution(const char* filename, int& w, int& h)
     };
     int state = STATE_START;
     const char* p = filename;
-    const char* tokStart;
+    const char* tokStart = NULL;
     w = h = 0;
     while (*p != '\0') {
         switch (state) {
