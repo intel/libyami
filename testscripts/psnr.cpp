@@ -151,7 +151,7 @@ psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresul
     fprintf(fpeachpsnr,"[%dx%d] frame = %d\n",width,height,framecount);
     fprintf(fpeachpsnr,"Average of psnr  %f  %f  %f\n",avgy,avgu,avgv);
     char *path = NULL ;
-    if (path = strrchr (filename2, '/'))
+    if ((path = strrchr (filename2, '/')))
         path++;
     strcpy(videofile,path);
     if(avgy<standardpsnr || avgu<standardpsnr || avgv<standardpsnr)
@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
         switch (opt) {
             case 'h':
             case '?':
-                print_help (argv[0]);
+                print_help(argv[0]);
                 return false;
             case 'i':
                 strcpy(filename1,optarg);
@@ -193,7 +193,7 @@ int main(int argc, char *argv[])
                 strcpy(filename2,optarg);
                 strcat(eachpsnr,filename2);
                 strcat(eachpsnr,".txt");
-                if (path = strrchr (filename2, '/'))
+                if ((path = strrchr(filename2, '/')))
                     path++;
                 memcpy(psnrresult,filename2,path-filename2);
                 strcat(psnrresult,"jpg_psnr.txt");
