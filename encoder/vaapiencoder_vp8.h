@@ -70,6 +70,8 @@ private:
 
     int m_maxCodedbufSize;
 
+    int m_qIndex;
+
     typedef std::deque<SurfacePtr> ReferenceQueue;
     std::deque<SurfacePtr> m_reference;
 

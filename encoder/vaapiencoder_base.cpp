@@ -54,6 +54,8 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
+    m_videoParamCommon.rcParams.maxQP = 51;
+    m_videoParamCommon.rcParams.bitRate= 0;	
     m_videoParamCommon.rcParams.targetPercentage= 70;
     m_videoParamCommon.rcParams.windowSize = 500;
     m_videoParamCommon.rcParams.disableBitsStuffing = 1;
@@ -191,9 +193,11 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PT
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
-            //dirty work around, force rcmod before we support more
-            m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
-            //end
+            if(m_videoParamCommon.rcParams.bitRate > 0)
+	         m_videoParamCommon.rcMode = RATE_CONTROL_CBR;			
+	     // Only support CQP and CBR mode now
+            if (m_videoParamCommon.rcMode != RATE_CONTROL_CBR)
+                m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
         } else
             ret = ENCODE_INVALID_PARAMS;
         m_maxCodedbufSize = 0; // resolution may change, recalculate max codec buffer size when it is requested
@@ -321,7 +325,7 @@ SurfacePtr VaapiEncoderBase::createSurface(const SharedPtr<VideoFrame>& frame)
 
 void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
 {
-    hrd->buffer_size = m_videoParamCommon.rcParams.bitRate * m_videoParamCommon.rcParams.windowSize/1000;
+    hrd->buffer_size = m_videoParamCommon.rcParams.bitRate * 4;
     hrd->initial_buffer_fullness = hrd->buffer_size/2;
     DEBUG("bitRate: %d, hrd->buffer_size: %d, hrd->initial_buffer_fullness: %d",
         m_videoParamCommon.rcParams.bitRate, hrd->buffer_size,hrd->initial_buffer_fullness);
@@ -339,6 +343,11 @@ void VaapiEncoderBase::fill(VAEncMiscParameterRateControl* rateControl) const
     rateControl->rc_flags.bits.disable_bit_stuffing = m_videoParamCommon.rcParams.disableBitsStuffing;
 }
 
+void VaapiEncoderBase::fill(VAEncMiscParameterFrameRate* frameRate) const
+{
+    frameRate->framerate = fps();
+}
+
 /* Generates additional control parameters */
 bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 {
@@ -353,6 +362,11 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
         if (!picture->newMisc(VAEncMiscParameterTypeRateControl, rateControl))
             return false;
         fill(rateControl);
+
+        VAEncMiscParameterFrameRate* frameRate;
+        if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
+            return false;
+        fill(frameRate);
     }
     return true;
 }

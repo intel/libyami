@@ -105,6 +105,7 @@ protected:
     //rate control related things
     void fill(VAEncMiscParameterHRD*) const ;
     void fill(VAEncMiscParameterRateControl*) const ;
+    void fill(VAEncMiscParameterFrameRate*) const;	
     bool ensureMiscParams (VaapiEncPicture*);
 
     //properties
@@ -127,6 +128,11 @@ protected:
     uint32_t frameRateNum() const {
         return m_videoParamCommon.frameRate.frameRateNum;
     }
+
+    uint32_t fps() const {
+        return m_videoParamCommon.frameRate.frameRateNum / m_videoParamCommon.frameRate.frameRateDenom;
+    }
+
     //rate control
     VideoRateControl rateControlMode() const {
         return m_videoParamCommon.rcMode;
@@ -144,6 +150,10 @@ protected:
 
     uint32_t& minQP() {
         return m_videoParamCommon.rcParams.minQP;
+    }
+
+    uint32_t maxQP() const {
+        return m_videoParamCommon.rcParams.maxQP;
     }
 
     bool isBusy();

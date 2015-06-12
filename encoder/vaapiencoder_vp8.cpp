@@ -35,6 +35,7 @@ namespace YamiMediaCodec{
 
 //golden, alter, last
 #define MAX_REFERECNE_FRAME 3
+#define VP8_DEFAULT_QP     40
 
 class VaapiEncPictureVP8 : public VaapiEncPicture
 {
@@ -45,9 +46,14 @@ public:
     }
 };
 
-VaapiEncoderVP8::VaapiEncoderVP8():m_frameCount(0)
+VaapiEncoderVP8::VaapiEncoderVP8():
+	m_frameCount(0),
+	m_qIndex(VP8_DEFAULT_QP)
 {
     m_videoParamCommon.profile = VAProfileVP8Version0_3;
+    m_videoParamCommon.rcParams.minQP = 9;
+    m_videoParamCommon.rcParams.maxQP = 127;
+    m_videoParamCommon.rcParams.initQP = VP8_DEFAULT_QP;
 }
 
 VaapiEncoderVP8::~VaapiEncoderVP8()
@@ -125,6 +131,8 @@ Encode_Status VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t time
     picture->m_type = (m_frameCount ? VAAPI_PICTURE_TYPE_P : VAAPI_PICTURE_TYPE_I);
     m_frameCount++;
 
+    m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
+
     CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
     if (!codedBuffer)
         return ENCODE_NO_MEMORY;
@@ -147,10 +155,7 @@ bool VaapiEncoderVP8::fill(VAEncSequenceParameterBufferVP8* seqParam) const
 {
     seqParam->frame_width = width();
     seqParam->frame_height = height();
-    /* TODO: how to set this?
-    seqParam->bits_per_second =
-    */
-    seqParam->bits_per_second = seqParam->frame_width * seqParam->frame_height * 3 / 2 * 30 * 8 / 80;
+    seqParam->bits_per_second = bitRate();
     seqParam->intra_period = intraPeriod();
     return true;
 }
@@ -189,15 +194,21 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
         picParam->loop_filter_level[i] = 19;
     }
 
-
+    picParam->clamp_qindex_low = minQP();
+    picParam->clamp_qindex_high = maxQP();
     return TRUE;
 }
 
 bool VaapiEncoderVP8::fill(VAQMatrixBufferVP8* qMatrix) const
 {
-    //TODO: FIX THIS
-    for (int i = 0; i < 4; i++) {
-        qMatrix->quantization_index[i] = 40;
+    int i;
+
+    for (i = 0; i < N_ELEMENTS(qMatrix->quantization_index); i++) {
+        qMatrix->quantization_index[i] = m_qIndex;
+    }
+
+    for (i = 0; i < N_ELEMENTS(qMatrix->quantization_index_delta); i++) {
+        qMatrix->quantization_index_delta[i] = 0;
     }
 
     return true;
@@ -263,10 +274,10 @@ Encode_Status VaapiEncoderVP8::encodePicture(const PicturePtr& picture)
 
     if (!ensureSequence (picture))
         return ret;
-/* TODO:
+
     if (!ensureMiscParams (picture.get()))
         return ret;
-*/
+
     if (!ensurePicture(picture, reconstruct))
         return ret;
 
