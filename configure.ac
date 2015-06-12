@@ -103,22 +103,20 @@ AC_ARG_ENABLE(x11,
     [AC_HELP_STRING([--enable-x11], [enable x11@<:@default=yes@:>@])],
 	[], [enable_x11="yes"])
 
-AS_IF([test "x$enable_x11" = "xyes"],
-[AC_DEFINE([__ENABLE_X11__], [1], [Defined to 0 if --enable-x11="yes" ])],
-[TEST "X$enable_x11" = "xno"],
-[AC_DEFINE([__ENABLE_X11__], [1], [Defined to 1 if --disable-x11="yes" ])],
-[])
+if test "$enable_x11" = "yes"; then
+    AC_DEFINE([__ENABLE_X11__], [1],
+        [Defined to 1 if --enable-x11="yes" ])
+fi
 AM_CONDITIONAL(ENABLE_X11, test "x$enable_x11" = "xyes")
 
 AC_ARG_ENABLE(avformat,
     [AC_HELP_STRING([--enable-avformat], [enable avformat@<:@default=no@:>@])],
     [], [enable_avformat="no"])
 
-AS_IF([test "x$enable_avformat" = "xyes"],
-[AC_DEFINE([__ENABLE_AVFORMAT__], [1], [Defined to 0 if --enable-avformat="yes" ])],
-[TEST "X$enable_avformat" = "xno"],
-[AC_DEFINE([__ENABLE_AVFORMAT__], [1], [Defined to 1 if --disable-avformat="yes" ])],
-[])
+if test "$enable_avformat" = "yes"; then
+    AC_DEFINE([__ENABLE_AVFORMAT__], [1],
+        [Defined to 1 if --enable-avformat="yes" ])
+fi
 AM_CONDITIONAL(ENABLE_AVFORMAT, test "x$enable_avformat" = "xyes")
 
 AC_ARG_ENABLE(baytrail,
