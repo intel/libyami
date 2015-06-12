@@ -19,7 +19,12 @@ m4_define([libyami_version],
 # libva minimun version requirement
 m4_define([va_api_version], [0.36])
 
-AC_INIT([libyami], [libyami_version], [halley.zhao@intel.com])
+AC_INIT([libyami],
+        [libyami_version],
+        [https://github.com/01org/libyami/issues/new],
+        [libyami],
+        [https://github.com/01org/libyami])
+
 AC_CONFIG_SRCDIR([vaapi/vaapitypes.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
