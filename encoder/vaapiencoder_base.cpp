@@ -343,14 +343,14 @@ void VaapiEncoderBase::fill(VAEncMiscParameterRateControl* rateControl) const
 /* Generates additional control parameters */
 bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 {
-    VAEncMiscParameterHRD* hrd;
+    VAEncMiscParameterHRD* hrd = NULL;
     if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
         return false;
     fill(hrd);
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR ||
             mode == RATE_CONTROL_VBR) {
-        VAEncMiscParameterRateControl* rateControl;
+        VAEncMiscParameterRateControl* rateControl = NULL;
         if (!picture->newMisc(VAEncMiscParameterTypeRateControl, rateControl))
             return false;
         fill(rateControl);
