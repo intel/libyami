@@ -492,8 +492,8 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
             }
 
             /* Application segments */
-            if (seg.marker >= JPEG_MARKER_APP_MIN &&
-                seg.marker <= JPEG_MARKER_APP_MAX || seg.marker == JPEG_MARKER_COM) {
+            if ((seg.marker >= JPEG_MARKER_APP_MIN && seg.marker <= JPEG_MARKER_APP_MAX) ||
+                seg.marker == JPEG_MARKER_COM) {
                 status = DECODE_SUCCESS;
                 break;
             }

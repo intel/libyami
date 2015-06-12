@@ -59,7 +59,7 @@ void yamiTraceInit()
                     	curtime->tm_year + 1900, curtime->tm_mon + 1, curtime->tm_mday,
                     	curtime->tm_hour, curtime->tm_sec);
 
-            	if (tmp = fopen(filename, "w")){
+            	if ((tmp = fopen(filename, "w"))){
                 	yamiLogFn = tmp;
                 	yamiMessage(stdout, "Libyami_Trace is on, save log into %s.\n", filename);
             	} else {
