@@ -69,6 +69,8 @@ private:
     JpegQuantTables m_quantTables;
     BOOL m_hasHufTable;
     BOOL m_hasQuantTable;
+
+    static const bool s_registered; // VaapiEncoderFactory registration result
 };
 }
 #endif

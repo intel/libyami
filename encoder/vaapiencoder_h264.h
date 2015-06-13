@@ -135,6 +135,8 @@ private:
 
     StreamHeaderPtr m_headers;
     Lock m_paramLock; // locker for parameters update, for example: m_sps/m_pps/m_maxCodedbufSize (width/height etc)
+
+    static const bool s_registered; // VaapiEncoderFactory registration result
 };
 }
 #endif /* vaapiencoder_h264_h */

@@ -68,6 +68,9 @@ class VaapiDecoderJpeg:public VaapiDecoderBase {
     BOOL m_hasHufTable;
     BOOL m_hasQuantTable;
     uint32_t m_mcuRestart;
+
+    static const bool s_registered; // VaapiDecoderFactory registration result
+
     DISALLOW_COPY_AND_ASSIGN(VaapiDecoderJpeg);
 };
 

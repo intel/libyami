@@ -58,6 +58,8 @@ class VaapiDecoderVP9:public VaapiDecoderBase {
     typedef SharedPtr<Vp9Parser> ParserPtr;
     ParserPtr m_parser;
     std::vector<SurfacePtr> m_reference;
+
+    static const bool s_registered; // VaapiDecoderFactory registration result
 };
 
 };

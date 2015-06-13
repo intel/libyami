@@ -25,35 +25,30 @@
 
 #include "common/log.h"
 #include "interface/VideoPostProcessHost.h"
-#include "vaapi/vaapi_host.h"
-#include "vpp/vaapipostprocess_scaler.h"
-#include <string.h>
+#include "vaapipostprocess_factory.h"
 
 using namespace YamiMediaCodec;
-DEFINE_CLASS_FACTORY(PostProcess)
-static const PostProcessEntry g_vppEntries[] = {
-    DEFINE_VPP_ENTRY(YAMI_VPP_SCALER, Scaler)
-};
 
-#ifndef N_ELEMENTS
-#define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
-#endif
 extern "C" {
+
 IVideoPostProcess *createVideoPostProcess(const char *mimeType)
 {
     yamiTraceInit();
+
     if (!mimeType) {
         ERROR("NULL mime type.");
         return NULL;
     }
-    INFO("mimeType: %s\n", mimeType);
-    for (int i = 0; i < N_ELEMENTS(g_vppEntries); i++) {
-        const PostProcessEntry *e = g_vppEntries + i;
-        if (strcasecmp(e->mime, mimeType) == 0)
-            return e->create();
-    }
-    ERROR("Failed to create %s", mimeType);
-    return NULL;
+
+    VaapiPostProcessFactory::Type vpp =
+        VaapiPostProcessFactory::create(mimeType);
+
+    if (!vpp)
+        ERROR("Failed to create vpp for mimeType: '%s'", mimeType);
+    else
+        INFO("Created vpp for mimeType: '%s'", mimeType);
+
+    return vpp;
 }
 
 void releaseVideoPostProcess(IVideoPostProcess * p)

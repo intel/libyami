@@ -28,6 +28,7 @@
 
 #include <assert.h>
 #include "vaapidecoder_h264.h"
+#include "vaapidecoder_factory.h"
 #include "codecparsers/bytereader.h"
 
 #include "vaapi/vaapiptrs.h"
@@ -1587,4 +1588,9 @@ processForGapsInFrameNum(const PicturePtr& pic,
 
     return true;
 }
+
+const bool VaapiDecoderH264::s_registered =
+    VaapiDecoderFactory::register_<VaapiDecoderH264>(YAMI_MIME_AVC)
+    && VaapiDecoderFactory::register_<VaapiDecoderH264>(YAMI_MIME_H264);
+
 }

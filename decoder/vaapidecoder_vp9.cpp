@@ -29,6 +29,7 @@
 #include <tr1/functional>
 #include "common/log.h"
 #include "vaapidecoder_vp9.h"
+#include "vaapidecoder_factory.h"
 
 namespace YamiMediaCodec{
 typedef VaapiDecoderVP9::PicturePtr PicturePtr;
@@ -345,4 +346,8 @@ Decode_Status VaapiDecoderVP9::decode(const uint8_t* data, uint32_t size, uint64
         return DECODE_INVALID_DATA;
     return decode(&hdr, data, size, timeStamp);
 }
+
+const bool VaapiDecoderVP9::s_registered =
+    VaapiDecoderFactory::register_<VaapiDecoderVP9>(YAMI_MIME_VP9);
+
 }

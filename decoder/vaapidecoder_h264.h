@@ -368,6 +368,9 @@ class VaapiDecoderH264:public VaapiDecoderBase {
     uint64_t m_nalLengthSize;
     bool m_isAVC;
     bool m_resetContext;
+
+    static const bool s_registered; // VaapiDecoderFactory registration result
+
     DISALLOW_COPY_AND_ASSIGN(VaapiDecoderH264);
 };
 
