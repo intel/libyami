@@ -33,6 +33,7 @@
 #include <assert.h>
 #include <string.h>
 #include "vaapidecoder_jpeg.h"
+#include "vaapidecoder_factory.h"
 #include "codecparsers/bytereader.h"
 
 namespace YamiMediaCodec{
@@ -564,4 +565,8 @@ void VaapiDecoderJpeg::flush(void)
     DEBUG("Jpeg: flush()");
     VaapiDecoderBase::flush();
 }
+
+const bool VaapiDecoderJpeg::s_registered =
+    VaapiDecoderFactory::register_<VaapiDecoderJpeg>(YAMI_MIME_JPEG);
+
 }

@@ -72,6 +72,8 @@ private:
 
     typedef std::deque<SurfacePtr> ReferenceQueue;
     std::deque<SurfacePtr> m_reference;
+
+    static const bool s_registered; // VaapiEncoderFactory registration result
 };
 }
 #endif /* vaapiencoder_vp8_h */

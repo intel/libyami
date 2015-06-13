@@ -25,6 +25,7 @@
 
 #include "vaapipostprocess_scaler.h"
 #include "vaapivpppicture.h"
+#include "vaapipostprocess_factory.h"
 #include "common/log.h"
 #include <va/va_vpp.h>
 
@@ -74,4 +75,8 @@ VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
     vppParam->output_color_standard = VAProcColorStandardNone;
     return picture.process() ? YAMI_SUCCESS : YAMI_FAIL;
 }
+
+const bool VaapiPostProcessScaler::s_registered =
+    VaapiPostProcessFactory::register_<VaapiPostProcessScaler>(YAMI_VPP_SCALER);
+
 }

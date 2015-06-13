@@ -29,6 +29,7 @@
 #include "scopedlogger.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
+#include "vaapiencoder_factory.h"
 #include "log.h"
 #include "bitwriter.h"
 #include <stdio.h>
@@ -492,5 +493,8 @@ Encode_Status VaapiEncoderJpeg::encodePicture(const PicturePtr &picture)
         return ret;
     return ENCODE_SUCCESS;
 }
+
+const bool VaapiEncoderJpeg::s_registered =
+    VaapiEncoderFactory::register_<VaapiEncoderJpeg>(YAMI_MIME_JPEG);
 
 }

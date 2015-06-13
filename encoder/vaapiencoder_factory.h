@@ -1,8 +1,5 @@
 /*
- *  vaapipostprocess_scaler.h- base class for video post process
- *
  *  Copyright (C) 2015 Intel Corporation
- *    Author: XuGuangxin<Guangxin.Xu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -20,21 +17,15 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef vaapipostprocess_scaler_h
-#define vaapipostprocess_scaler_h
+#ifndef vaapiencoder_factory_h
+#define vaapiencoder_factory_h
 
-#include "vaapipostprocess_base.h"
+#include "common/factory.h"
+#include "vaapiencoder_base.h"
 
-namespace YamiMediaCodec{
+namespace YamiMediaCodec {
 
-/* class for video scale and color space conversion */
-class VaapiPostProcessScaler : public VaapiPostProcessBase {
-public:
-    virtual YamiStatus process(const SharedPtr<VideoFrame>& src,
-                               const SharedPtr<VideoFrame>& dest);
+typedef Factory<VaapiEncoderBase> VaapiEncoderFactory;
 
-private:
-    static const bool s_registered; // VaapiPostProcessFactory registration result
-};
-}
-#endif                          /* vaapipostprocess_scaler_h */
+} // namespace YamiMediaCodec
+#endif // vaapiencoder_factory_h
