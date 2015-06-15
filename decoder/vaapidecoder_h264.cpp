@@ -1326,7 +1326,6 @@ bool VaapiDecoderH264::decodeCodecData(uint8_t * buf, uint32_t bufSize)
 void VaapiDecoderH264::updateFrameInfo()
 {
     INFO("H264: update frame info ");
-    bool sizeChanged = FALSE;
     H264SPS *sps = &m_lastSPS;
     uint32_t width = (sps->pic_width_in_mbs_minus1 + 1) * 16;
     uint32_t height = (sps->pic_height_in_map_units_minus1 + 1) *
@@ -1340,7 +1339,6 @@ void VaapiDecoderH264::updateFrameInfo()
 
     if (widthAlign != formatInfoWidthAlign ||
         heightAlign != formatInfoHeightAlign) {
-        sizeChanged = TRUE;
         m_videoFormatInfo.width = width;
         m_videoFormatInfo.height = height;
         m_configBuffer.width = width;

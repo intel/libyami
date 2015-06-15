@@ -890,7 +890,7 @@ Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PT
 
     FUNC_ENTER();
     if (!videoEncParams)
-        return ENCODE_INVALID_PARAMS;
+        return status;
     switch (type) {
     case VideoParamsTypeAVC: {
             VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
@@ -913,8 +913,7 @@ Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PT
         break;
     }
 
-    // TODO, update video resolution basing on hw requirement
-    return VaapiEncoderBase::getParameters(type, videoEncParams);
+    return status;
 }
 
 Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
