@@ -1,4 +1,4 @@
-/* h264parser 
+/* reamer
  * Copyright (C) <2011> Intel Corporation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -49,7 +49,8 @@
  *   <listitem>
  *      From #H264_NAL_SLICE to #H264_NAL_SLICE_IDR: #h264_parser_parse_slice_hdr
  *   </listitem>
- *   <listitem> * #H264_NAL_SEI: #h264_parser_parse_sei
+ *   <listitem>
+ *      #H264_NAL_SEI: #h264_parser_parse_sei
  *   </listitem>
  *   <listitem>
  *      #H264_NAL_SPS: #h264_parser_parse_sps
@@ -78,58 +79,53 @@
  *   </listitem>
  * </itemizedlist>
  */
- #if HAVE_CONFIG_H
- #include"config.h"
- #endif
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <assert.h>
+
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
+
+#include "nalutils.h"
+#include "h264parser.h"
+
 #include "bytereader.h"
 #include "bitreader.h"
-#include "nalreader.h"
-#include "parserutils.h"
-#include "common/log.h"
+#include <string.h>
 
-#include "h264parser.h"
+DEBUG_CATEGORY (h264_parser_debug);
+#define CAT_DEFAULT h264_parser_debug
+
+static bool initialized = FALSE;
+#define INITIALIZE_DEBUG_CATEGORY \
+  if (!initialized) { \
+    DEBUG_CATEGORY_INIT (h264_parser_debug, "codecparsers_h264", 0, \
+        "h264 parser library"); \
+    initialized = TRUE; \
+  }
 
 /**** Default scaling_lists according to Table 7-2 *****/
 static const uint8_t default_4x4_intra[16] = {
-  6, 13, 20, 28,
-  13, 20, 28, 32,
-  20, 28, 32, 37,
-  28, 32, 37, 42
+  6, 13, 13, 20, 20, 20, 28, 28, 28, 28, 32, 32,
+  32, 37, 37, 42
 };
 
 static const uint8_t default_4x4_inter[16] = {
-  10, 14, 20, 24,
-  14, 20, 24, 27,
-  20, 24, 27, 30,
-  24, 27, 30, 34
+  10, 14, 14, 20, 20, 20, 24, 24, 24, 24, 27, 27,
+  27, 30, 30, 34
 };
 
 static const uint8_t default_8x8_intra[64] = {
-  6, 10, 13, 16, 18, 23, 25, 27,
-  10, 11, 16, 18, 23, 25, 27, 29,
-  13, 16, 18, 23, 25, 27, 29, 31,
-  16, 18, 23, 25, 27, 29, 31, 33,
-  18, 23, 25, 27, 29, 31, 33, 36,
-  23, 25, 27, 29, 31, 33, 36, 38,
-  25, 27, 29, 31, 33, 36, 38, 40,
-  27, 29, 31, 33, 36, 38, 40, 42
+  6, 10, 10, 13, 11, 13, 16, 16, 16, 16, 18, 18,
+  18, 18, 18, 23, 23, 23, 23, 23, 23, 25, 25, 25, 25, 25, 25, 25, 27, 27, 27,
+  27, 27, 27, 27, 27, 29, 29, 29, 29, 29, 29, 29, 31, 31, 31, 31, 31, 31, 33,
+  33, 33, 33, 33, 36, 36, 36, 36, 38, 38, 38, 40, 40, 42
 };
 
 static const uint8_t default_8x8_inter[64] = {
-  9, 13, 15, 17, 19, 21, 22, 24,
-  13, 13, 17, 19, 21, 22, 24, 25,
-  15, 17, 19, 21, 22, 24, 25, 27,
-  17, 19, 21, 22, 24, 25, 27, 28,
-  19, 21, 22, 24, 25, 27, 28, 30,
-  21, 22, 24, 25, 27, 28, 30, 32,
-  22, 24, 25, 27, 28, 30, 32, 33,
-  24, 25, 27, 28, 30, 32, 33, 35
+  9, 13, 13, 15, 13, 15, 17, 17, 17, 17, 19, 19,
+  19, 19, 19, 21, 21, 21, 21, 21, 21, 22, 22, 22, 22, 22, 22, 22, 24, 24, 24,
+  24, 24, 24, 24, 24, 25, 25, 25, 25, 25, 25, 25, 27, 27, 27, 27, 27, 27, 28,
+  28, 28, 28, 28, 30, 30, 30, 30, 32, 32, 32, 33, 33, 35
 };
-
 
 static const uint8_t zigzag_8x8[64] = {
   0, 1, 8, 16, 9, 2, 3, 10,
@@ -155,7 +151,7 @@ typedef struct
 } PAR;
 
 /* Table E-1 - Meaning of sample aspect ratio indicator (1..16) */
-static PAR aspect_ratios[17] = {
+static const PAR aspect_ratios[17] = {
   {0, 0},
   {1, 1},
   {12, 11},
@@ -174,95 +170,6 @@ static PAR aspect_ratios[17] = {
   {3, 2},
   {2, 1}
 };
-
-/* Compute Ceil(Log2(v)) */
-/* Derived from branchless code for integer log2(v) from:
-   <http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog> */
-static uint32_t
-ceil_log2 (uint32_t v)
-{
-  uint32_t r, shift;
-
-  v--;
-  r = (v > 0xFFFF) << 4;
-  v >>= r;
-  shift = (v > 0xFF) << 3;
-  v >>= shift;
-  r |= shift;
-  shift = (v > 0xF) << 2;
-  v >>= shift;
-  r |= shift;
-  shift = (v > 0x3) << 1;
-  v >>= shift;
-  r |= shift;
-  r |= (v >> 1);
-  return r + 1;
-}
-
-/* nal parser wrapper macro */
-#define NAL_CHECK_ALLOWED(val, min, max) { \
-  if (val < min || val > max) { \
-    WARNING ("value not in allowed range. value: %d, range %d-%d", \
-                     val, min, max); \
-    goto error; \
-  } \
-}
-
-#define NAL_READ_UINT8(nr, val, nbits) { \
-  if (!nal_reader_get_bits_uint8 (nr, &val, nbits)) { \
-    WARNING ("failed to read uint8_t, nbits: %d", nbits); \
-    goto error; \
-  } \
-}
-
-#define NAL_READ_UINT16(nr, val, nbits) { \
-  if (!nal_reader_get_bits_uint16 (nr, &val, nbits)) { \
-  WARNING ("failed to read uint16_t, nbits: %d", nbits); \
-    goto error; \
-  } \
-}
-
-#define NAL_READ_UINT32(nr, val, nbits) { \
-  if (!nal_reader_get_bits_uint32 (nr, &val, nbits)) { \
-  WARNING ("failed to read uint32_t, nbits: %d", nbits); \
-    goto error; \
-  } \
-}
-
-#define NAL_READ_UINT64(nr, val, nbits) { \
-  if (!nal_reader_get_bits_uint64 (nr, &val, nbits)) { \
-    WARNING ("failed to read uint32_t, nbits: %d", nbits); \
-    goto error; \
-  } \
-}
-
-#define NAL_READ_UE(nr, val) { \
-  if (!nal_reader_get_ue (nr, &val)) { \
-    WARNING ("failed to read UE"); \
-    goto error; \
-  } \
-}
-
-#define NAL_READ_UE_ALLOWED(nr, val, min, max) { \
-  uint32_t tmp; \
-  NAL_READ_UE (nr, tmp); \
-  NAL_CHECK_ALLOWED (tmp, min, max); \
-  val = tmp; \
-}
-
-#define NAL_READ_SE(nr, val) { \
-  if (!nal_reader_get_se (nr, &val)) { \
-    WARNING ("failed to read SE"); \
-    goto error; \
-  } \
-}
-
-#define NAL_READ_SE_ALLOWED(nr, val, min, max) { \
-  int32_t tmp; \
-  NAL_READ_SE (nr, tmp); \
-  NAL_CHECK_ALLOWED (tmp, min, max); \
-  val = tmp; \
-}
 
 /*****  Utils ****/
 #define EXTENDED_SAR 255
@@ -293,10 +200,11 @@ h264_parser_get_pps (H264NalParser * nalparser, uint8_t pps_id)
   return NULL;
 }
 
-static BOOL
+static bool
 h264_parse_nalu_header (H264NalUnit * nalu)
 {
   uint8_t *data = nalu->data + nalu->offset;
+  uint8_t svc_extension_flag;
   BitReader br;
 
   if (nalu->size < 1)
@@ -307,6 +215,8 @@ h264_parse_nalu_header (H264NalUnit * nalu)
   nalu->idr_pic_flag = (nalu->type == 5 ? 1 : 0);
   nalu->header_bytes = 1;
 
+  nalu->extension_type = H264_NAL_EXTENSION_NONE;
+
   switch (nalu->type) {
     case H264_NAL_PREFIX_UNIT:
     case H264_NAL_SLICE_EXT:
@@ -314,10 +224,14 @@ h264_parse_nalu_header (H264NalUnit * nalu)
         return FALSE;
       bit_reader_init (&br, nalu->data + nalu->offset + nalu->header_bytes,
           nalu->size - nalu->header_bytes);
-      if ((data[1] & 0x80) == 0) {      /* MVC */
-        H264NalUnitExtensionMVC *const mvc = &nalu->extension.mvc;
 
-        bit_reader_skip_unchecked (&br, 1); /* skip the svc_extension_flag */
+      svc_extension_flag = bit_reader_get_bits_uint8_unchecked (&br, 1);
+      if (svc_extension_flag) { /* SVC */
+
+        nalu->extension_type = H264_NAL_EXTENSION_SVC;
+
+      } else {                  /* MVC */
+        H264NalUnitExtensionMVC *const mvc = &nalu->extension.mvc;
 
         nalu->extension_type = H264_NAL_EXTENSION_MVC;
         mvc->non_idr_flag = bit_reader_get_bits_uint8_unchecked (&br, 1);
@@ -327,15 +241,12 @@ h264_parse_nalu_header (H264NalUnit * nalu)
         mvc->anchor_pic_flag = bit_reader_get_bits_uint8_unchecked (&br, 1);
         mvc->inter_view_flag = bit_reader_get_bits_uint8_unchecked (&br, 1);
 
-        if (!mvc->non_idr_flag)
-          nalu->idr_pic_flag = 1;
-        else
-          nalu->idr_pic_flag = 0;
+        /* Update IdrPicFlag (H.7.4.1.1) */
+        nalu->idr_pic_flag = !mvc->non_idr_flag;
       }
       nalu->header_bytes += 3;
       break;
     default:
-      nalu->extension_type = H264_NAL_EXTENSION_NONE;
       break;
   }
 
@@ -343,71 +254,163 @@ h264_parse_nalu_header (H264NalUnit * nalu)
   return TRUE;
 }
 
-static inline int32_t
-scan_for_start_codes (const uint8_t * data, uint32_t size)
+/*
+ * h264_pps_copy:
+ * @dst_pps: The destination #H264PPS to copy into
+ * @src_pps: The source #H264PPS to copy from
+ *
+ * Copies @src_pps into @dst_pps.
+ *
+ * Returns: %TRUE if everything went fine, %FALSE otherwise
+ */
+static bool
+h264_pps_copy (H264PPS * dst_pps, const H264PPS * src_pps)
 {
-  ByteReader br;
-  byte_reader_init (&br, data, size);
+  g_return_val_if_fail (dst_pps != NULL, FALSE);
+  g_return_val_if_fail (src_pps != NULL, FALSE);
 
-  /* NALU not empty, so we can at least expect 1 (even 2) bytes following sc */
-  return byte_reader_masked_scan_uint32 (&br, 0xffffff00, 0x00000100,
-      0, size);
+  h264_pps_clear (dst_pps);
+
+  *dst_pps = *src_pps;
+
+  if (src_pps->slice_group_id)
+    dst_pps->slice_group_id = g_memdup (src_pps->slice_group_id,
+        src_pps->pic_size_in_map_units_minus1 + 1);
+
+  return TRUE;
 }
 
-static BOOL
-h264_parser_more_data (NalReader * nr)
+/* Copy MVC-specific data for subset SPS header */
+static bool
+h264_sps_mvc_copy (H264SPS * dst_sps, const H264SPS * src_sps)
 {
-  NalReader nr_tmp;
-  uint32_t remaining, nbits;
-  uint8_t rbsp_stop_one_bit, zero_bits;
+  H264SPSExtMVC *const dst_mvc = &dst_sps->extension.mvc;
+  const H264SPSExtMVC *const src_mvc = &src_sps->extension.mvc;
+  uint32_t i, j, k;
 
-  remaining = nal_reader_get_remaining (nr);
-  if (remaining == 0)
+  g_assert (dst_sps->extension_type == H264_NAL_EXTENSION_MVC);
+
+  dst_mvc->num_views_minus1 = src_mvc->num_views_minus1;
+  dst_mvc->view = g_new0 (H264SPSExtMVCView, dst_mvc->num_views_minus1 + 1);
+  if (!dst_mvc->view)
     return FALSE;
 
-  nr_tmp = *nr;
-  nr = &nr_tmp;
+  dst_mvc->view[0].view_id = src_mvc->view[0].view_id;
 
-  if (!nal_reader_get_bits_uint8 (nr, &rbsp_stop_one_bit, 1))
-    return FALSE;
-  if (!rbsp_stop_one_bit)
-    return TRUE;
+  for (i = 1; i <= dst_mvc->num_views_minus1; i++) {
+    H264SPSExtMVCView *const dst_view = &dst_mvc->view[i];
+    const H264SPSExtMVCView *const src_view = &src_mvc->view[i];
 
-  nbits = --remaining % 8;
-  while (remaining > 0) {
-    if (!nal_reader_get_bits_uint8 (nr, &zero_bits, nbits))
-      return FALSE;
-    if (zero_bits != 0)
-      return TRUE;
-    remaining -= nbits;
-    nbits = 8;
+    dst_view->view_id = src_view->view_id;
+
+    dst_view->num_anchor_refs_l0 = src_view->num_anchor_refs_l0;
+    for (j = 0; j < dst_view->num_anchor_refs_l0; j++)
+      dst_view->anchor_ref_l0[j] = src_view->anchor_ref_l0[j];
+
+    dst_view->num_anchor_refs_l1 = src_view->num_anchor_refs_l1;
+    for (j = 0; j < dst_view->num_anchor_refs_l1; j++)
+      dst_view->anchor_ref_l1[j] = src_view->anchor_ref_l1[j];
+
+    dst_view->num_non_anchor_refs_l0 = src_view->num_non_anchor_refs_l0;
+    for (j = 0; j < dst_view->num_non_anchor_refs_l0; j++)
+      dst_view->non_anchor_ref_l0[j] = src_view->non_anchor_ref_l0[j];
+
+    dst_view->num_non_anchor_refs_l1 = src_view->num_non_anchor_refs_l1;
+    for (j = 0; j < dst_view->num_non_anchor_refs_l1; j++)
+      dst_view->non_anchor_ref_l1[j] = src_view->non_anchor_ref_l1[j];
   }
-  return FALSE;
+
+  dst_mvc->num_level_values_signalled_minus1 =
+      src_mvc->num_level_values_signalled_minus1;
+  dst_mvc->level_value = g_new0 (H264SPSExtMVCLevelValue,
+      dst_mvc->num_level_values_signalled_minus1 + 1);
+  if (!dst_mvc->level_value)
+    return FALSE;
+
+  for (i = 0; i <= dst_mvc->num_level_values_signalled_minus1; i++) {
+    H264SPSExtMVCLevelValue *const dst_value = &dst_mvc->level_value[i];
+    const H264SPSExtMVCLevelValue *const src_value =
+        &src_mvc->level_value[i];
+
+    dst_value->level_idc = src_value->level_idc;
+
+    dst_value->num_applicable_ops_minus1 = src_value->num_applicable_ops_minus1;
+    dst_value->applicable_op = g_new0 (H264SPSExtMVCLevelValueOp,
+        dst_value->num_applicable_ops_minus1 + 1);
+    if (!dst_value->applicable_op)
+      return FALSE;
+
+    for (j = 0; j <= dst_value->num_applicable_ops_minus1; j++) {
+      H264SPSExtMVCLevelValueOp *const dst_op = &dst_value->applicable_op[j];
+      const H264SPSExtMVCLevelValueOp *const src_op =
+          &src_value->applicable_op[j];
+
+      dst_op->temporal_id = src_op->temporal_id;
+      dst_op->num_target_views_minus1 = src_op->num_target_views_minus1;
+      dst_op->target_view_id =
+          g_new (uint16_t, dst_op->num_target_views_minus1 + 1);
+      if (!dst_op->target_view_id)
+        return FALSE;
+
+      for (k = 0; k <= dst_op->num_target_views_minus1; k++)
+        dst_op->target_view_id[k] = src_op->target_view_id[k];
+      dst_op->num_views_minus1 = src_op->num_views_minus1;
+    }
+  }
+  return TRUE;
+}
+
+/*
+ * h264_sps_copy:
+ * @dst_sps: The destination #H264SPS to copy into
+ * @src_sps: The source #H264SPS to copy from
+ *
+ * Copies @src_sps into @dst_sps.
+ *
+ * Returns: %TRUE if everything went fine, %FALSE otherwise
+ */
+static bool
+h264_sps_copy (H264SPS * dst_sps, const H264SPS * src_sps)
+{
+  g_return_val_if_fail (dst_sps != NULL, FALSE);
+  g_return_val_if_fail (src_sps != NULL, FALSE);
+
+  h264_sps_clear (dst_sps);
+
+  *dst_sps = *src_sps;
+
+  switch (dst_sps->extension_type) {
+    case H264_NAL_EXTENSION_MVC:
+      if (!h264_sps_mvc_copy (dst_sps, src_sps))
+        return FALSE;
+      break;
+  }
+  return TRUE;
 }
 
 /****** Parsing functions *****/
 
-static BOOL
+static bool
 h264_parse_hrd_parameters (H264HRDParams * hrd, NalReader * nr)
 {
   uint32_t sched_sel_idx;
 
   DEBUG ("parsing \"HRD Parameters\"");
 
-  NAL_READ_UE_ALLOWED (nr, hrd->cpb_cnt_minus1, 0, 31);
-  NAL_READ_UINT8 (nr, hrd->bit_rate_scale, 4);
-  NAL_READ_UINT8 (nr, hrd->cpb_size_scale, 4);
+  READ_UE_MAX (nr, hrd->cpb_cnt_minus1, 31);
+  READ_UINT8 (nr, hrd->bit_rate_scale, 4);
+  READ_UINT8 (nr, hrd->cpb_size_scale, 4);
 
   for (sched_sel_idx = 0; sched_sel_idx <= hrd->cpb_cnt_minus1; sched_sel_idx++) {
-    NAL_READ_UE (nr, hrd->bit_rate_value_minus1[sched_sel_idx]);
-    NAL_READ_UE (nr, hrd->cpb_size_value_minus1[sched_sel_idx]);
-    NAL_READ_UINT8 (nr, hrd->cbr_flag[sched_sel_idx], 1);
+    READ_UE (nr, hrd->bit_rate_value_minus1[sched_sel_idx]);
+    READ_UE (nr, hrd->cpb_size_value_minus1[sched_sel_idx]);
+    READ_UINT8 (nr, hrd->cbr_flag[sched_sel_idx], 1);
   }
 
-  NAL_READ_UINT8 (nr, hrd->initial_cpb_removal_delay_length_minus1, 5);
-  NAL_READ_UINT8 (nr, hrd->cpb_removal_delay_length_minus1, 5);
-  NAL_READ_UINT8 (nr, hrd->dpb_output_delay_length_minus1, 5);
-  NAL_READ_UINT8 (nr, hrd->time_offset_length, 5);
+  READ_UINT8 (nr, hrd->initial_cpb_removal_delay_length_minus1, 5);
+  READ_UINT8 (nr, hrd->cpb_removal_delay_length_minus1, 5);
+  READ_UINT8 (nr, hrd->dpb_output_delay_length_minus1, 5);
+  READ_UINT8 (nr, hrd->time_offset_length, 5);
 
   return TRUE;
 
@@ -416,7 +419,7 @@ error:
   return FALSE;
 }
 
-static BOOL
+static bool
 h264_parse_vui_parameters (H264SPS * sps, NalReader * nr)
 {
   H264VUIParams *vui = &sps->vui_parameters;
@@ -437,12 +440,12 @@ h264_parse_vui_parameters (H264SPS * sps, NalReader * nr)
   vui->par_n = 0;
   vui->par_d = 0;
 
-  NAL_READ_UINT8 (nr, vui->aspect_ratio_info_present_flag, 1);
+  READ_UINT8 (nr, vui->aspect_ratio_info_present_flag, 1);
   if (vui->aspect_ratio_info_present_flag) {
-    NAL_READ_UINT8 (nr, vui->aspect_ratio_idc, 8);
+    READ_UINT8 (nr, vui->aspect_ratio_idc, 8);
     if (vui->aspect_ratio_idc == EXTENDED_SAR) {
-      NAL_READ_UINT16 (nr, vui->sar_width, 16);
-      NAL_READ_UINT16 (nr, vui->sar_height, 16);
+      READ_UINT16 (nr, vui->sar_width, 16);
+      READ_UINT16 (nr, vui->sar_height, 16);
       vui->par_n = vui->sar_width;
       vui->par_d = vui->sar_height;
     } else if (vui->aspect_ratio_idc <= 16) {
@@ -451,51 +454,51 @@ h264_parse_vui_parameters (H264SPS * sps, NalReader * nr)
     }
   }
 
-  NAL_READ_UINT8 (nr, vui->overscan_info_present_flag, 1);
+  READ_UINT8 (nr, vui->overscan_info_present_flag, 1);
   if (vui->overscan_info_present_flag)
-    NAL_READ_UINT8 (nr, vui->overscan_appropriate_flag, 1);
+    READ_UINT8 (nr, vui->overscan_appropriate_flag, 1);
 
-  NAL_READ_UINT8 (nr, vui->video_signal_type_present_flag, 1);
+  READ_UINT8 (nr, vui->video_signal_type_present_flag, 1);
   if (vui->video_signal_type_present_flag) {
 
-    NAL_READ_UINT8 (nr, vui->video_format, 3);
-    NAL_READ_UINT8 (nr, vui->video_full_range_flag, 1);
-    NAL_READ_UINT8 (nr, vui->colour_description_present_flag, 1);
+    READ_UINT8 (nr, vui->video_format, 3);
+    READ_UINT8 (nr, vui->video_full_range_flag, 1);
+    READ_UINT8 (nr, vui->colour_description_present_flag, 1);
     if (vui->colour_description_present_flag) {
-      NAL_READ_UINT8 (nr, vui->colour_primaries, 8);
-      NAL_READ_UINT8 (nr, vui->transfer_characteristics, 8);
-      NAL_READ_UINT8 (nr, vui->matrix_coefficients, 8);
+      READ_UINT8 (nr, vui->colour_primaries, 8);
+      READ_UINT8 (nr, vui->transfer_characteristics, 8);
+      READ_UINT8 (nr, vui->matrix_coefficients, 8);
     }
   }
 
-  NAL_READ_UINT8 (nr, vui->chroma_loc_info_present_flag, 1);
+  READ_UINT8 (nr, vui->chroma_loc_info_present_flag, 1);
   if (vui->chroma_loc_info_present_flag) {
-    NAL_READ_UE_ALLOWED (nr, vui->chroma_sample_loc_type_top_field, 0, 5);
-    NAL_READ_UE_ALLOWED (nr, vui->chroma_sample_loc_type_bottom_field, 0, 5);
+    READ_UE_MAX (nr, vui->chroma_sample_loc_type_top_field, 5);
+    READ_UE_MAX (nr, vui->chroma_sample_loc_type_bottom_field, 5);
   }
 
-  NAL_READ_UINT8 (nr, vui->timing_info_present_flag, 1);
+  READ_UINT8 (nr, vui->timing_info_present_flag, 1);
   if (vui->timing_info_present_flag) {
-    NAL_READ_UINT32 (nr, vui->num_units_in_tick, 32);
+    READ_UINT32 (nr, vui->num_units_in_tick, 32);
     if (vui->num_units_in_tick == 0)
       WARNING ("num_units_in_tick = 0 detected in stream "
           "(incompliant to H.264 E.2.1).");
 
-    NAL_READ_UINT32 (nr, vui->time_scale, 32);
+    READ_UINT32 (nr, vui->time_scale, 32);
     if (vui->time_scale == 0)
       WARNING ("time_scale = 0 detected in stream "
           "(incompliant to H.264 E.2.1).");
 
-    NAL_READ_UINT8 (nr, vui->fixed_frame_rate_flag, 1);
+    READ_UINT8 (nr, vui->fixed_frame_rate_flag, 1);
   }
 
-  NAL_READ_UINT8 (nr, vui->nal_hrd_parameters_present_flag, 1);
+  READ_UINT8 (nr, vui->nal_hrd_parameters_present_flag, 1);
   if (vui->nal_hrd_parameters_present_flag) {
     if (!h264_parse_hrd_parameters (&vui->nal_hrd_parameters, nr))
       goto error;
   }
 
-  NAL_READ_UINT8 (nr, vui->vcl_hrd_parameters_present_flag, 1);
+  READ_UINT8 (nr, vui->vcl_hrd_parameters_present_flag, 1);
   if (vui->vcl_hrd_parameters_present_flag) {
     if (!h264_parse_hrd_parameters (&vui->vcl_hrd_parameters, nr))
       goto error;
@@ -503,18 +506,18 @@ h264_parse_vui_parameters (H264SPS * sps, NalReader * nr)
 
   if (vui->nal_hrd_parameters_present_flag ||
       vui->vcl_hrd_parameters_present_flag)
-    NAL_READ_UINT8 (nr, vui->low_delay_hrd_flag, 1);
+    READ_UINT8 (nr, vui->low_delay_hrd_flag, 1);
 
-  NAL_READ_UINT8 (nr, vui->pic_struct_present_flag, 1);
-  NAL_READ_UINT8 (nr, vui->bitstream_restriction_flag, 1);
+  READ_UINT8 (nr, vui->pic_struct_present_flag, 1);
+  READ_UINT8 (nr, vui->bitstream_restriction_flag, 1);
   if (vui->bitstream_restriction_flag) {
-    NAL_READ_UINT8 (nr, vui->motion_vectors_over_pic_boundaries_flag, 1);
-    NAL_READ_UE (nr, vui->max_bytes_per_pic_denom);
-    NAL_READ_UE_ALLOWED (nr, vui->max_bits_per_mb_denom, 0, 16);
-    NAL_READ_UE_ALLOWED (nr, vui->log2_max_mv_length_horizontal, 0, 16);
-    NAL_READ_UE_ALLOWED (nr, vui->log2_max_mv_length_vertical, 0, 16);
-    NAL_READ_UE (nr, vui->num_reorder_frames);
-    NAL_READ_UE (nr, vui->max_dec_frame_buffering);
+    READ_UINT8 (nr, vui->motion_vectors_over_pic_boundaries_flag, 1);
+    READ_UE (nr, vui->max_bytes_per_pic_denom);
+    READ_UE_MAX (nr, vui->max_bits_per_mb_denom, 16);
+    READ_UE_MAX (nr, vui->log2_max_mv_length_horizontal, 16);
+    READ_UE_MAX (nr, vui->log2_max_mv_length_vertical, 16);
+    READ_UE (nr, vui->num_reorder_frames);
+    READ_UE (nr, vui->max_dec_frame_buffering);
   }
 
   return TRUE;
@@ -524,7 +527,7 @@ error:
   return FALSE;
 }
 
-static BOOL
+static bool
 h264_parser_parse_scaling_list (NalReader * nr,
     uint8_t scaling_lists_4x4[6][16], uint8_t scaling_lists_8x8[6][64],
     const uint8_t fallback_4x4_inter[16], const uint8_t fallback_4x4_intra[16],
@@ -544,26 +547,23 @@ h264_parser_parse_scaling_list (NalReader * nr,
   DEBUG ("parsing scaling lists");
 
   for (i = 0; i < 12; i++) {
-    BOOL use_default = FALSE;
+    bool use_default = FALSE;
 
     if (i < n_lists) {
       uint8_t scaling_list_present_flag;
 
-      NAL_READ_UINT8 (nr, scaling_list_present_flag, 1);
+      READ_UINT8 (nr, scaling_list_present_flag, 1);
       if (scaling_list_present_flag) {
         uint8_t *scaling_list;
-        const uint8_t *scan;
         uint32_t size;
         uint32_t j;
         uint8_t last_scale, next_scale;
 
         if (i < 6) {
           scaling_list = scaling_lists_4x4[i];
-          scan = zigzag_4x4;
           size = 16;
         } else {
           scaling_list = scaling_lists_8x8[i - 6];
-          scan = zigzag_8x8;
           size = 64;
         }
 
@@ -573,7 +573,7 @@ h264_parser_parse_scaling_list (NalReader * nr,
           if (next_scale != 0) {
             int32_t delta_scale;
 
-            NAL_READ_SE (nr, delta_scale);
+            READ_SE (nr, delta_scale);
             next_scale = (last_scale + delta_scale) & 0xff;
           }
           if (j == 0 && next_scale == 0) {
@@ -581,7 +581,7 @@ h264_parser_parse_scaling_list (NalReader * nr,
             memcpy (scaling_list, default_lists[i], size);
             break;
           }
-          last_scale = scaling_list[scan[j]] =
+          last_scale = scaling_list[j] =
               (next_scale == 0) ? last_scale : next_scale;
         }
       } else
@@ -641,56 +641,61 @@ error:
   return FALSE;
 }
 
-static BOOL
+static bool
 slice_parse_ref_pic_list_modification_1 (H264SliceHdr * slice,
-    NalReader * nr, uint32_t list, BOOL is_mvc)
+    NalReader * nr, uint32_t list, bool is_mvc)
 {
   H264RefPicListModification *entries;
   uint8_t *ref_pic_list_modification_flag, *n_ref_pic_list_modification;
   uint32_t modification_of_pic_nums_idc;
+  size_t max_entries;
   uint32_t i = 0;
 
   if (list == 0) {
     entries = slice->ref_pic_list_modification_l0;
+    max_entries = G_N_ELEMENTS (slice->ref_pic_list_modification_l0);
     ref_pic_list_modification_flag = &slice->ref_pic_list_modification_flag_l0;
     n_ref_pic_list_modification = &slice->n_ref_pic_list_modification_l0;
   } else {
     entries = slice->ref_pic_list_modification_l1;
+    max_entries = G_N_ELEMENTS (slice->ref_pic_list_modification_l1);
     ref_pic_list_modification_flag = &slice->ref_pic_list_modification_flag_l1;
     n_ref_pic_list_modification = &slice->n_ref_pic_list_modification_l1;
   }
 
-  NAL_READ_UINT8 (nr, *ref_pic_list_modification_flag, 1);
+  READ_UINT8 (nr, *ref_pic_list_modification_flag, 1);
   if (*ref_pic_list_modification_flag) {
     while (1) {
-      NAL_READ_UE (nr, modification_of_pic_nums_idc);
-      if (modification_of_pic_nums_idc == 3)
-        break;
+      READ_UE (nr, modification_of_pic_nums_idc);
       if (modification_of_pic_nums_idc == 0 ||
           modification_of_pic_nums_idc == 1) {
-        NAL_READ_UE_ALLOWED (nr, entries[i].value.abs_diff_pic_num_minus1, 0,
+        READ_UE_MAX (nr, entries[i].value.abs_diff_pic_num_minus1,
             slice->max_pic_num - 1);
       } else if (modification_of_pic_nums_idc == 2) {
-        NAL_READ_UE (nr, entries[i].value.long_term_pic_num);
+        READ_UE (nr, entries[i].value.long_term_pic_num);
       } else if (is_mvc && (modification_of_pic_nums_idc == 4 ||
               modification_of_pic_nums_idc == 5)) {
-        NAL_READ_UE (nr, entries[i].value.abs_diff_view_idx_minus1);
-      } else
-        continue;
+        READ_UE (nr, entries[i].value.abs_diff_view_idx_minus1);
+      }
       entries[i++].modification_of_pic_nums_idc = modification_of_pic_nums_idc;
+      if (modification_of_pic_nums_idc == 3)
+        break;
+      if (i >= max_entries)
+        goto error;
     }
   }
   *n_ref_pic_list_modification = i;
   return TRUE;
 
 error:
-  WARNING ("error parsing \"Reference picture list %u modification\"", list);
+  WARNING ("error parsing \"Reference picture list %u modification\"",
+      list);
   return FALSE;
 }
 
-static BOOL
+static bool
 slice_parse_ref_pic_list_modification (H264SliceHdr * slice, NalReader * nr,
-    BOOL is_mvc)
+    bool is_mvc)
 {
   if (!H264_IS_I_SLICE (slice) && !H264_IS_SI_SLICE (slice)) {
     if (!slice_parse_ref_pic_list_modification_1 (slice, nr, 0, is_mvc))
@@ -704,7 +709,7 @@ slice_parse_ref_pic_list_modification (H264SliceHdr * slice, NalReader * nr,
   return TRUE;
 }
 
-static BOOL
+static bool
 h264_slice_parse_dec_ref_pic_marking (H264SliceHdr * slice,
     H264NalUnit * nalu, NalReader * nr)
 {
@@ -715,10 +720,10 @@ h264_slice_parse_dec_ref_pic_marking (H264SliceHdr * slice,
   dec_ref_pic_m = &slice->dec_ref_pic_marking;
 
   if (nalu->idr_pic_flag) {
-    NAL_READ_UINT8 (nr, dec_ref_pic_m->no_output_of_prior_pics_flag, 1);
-    NAL_READ_UINT8 (nr, dec_ref_pic_m->long_term_reference_flag, 1);
+    READ_UINT8 (nr, dec_ref_pic_m->no_output_of_prior_pics_flag, 1);
+    READ_UINT8 (nr, dec_ref_pic_m->long_term_reference_flag, 1);
   } else {
-    NAL_READ_UINT8 (nr, dec_ref_pic_m->adaptive_ref_pic_marking_mode_flag, 1);
+    READ_UINT8 (nr, dec_ref_pic_m->adaptive_ref_pic_marking_mode_flag, 1);
     if (dec_ref_pic_m->adaptive_ref_pic_marking_mode_flag) {
       uint32_t mem_mgmt_ctrl_op;
       H264RefPicMarking *refpicmarking;
@@ -728,23 +733,23 @@ h264_slice_parse_dec_ref_pic_marking (H264SliceHdr * slice,
         refpicmarking =
             &dec_ref_pic_m->ref_pic_marking[dec_ref_pic_m->n_ref_pic_marking];
 
-        NAL_READ_UE (nr, mem_mgmt_ctrl_op);
+        READ_UE (nr, mem_mgmt_ctrl_op);
         if (mem_mgmt_ctrl_op == 0)
           break;
 
         refpicmarking->memory_management_control_operation = mem_mgmt_ctrl_op;
 
         if (mem_mgmt_ctrl_op == 1 || mem_mgmt_ctrl_op == 3)
-          NAL_READ_UE (nr, refpicmarking->difference_of_pic_nums_minus1);
+          READ_UE (nr, refpicmarking->difference_of_pic_nums_minus1);
 
         if (mem_mgmt_ctrl_op == 2)
-          NAL_READ_UE (nr, refpicmarking->long_term_pic_num);
+          READ_UE (nr, refpicmarking->long_term_pic_num);
 
         if (mem_mgmt_ctrl_op == 3 || mem_mgmt_ctrl_op == 6)
-          NAL_READ_UE (nr, refpicmarking->long_term_frame_idx);
+          READ_UE (nr, refpicmarking->long_term_frame_idx);
 
         if (mem_mgmt_ctrl_op == 4)
-          NAL_READ_UE (nr, refpicmarking->max_long_term_frame_idx_plus1);
+          READ_UE (nr, refpicmarking->max_long_term_frame_idx_plus1);
 
         dec_ref_pic_m->n_ref_pic_marking++;
       }
@@ -758,7 +763,7 @@ error:
   return FALSE;
 }
 
-static BOOL
+static bool
 h264_slice_parse_pred_weight_table (H264SliceHdr * slice,
     NalReader * nr, uint8_t chroma_array_type)
 {
@@ -770,29 +775,29 @@ h264_slice_parse_pred_weight_table (H264SliceHdr * slice,
 
   p = &slice->pred_weight_table;
 
-  NAL_READ_UE_ALLOWED (nr, p->luma_log2_weight_denom, 0, 7);
+  READ_UE_MAX (nr, p->luma_log2_weight_denom, 7);
   /* set default values */
   default_luma_weight = 1 << p->luma_log2_weight_denom;
-  for (i = 0; i < ARRAY_N_ELEMENT(p->luma_weight_l0); i++)
+  for (i = 0; i < G_N_ELEMENTS (p->luma_weight_l0); i++)
     p->luma_weight_l0[i] = default_luma_weight;
   memset (p->luma_offset_l0, 0, sizeof (p->luma_offset_l0));
   if (H264_IS_B_SLICE (slice)) {
-    for (i = 0; i < sizeof (p->luma_weight_l1) / sizeof (p->luma_weight_l1[0]); i++)
+    for (i = 0; i < G_N_ELEMENTS (p->luma_weight_l1); i++)
       p->luma_weight_l1[i] = default_luma_weight;
     memset (p->luma_offset_l1, 0, sizeof (p->luma_offset_l1));
   }
 
   if (chroma_array_type != 0) {
-    NAL_READ_UE_ALLOWED (nr, p->chroma_log2_weight_denom, 0, 7);
+    READ_UE_MAX (nr, p->chroma_log2_weight_denom, 7);
     /* set default values */
     default_chroma_weight = 1 << p->chroma_log2_weight_denom;
-    for (i = 0; i < ARRAY_N_ELEMENT (p->chroma_weight_l0); i++) {
+    for (i = 0; i < G_N_ELEMENTS (p->chroma_weight_l0); i++) {
       p->chroma_weight_l0[i][0] = default_chroma_weight;
       p->chroma_weight_l0[i][1] = default_chroma_weight;
     }
     memset (p->chroma_offset_l0, 0, sizeof (p->chroma_offset_l0));
     if (H264_IS_B_SLICE (slice)) {
-      for (i = 0; i < ARRAY_N_ELEMENT (p->chroma_weight_l1); i++) {
+      for (i = 0; i < G_N_ELEMENTS (p->chroma_weight_l1); i++) {
         p->chroma_weight_l1[i][0] = default_chroma_weight;
         p->chroma_weight_l1[i][1] = default_chroma_weight;
       }
@@ -803,20 +808,20 @@ h264_slice_parse_pred_weight_table (H264SliceHdr * slice,
   for (i = 0; i <= slice->num_ref_idx_l0_active_minus1; i++) {
     uint8_t luma_weight_l0_flag;
 
-    NAL_READ_UINT8 (nr, luma_weight_l0_flag, 1);
+    READ_UINT8 (nr, luma_weight_l0_flag, 1);
     if (luma_weight_l0_flag) {
-      NAL_READ_SE_ALLOWED (nr, p->luma_weight_l0[i], -128, 127);
-      NAL_READ_SE_ALLOWED (nr, p->luma_offset_l0[i], -128, 127);
+      READ_SE_ALLOWED (nr, p->luma_weight_l0[i], -128, 127);
+      READ_SE_ALLOWED (nr, p->luma_offset_l0[i], -128, 127);
     }
     if (chroma_array_type != 0) {
       uint8_t chroma_weight_l0_flag;
       int32_t j;
 
-      NAL_READ_UINT8 (nr, chroma_weight_l0_flag, 1);
+      READ_UINT8 (nr, chroma_weight_l0_flag, 1);
       if (chroma_weight_l0_flag) {
         for (j = 0; j < 2; j++) {
-          NAL_READ_SE_ALLOWED (nr, p->chroma_weight_l0[i][j], -128, 127);
-          NAL_READ_SE_ALLOWED (nr, p->chroma_offset_l0[i][j], -128, 127);
+          READ_SE_ALLOWED (nr, p->chroma_weight_l0[i][j], -128, 127);
+          READ_SE_ALLOWED (nr, p->chroma_offset_l0[i][j], -128, 127);
         }
       }
     }
@@ -826,20 +831,20 @@ h264_slice_parse_pred_weight_table (H264SliceHdr * slice,
     for (i = 0; i <= slice->num_ref_idx_l1_active_minus1; i++) {
       uint8_t luma_weight_l1_flag;
 
-      NAL_READ_UINT8 (nr, luma_weight_l1_flag, 1);
+      READ_UINT8 (nr, luma_weight_l1_flag, 1);
       if (luma_weight_l1_flag) {
-        NAL_READ_SE_ALLOWED (nr, p->luma_weight_l1[i], -128, 127);
-        NAL_READ_SE_ALLOWED (nr, p->luma_offset_l1[i], -128, 127);
+        READ_SE_ALLOWED (nr, p->luma_weight_l1[i], -128, 127);
+        READ_SE_ALLOWED (nr, p->luma_offset_l1[i], -128, 127);
       }
       if (chroma_array_type != 0) {
         uint8_t chroma_weight_l1_flag;
         int32_t j;
 
-        NAL_READ_UINT8 (nr, chroma_weight_l1_flag, 1);
+        READ_UINT8 (nr, chroma_weight_l1_flag, 1);
         if (chroma_weight_l1_flag) {
           for (j = 0; j < 2; j++) {
-            NAL_READ_SE_ALLOWED (nr, p->chroma_weight_l1[i][j], -128, 127);
-            NAL_READ_SE_ALLOWED (nr, p->chroma_offset_l1[i][j], -128, 127);
+            READ_SE_ALLOWED (nr, p->chroma_weight_l1[i][j], -128, 127);
+            READ_SE_ALLOWED (nr, p->chroma_offset_l1[i][j], -128, 127);
           }
         }
       }
@@ -853,7 +858,7 @@ error:
   return FALSE;
 }
 
-static BOOL
+static H264ParserResult
 h264_parser_parse_buffering_period (H264NalParser * nalparser,
     H264BufferingPeriod * per, NalReader * nr)
 {
@@ -862,7 +867,7 @@ h264_parser_parse_buffering_period (H264NalParser * nalparser,
 
   DEBUG ("parsing \"Buffering period\"");
 
-  NAL_READ_UE_ALLOWED (nr, sps_id, 0, H264_MAX_SPS_COUNT - 1);
+  READ_UE_MAX (nr, sps_id, H264_MAX_SPS_COUNT - 1);
   sps = h264_parser_get_sps (nalparser, sps_id);
   if (!sps) {
     WARNING ("couldn't find associated sequence parameter set with id: %d",
@@ -876,25 +881,29 @@ h264_parser_parse_buffering_period (H264NalParser * nalparser,
 
     if (vui->nal_hrd_parameters_present_flag) {
       H264HRDParams *hrd = &vui->nal_hrd_parameters;
+      const uint8_t nbits = hrd->initial_cpb_removal_delay_length_minus1 + 1;
       uint8_t sched_sel_idx;
 
       for (sched_sel_idx = 0; sched_sel_idx <= hrd->cpb_cnt_minus1;
           sched_sel_idx++) {
-        NAL_READ_UINT8 (nr, per->nal_initial_cpb_removal_delay[sched_sel_idx], 5);
-        NAL_READ_UINT8 (nr,
-            per->nal_initial_cpb_removal_delay_offset[sched_sel_idx], 5);
+        READ_UINT32 (nr, per->nal_initial_cpb_removal_delay[sched_sel_idx],
+            nbits);
+        READ_UINT32 (nr,
+            per->nal_initial_cpb_removal_delay_offset[sched_sel_idx], nbits);
       }
     }
 
     if (vui->vcl_hrd_parameters_present_flag) {
       H264HRDParams *hrd = &vui->vcl_hrd_parameters;
+      const uint8_t nbits = hrd->initial_cpb_removal_delay_length_minus1 + 1;
       uint8_t sched_sel_idx;
 
       for (sched_sel_idx = 0; sched_sel_idx <= hrd->cpb_cnt_minus1;
           sched_sel_idx++) {
-        NAL_READ_UINT8 (nr, per->vcl_initial_cpb_removal_delay[sched_sel_idx], 5);
-        NAL_READ_UINT8 (nr,
-            per->vcl_initial_cpb_removal_delay_offset[sched_sel_idx], 5);
+        READ_UINT32 (nr, per->vcl_initial_cpb_removal_delay[sched_sel_idx],
+            nbits);
+        READ_UINT32 (nr,
+            per->vcl_initial_cpb_removal_delay_offset[sched_sel_idx], nbits);
       }
     }
   }
@@ -906,7 +915,7 @@ error:
   return H264_PARSER_ERROR;
 }
 
-static BOOL
+static bool
 h264_parse_clock_timestamp (H264ClockTimestamp * tim,
     H264VUIParams * vui, NalReader * nr)
 {
@@ -918,33 +927,33 @@ h264_parse_clock_timestamp (H264ClockTimestamp * tim,
   /* defalt values */
   tim->time_offset = 0;
 
-  NAL_READ_UINT8 (nr, tim->ct_type, 2);
-  NAL_READ_UINT8 (nr, tim->nuit_field_based_flag, 1);
-  NAL_READ_UINT8 (nr, tim->counting_type, 5);
-  NAL_READ_UINT8 (nr, full_timestamp_flag, 1);
-  NAL_READ_UINT8 (nr, tim->discontinuity_flag, 1);
-  NAL_READ_UINT8 (nr, tim->cnt_dropped_flag, 1);
-  NAL_READ_UINT8 (nr, tim->n_frames, 8);
+  READ_UINT8 (nr, tim->ct_type, 2);
+  READ_UINT8 (nr, tim->nuit_field_based_flag, 1);
+  READ_UINT8 (nr, tim->counting_type, 5);
+  READ_UINT8 (nr, full_timestamp_flag, 1);
+  READ_UINT8 (nr, tim->discontinuity_flag, 1);
+  READ_UINT8 (nr, tim->cnt_dropped_flag, 1);
+  READ_UINT8 (nr, tim->n_frames, 8);
 
   if (full_timestamp_flag) {
     tim->seconds_flag = TRUE;
-    NAL_READ_UINT8 (nr, tim->seconds_value, 6);
+    READ_UINT8 (nr, tim->seconds_value, 6);
 
     tim->minutes_flag = TRUE;
-    NAL_READ_UINT8 (nr, tim->minutes_value, 6);
+    READ_UINT8 (nr, tim->minutes_value, 6);
 
     tim->hours_flag = TRUE;
-    NAL_READ_UINT8 (nr, tim->hours_value, 5);
+    READ_UINT8 (nr, tim->hours_value, 5);
   } else {
-    NAL_READ_UINT8 (nr, tim->seconds_flag, 1);
+    READ_UINT8 (nr, tim->seconds_flag, 1);
     if (tim->seconds_flag) {
-      NAL_READ_UINT8 (nr, tim->seconds_value, 6);
-      NAL_READ_UINT8 (nr, tim->minutes_flag, 1);
+      READ_UINT8 (nr, tim->seconds_value, 6);
+      READ_UINT8 (nr, tim->minutes_flag, 1);
       if (tim->minutes_flag) {
-        NAL_READ_UINT8 (nr, tim->minutes_value, 6);
-        NAL_READ_UINT8 (nr, tim->hours_flag, 1);
+        READ_UINT8 (nr, tim->minutes_value, 6);
+        READ_UINT8 (nr, tim->hours_flag, 1);
         if (tim->hours_flag)
-          NAL_READ_UINT8 (nr, tim->hours_value, 5);
+          READ_UINT8 (nr, tim->hours_value, 5);
       }
     }
   }
@@ -956,7 +965,7 @@ h264_parse_clock_timestamp (H264ClockTimestamp * tim,
     time_offset_length = vui->vcl_hrd_parameters.time_offset_length;
 
   if (time_offset_length > 0)
-    NAL_READ_UINT32 (nr, tim->time_offset, time_offset_length);
+    READ_UINT32 (nr, tim->time_offset, time_offset_length);
 
   return TRUE;
 
@@ -965,7 +974,7 @@ error:
   return FALSE;
 }
 
-static BOOL
+static H264ParserResult
 h264_parser_parse_pic_timing (H264NalParser * nalparser,
     H264PicTiming * tim, NalReader * nr)
 {
@@ -977,20 +986,23 @@ h264_parser_parse_pic_timing (H264NalParser * nalparser,
   }
 
   /* default values */
+  tim->cpb_removal_delay = 0;
+  tim->dpb_output_delay = 0;
+  tim->pic_struct_present_flag = FALSE;
   memset (tim->clock_timestamp_flag, 0, 3);
 
   if (nalparser->last_sps->vui_parameters_present_flag) {
     H264VUIParams *vui = &nalparser->last_sps->vui_parameters;
 
     if (vui->nal_hrd_parameters_present_flag) {
-      NAL_READ_UINT32 (nr, tim->cpb_removal_delay,
+      READ_UINT32 (nr, tim->cpb_removal_delay,
           vui->nal_hrd_parameters.cpb_removal_delay_length_minus1 + 1);
-      NAL_READ_UINT32 (nr, tim->dpb_output_delay,
+      READ_UINT32 (nr, tim->dpb_output_delay,
           vui->nal_hrd_parameters.dpb_output_delay_length_minus1 + 1);
     } else if (vui->vcl_hrd_parameters_present_flag) {
-      NAL_READ_UINT32 (nr, tim->cpb_removal_delay,
+      READ_UINT32 (nr, tim->cpb_removal_delay,
           vui->vcl_hrd_parameters.cpb_removal_delay_length_minus1 + 1);
-      NAL_READ_UINT32 (nr, tim->dpb_output_delay,
+      READ_UINT32 (nr, tim->dpb_output_delay,
           vui->vcl_hrd_parameters.dpb_output_delay_length_minus1 + 1);
     }
 
@@ -1002,12 +1014,12 @@ h264_parser_parse_pic_timing (H264NalParser * nalparser,
       uint32_t i;
 
       tim->pic_struct_present_flag = TRUE;
-      NAL_READ_UINT8 (nr, tim->pic_struct, 4);
-      NAL_CHECK_ALLOWED ((int8_t) tim->pic_struct, 0, 8);
+      READ_UINT8 (nr, tim->pic_struct, 4);
+      CHECK_ALLOWED ((int8_t) tim->pic_struct, 0, 8);
 
       num_clock_num_ts = num_clock_ts_table[tim->pic_struct];
       for (i = 0; i < num_clock_num_ts; i++) {
-        NAL_READ_UINT8 (nr, tim->clock_timestamp_flag[i], 1);
+        READ_UINT8 (nr, tim->clock_timestamp_flag[i], 1);
         if (tim->clock_timestamp_flag[i]) {
           if (!h264_parse_clock_timestamp (&tim->clock_timestamp[i], vui,
                   nr))
@@ -1021,6 +1033,199 @@ h264_parser_parse_pic_timing (H264NalParser * nalparser,
 
 error:
   WARNING ("error parsing \"Picture timing\"");
+  return H264_PARSER_ERROR;
+}
+
+static H264ParserResult
+h264_parser_parse_recovery_point (H264NalParser * nalparser,
+    H264RecoveryPoint * rp, NalReader * nr)
+{
+  H264SPS *const sps = nalparser->last_sps;
+
+  DEBUG ("parsing \"Recovery point\"");
+  if (!sps || !sps->valid) {
+    WARNING ("didn't get the associated sequence paramater set for the "
+        "current access unit");
+    goto error;
+  }
+
+  READ_UE_MAX (nr, rp->recovery_frame_cnt, sps->max_frame_num - 1);
+  READ_UINT8 (nr, rp->exact_match_flag, 1);
+  READ_UINT8 (nr, rp->broken_link_flag, 1);
+  READ_UINT8 (nr, rp->changing_slice_group_idc, 2);
+
+  return H264_PARSER_OK;
+
+error:
+  WARNING ("error parsing \"Recovery point\"");
+  return H264_PARSER_ERROR;
+}
+
+/* Parse SEI stereo_video_info() message */
+static H264ParserResult
+h264_parser_parse_stereo_video_info (H264NalParser * nalparser,
+    H264StereoVideoInfo * info, NalReader * nr)
+{
+  DEBUG ("parsing \"Stereo Video info\"");
+
+  READ_UINT8 (nr, info->field_views_flag, 1);
+  if (info->field_views_flag) {
+    READ_UINT8 (nr, info->top_field_is_left_view_flag, 1);
+  } else {
+    READ_UINT8 (nr, info->current_frame_is_left_view_flag, 1);
+    READ_UINT8 (nr, info->next_frame_is_second_view_flag, 1);
+  }
+  READ_UINT8 (nr, info->left_view_self_contained_flag, 1);
+  READ_UINT8 (nr, info->right_view_self_contained_flag, 1);
+
+  return H264_PARSER_OK;
+
+error:
+  WARNING ("error parsing \"Stereo Video info\"");
+  return H264_PARSER_ERROR;
+}
+
+/* Parse SEI frame_packing_arrangement() message */
+static H264ParserResult
+h264_parser_parse_frame_packing (H264NalParser * nalparser,
+    H264FramePacking * frame_packing, NalReader * nr, uint32_t payload_size)
+{
+  uint8_t frame_packing_extension_flag;
+  uint32_t start_pos;
+
+  DEBUG ("parsing \"Frame Packing Arrangement\"");
+
+  start_pos = nal_reader_get_pos (nr);
+  READ_UE (nr, frame_packing->frame_packing_id);
+  READ_UINT8 (nr, frame_packing->frame_packing_cancel_flag, 1);
+
+  if (!frame_packing->frame_packing_cancel_flag) {
+    READ_UINT8 (nr, frame_packing->frame_packing_type, 7);
+    READ_UINT8 (nr, frame_packing->quincunx_sampling_flag, 1);
+    READ_UINT8 (nr, frame_packing->content_interpretation_type, 6);
+    READ_UINT8 (nr, frame_packing->spatial_flipping_flag, 1);
+    READ_UINT8 (nr, frame_packing->frame0_flipped_flag, 1);
+    READ_UINT8 (nr, frame_packing->field_views_flag, 1);
+    READ_UINT8 (nr, frame_packing->current_frame_is_frame0_flag, 1);
+    READ_UINT8 (nr, frame_packing->frame0_self_contained_flag, 1);
+    READ_UINT8 (nr, frame_packing->frame1_self_contained_flag, 1);
+
+    if (!frame_packing->quincunx_sampling_flag &&
+        frame_packing->frame_packing_type !=
+        H264_FRAME_PACKING_TEMPORAL_INTERLEAVING) {
+      READ_UINT8 (nr, frame_packing->frame0_grid_position_x, 4);
+      READ_UINT8 (nr, frame_packing->frame0_grid_position_y, 4);
+      READ_UINT8 (nr, frame_packing->frame1_grid_position_x, 4);
+      READ_UINT8 (nr, frame_packing->frame1_grid_position_y, 4);
+    }
+
+    /* Skip frame_packing_arrangement_reserved_byte */
+    if (!nal_reader_skip (nr, 8))
+      goto error;
+
+    READ_UE_MAX (nr, frame_packing->frame_packing_repetition_period, 16384);
+  }
+
+  READ_UINT8 (nr, frame_packing_extension_flag, 1);
+
+  /* All data that follows within a frame packing arrangement SEI message
+     after the value 1 for frame_packing_arrangement_extension_flag shall
+     be ignored (D.2.25) */
+  if (frame_packing_extension_flag) {
+    nal_reader_skip_long (nr,
+        payload_size - (nal_reader_get_pos (nr) - start_pos));
+  }
+
+  return H264_PARSER_OK;
+
+error:
+  WARNING ("error parsing \"Frame Packing Arrangement\"");
+  return H264_PARSER_ERROR;
+}
+
+static H264ParserResult
+h264_parser_parse_sei_message (H264NalParser * nalparser,
+    NalReader * nr, H264SEIMessage * sei)
+{
+  uint32_t payloadSize;
+  uint8_t payload_type_byte, payload_size_byte;
+  uint32_t remaining, payload_size;
+  H264ParserResult res;
+
+  DEBUG ("parsing \"Sei message\"");
+
+  sei->payloadType = 0;
+  do {
+    READ_UINT8 (nr, payload_type_byte, 8);
+    sei->payloadType += payload_type_byte;
+  } while (payload_type_byte == 0xff);
+
+  payloadSize = 0;
+  do {
+    READ_UINT8 (nr, payload_size_byte, 8);
+    payloadSize += payload_size_byte;
+  }
+  while (payload_size_byte == 0xff);
+
+  remaining = nal_reader_get_remaining (nr);
+  payload_size = payloadSize * 8 < remaining ? payloadSize * 8 : remaining;
+
+  DEBUG ("SEI message received: payloadType  %u, payloadSize = %u bits",
+      sei->payloadType, payload_size);
+
+  switch (sei->payloadType) {
+    case H264_SEI_BUF_PERIOD:
+      /* size not set; might depend on emulation_prevention_three_byte */
+      res = h264_parser_parse_buffering_period (nalparser,
+          &sei->payload.buffering_period, nr);
+      break;
+    case H264_SEI_PIC_TIMING:
+      /* size not set; might depend on emulation_prevention_three_byte */
+      res = h264_parser_parse_pic_timing (nalparser,
+          &sei->payload.pic_timing, nr);
+      break;
+    case H264_SEI_RECOVERY_POINT:
+      res = h264_parser_parse_recovery_point (nalparser,
+          &sei->payload.recovery_point, nr);
+      break;
+    case H264_SEI_STEREO_VIDEO_INFO:
+      res = h264_parser_parse_stereo_video_info (nalparser,
+          &sei->payload.stereo_video_info, nr);
+      break;
+    case H264_SEI_FRAME_PACKING:
+      res = h264_parser_parse_frame_packing (nalparser,
+          &sei->payload.frame_packing, nr, payload_size);
+      break;
+    default:
+      /* Just consume payloadSize bytes, which does not account for
+         emulation prevention bytes */
+      if (!nal_reader_skip_long (nr, payload_size))
+        goto error;
+      res = H264_PARSER_OK;
+      break;
+  }
+
+  /* When SEI message doesn't end at byte boundary,
+   * check remaining bits fit the specification.
+   */
+  if (!nal_reader_is_byte_aligned (nr)) {
+    uint8_t bit_equal_to_one;
+    READ_UINT8 (nr, bit_equal_to_one, 1);
+    if (!bit_equal_to_one)
+      WARNING ("Bit non equal to one.");
+
+    while (!nal_reader_is_byte_aligned (nr)) {
+      uint8_t bit_equal_to_zero;
+      READ_UINT8 (nr, bit_equal_to_zero, 1);
+      if (bit_equal_to_zero)
+        WARNING ("Bit non equal to zero.");
+    }
+  }
+
+  return res;
+
+error:
+  WARNING ("error parsing \"Sei message\"");
   return H264_PARSER_ERROR;
 }
 
@@ -1039,7 +1244,8 @@ h264_nal_parser_new (void)
 {
   H264NalParser *nalparser;
 
-  nalparser = (H264NalParser*) malloc (sizeof(H264NalParser));
+  nalparser = g_slice_new0 (H264NalParser);
+  INITIALIZE_DEBUG_CATEGORY;
 
   return nalparser;
 }
@@ -1056,9 +1262,11 @@ h264_nal_parser_free (H264NalParser * nalparser)
   uint32_t i;
 
   for (i = 0; i < H264_MAX_SPS_COUNT; i++)
-    h264_sps_free_1 (&nalparser->sps[i]);
+    h264_sps_clear (&nalparser->sps[i]);
+  for (i = 0; i < H264_MAX_PPS_COUNT; i++)
+    h264_pps_clear (&nalparser->pps[i]);
+  g_slice_free (H264NalParser, nalparser);
 
-  free (nalparser);
   nalparser = NULL;
 }
 
@@ -1087,7 +1295,8 @@ h264_parser_identify_nalu_unchecked (H264NalParser * nalparser,
   int32_t off1;
 
   if (size < offset + 4) {
-    DEBUG ("Can't parse, buffer has too small size %d, offset %d", size, offset);
+    DEBUG ("Can't parse, buffer has too small size %" G_GSIZE_FORMAT
+        ", offset %u", size, offset);
     return H264_PARSER_ERROR;
   }
 
@@ -1106,9 +1315,6 @@ h264_parser_identify_nalu_unchecked (H264NalParser * nalparser,
 
   nalu->sc_offset = offset + off1;
 
-  /* sc might have 2 or 3 0-bytes */
-  if (nalu->sc_offset > 0 && data[nalu->sc_offset - 1] == 00)
-    nalu->sc_offset--;
 
   nalu->offset = offset + off1 + 3;
   nalu->data = (uint8_t *) data;
@@ -1122,10 +1328,16 @@ h264_parser_identify_nalu_unchecked (H264NalParser * nalparser,
 
   nalu->valid = TRUE;
 
+  /* sc might have 2 or 3 0-bytes */
+  if (nalu->sc_offset > 0 && data[nalu->sc_offset - 1] == 00
+      && (nalu->type == H264_NAL_SPS || nalu->type == H264_NAL_PPS
+          || nalu->type == H264_NAL_AU_DELIMITER))
+    nalu->sc_offset--;
+
   if (nalu->type == H264_NAL_SEQ_END ||
       nalu->type == H264_NAL_STREAM_END) {
     DEBUG ("end-of-seq or end-of-stream nal found");
-    nalu->size = 0;
+    nalu->size = 1;
     return H264_PARSER_OK;
   }
 
@@ -1155,7 +1367,7 @@ h264_parser_identify_nalu (H264NalParser * nalparser,
       h264_parser_identify_nalu_unchecked (nalparser, data, offset, size,
       nalu);
 
-  if (res != H264_PARSER_OK || nalu->size == 0)
+  if (res != H264_PARSER_OK || nalu->size == 1)
     goto beach;
 
   off2 = scan_for_start_codes (data + nalu->offset, size - nalu->offset);
@@ -1165,7 +1377,10 @@ h264_parser_identify_nalu (H264NalParser * nalparser,
     return H264_PARSER_NO_NAL_END;
   }
 
-  if (off2 > 0 && data[nalu->offset + off2 - 1] == 00)
+  /* Mini performance improvement:
+   * We could have a way to store how many 0s were skipped to avoid
+   * parsing them again on the next NAL */
+  while (off2 > 0 && data[nalu->offset + off2 - 1] == 00)
     off2--;
 
   nalu->size = off2;
@@ -1200,7 +1415,8 @@ h264_parser_identify_nalu_avc (H264NalParser * nalparser,
   BitReader br;
 
   if (size < offset + nal_length_size) {
-    DEBUG ("Can't parse, buffer has too small size %d,  offset %d", size, offset);
+    DEBUG ("Can't parse, buffer has too small size %" G_GSIZE_FORMAT
+        ", offset %u", size, offset);
     return H264_PARSER_ERROR;
   }
 
@@ -1272,7 +1488,7 @@ h264_parser_parse_nal (H264NalParser * nalparser, H264NalUnit * nalu)
  */
 H264ParserResult
 h264_parser_parse_sps (H264NalParser * nalparser, H264NalUnit * nalu,
-    H264SPS * sps, BOOL parse_vui_params)
+    H264SPS * sps, bool parse_vui_params)
 {
   H264ParserResult res = h264_parse_sps (nalu, sps, parse_vui_params);
 
@@ -1287,12 +1503,11 @@ h264_parser_parse_sps (H264NalParser * nalparser, H264NalUnit * nalu,
 }
 
 /* Parse seq_parameter_set_data() */
-static BOOL
+static bool
 h264_parse_sps_data (NalReader * nr, H264SPS * sps,
-    BOOL parse_vui_params)
+    bool parse_vui_params)
 {
   int32_t width, height;
-  uint8_t frame_cropping_flag;
   uint32_t subwc[] = { 1, 2, 2, 1 };
   uint32_t subhc[] = { 1, 2, 1, 1 };
   H264VUIParams *vui = NULL;
@@ -1314,36 +1529,36 @@ h264_parse_sps_data (NalReader * nr, H264SPS * sps,
   sps->frame_crop_bottom_offset = 0;
   sps->delta_pic_order_always_zero_flag = 0;
 
-  NAL_READ_UINT8 (nr, sps->profile_idc, 8);
-  NAL_READ_UINT8 (nr, sps->constraint_set0_flag, 1);
-  NAL_READ_UINT8 (nr, sps->constraint_set1_flag, 1);
-  NAL_READ_UINT8 (nr, sps->constraint_set2_flag, 1);
-  NAL_READ_UINT8 (nr, sps->constraint_set3_flag, 1);
-  NAL_READ_UINT8 (nr, sps->constraint_set3_flag, 1);
-  NAL_READ_UINT8 (nr, sps->constraint_set4_flag, 1);
+  READ_UINT8 (nr, sps->profile_idc, 8);
+  READ_UINT8 (nr, sps->constraint_set0_flag, 1);
+  READ_UINT8 (nr, sps->constraint_set1_flag, 1);
+  READ_UINT8 (nr, sps->constraint_set2_flag, 1);
+  READ_UINT8 (nr, sps->constraint_set3_flag, 1);
+  READ_UINT8 (nr, sps->constraint_set4_flag, 1);
+  READ_UINT8 (nr, sps->constraint_set5_flag, 1);
 
   /* skip reserved_zero_2bits */
   if (!nal_reader_skip (nr, 2))
     goto error;
 
-  NAL_READ_UINT8 (nr, sps->level_idc, 8);
+  READ_UINT8 (nr, sps->level_idc, 8);
 
-  NAL_READ_UE_ALLOWED (nr, sps->id, 0, H264_MAX_SPS_COUNT - 1);
+  READ_UE_MAX (nr, sps->id, H264_MAX_SPS_COUNT - 1);
 
   if (sps->profile_idc == 100 || sps->profile_idc == 110 ||
       sps->profile_idc == 122 || sps->profile_idc == 244 ||
       sps->profile_idc == 44 || sps->profile_idc == 83 ||
       sps->profile_idc == 86 || sps->profile_idc == 118 ||
       sps->profile_idc == 128) {
-    NAL_READ_UE_ALLOWED (nr, sps->chroma_format_idc, 0, 3);
+    READ_UE_MAX (nr, sps->chroma_format_idc, 3);
     if (sps->chroma_format_idc == 3)
-      NAL_READ_UINT8 (nr, sps->separate_colour_plane_flag, 1);
+      READ_UINT8 (nr, sps->separate_colour_plane_flag, 1);
 
-    NAL_READ_UE_ALLOWED (nr, sps->bit_depth_luma_minus8, 0, 6);
-    NAL_READ_UE_ALLOWED (nr, sps->bit_depth_chroma_minus8, 0, 6);
-    NAL_READ_UINT8 (nr, sps->qpprime_y_zero_transform_bypass_flag, 1);
+    READ_UE_MAX (nr, sps->bit_depth_luma_minus8, 6);
+    READ_UE_MAX (nr, sps->bit_depth_chroma_minus8, 6);
+    READ_UINT8 (nr, sps->qpprime_y_zero_transform_bypass_flag, 1);
 
-    NAL_READ_UINT8 (nr, sps->scaling_matrix_present_flag, 1);
+    READ_UINT8 (nr, sps->scaling_matrix_present_flag, 1);
     if (sps->scaling_matrix_present_flag) {
       uint8_t n_lists;
 
@@ -1356,44 +1571,44 @@ h264_parse_sps_data (NalReader * nr, H264SPS * sps,
     }
   }
 
-  NAL_READ_UE_ALLOWED (nr, sps->log2_max_frame_num_minus4, 0, 12);
+  READ_UE_MAX (nr, sps->log2_max_frame_num_minus4, 12);
 
   sps->max_frame_num = 1 << (sps->log2_max_frame_num_minus4 + 4);
 
-  NAL_READ_UE_ALLOWED (nr, sps->pic_order_cnt_type, 0, 2);
+  READ_UE_MAX (nr, sps->pic_order_cnt_type, 2);
   if (sps->pic_order_cnt_type == 0) {
-    NAL_READ_UE_ALLOWED (nr, sps->log2_max_pic_order_cnt_lsb_minus4, 0, 12);
+    READ_UE_MAX (nr, sps->log2_max_pic_order_cnt_lsb_minus4, 12);
   } else if (sps->pic_order_cnt_type == 1) {
     uint32_t i;
 
-    NAL_READ_UINT8 (nr, sps->delta_pic_order_always_zero_flag, 1);
-    NAL_READ_SE (nr, sps->offset_for_non_ref_pic);
-    NAL_READ_SE (nr, sps->offset_for_top_to_bottom_field);
-    NAL_READ_UE_ALLOWED (nr, sps->num_ref_frames_in_pic_order_cnt_cycle, 0, 255);
+    READ_UINT8 (nr, sps->delta_pic_order_always_zero_flag, 1);
+    READ_SE (nr, sps->offset_for_non_ref_pic);
+    READ_SE (nr, sps->offset_for_top_to_bottom_field);
+    READ_UE_MAX (nr, sps->num_ref_frames_in_pic_order_cnt_cycle, 255);
 
     for (i = 0; i < sps->num_ref_frames_in_pic_order_cnt_cycle; i++)
-      NAL_READ_SE (nr, sps->offset_for_ref_frame[i]);
+      READ_SE (nr, sps->offset_for_ref_frame[i]);
   }
 
-  NAL_READ_UE (nr, sps->num_ref_frames);
-  NAL_READ_UINT8 (nr, sps->gaps_in_frame_num_value_allowed_flag, 1);
-  NAL_READ_UE (nr, sps->pic_width_in_mbs_minus1);
-  NAL_READ_UE (nr, sps->pic_height_in_map_units_minus1);
-  NAL_READ_UINT8 (nr, sps->frame_mbs_only_flag, 1);
+  READ_UE (nr, sps->num_ref_frames);
+  READ_UINT8 (nr, sps->gaps_in_frame_num_value_allowed_flag, 1);
+  READ_UE (nr, sps->pic_width_in_mbs_minus1);
+  READ_UE (nr, sps->pic_height_in_map_units_minus1);
+  READ_UINT8 (nr, sps->frame_mbs_only_flag, 1);
 
   if (!sps->frame_mbs_only_flag)
-    NAL_READ_UINT8 (nr, sps->mb_adaptive_frame_field_flag, 1);
+    READ_UINT8 (nr, sps->mb_adaptive_frame_field_flag, 1);
 
-  NAL_READ_UINT8 (nr, sps->direct_8x8_inference_flag, 1);
-  NAL_READ_UINT8 (nr, frame_cropping_flag, 1);
-  if (frame_cropping_flag) {
-    NAL_READ_UE (nr, sps->frame_crop_left_offset);
-    NAL_READ_UE (nr, sps->frame_crop_right_offset);
-    NAL_READ_UE (nr, sps->frame_crop_top_offset);
-    NAL_READ_UE (nr, sps->frame_crop_bottom_offset);
+  READ_UINT8 (nr, sps->direct_8x8_inference_flag, 1);
+  READ_UINT8 (nr, sps->frame_cropping_flag, 1);
+  if (sps->frame_cropping_flag) {
+    READ_UE (nr, sps->frame_crop_left_offset);
+    READ_UE (nr, sps->frame_crop_right_offset);
+    READ_UE (nr, sps->frame_crop_top_offset);
+    READ_UE (nr, sps->frame_crop_bottom_offset);
   }
 
-  NAL_READ_UINT8 (nr, sps->vui_parameters_present_flag, 1);
+  READ_UINT8 (nr, sps->vui_parameters_present_flag, 1);
   if (sps->vui_parameters_present_flag && parse_vui_params) {
     if (!h264_parse_vui_parameters (sps, nr))
       goto error;
@@ -1411,20 +1626,33 @@ h264_parse_sps_data (NalReader * nr, H264SPS * sps,
   width *= 16;
   height = (sps->pic_height_in_map_units_minus1 + 1);
   height *= 16 * (2 - sps->frame_mbs_only_flag);
-  INFO("initial width=%d, height=%d", width, height);
-
-  width -= (sps->frame_crop_left_offset + sps->frame_crop_right_offset)
-      * subwc[sps->chroma_format_idc];
-  height -= (sps->frame_crop_top_offset + sps->frame_crop_bottom_offset
-      * subhc[sps->chroma_format_idc] * (2 - sps->frame_mbs_only_flag));
+  INFO ("initial width=%d, height=%d", width, height);
   if (width < 0 || height < 0) {
     WARNING ("invalid width/height in SPS");
     goto error;
   }
-  INFO("final width=%u, height=%u", width, height);
+
   sps->width = width;
   sps->height = height;
 
+  if (sps->frame_cropping_flag) {
+    const uint32_t crop_unit_x = subwc[sps->chroma_format_idc];
+    const uint32_t crop_unit_y =
+        subhc[sps->chroma_format_idc] * (2 - sps->frame_mbs_only_flag);
+
+    width -= (sps->frame_crop_left_offset + sps->frame_crop_right_offset)
+        * crop_unit_x;
+    height -= (sps->frame_crop_top_offset + sps->frame_crop_bottom_offset)
+        * crop_unit_y;
+
+    sps->crop_rect_width = width;
+    sps->crop_rect_height = height;
+    sps->crop_rect_x = sps->frame_crop_left_offset * crop_unit_x;
+    sps->crop_rect_y = sps->frame_crop_top_offset * crop_unit_y;
+
+    INFO ("crop_rectangle x=%u y=%u width=%u, height=%u", sps->crop_rect_x,
+        sps->crop_rect_y, width, height);
+  }
   sps->fps_num = 0;
   sps->fps_den = 1;
 
@@ -1435,8 +1663,7 @@ h264_parse_sps_data (NalReader * nr, H264SPS * sps,
         vui->fixed_frame_rate_flag, sps->frame_mbs_only_flag,
         vui->pic_struct_present_flag);
 
-    if (parse_vui_params && vui->fixed_frame_rate_flag &&
-        sps->frame_mbs_only_flag && !vui->pic_struct_present_flag) {
+    if (parse_vui_params && vui->fixed_frame_rate_flag) {
       sps->fps_num = vui->time_scale;
       sps->fps_den = vui->num_units_in_tick;
       /* picture is a frame = 2 fields */
@@ -1453,106 +1680,101 @@ error:
 }
 
 /* Parse subset_seq_parameter_set() data for MVC */
-static BOOL
+static bool
 h264_parse_sps_mvc_data (NalReader * nr, H264SPS * sps,
-    BOOL parse_vui_params)
+    bool parse_vui_params)
 {
   H264SPSExtMVC *const mvc = &sps->extension.mvc;
   uint8_t bit_equal_to_one;
   uint32_t i, j, k;
 
-  NAL_READ_UINT8 (nr, bit_equal_to_one, 1);
+  READ_UINT8 (nr, bit_equal_to_one, 1);
   if (!bit_equal_to_one)
     return FALSE;
 
   sps->extension_type = H264_NAL_EXTENSION_MVC;
 
-  NAL_READ_UE_ALLOWED (nr, mvc->num_views_minus1, 0, H264_MAX_VIEW_COUNT - 1);
+  READ_UE_MAX (nr, mvc->num_views_minus1, H264_MAX_VIEW_COUNT - 1);
 
-  mvc->view = (H264SPSExtMVCView *) malloc (sizeof (H264SPSExtMVCView) * (mvc->num_views_minus1 + 1));
+  mvc->view = g_new0 (H264SPSExtMVCView, mvc->num_views_minus1 + 1);
   if (!mvc->view)
     goto error_allocation_failed;
 
   for (i = 0; i <= mvc->num_views_minus1; i++)
-    NAL_READ_UE_ALLOWED (nr, mvc->view[i].view_id, 0, H264_MAX_VIEW_ID);
+    READ_UE_MAX (nr, mvc->view[i].view_id, H264_MAX_VIEW_ID);
 
   for (i = 1; i <= mvc->num_views_minus1; i++) {
     /* for RefPicList0 */
-    NAL_READ_UE_ALLOWED (nr, mvc->view[i].num_anchor_refs_l0, 0, 15);
+    READ_UE_MAX (nr, mvc->view[i].num_anchor_refs_l0, 15);
     for (j = 0; j < mvc->view[i].num_anchor_refs_l0; j++) {
-      NAL_READ_UE_ALLOWED (nr, mvc->view[i].anchor_ref_l0[j], 0,
-          H264_MAX_VIEW_ID);
+      READ_UE_MAX (nr, mvc->view[i].anchor_ref_l0[j], H264_MAX_VIEW_ID);
     }
 
     /* for RefPicList1 */
-    NAL_READ_UE_ALLOWED (nr, mvc->view[i].num_anchor_refs_l1, 0, 15);
+    READ_UE_MAX (nr, mvc->view[i].num_anchor_refs_l1, 15);
     for (j = 0; j < mvc->view[i].num_anchor_refs_l1; j++) {
-      NAL_READ_UE_ALLOWED (nr, mvc->view[i].anchor_ref_l1[j], 0,
-          H264_MAX_VIEW_ID);
+      READ_UE_MAX (nr, mvc->view[i].anchor_ref_l1[j], H264_MAX_VIEW_ID);
     }
   }
 
   for (i = 1; i <= mvc->num_views_minus1; i++) {
     /* for RefPicList0 */
-    NAL_READ_UE_ALLOWED (nr, mvc->view[i].num_non_anchor_refs_l0, 0, 15);
+    READ_UE_MAX (nr, mvc->view[i].num_non_anchor_refs_l0, 15);
     for (j = 0; j < mvc->view[i].num_non_anchor_refs_l0; j++) {
-      NAL_READ_UE_ALLOWED (nr, mvc->view[i].non_anchor_ref_l0[j], 0,
-          H264_MAX_VIEW_ID);
+      READ_UE_MAX (nr, mvc->view[i].non_anchor_ref_l0[j], H264_MAX_VIEW_ID);
     }
 
     /* for RefPicList1 */
-    NAL_READ_UE_ALLOWED (nr, mvc->view[i].num_non_anchor_refs_l1, 0, 15);
+    READ_UE_MAX (nr, mvc->view[i].num_non_anchor_refs_l1, 15);
     for (j = 0; j < mvc->view[i].num_non_anchor_refs_l1; j++) {
-      NAL_READ_UE_ALLOWED (nr, mvc->view[i].non_anchor_ref_l1[j], 0,
-          H264_MAX_VIEW_ID);
+      READ_UE_MAX (nr, mvc->view[i].non_anchor_ref_l1[j], H264_MAX_VIEW_ID);
     }
   }
 
-  NAL_READ_UE_ALLOWED (nr, mvc->num_level_values_signalled_minus1, 0, 63);
+  READ_UE_MAX (nr, mvc->num_level_values_signalled_minus1, 63);
 
   mvc->level_value =
-      (H264SPSExtMVCLevelValue*) malloc (sizeof (H264SPSExtMVCLevelValue) *
-       (mvc->num_level_values_signalled_minus1 + 1));
+      g_new0 (H264SPSExtMVCLevelValue,
+      mvc->num_level_values_signalled_minus1 + 1);
   if (!mvc->level_value)
     goto error_allocation_failed;
 
   for (i = 0; i <= mvc->num_level_values_signalled_minus1; i++) {
     H264SPSExtMVCLevelValue *const level_value = &mvc->level_value[i];
 
-    NAL_READ_UINT8 (nr, level_value->level_idc, 8);
+    READ_UINT8 (nr, level_value->level_idc, 8);
 
-    NAL_READ_UE_ALLOWED (nr, level_value->num_applicable_ops_minus1, 0, 1023);
+    READ_UE_MAX (nr, level_value->num_applicable_ops_minus1, 1023);
     level_value->applicable_op =
-        (H264SPSExtMVCLevelValueOp*) malloc (sizeof (H264SPSExtMVCLevelValueOp) *
-         (level_value->num_applicable_ops_minus1 + 1));
+        g_new0 (H264SPSExtMVCLevelValueOp,
+        level_value->num_applicable_ops_minus1 + 1);
     if (!level_value->applicable_op)
       goto error_allocation_failed;
 
     for (j = 0; j <= level_value->num_applicable_ops_minus1; j++) {
       H264SPSExtMVCLevelValueOp *const op = &level_value->applicable_op[j];
 
-      NAL_READ_UINT8 (nr, op->temporal_id, 3);
+      READ_UINT8 (nr, op->temporal_id, 3);
 
-      NAL_READ_UE_ALLOWED (nr, op->num_target_views_minus1, 0, 1023);
-      op->target_view_id = (uint16_t*) malloc (sizeof (uint16_t) * (op->num_target_views_minus1 + 1));
+      READ_UE_MAX (nr, op->num_target_views_minus1, 1023);
+      op->target_view_id = g_new (uint16_t, op->num_target_views_minus1 + 1);
       if (!op->target_view_id)
         goto error_allocation_failed;
 
       for (k = 0; k <= op->num_target_views_minus1; k++)
-        NAL_READ_UE_ALLOWED (nr, op->target_view_id[k], 0, H264_MAX_VIEW_ID);
-      NAL_READ_UE_ALLOWED (nr, op->num_views_minus1, 0, 1023);
+        READ_UE_MAX (nr, op->target_view_id[k], H264_MAX_VIEW_ID);
+      READ_UE_MAX (nr, op->num_views_minus1, 1023);
     }
   }
-
   return TRUE;
 
 error_allocation_failed:
   WARNING ("failed to allocate memory");
-  h264_sps_free_1 (sps);
+  h264_sps_clear (sps);
   return FALSE;
 
 error:
-  h264_sps_free_1 (sps);
+  h264_sps_clear (sps);
   return FALSE;
 }
 
@@ -1568,11 +1790,13 @@ error:
  */
 H264ParserResult
 h264_parse_sps (H264NalUnit * nalu, H264SPS * sps,
-    BOOL parse_vui_params)
+    bool parse_vui_params)
 {
   NalReader nr;
 
+  INITIALIZE_DEBUG_CATEGORY;
   DEBUG ("parsing SPS");
+
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
 
@@ -1600,18 +1824,20 @@ error:
  *
  * This function fully parses @data and allocates all the necessary
  * data structures needed for MVC extensions. The resulting @sps
- * structure shall be deallocated with h264_sps_free_1() when it
- * is no longer needed.
+ * structure shall be deallocated with h264_sps_clear() when it is
+ * no longer needed.
  *
  * Note: if the caller doesn't need any of the MVC-specific data, then
  * h264_parser_parse_sps() is more efficient because those extra
  * syntax elements are not parsed and no extra memory is allocated.
  *
  * Returns: a #H264ParserResult
+ *
+ * Since: 1.6
  */
 H264ParserResult
 h264_parser_parse_subset_sps (H264NalParser * nalparser,
-    H264NalUnit * nalu, H264SPS * sps, BOOL parse_vui_params)
+    H264NalUnit * nalu, H264SPS * sps, bool parse_vui_params)
 {
   H264ParserResult res;
 
@@ -1636,29 +1862,34 @@ h264_parser_parse_subset_sps (H264NalParser * nalparser,
  *
  * This function fully parses @data and allocates all the necessary
  * data structures needed for MVC extensions. The resulting @sps
- * structure shall be deallocated with h264_sps_free_1() when it
- * is no longer needed.
+ * structure shall be deallocated with h264_sps_clear() when it is
+ * no longer needed.
  *
  * Note: if the caller doesn't need any of the MVC-specific data, then
  * h264_parser_parse_sps() is more efficient because those extra
  * syntax elements are not parsed and no extra memory is allocated.
  *
  * Returns: a #H264ParserResult
+ *
+ * Since: 1.6
  */
 H264ParserResult
 h264_parse_subset_sps (H264NalUnit * nalu, H264SPS * sps,
-    BOOL parse_vui_params)
+    bool parse_vui_params)
 {
   NalReader nr;
 
+  INITIALIZE_DEBUG_CATEGORY;
   DEBUG ("parsing Subset SPS");
+
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
 
   if (!h264_parse_sps_data (&nr, sps, TRUE))
     goto error;
 
-  if (sps->profile_idc == 118 || sps->profile_idc == 128) {
+  if (sps->profile_idc == H264_PROFILE_MULTIVIEW_HIGH ||
+      sps->profile_idc == H264_PROFILE_STEREO_HIGH) {
     if (!h264_parse_sps_mvc_data (&nr, sps, parse_vui_params))
       goto error;
   }
@@ -1680,6 +1911,10 @@ error:
  *
  * Parses @data, and fills the @pps structure.
  *
+ * The resulting @pps data structure shall be deallocated with the
+ * h264_pps_clear() function when it is no longer needed, or prior
+ * to parsing a new PPS NAL unit.
+ *
  * Returns: a #H264ParserResult
  */
 H264ParserResult
@@ -1692,13 +1927,14 @@ h264_parse_pps (H264NalParser * nalparser, H264NalUnit * nalu,
   uint8_t pic_scaling_matrix_present_flag;
   int32_t qp_bd_offset;
 
+  INITIALIZE_DEBUG_CATEGORY;
   DEBUG ("parsing PPS");
 
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
 
-  NAL_READ_UE_ALLOWED (&nr, pps->id, 0, H264_MAX_PPS_COUNT - 1);
-  NAL_READ_UE_ALLOWED (&nr, sps_id, 0, H264_MAX_SPS_COUNT - 1);
+  READ_UE_MAX (&nr, pps->id, H264_MAX_PPS_COUNT - 1);
+  READ_UE_MAX (&nr, sps_id, H264_MAX_SPS_COUNT - 1);
 
   sps = h264_parser_get_sps (nalparser, sps_id);
   if (!sps) {
@@ -1717,59 +1953,59 @@ h264_parse_pps (H264NalParser * nalparser, H264NalUnit * nalu,
   memcpy (&pps->scaling_lists_4x4, &sps->scaling_lists_4x4, 96);
   memcpy (&pps->scaling_lists_8x8, &sps->scaling_lists_8x8, 384);
 
-  NAL_READ_UINT8 (&nr, pps->entropy_coding_mode_flag, 1);
-  NAL_READ_UINT8 (&nr, pps->pic_order_present_flag, 1);
-  NAL_READ_UE_ALLOWED (&nr, pps->num_slice_groups_minus1, 0, 7);
+  READ_UINT8 (&nr, pps->entropy_coding_mode_flag, 1);
+  READ_UINT8 (&nr, pps->pic_order_present_flag, 1);
+  READ_UE_MAX (&nr, pps->num_slice_groups_minus1, 7);
   if (pps->num_slice_groups_minus1 > 0) {
-    NAL_READ_UE_ALLOWED (&nr, pps->slice_group_map_type, 0, 6);
+    READ_UE_MAX (&nr, pps->slice_group_map_type, 6);
 
     if (pps->slice_group_map_type == 0) {
       int32_t i;
 
       for (i = 0; i <= pps->num_slice_groups_minus1; i++)
-        NAL_READ_UE (&nr, pps->run_length_minus1[i]);
+        READ_UE (&nr, pps->run_length_minus1[i]);
     } else if (pps->slice_group_map_type == 2) {
       int32_t i;
 
-      for (i = 0; i <= pps->num_slice_groups_minus1; i++) {
-        NAL_READ_UE (&nr, pps->top_left[i]);
-        NAL_READ_UE (&nr, pps->bottom_right[i]);
+      for (i = 0; i < pps->num_slice_groups_minus1; i++) {
+        READ_UE (&nr, pps->top_left[i]);
+        READ_UE (&nr, pps->bottom_right[i]);
       }
     } else if (pps->slice_group_map_type >= 3 && pps->slice_group_map_type <= 5) {
-      NAL_READ_UINT8 (&nr, pps->slice_group_change_direction_flag, 1);
-      NAL_READ_UE (&nr, pps->slice_group_change_rate_minus1);
+      READ_UINT8 (&nr, pps->slice_group_change_direction_flag, 1);
+      READ_UE (&nr, pps->slice_group_change_rate_minus1);
     } else if (pps->slice_group_map_type == 6) {
+      int32_t bits;
       int32_t i;
-      int32_t bits = 0;
 
-      NAL_READ_UE (&nr, pps->pic_size_in_map_units_minus1);
-      bits = BIT_STORAGE_CALCULATE(pps->num_slice_groups_minus1);
+      READ_UE (&nr, pps->pic_size_in_map_units_minus1);
+      bits = g_bit_storage (pps->num_slice_groups_minus1);
 
       pps->slice_group_id =
-          (uint8_t*) malloc (sizeof (uint8_t) * (pps->pic_size_in_map_units_minus1 + 1));
+          g_new (uint8_t, pps->pic_size_in_map_units_minus1 + 1);
       for (i = 0; i <= pps->pic_size_in_map_units_minus1; i++)
-        NAL_READ_UINT8 (&nr, pps->slice_group_id[i], bits);
+        READ_UINT8 (&nr, pps->slice_group_id[i], bits);
     }
   }
 
-  NAL_READ_UE_ALLOWED (&nr, pps->num_ref_idx_l0_active_minus1, 0, 31);
-  NAL_READ_UE_ALLOWED (&nr, pps->num_ref_idx_l1_active_minus1, 0, 31);
-  NAL_READ_UINT8 (&nr, pps->weighted_pred_flag, 1);
-  NAL_READ_UINT8 (&nr, pps->weighted_bipred_idc, 2);
-  NAL_READ_SE_ALLOWED (&nr, pps->pic_init_qp_minus26, -(26 + qp_bd_offset), 25);
-  NAL_READ_SE_ALLOWED (&nr, pps->pic_init_qs_minus26, -26, 25);
-  NAL_READ_SE_ALLOWED (&nr, pps->chroma_qp_index_offset, -12, 12);
+  READ_UE_MAX (&nr, pps->num_ref_idx_l0_active_minus1, 31);
+  READ_UE_MAX (&nr, pps->num_ref_idx_l1_active_minus1, 31);
+  READ_UINT8 (&nr, pps->weighted_pred_flag, 1);
+  READ_UINT8 (&nr, pps->weighted_bipred_idc, 2);
+  READ_SE_ALLOWED (&nr, pps->pic_init_qp_minus26, -(26 + qp_bd_offset), 25);
+  READ_SE_ALLOWED (&nr, pps->pic_init_qs_minus26, -26, 25);
+  READ_SE_ALLOWED (&nr, pps->chroma_qp_index_offset, -12, 12);
   pps->second_chroma_qp_index_offset = pps->chroma_qp_index_offset;
-  NAL_READ_UINT8 (&nr, pps->deblocking_filter_control_present_flag, 1);
-  NAL_READ_UINT8 (&nr, pps->constrained_intra_pred_flag, 1);
-  NAL_READ_UINT8 (&nr, pps->redundant_pic_cnt_present_flag, 1);
+  READ_UINT8 (&nr, pps->deblocking_filter_control_present_flag, 1);
+  READ_UINT8 (&nr, pps->constrained_intra_pred_flag, 1);
+  READ_UINT8 (&nr, pps->redundant_pic_cnt_present_flag, 1);
 
-  if (!h264_parser_more_data (&nr))
+  if (!nal_reader_has_more_data (&nr))
     goto done;
 
-  NAL_READ_UINT8 (&nr, pps->transform_8x8_mode_flag, 1);
+  READ_UINT8 (&nr, pps->transform_8x8_mode_flag, 1);
 
-  NAL_READ_UINT8 (&nr, pic_scaling_matrix_present_flag, 1);
+  READ_UINT8 (&nr, pic_scaling_matrix_present_flag, 1);
   if (pic_scaling_matrix_present_flag) {
     uint8_t n_lists;
 
@@ -1791,7 +2027,7 @@ h264_parse_pps (H264NalParser * nalparser, H264NalUnit * nalu,
     }
   }
 
-  NAL_READ_SE_ALLOWED (&nr, pps->second_chroma_qp_index_offset, -12, 12);
+  READ_SE_ALLOWED (&nr, pps->second_chroma_qp_index_offset, -12, 12);
 
 done:
   pps->valid = TRUE;
@@ -1800,6 +2036,7 @@ done:
 error:
   WARNING ("error parsing \"Picture parameter set\"");
   pps->valid = FALSE;
+  h264_pps_clear (pps);
   return H264_PARSER_ERROR;
 }
 
@@ -1810,6 +2047,10 @@ error:
  * @pps: The #H264PPS to fill.
  *
  * Parses @data, and fills the @pps structure.
+ *
+ * The resulting @pps data structure shall be deallocated with the
+ * h264_pps_clear() function when it is no longer needed, or prior
+ * to parsing a new PPS NAL unit.
  *
  * Returns: a #H264ParserResult
  */
@@ -1822,11 +2063,29 @@ h264_parser_parse_pps (H264NalParser * nalparser,
   if (res == H264_PARSER_OK) {
     DEBUG ("adding picture parameter set with id: %d to array", pps->id);
 
-    nalparser->pps[pps->id] = *pps;
+    if (!h264_pps_copy (&nalparser->pps[pps->id], pps))
+      return H264_PARSER_ERROR;
     nalparser->last_pps = &nalparser->pps[pps->id];
   }
 
   return res;
+}
+
+/**
+ * h264_pps_clear:
+ * @pps: The #H264PPS to free
+ *
+ * Clears all @pps internal resources.
+ *
+ * Since: 1.4
+ */
+void
+h264_pps_clear (H264PPS * pps)
+{
+  g_return_if_fail (pps != NULL);
+
+  g_free (pps->slice_group_id);
+  pps->slice_group_id = NULL;
 }
 
 /**
@@ -1844,7 +2103,7 @@ h264_parser_parse_pps (H264NalParser * nalparser,
 H264ParserResult
 h264_parser_parse_slice_hdr (H264NalParser * nalparser,
     H264NalUnit * nalu, H264SliceHdr * slice,
-    BOOL parse_pred_weight_table, BOOL parse_dec_ref_pic_marking)
+    bool parse_pred_weight_table, bool parse_dec_ref_pic_marking)
 {
   NalReader nr;
   int32_t pps_id;
@@ -1860,12 +2119,12 @@ h264_parser_parse_slice_hdr (H264NalParser * nalparser,
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
 
-  NAL_READ_UE (&nr, slice->first_mb_in_slice);
-  NAL_READ_UE (&nr, slice->type);
+  READ_UE (&nr, slice->first_mb_in_slice);
+  READ_UE (&nr, slice->type);
 
   DEBUG ("parsing \"Slice header\", slice type %u", slice->type);
 
-  NAL_READ_UE_ALLOWED (&nr, pps_id, 0, H264_MAX_PPS_COUNT - 1);
+  READ_UE_MAX (&nr, pps_id, H264_MAX_PPS_COUNT - 1);
   pps = h264_parser_get_pps (nalparser, pps_id);
 
   if (!pps) {
@@ -1883,6 +2142,12 @@ h264_parser_parse_slice_hdr (H264NalParser * nalparser,
     return H264_PARSER_BROKEN_LINK;
   }
 
+  /* Check we can actually parse this slice (AVC, MVC headers only) */
+  if (sps->extension_type && sps->extension_type != H264_NAL_EXTENSION_MVC) {
+    WARNING ("failed to parse unsupported slice header");
+    return H264_PARSER_BROKEN_DATA;
+  }
+
   /* set default values for fields that might not be present in the bitstream
      and have valid defaults */
   slice->field_pic_flag = 0;
@@ -1898,55 +2163,55 @@ h264_parser_parse_slice_hdr (H264NalParser * nalparser,
   slice->slice_beta_offset_div2 = 0;
 
   if (sps->separate_colour_plane_flag)
-    NAL_READ_UINT8 (&nr, slice->colour_plane_id, 2);
+    READ_UINT8 (&nr, slice->colour_plane_id, 2);
 
-  NAL_READ_UINT16 (&nr, slice->frame_num, sps->log2_max_frame_num_minus4 + 4);
+  READ_UINT16 (&nr, slice->frame_num, sps->log2_max_frame_num_minus4 + 4);
 
   if (!sps->frame_mbs_only_flag) {
-    NAL_READ_UINT8 (&nr, slice->field_pic_flag, 1);
+    READ_UINT8 (&nr, slice->field_pic_flag, 1);
     if (slice->field_pic_flag)
-      NAL_READ_UINT8 (&nr, slice->bottom_field_flag, 1);
+      READ_UINT8 (&nr, slice->bottom_field_flag, 1);
   }
 
   /* calculate MaxPicNum */
   if (slice->field_pic_flag)
-    slice->max_pic_num = sps->max_frame_num;
-  else
     slice->max_pic_num = 2 * sps->max_frame_num;
+  else
+    slice->max_pic_num = sps->max_frame_num;
 
   if (nalu->idr_pic_flag)
-    NAL_READ_UE_ALLOWED (&nr, slice->idr_pic_id, 0, UINT16_MAX);
+    READ_UE_MAX (&nr, slice->idr_pic_id, G_MAXUINT16);
 
   if (sps->pic_order_cnt_type == 0) {
-    NAL_READ_UINT16 (&nr, slice->pic_order_cnt_lsb,
+    READ_UINT16 (&nr, slice->pic_order_cnt_lsb,
         sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
 
     if (pps->pic_order_present_flag && !slice->field_pic_flag)
-      NAL_READ_SE (&nr, slice->delta_pic_order_cnt_bottom);
+      READ_SE (&nr, slice->delta_pic_order_cnt_bottom);
   }
 
   if (sps->pic_order_cnt_type == 1 && !sps->delta_pic_order_always_zero_flag) {
-    NAL_READ_SE (&nr, slice->delta_pic_order_cnt[0]);
+    READ_SE (&nr, slice->delta_pic_order_cnt[0]);
     if (pps->pic_order_present_flag && !slice->field_pic_flag)
-      NAL_READ_SE (&nr, slice->delta_pic_order_cnt[1]);
+      READ_SE (&nr, slice->delta_pic_order_cnt[1]);
   }
 
   if (pps->redundant_pic_cnt_present_flag)
-    NAL_READ_UE_ALLOWED (&nr, slice->redundant_pic_cnt, 0, INT8_MAX);
+    READ_UE_MAX (&nr, slice->redundant_pic_cnt, G_MAXINT8);
 
   if (H264_IS_B_SLICE (slice))
-    NAL_READ_UINT8 (&nr, slice->direct_spatial_mv_pred_flag, 1);
+    READ_UINT8 (&nr, slice->direct_spatial_mv_pred_flag, 1);
 
   if (H264_IS_P_SLICE (slice) || H264_IS_SP_SLICE (slice) ||
       H264_IS_B_SLICE (slice)) {
     uint8_t num_ref_idx_active_override_flag;
 
-    NAL_READ_UINT8 (&nr, num_ref_idx_active_override_flag, 1);
+    READ_UINT8 (&nr, num_ref_idx_active_override_flag, 1);
     if (num_ref_idx_active_override_flag) {
-      NAL_READ_UE_ALLOWED (&nr, slice->num_ref_idx_l0_active_minus1, 0, 31);
+      READ_UE_MAX (&nr, slice->num_ref_idx_l0_active_minus1, 31);
 
       if (H264_IS_B_SLICE (slice))
-        NAL_READ_UE_ALLOWED (&nr, slice->num_ref_idx_l1_active_minus1, 0, 31);
+        READ_UE_MAX (&nr, slice->num_ref_idx_l1_active_minus1, 31);
     }
   }
 
@@ -1969,23 +2234,23 @@ h264_parser_parse_slice_hdr (H264NalParser * nalparser,
 
   if (pps->entropy_coding_mode_flag && !H264_IS_I_SLICE (slice) &&
       !H264_IS_SI_SLICE (slice))
-    NAL_READ_UE_ALLOWED (&nr, slice->cabac_init_idc, 0, 2);
+    READ_UE_MAX (&nr, slice->cabac_init_idc, 2);
 
-  NAL_READ_SE_ALLOWED (&nr, slice->slice_qp_delta, -87, 77);
+  READ_SE_ALLOWED (&nr, slice->slice_qp_delta, -87, 77);
 
   if (H264_IS_SP_SLICE (slice) || H264_IS_SI_SLICE (slice)) {
     uint8_t sp_for_switch_flag;
 
     if (H264_IS_SP_SLICE (slice))
-      NAL_READ_UINT8 (&nr, sp_for_switch_flag, 1);
-    NAL_READ_SE_ALLOWED (&nr, slice->slice_qs_delta, -51, 51);
+      READ_UINT8 (&nr, sp_for_switch_flag, 1);
+    READ_SE_ALLOWED (&nr, slice->slice_qs_delta, -51, 51);
   }
 
   if (pps->deblocking_filter_control_present_flag) {
-    NAL_READ_UE_ALLOWED (&nr, slice->disable_deblocking_filter_idc, 0, 2);
+    READ_UE_MAX (&nr, slice->disable_deblocking_filter_idc, 2);
     if (slice->disable_deblocking_filter_idc != 1) {
-      NAL_READ_SE_ALLOWED (&nr, slice->slice_alpha_c0_offset_div2, -6, 6);
-      NAL_READ_SE_ALLOWED (&nr, slice->slice_beta_offset_div2, -6, 6);
+      READ_SE_ALLOWED (&nr, slice->slice_alpha_c0_offset_div2, -6, 6);
+      READ_SE_ALLOWED (&nr, slice->slice_beta_offset_div2, -6, 6);
     }
   }
 
@@ -1997,13 +2262,11 @@ h264_parser_parse_slice_hdr (H264NalParser * nalparser,
     uint32_t PicSizeInMapUnits = PicWidthInMbs * PicHeightInMapUnits;
     uint32_t SliceGroupChangeRate = pps->slice_group_change_rate_minus1 + 1;
     const uint32_t n = ceil_log2 (PicSizeInMapUnits / SliceGroupChangeRate + 1);
-    NAL_READ_UINT16 (&nr, slice->slice_group_change_cycle, n);
+    READ_UINT16 (&nr, slice->slice_group_change_cycle, n);
   }
 
   slice->header_size = nal_reader_get_pos (&nr);
   slice->n_emulation_prevention_bytes = nal_reader_get_epb_count (&nr);
-
-  slice->nal_header_bytes = nalu->header_bytes;
 
   return H264_PARSER_OK;
 
@@ -2012,203 +2275,29 @@ error:
   return H264_PARSER_ERROR;
 }
 
-/**
- * h264_parser_parse_sei:
- * @nalparser: a #H264NalParser
- * @nalu: The #H264_NAL_SEI #H264NalUnit to parse
- * @sei: The #H264SEIMessage to fill.
- *
- * Parses @data, and fills the @sei structures.
- *
- * Returns: a #H264ParserResult
- */
-H264ParserResult
-h264_parser_parse_sei (H264NalParser * nalparser, H264NalUnit * nalu,
-    H264SEIMessage * sei)
-{
-  NalReader nr;
-
-  uint32_t payloadSize;
-  uint8_t payload_type_byte, payload_size_byte;
-  uint32_t remaining, payload_size;
-  BOOL res;
-
-  DEBUG ("parsing \"Sei message\"");
-
-  nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
-      nalu->size - nalu->header_bytes);
-
-  /* init */
-  memset (sei, 0, sizeof (*sei));
-
-  sei->payloadType = 0;
-  do {
-    NAL_READ_UINT8 (&nr, payload_type_byte, 8);
-    sei->payloadType += payload_type_byte;
-  } while (payload_type_byte == 0xff);
-
-  payloadSize = 0;
-  do {
-    NAL_READ_UINT8 (&nr, payload_size_byte, 8);
-    payloadSize += payload_size_byte;
-  }
-  while (payload_size_byte == 0xff);
-
-  remaining = nal_reader_get_remaining (&nr) * 8;
-  payload_size = payloadSize < remaining ? payloadSize : remaining;
-
-  DEBUG ("SEI message received: payloadType  %u, payloadSize = %u bytes",
-      sei->payloadType, payload_size);
-
-  if (sei->payloadType == H264_SEI_BUF_PERIOD) {
-    /* size not set; might depend on emulation_prevention_three_byte */
-    res = h264_parser_parse_buffering_period (nalparser,
-        &sei->payload.buffering_period, &nr);
-  } else if (sei->payloadType == H264_SEI_PIC_TIMING) {
-    /* size not set; might depend on emulation_prevention_three_byte */
-    res = h264_parser_parse_pic_timing (nalparser,
-        &sei->payload.pic_timing, &nr);
-  } else
-    res = H264_PARSER_OK;
-
-  return res;
-
-error:
-  WARNING ("error parsing \"Sei message\"");
-  return H264_PARSER_ERROR;
-}
-
-/* Copy MVC-specific data for subset SPS header */
-static BOOL
-h264_sps_mvc_copy (H264SPS * dst_sps, const H264SPS * src_sps)
-{
-  H264SPSExtMVC *const dst_mvc = &dst_sps->extension.mvc;
-  const H264SPSExtMVC *const src_mvc = &src_sps->extension.mvc;
-  uint32_t i, j, k;
-
-  assert (dst_sps->extension_type == H264_NAL_EXTENSION_MVC);
-
-  dst_mvc->num_views_minus1 = src_mvc->num_views_minus1;
-  dst_mvc->view = (H264SPSExtMVCView*) malloc (sizeof (H264SPSExtMVCView) * (dst_mvc->num_views_minus1 + 1));
-  if (!dst_mvc->view)
-    return FALSE;
-
-  dst_mvc->view[0].view_id = src_mvc->view[0].view_id;
-
-  for (i = 1; i <= dst_mvc->num_views_minus1; i++) {
-    H264SPSExtMVCView *const dst_view = &dst_mvc->view[i];
-    const H264SPSExtMVCView *const src_view = &src_mvc->view[i];
-
-    dst_view->view_id = src_view->view_id;
-
-    dst_view->num_anchor_refs_l0 = src_view->num_anchor_refs_l1;
-    for (j = 0; j < dst_view->num_anchor_refs_l0; j++)
-      dst_view->anchor_ref_l0[j] = src_view->anchor_ref_l0[j];
-
-    dst_view->num_anchor_refs_l1 = src_view->num_anchor_refs_l1;
-    for (j = 0; j < dst_view->num_anchor_refs_l1; j++)
-      dst_view->anchor_ref_l1[j] = src_view->anchor_ref_l1[j];
-
-    dst_view->num_non_anchor_refs_l0 = src_view->num_non_anchor_refs_l1;
-    for (j = 0; j < dst_view->num_non_anchor_refs_l0; j++)
-      dst_view->non_anchor_ref_l0[j] = src_view->non_anchor_ref_l0[j];
-
-    dst_view->num_non_anchor_refs_l1 = src_view->num_non_anchor_refs_l1;
-    for (j = 0; j < dst_view->num_non_anchor_refs_l1; j++)
-      dst_view->non_anchor_ref_l1[j] = src_view->non_anchor_ref_l1[j];
-  }
-
-  dst_mvc->num_level_values_signalled_minus1 =
-      src_mvc->num_level_values_signalled_minus1;
-  dst_mvc->level_value = (H264SPSExtMVCLevelValue *) malloc (sizeof (H264SPSExtMVCLevelValue) *
-      (dst_mvc->num_level_values_signalled_minus1 + 1));
-  if (!dst_mvc->level_value)
-    return FALSE;
-
-  for (i = 0; i <= dst_mvc->num_level_values_signalled_minus1; i++) {
-    H264SPSExtMVCLevelValue *const dst_value = &dst_mvc->level_value[i];
-    const H264SPSExtMVCLevelValue *const src_value =
-        &src_mvc->level_value[i];
-
-    dst_value->level_idc = src_value->level_idc;
-
-    dst_value->num_applicable_ops_minus1 = src_value->num_applicable_ops_minus1;
-    dst_value->applicable_op = (H264SPSExtMVCLevelValueOp*) malloc (sizeof (H264SPSExtMVCLevelValueOp) *
-        (dst_value->num_applicable_ops_minus1 + 1));
-    if (!dst_value->applicable_op)
-      return FALSE;
-
-    for (j = 0; j <= dst_value->num_applicable_ops_minus1; j++) {
-      H264SPSExtMVCLevelValueOp *const dst_op = &dst_value->applicable_op[j];
-      const H264SPSExtMVCLevelValueOp *const src_op =
-          &src_value->applicable_op[j];
-
-      dst_op->temporal_id = src_op->temporal_id;
-      dst_op->num_target_views_minus1 = src_op->num_target_views_minus1;
-      dst_op->target_view_id = (uint16_t*) malloc (sizeof (uint16_t) *
-          (dst_op->num_target_views_minus1 + 1));
-
-      if (!dst_op->target_view_id)
-        return FALSE;
-
-      for (k = 0; k <= dst_op->num_target_views_minus1; k++)
-        dst_op->target_view_id[k] = src_op->target_view_id[k];
-      dst_op->num_views_minus1 = src_op->num_views_minus1;
-    }
-  }
-  return TRUE;
-}
-
-/**
- * h264_sps_copy:
- * @dst_sps: The destination #H264SPS to copy into
- * @src_sps: The source #H264SPS to copy from
- *
- * Copies @src_sps into @dst_sps.
- *
- * Returns: %TRUE if everything went fine, %FALSE otherwise
- */
-BOOL
-h264_sps_copy (H264SPS * dst_sps, const H264SPS * src_sps)
-{
-  if (!dst_sps || !src_sps)
-     return FALSE;
-
-  h264_sps_free_1 (dst_sps);
-
-  *dst_sps = *src_sps;
-
-  if (dst_sps->extension_type == H264_NAL_EXTENSION_MVC) {
-    if (!h264_sps_mvc_copy (dst_sps, src_sps))
-      return FALSE;
-  }
-
-  return TRUE;
-}
-
 /* Free MVC-specific data from subset SPS header */
 static void
-h264_sps_mvc_free_1 (H264SPS * sps)
+h264_sps_mvc_clear (H264SPS * sps)
 {
   H264SPSExtMVC *const mvc = &sps->extension.mvc;
   uint32_t i, j;
 
-  assert (sps->extension_type == H264_NAL_EXTENSION_MVC);
+  g_assert (sps->extension_type == H264_NAL_EXTENSION_MVC);
 
-  free (mvc->view);
+  g_free (mvc->view);
   mvc->view = NULL;
 
   for (i = 0; i <= mvc->num_level_values_signalled_minus1; i++) {
     H264SPSExtMVCLevelValue *const level_value = &mvc->level_value[i];
 
     for (j = 0; j <= level_value->num_applicable_ops_minus1; j++) {
-      free (level_value->applicable_op[j].target_view_id);
+      g_free (level_value->applicable_op[j].target_view_id);
       level_value->applicable_op[j].target_view_id = NULL;
     }
-    free (level_value->applicable_op);
+    g_free (level_value->applicable_op);
     level_value->applicable_op = NULL;
   }
-  free (mvc->level_value);
+  g_free (mvc->level_value);
   mvc->level_value = NULL;
 
   /* All meaningful MVC info are now gone, just pretend to be a
@@ -2217,17 +2306,232 @@ h264_sps_mvc_free_1 (H264SPS * sps)
 }
 
 /**
- * h264_sps_free_1:
+ * h264_sps_clear:
  * @sps: The #H264SPS to free
  *
- * Frees @sps fields.
+ * Clears all @sps internal resources.
+ *
+ * Since: 1.6
  */
 void
-h264_sps_free_1 (H264SPS * sps)
+h264_sps_clear (H264SPS * sps)
 {
-  if (!sps)
-    return;
+  g_return_if_fail (sps != NULL);
 
-  if (sps->extension_type == H264_NAL_EXTENSION_MVC)
-    h264_sps_mvc_free_1 (sps);
+  switch (sps->extension_type) {
+    case H264_NAL_EXTENSION_MVC:
+      h264_sps_mvc_clear (sps);
+      break;
+  }
+}
+
+#if 0
+/**
+ * h264_parser_parse_sei:
+ * @nalparser: a #H264NalParser
+ * @nalu: The #H264_NAL_SEI #H264NalUnit to parse
+ * @messages: The GArray of #H264SEIMessage to fill. The caller must free it when done.
+ *
+ * Parses @data, create and fills the @messages array.
+ *
+ * Returns: a #H264ParserResult
+ */
+H264ParserResult
+h264_parser_parse_sei (H264NalParser * nalparser, H264NalUnit * nalu,
+    GArray ** messages)
+{
+  NalReader nr;
+  H264SEIMessage sei;
+  H264ParserResult res;
+
+  DEBUG ("parsing SEI nal");
+  nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
+      nalu->size - nalu->header_bytes);
+  *messages = g_array_new (FALSE, FALSE, sizeof (H264SEIMessage));
+
+  do {
+    res = h264_parser_parse_sei_message (nalparser, &nr, &sei);
+    if (res == H264_PARSER_OK)
+      g_array_append_val (*messages, sei);
+    else
+      break;
+  } while (nal_reader_has_more_data (&nr));
+
+  return res;
+}
+#endif
+
+/**
+ * h264_quant_matrix_8x8_get_zigzag_from_raster:
+ * @out_quant: (out): The resulting quantization matrix
+ * @quant: The source quantization matrix
+ *
+ * Converts quantization matrix @quant from raster scan order to
+ * zigzag scan order and store the resulting factors into @out_quant.
+ *
+ * Note: it is an error to pass the same table in both @quant and
+ * @out_quant arguments.
+ *
+ * Since: 1.4
+ */
+void
+h264_quant_matrix_8x8_get_zigzag_from_raster (uint8_t out_quant[64],
+    const uint8_t quant[64])
+{
+  uint32_t i;
+
+  g_return_if_fail (out_quant != quant);
+
+  for (i = 0; i < 64; i++)
+    out_quant[i] = quant[zigzag_8x8[i]];
+}
+
+/**
+ * h264_quant_matrix_8x8_get_raster_from_zigzag:
+ * @out_quant: (out): The resulting quantization matrix
+ * @quant: The source quantization matrix
+ *
+ * Converts quantization matrix @quant from zigzag scan order to
+ * raster scan order and store the resulting factors into @out_quant.
+ *
+ * Note: it is an error to pass the same table in both @quant and
+ * @out_quant arguments.
+ *
+ * Since: 1.4
+ */
+void
+h264_quant_matrix_8x8_get_raster_from_zigzag (uint8_t out_quant[64],
+    const uint8_t quant[64])
+{
+  uint32_t i;
+
+  g_return_if_fail (out_quant != quant);
+
+  for (i = 0; i < 64; i++)
+    out_quant[zigzag_8x8[i]] = quant[i];
+}
+
+/**
+ * h264_quant_matrix_4x4_get_zigzag_from_raster:
+ * @out_quant: (out): The resulting quantization matrix
+ * @quant: The source quantization matrix
+ *
+ * Converts quantization matrix @quant from raster scan order to
+ * zigzag scan order and store the resulting factors into @out_quant.
+ *
+ * Note: it is an error to pass the same table in both @quant and
+ * @out_quant arguments.
+ *
+ * Since: 1.4
+ */
+void
+h264_quant_matrix_4x4_get_zigzag_from_raster (uint8_t out_quant[16],
+    const uint8_t quant[16])
+{
+  uint32_t i;
+
+  g_return_if_fail (out_quant != quant);
+
+  for (i = 0; i < 16; i++)
+    out_quant[i] = quant[zigzag_4x4[i]];
+}
+
+/**
+ * h264_quant_matrix_4x4_get_raster_from_zigzag:
+ * @out_quant: (out): The resulting quantization matrix
+ * @quant: The source quantization matrix
+ *
+ * Converts quantization matrix @quant from zigzag scan order to
+ * raster scan order and store the resulting factors into @out_quant.
+ *
+ * Note: it is an error to pass the same table in both @quant and
+ * @out_quant arguments.
+ *
+ * Since: 1.4
+ */
+void
+h264_quant_matrix_4x4_get_raster_from_zigzag (uint8_t out_quant[16],
+    const uint8_t quant[16])
+{
+  uint32_t i;
+
+  g_return_if_fail (out_quant != quant);
+
+  for (i = 0; i < 16; i++)
+    out_quant[zigzag_4x4[i]] = quant[i];
+}
+
+/**
+ * h264_video_calculate_framerate:
+ * @sps: Current Sequence Parameter Set
+ * @field_pic_flag: Current @field_pic_flag, obtained from latest slice header
+ * @pic_struct: @pic_struct value if available, 0 otherwise
+ * @fps_num: (out): The resulting fps numerator
+ * @fps_den: (out): The resulting fps denominator
+ *
+ * Calculate framerate of a video sequence using @sps VUI information,
+ * @field_pic_flag from a slice header and @pic_struct from #H264PicTiming SEI
+ * message.
+ *
+ * If framerate is variable or can't be determined, @fps_num will be set to 0
+ * and @fps_den to 1.
+ */
+void
+h264_video_calculate_framerate (const H264SPS * sps,
+    uint32_t field_pic_flag, uint32_t pic_struct, int32_t * fps_num, int32_t * fps_den)
+{
+  int32_t num = 0;
+  int32_t den = 1;
+
+  /* To calculate framerate, we use this formula:
+   *          time_scale                1                         1
+   * fps = -----------------  x  ---------------  x  ------------------------
+   *       num_units_in_tick     DeltaTfiDivisor     (field_pic_flag ? 2 : 1)
+   *
+   * See H264 specification E2.1 for more details.
+   */
+
+  if (sps) {
+    if (sps->vui_parameters_present_flag) {
+      const H264VUIParams *vui = &sps->vui_parameters;
+      if (vui->timing_info_present_flag && vui->fixed_frame_rate_flag) {
+        int delta_tfi_divisor = 1;
+        num = vui->time_scale;
+        den = vui->num_units_in_tick;
+
+        if (vui->pic_struct_present_flag) {
+          switch (pic_struct) {
+            case 1:
+            case 2:
+              delta_tfi_divisor = 1;
+              break;
+            case 0:
+            case 3:
+            case 4:
+              delta_tfi_divisor = 2;
+              break;
+            case 5:
+            case 6:
+              delta_tfi_divisor = 3;
+              break;
+            case 7:
+              delta_tfi_divisor = 4;
+              break;
+            case 8:
+              delta_tfi_divisor = 6;
+              break;
+          }
+        } else {
+          delta_tfi_divisor = field_pic_flag ? 1 : 2;
+        }
+        den *= delta_tfi_divisor;
+
+        /* Picture is two fields ? */
+        den *= (field_pic_flag ? 2 : 1);
+      }
+    }
+  }
+
+  *fps_num = num;
+  *fps_den = den;
 }
