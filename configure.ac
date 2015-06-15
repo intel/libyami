@@ -38,15 +38,10 @@ AC_SUBST(LIBYAMI_LT_VERSION)
 AC_SUBST(LIBYAMI_LT_LDFLAGS)
 
 AC_ARG_ENABLE(debug,
-    [AC_HELP_STRING([--enable-debug],[build with extra debug])],
-    [case "${enableval}" in
-     yes) debug="yes" ;;
-     no)  debug="no";;
-     *)   AC_MSG_ERROR(bad value for --enable-debug);;
-     esac ],
-    [debug="no"])
+    [AC_HELP_STRING([--enable-debug],[build with extra debug @<:@default=no@:>@])],
+    [], [enable_debug="no"])
 
-if test "$debug" = "yes"; then
+if test "$enable_debug" = "yes"; then
 AC_DEFINE([__ENABLE_DEBUG__], [1], [Defined to 1 if --enable-debug="yes" ])
 fi
 
