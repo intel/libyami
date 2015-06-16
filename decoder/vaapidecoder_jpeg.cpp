@@ -509,7 +509,7 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
             break;
         }
     }
-  end:
+
     return status;
 }
 
