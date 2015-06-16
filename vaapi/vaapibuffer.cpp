@@ -85,7 +85,6 @@ BufObjectPtr VaapiBufObject::create(const ContextPtr& context,
                                     uint32_t size,
                                     const void *data, void **mapped_data)
 {
-    VAStatus status;
     BufObjectPtr buf;
 
     if (size == 0) {

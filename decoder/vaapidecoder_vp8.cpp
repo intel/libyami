@@ -193,7 +193,7 @@ bool VaapiDecoderVP8::fillSliceParam(VASliceParameterBufferVP8* sliceParam)
 
 bool VaapiDecoderVP8::fillPictureParam(const PicturePtr&  picture)
 {
-    int32_t i, n;
+    int32_t i;
     VAPictureParameterBufferVP8 *picParam = NULL;
 
     if (!picture->editPicture(picParam))
@@ -378,7 +378,6 @@ bool VaapiDecoderVP8::ensureQuantMatrix(const PicturePtr&  pic)
 bool VaapiDecoderVP8::ensureProbabilityTable(const PicturePtr&  pic)
 {
     VAProbabilityDataBufferVP8 *probTable = NULL;
-    int32_t i;
 
     // XXX, create/render VAProbabilityDataBufferVP8 in base class
     if (!pic->editProbTable(probTable))
@@ -520,8 +519,6 @@ Decode_Status VaapiDecoderVP8::decodePicture()
 
 VaapiDecoderVP8::VaapiDecoderVP8()
 {
-    int32_t i;
-
     m_frameWidth = 0;
     m_frameHeight = 0;
     m_buffer = 0;
@@ -546,7 +543,6 @@ Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
 {
     DEBUG("VP8: start() buffer size: %d x %d", buffer->width,
           buffer->height);
-    Decode_Status status;
 
     if ((buffer->flag & HAS_SURFACE_NUMBER)
         && (buffer->flag & HAS_VA_PROFILE)) {
@@ -581,7 +577,6 @@ Decode_Status VaapiDecoderVP8::reset(VideoConfigBuffer * buffer)
 
 void VaapiDecoderVP8::stop(void)
 {
-    int i;
     DEBUG("VP8: stop()");
     flush();
     VaapiDecoderBase::stop();
@@ -603,7 +598,6 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
 {
     Decode_Status status;
     Vp8ParseResult result;
-    bool isEOS = false;
 
     m_currentPTS = buffer->timeStamp;
 

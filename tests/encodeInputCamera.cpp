@@ -162,7 +162,6 @@ bool EncodeInputCamera::startCapture(void)
 {
     unsigned int i;
     enum v4l2_buf_type type;
-    int err;
 
     INFO();
     switch (m_dataMode) {
@@ -215,8 +214,6 @@ int32_t EncodeInputCamera::dequeFrame(void)
 {
     struct v4l2_buffer buf;
     int ret = 0;
-    unsigned int i;
-    int retry = 8;
 
     INFO();
     memset(&buf, 0, sizeof(buf));
@@ -305,9 +302,10 @@ bool EncodeInputCamera::getOneFrameInput(VideoFrameRawData &inputBuffer)
 
     memset(&inputBuffer, 0, sizeof(inputBuffer));
     bool ret = fillFrameRawData(&inputBuffer, m_fourcc, m_width, m_height, m_frameBuffers[frameIndex]);
-    inputBuffer.internalID = frameIndex;
+    if(ret)
+        inputBuffer.internalID = frameIndex;
 
-    return true;
+    return ret;
 }
 
 bool EncodeInputCamera::recycleOneFrameInput(VideoFrameRawData &inputBuffer)

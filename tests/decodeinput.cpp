@@ -312,7 +312,6 @@ int32_t DecodeInputRaw::scanForStartCode(const uint8_t * data,
 
 bool DecodeInputRaw::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 {
-    bool gotOneNalu= false;
     int32_t offset = -1;
 
     if(m_parseToEOS)
