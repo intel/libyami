@@ -353,3 +353,25 @@ AC_OUTPUT([
          pkgconfig/libyami_vpp.pc
 ])
 
+# Print a configuration summary
+DECODERS=""
+AS_IF([test x$enable_h264dec = xyes], [DECODERS="$DECODERS h264"])
+AS_IF([test x$enable_jpegdec = xyes], [DECODERS="$DECODERS jpeg"])
+AS_IF([test x$enable_vp8dec = xyes], [DECODERS="$DECODERS vp8"])
+AS_IF([test x$enable_vp9dec = xyes], [DECODERS="$DECODERS vp9"])
+AS_IF([test x$enable_fakedec = xyes], [DECODERS="$DECODERS fake"])
+
+ENCODERS=""
+AS_IF([test x$enable_h264enc = xyes], [ENCODERS="$ENCODERS h264"])
+AS_IF([test x$enable_jpegenc = xyes], [ENCODERS="$ENCODERS jpeg"])
+AS_IF([test x$enable_vp8enc = xyes], [ENCODERS="$ENCODERS vp8"])
+
+AC_MSG_RESULT([
+    libyami - libyami_version
+
+    Build decoders ................... :$DECODERS
+    Build encoders ....................:$ENCODERS
+    Build documentation .............. : $enable_docs
+    Enable debug ......................: $enable_debug
+    Installation prefix .............. : $prefix
+])
