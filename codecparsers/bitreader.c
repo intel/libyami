@@ -1,4 +1,4 @@
-/* GStreamer
+/* reamer
  *
  * Copyright (C) 2008 Sebastian Dröge <sebastian.droege@collabora.co.uk>.
  *
@@ -14,15 +14,18 @@
  *
  * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
- * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- * Boston, MA 02111-1307, USA.
+ * Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
+ * Boston, MA 02110-1301, USA.
  */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
 #define BIT_READER_DISABLE_INLINES
 #include "bitreader.h"
 
 #include <string.h>
-#include <stdlib.h>
 
 /**
  * SECTION:bitreader
@@ -35,7 +38,8 @@
 
 /**
  * bit_reader_new:
- * @data: Data from which the #BitReader should read
+ * @data: (array length=size): Data from which the #BitReader
+ *   should read
  * @size: Size of @data in bytes
  *
  * Create a new #BitReader instance, which will read from @data.
@@ -43,15 +47,11 @@
  * Free-function: bit_reader_free
  *
  * Returns: (transfer full): a new #BitReader instance
- *
- * Since: 0.10.22
  */
 BitReader *
 bit_reader_new (const uint8_t * data, uint32_t size)
 {
-  BitReader *ret = (BitReader*) malloc (sizeof(BitReader));
-  if (!ret)
-    return NULL;
+  BitReader *ret = g_slice_new0 (BitReader);
 
   ret->data = data;
   ret->size = size;
@@ -64,16 +64,14 @@ bit_reader_new (const uint8_t * data, uint32_t size)
  * @reader: (in) (transfer full): a #BitReader instance
  *
  * Frees a #BitReader instance, which was previously allocated by
- * bit_reader_new() 
- * 
- * Since: 0.10.22
+ * bit_reader_new().
  */
 void
 bit_reader_free (BitReader * reader)
 {
-  RETURN_IF_FAIL (reader != NULL);
+  g_return_if_fail (reader != NULL);
 
-  free (reader);
+  g_slice_free (BitReader, reader);
 }
 
 /**
@@ -84,12 +82,12 @@ bit_reader_free (BitReader * reader)
  *
  * Initializes a #BitReader instance to read from @data. This function
  * can be called on already initialized instances.
- * 
- * Since: 0.10.22
  */
 void
 bit_reader_init (BitReader * reader, const uint8_t * data, uint32_t size)
 {
+  g_return_if_fail (reader != NULL);
+
   reader->data = data;
   reader->size = size;
   reader->byte = reader->bit = 0;
@@ -104,13 +102,11 @@ bit_reader_init (BitReader * reader, const uint8_t * data, uint32_t size)
  *
  * Returns: %TRUE if the position could be set successfully, %FALSE
  * otherwise.
- * 
- * Since: 0.10.22
  */
-BOOL
+bool
 bit_reader_set_pos (BitReader * reader, uint32_t pos)
 {
-  RETURN_VAL_IF_FAIL (reader != NULL, FALSE);
+  g_return_val_if_fail (reader != NULL, FALSE);
 
   if (pos > reader->size * 8)
     return FALSE;
@@ -128,13 +124,11 @@ bit_reader_set_pos (BitReader * reader, uint32_t pos)
  * Returns the current position of a #BitReader instance in bits.
  *
  * Returns: The current position of @reader in bits.
- * 
- * Since: 0.10.22
  */
 uint32_t
 bit_reader_get_pos (const BitReader * reader)
 {
-  return bit_reader_get_pos_inline (reader);
+  return _bit_reader_get_pos_inline (reader);
 }
 
 /**
@@ -144,13 +138,11 @@ bit_reader_get_pos (const BitReader * reader)
  * Returns the remaining number of bits of a #BitReader instance.
  *
  * Returns: The remaining number of bits of @reader instance.
- * 
- * Since: 0.10.22
  */
 uint32_t
 bit_reader_get_remaining (const BitReader * reader)
 {
-  return bit_reader_get_remaining_inline (reader);
+  return _bit_reader_get_remaining_inline (reader);
 }
 
 /**
@@ -160,13 +152,11 @@ bit_reader_get_remaining (const BitReader * reader)
  * Returns the total number of bits of a #BitReader instance.
  *
  * Returns: The total number of bits of @reader instance.
- * 
- * Since: 0.10.26
  */
 uint32_t
 bit_reader_get_size (const BitReader * reader)
 {
-  return bit_reader_get_size_inline (reader);
+  return _bit_reader_get_size_inline (reader);
 }
 
 /**
@@ -177,13 +167,11 @@ bit_reader_get_size (const BitReader * reader)
  * Skips @nbits bits of the #BitReader instance.
  *
  * Returns: %TRUE if @nbits bits could be skipped, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
-BOOL
+bool
 bit_reader_skip (BitReader * reader, uint32_t nbits)
 {
-  return bit_reader_skip_inline (reader, nbits);
+  return _bit_reader_skip_inline (reader, nbits);
 }
 
 /**
@@ -193,26 +181,22 @@ bit_reader_skip (BitReader * reader, uint32_t nbits)
  * Skips until the next byte.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
-BOOL
+bool
 bit_reader_skip_to_byte (BitReader * reader)
 {
-  return bit_reader_skip_to_byte_inline (reader);
+  return _bit_reader_skip_to_byte_inline (reader);
 }
 
 /**
  * bit_reader_get_bits_uint8:
  * @reader: a #BitReader instance
- * @val: (out): Pointer to a #uint8 to store the result
+ * @val: (out): Pointer to a #uint8_t to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val and update the current position.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
 
 /**
@@ -224,8 +208,6 @@ bit_reader_skip_to_byte (BitReader * reader)
  * Read @nbits bits into @val and update the current position.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
 
 /**
@@ -237,8 +219,6 @@ bit_reader_skip_to_byte (BitReader * reader)
  * Read @nbits bits into @val and update the current position.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
 
 /**
@@ -250,21 +230,17 @@ bit_reader_skip_to_byte (BitReader * reader)
  * Read @nbits bits into @val and update the current position.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
 
 /**
  * bit_reader_peek_bits_uint8:
  * @reader: a #BitReader instance
- * @val: (out): Pointer to a #uint8 to store the result
+ * @val: (out): Pointer to a #uint8_t to store the result
  * @nbits: number of bits to read
  *
  * Read @nbits bits into @val but keep the current position.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
 
 /**
@@ -276,8 +252,6 @@ bit_reader_skip_to_byte (BitReader * reader)
  * Read @nbits bits into @val but keep the current position.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
 
 /**
@@ -289,8 +263,6 @@ bit_reader_skip_to_byte (BitReader * reader)
  * Read @nbits bits into @val but keep the current position.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
 
 /**
@@ -302,21 +274,19 @@ bit_reader_skip_to_byte (BitReader * reader)
  * Read @nbits bits into @val but keep the current position.
  *
  * Returns: %TRUE if successful, %FALSE otherwise.
- * 
- * Since: 0.10.22
  */
 
 #define BIT_READER_READ_BITS(bits) \
-BOOL \
+bool \
 bit_reader_peek_bits_uint##bits (const BitReader *reader, uint##bits##_t *val, uint32_t nbits) \
 { \
-  return bit_reader_peek_bits_uint##bits##_inline (reader, val, nbits); \
+  return _bit_reader_peek_bits_uint##bits##_inline (reader, val, nbits); \
 } \
 \
-BOOL \
+bool \
 bit_reader_get_bits_uint##bits (BitReader *reader, uint##bits##_t *val, uint32_t nbits) \
 { \
-  return bit_reader_get_bits_uint##bits##_inline (reader, val, nbits); \
+  return _bit_reader_get_bits_uint##bits##_inline (reader, val, nbits); \
 }
 
 BIT_READER_READ_BITS (8);
