@@ -1,4 +1,4 @@
-/* reamer
+/* Gstreamer
  * Copyright (C) <2011> Intel
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -22,87 +22,87 @@
 #ifndef __PARSER_UTILS__
 #define __PARSER_UTILS__
 
-#include "gst/gst.h"
 #include "bitreader.h"
+#include "common/log.h"
 
-/* Parsing utils */
-#define GET_BITS(b, num, bits) G_STMT_START {        \
+#define GET_BITS(b, num, bits) {        \
   if (!bit_reader_get_bits_uint32(b, bits, num)) \
-    goto failed;                                     \
-  TRACE ("parsed %d bits: %d", num, *(bits));    \
-} G_STMT_END
+    ERROR ("parsed %d bits: %d", num, *(bits));\
+    goto failed;                                  \
+}
 
-#define CHECK_ALLOWED(val, min, max) G_STMT_START { \
+#define CHECK_ALLOWED(val, min, max) { \
   if (val < min || val > max) { \
     WARNING ("value not in allowed range. value: %d, range %d-%d", \
                      val, min, max); \
     goto failed; \
   } \
-} G_STMT_END
+}
 
-#define READ_UINT8(reader, val, nbits) G_STMT_START { \
+#define READ_UINT8(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint8 (reader, &val, nbits)) { \
-    WARNING ("failed to read uint8, nbits: %d", nbits); \
+    WARNING ("failed to read uint8_t, nbits: %d \n", nbits); \
     goto failed; \
   } \
-} G_STMT_END
+}
 
-#define READ_UINT16(reader, val, nbits) G_STMT_START { \
+#define READ_UINT16(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint16 (reader, &val, nbits)) { \
-    WARNING ("failed to read uint16, nbits: %d", nbits); \
+    WARNING ("failed to read uint16_t, nbits: %d \n", nbits); \
     goto failed; \
   } \
-} G_STMT_END
+}
 
-#define READ_UINT32(reader, val, nbits) G_STMT_START { \
+#define READ_UINT32(reader, val, nbits) { \
   if (!bit_reader_get_bits_uint32 (reader, &val, nbits)) { \
-    WARNING ("failed to read uint32, nbits: %d", nbits); \
+    WARNING ("failed to read uint32_t, nbits: %d", nbits); \
     goto failed; \
   } \
-} G_STMT_END
+}
 
 #define READ_UINT64(reader, val, nbits) G_STMT_START { \
   if (!bit_reader_get_bits_uint64 (reader, &val, nbits)) { \
-    WARNING ("failed to read uint64, nbits: %d", nbits); \
+    WARNING ("failed to read uint64_t, nbits: %d", nbits); \
     goto failed; \
   } \
-} G_STMT_END
+} 
 
-
-#define U_READ_UINT8(reader, val, nbits) G_STMT_START { \
+#define U_READ_UINT8(reader, val, nbits) { \
   val = bit_reader_get_bits_uint8_unchecked (reader, nbits); \
-} G_STMT_END
+} 
 
-#define U_READ_UINT16(reader, val, nbits) G_STMT_START { \
+#define U_READ_UINT16(reader, val, nbits) { \
   val = bit_reader_get_bits_uint16_unchecked (reader, nbits); \
-} G_STMT_END
+}
 
-#define U_READ_UINT32(reader, val, nbits) G_STMT_START { \
+#define U_READ_UINT32(reader, val, nbits) { \
   val = bit_reader_get_bits_uint32_unchecked (reader, nbits); \
-} G_STMT_END
+}
 
-#define U_READ_UINT64(reader, val, nbits) G_STMT_START { \
+#define U_READ_UINT64(reader, val, nbits) { \
   val = bit_reader_get_bits_uint64_unchecked (reader, nbits); \
-} G_STMT_END
+}
 
-#define SKIP(reader, nbits) G_STMT_START { \
+#define SKIP(reader, nbits) { \
   if (!bit_reader_skip (reader, nbits)) { \
     WARNING ("failed to skip nbits: %d", nbits); \
     goto failed; \
   } \
-} G_STMT_END
+}
 
-typedef struct _VLCTable VLCTable;
+#define ARRAY_N_ELEMENT(array) (sizeof(array)/sizeof(array[0]))
 
-struct _VLCTable
+uint32_t bit_storage_calcuate(uint32_t value);
+#define BIT_STORAGE_CALCULATE(value) bit_storage_calculate(value)
+
+typedef struct _VLCTable
 {
   uint32_t value;
   uint32_t cword;
   uint32_t cbits;
-};
+} VLCTable;
 
-bool
-decode_vlc (BitReader * br, uint32_t * res, const VLCTable * table,
-    uint32_t length);
+BOOL decode_vlc (BitReader * br, uint32_t * res, 
+   const VLCTable * table, uint32_t length);
 
 #endif /* __PARSER_UTILS__ */

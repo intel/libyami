@@ -1,4 +1,4 @@
-/* reamer
+/* Gstreamer
  * Copyright (C) <2011> Intel Corporation
  * Copyright (C) <2011> Collabora Ltd.
  * Copyright (C) <2011> Thibault Saunier <thibault.saunier@collabora.com>
@@ -20,8 +20,9 @@
  */
 
 #include "parserutils.h"
+#include "common/log.h"
 
-bool
+BOOL
 decode_vlc (BitReader * br, uint32_t * res, const VLCTable * table,
     uint32_t length)
 {
@@ -38,7 +39,7 @@ decode_vlc (BitReader * br, uint32_t * res, const VLCTable * table,
     }
 
     if (value == table[i].cword) {
-      SKIP (br, cbits);
+      bit_reader_skip (br, cbits);
       if (res)
         *res = table[i].value;
 
@@ -55,3 +56,15 @@ failed:
     return FALSE;
   }
 }
+
+inline uint32_t 
+bit_storage_calculate(uint32_t value)
+{
+  uint32_t bits = 0;
+  while (value >> bits)
+     bits ++;
+  
+  return bits;
+}
+
+

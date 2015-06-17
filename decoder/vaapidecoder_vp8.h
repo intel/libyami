@@ -79,7 +79,8 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     const uint8_t *m_buffer;
     uint32_t m_frameSize;
     Vp8FrameHdr m_frameHdr;
-    Vp8Parser m_parser;
+    Vp8MultiFrameData m_lastFrameContext;
+    Vp8MultiFrameData m_currFrameContext;
     uint8_t m_yModeProbs[4];
     uint8_t m_uvModeProbs[3];
     uint32_t m_sizeChanged:1;

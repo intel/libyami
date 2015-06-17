@@ -417,7 +417,7 @@ int32_t   jpeg_scan_for_marker_code   (const uint8_t * data,
  * @offset: The offset from which to start parsing
  *
  * Parses the JPEG bitstream contained in @data, and returns the
- * detected segment as a #JpegMarkerSegment.
+ * detected segment as a #GstJpegMarkerSegment.
  *
  * Returns: TRUE if a packet start code was found.
  */
@@ -428,7 +428,7 @@ BOOL    jpeg_parse (JpegMarkerSegment * seg,
 
 /**
  * jpeg_parse_frame_hdr:
- * @hdr: (out): The #JpegFrameHdr structure to fill in
+ * @hdr: (out): The #GstJpegFrameHdr structure to fill in
  * @data: The data from which to parse the frame header
  * @size: The size of @data
  * @offset: The offset in bytes from which to start parsing @data
@@ -444,7 +444,7 @@ BOOL    jpeg_parse_frame_hdr  (JpegFrameHdr * hdr,
 
 /**
  * jpeg_parse_scan_hdr:
- * @hdr: (out): The #JpegScanHdr structure to fill in
+ * @hdr: (out): The #GstJpegScanHdr structure to fill in
  * @data: The data from which to parse the scan header
  * @size: The size of @data
  * @offset: The offset in bytes from which to start parsing @data
@@ -460,7 +460,7 @@ BOOL   jpeg_parse_scan_hdr  (JpegScanHdr * hdr,
 
 /**
  * jpeg_parse_quantization_table:
- * @quant_tables: (out): The #JpegQuantizationTable structure to fill in
+ * @quant_tables: (out): The #GstJpegQuantizationTable structure to fill in
  * @num_quant_tables: The number of allocated quantization tables in @quant_tables
  * @data: The data from which to parse the quantization table
  * @size: The size of @data
@@ -483,7 +483,7 @@ BOOL  jpeg_parse_quant_table   (JpegQuantTables *quant_tables,
 
 /**
  * jpeg_parse_huffman_table:
- * @huf_tables: (out): The #JpegHuffmanTable structure to fill in
+ * @huf_tables: (out): The #GstJpegHuffmanTable structure to fill in
  * @data: The data from which to parse the Huffman table
  * @size: The size of @data
  * @offset: The offset in bytes from which to start parsing @data
