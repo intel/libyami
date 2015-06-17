@@ -198,7 +198,7 @@ DecodeOutputRaw::~DecodeOutputRaw()
 bool DecodeOutputFileDump::config(const char* source, const char* dest, uint32_t fourcc)
 {
     if (!fourcc && dest)
-        fourcc == guessFourcc(dest);
+        fourcc = guessFourcc(dest);
     setFourcc(fourcc);
     const char* baseFileName = source;
     const char* s = strrchr(source, '/');
