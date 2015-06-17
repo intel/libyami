@@ -37,18 +37,7 @@ YamiMediaCodec::IVideoPostProcess *createVideoPostProcess(const char *mimeType);
 */
 void releaseVideoPostProcess(YamiMediaCodec::IVideoPostProcess * p);
 
-/** \fn void preSandboxInitPostProcess()
- * \brief when yami runs inside sandbox, some necessary work goes here before enter sanbox
- * usually, nothing special is required  except when yami dlopen thirty party libraries.
- * the shared libraries linked by yami will be loaded automatically.
- * vaGetDisplay/vaInitialize should NOT run in this function. since:
- * 1)  it is ok to call vaGetDisplay()/vaInitialize() inside sandbox.
- * 2) Native display (X11 display) isn't available at this point
- */
-bool preSandboxInitPostProcess();
-
 typedef YamiMediaCodec::IVideoPostProcess *(*YamiCreateVideoPostProcessFuncPtr) (const char *mimeType);
 typedef void (*YamiReleaseVideoPostProcessFuncPtr)(YamiMediaCodec::IVideoPostProcess * p);
-typedef bool (*YamiPreSandboxInitPostProcess)();
 }
 #endif                          /* VIDEO_POST_PROCESS_HOST_H_ */

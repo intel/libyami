@@ -90,9 +90,4 @@ void releaseVideoDecoder(IVideoDecoder * p)
     delete p;
 }
 
-bool preSandboxInitDecoder()
-{
-    // TODO, for hybrid Decoder uses mediasdk, does the prework here
-    return true;
-}
 } // extern "C"
