@@ -54,6 +54,16 @@ using std::list;
 
 //helper function
 namespace YamiMediaCodec{
+static bool vaSelectDriver(VADisplay vaDisplay, const std::string& driverName)
+{
+    VAStatus vaStatus=VA_STATUS_SUCCESS;
+    if (!driverName.empty())
+    {
+        vaStatus = vaSetDriverName(vaDisplay, driverName.c_str());
+    }
+    return checkVaapiStatus(vaStatus, "vaSetDriverName");
+}
+
 static bool vaInit(VADisplay vaDisplay)
 {
    int majorVersion, minorVersion;
@@ -226,7 +236,7 @@ class DisplayCache
 {
 public:
     static SharedPtr<DisplayCache> getInstance();
-    DisplayPtr createDisplay(const NativeDisplay& nativeDisplay);
+    DisplayPtr createDisplay(const NativeDisplay& nativeDisplay, const std::string& driverName="");
 
     ~DisplayCache() {}
 private:
@@ -249,7 +259,7 @@ bool expired(const weak_ptr<VaapiDisplay>& weak)
     return !weak.lock();
 }
 
-DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
+DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay, const std::string& driverName)
 {
     NativeDisplayPtr nativeDisplayObj;
     VADisplay vaDisplay = NULL;
@@ -306,6 +316,9 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
         return vaapiDisplay;
     }
 
+    if (!driverName.empty())
+        vaSelectDriver(vaDisplay, driverName);
+
     if (nativeDisplay.type == NATIVE_DISPLAY_VA || vaInit(vaDisplay))
         vaapiDisplay.reset(new VaapiDisplay(nativeDisplayObj, vaDisplay));
 
@@ -320,4 +333,14 @@ DisplayPtr VaapiDisplay::create(const NativeDisplay& display)
 {
     return DisplayCache::getInstance()->createDisplay(display);
 }
+
+DisplayPtr VaapiDisplay::create(const NativeDisplay& display, VAProfile profile)
+{
+    SharedPtr<DisplayCache> cache = DisplayCache::getInstance();
+    const std::string name="hybrid";
+    if (profile == VAProfileVP9Profile0)
+        return cache->createDisplay(display, name);
+    else
+        return cache->createDisplay(display);
 }
+} //YamiMediaCodec
