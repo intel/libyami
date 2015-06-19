@@ -31,6 +31,7 @@
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
+#include "vaapiencoder_factory.h"
 #include <algorithm>
 #include <tr1/functional>
 namespace YamiMediaCodec{
@@ -41,7 +42,6 @@ typedef VaapiEncoderH264::StreamHeaderPtr StreamHeaderPtr;
 
 using std::list;
 using std::vector;
-
 
 /* Define the maximum IDR period */
 #define MAX_IDR_PERIOD 512
@@ -1393,4 +1393,9 @@ Encode_Status VaapiEncoderH264::encodePicture(const PicturePtr& picture)
 
     return ENCODE_SUCCESS;
 }
+
+const bool VaapiEncoderH264::s_registered =
+    VaapiEncoderFactory::register_<VaapiEncoderH264>(YAMI_MIME_AVC)
+    && VaapiEncoderFactory::register_<VaapiEncoderH264>(YAMI_MIME_H264);
+
 }

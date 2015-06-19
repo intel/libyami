@@ -138,36 +138,24 @@ dnl vp8 decoder
 AC_ARG_ENABLE(vp8dec,
     [AC_HELP_STRING([--enable-vp8dec], [build with vp8 decoder support @<:@default=yes@:>@])],
     [], [enable_vp8dec="yes"])
-if test "$enable_vp8dec" = "yes"; then
-AC_DEFINE([__BUILD_VP8_DECODER__], [1], [Defined to 1 if --enable-vp8dec="yes" ])
-fi
 AM_CONDITIONAL(BUILD_VP8_DECODER, test "x$enable_vp8dec" = "xyes")
 
 dnl vp9 decoder
 AC_ARG_ENABLE(vp9dec,
     [AC_HELP_STRING([--enable-vp9dec], [build with vp9 decoder support @<:@default=no@:>@])],
     [], [enable_vp9dec="no"])
-if test "$enable_vp9dec" = "yes"; then
-AC_DEFINE([__BUILD_VP9_DECODER__], [1], [Defined to 1 if --enable-vp9dec="yes" ])
-fi
 AM_CONDITIONAL(BUILD_VP9_DECODER, test "x$enable_vp9dec" = "xyes")
 
 dnl jpeg decoder
 AC_ARG_ENABLE(jpegdec,
     [AC_HELP_STRING([--enable-jpegdec], [build with jpeg decoder support @<:@default=yes@:>@])],
     [], [enable_jpegdec="yes"])
-if test "$enable_jpegdec" = "yes"; then
-AC_DEFINE([__BUILD_JPEG_DECODER__], [1], [Defined to 1 if --enable-jpegdec="yes" ])
-fi
 AM_CONDITIONAL(BUILD_JPEG_DECODER, test "x$enable_jpegdec" = "xyes")
 
 dnl h264 decoder
 AC_ARG_ENABLE(h264dec,
     [AC_HELP_STRING([--enable-h264dec], [build with h264 decoder support @<:@default=yes@:>@])],
     [], [enable_h264dec="yes"])
-if test "$enable_h264dec" = "yes"; then
-AC_DEFINE([__BUILD_H264_DECODER__], [1], [Defined to 1 if --enable-h264dec="yes" ])
-fi
 AM_CONDITIONAL(BUILD_H264_DECODER, test "x$enable_h264dec" = "xyes")
 
 dnl fake decoder
@@ -183,27 +171,18 @@ dnl h264 encoder
 AC_ARG_ENABLE(h264enc,
     [AC_HELP_STRING([--enable-h264enc], [build with h264 encoder support @<:@default=yes@:>@])],
     [], [enable_h264enc="yes"])
-if test "$enable_h264enc" = "yes"; then
-AC_DEFINE([__BUILD_H264_ENCODER__], [1], [Defined to 1 if --enable-h264enc="yes" ])
-fi
 AM_CONDITIONAL(BUILD_H264_ENCODER, test "x$enable_h264enc" = "xyes")
 
 dnl jpeg encoder
 AC_ARG_ENABLE(jpegenc,
     [AC_HELP_STRING([--enable-jpegenc], [build with jpeg encoder support @<:@default=no@:>@])],
     [], [enable_jpegenc="no"])
-if test "$enable_jpegenc" = "yes"; then
-AC_DEFINE([__BUILD_JPEG_ENCODER__], [1], [Defined to 1 if --enable-jpegenc="yes" ])
-fi
 AM_CONDITIONAL(BUILD_JPEG_ENCODER, test "x$enable_jpegenc" = "xyes")
 
 dnl vp8 encoder
 AC_ARG_ENABLE(vp8enc,
     [AC_HELP_STRING([--enable-vp8enc], [build with vp8 encoder support @<:@default=no@:>@])],
     [], [enable_vp8enc="no"])
-if test "$enable_vp8enc" = "yes"; then
-AC_DEFINE([__BUILD_VP8_ENCODER__], [1], [Defined to 1 if --enable-vp8enc="yes" ])
-fi
 AM_CONDITIONAL(BUILD_VP8_ENCODER, test "x$enable_vp8enc" = "xyes")
 
 dnl encoder getmv

@@ -19,55 +19,31 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
 
-#include <stdint.h>
-#include "common/common_def.h"
 #include "common/log.h"
 #include "interface/VideoEncoderHost.h"
-#if __BUILD_H264_ENCODER__
-#include "vaapiencoder_h264.h"
-#endif
-#if __BUILD_VP8_ENCODER__
-#include "vaapiencoder_vp8.h"
-#endif
-#if __BUILD_JPEG_ENCODER__
-#include "vaapiencoder_jpeg.h"
-#endif
-#include "vaapi/vaapi_host.h"
-#include <string.h>
+#include "vaapiencoder_factory.h"
 
 using namespace YamiMediaCodec;
-DEFINE_CLASS_FACTORY(Encoder)
-static const EncoderEntry g_encoderEntries[] = {
-#if __BUILD_H264_ENCODER__
-    DEFINE_ENCODER_ENTRY(YAMI_MIME_AVC, H264),
-    DEFINE_ENCODER_ENTRY(YAMI_MIME_H264, H264),
-#endif
-#if __BUILD_VP8_ENCODER__
-    DEFINE_ENCODER_ENTRY(YAMI_MIME_VP8, VP8),
-#endif
-#if __BUILD_JPEG_ENCODER__
-    DEFINE_ENCODER_ENTRY("image/jpeg", Jpeg)
-#endif
-};
+
 extern "C" {
+
 IVideoEncoder* createVideoEncoder(const char* mimeType) {
     yamiTraceInit();
+
     if (!mimeType) {
         ERROR("NULL mime type.");
         return NULL;
     }
-    INFO("mimeType: %s\n", mimeType);
-    for (int i = 0; i < N_ELEMENTS(g_encoderEntries); i++) {
-        const EncoderEntry *e = g_encoderEntries + i;
-        if (strcasecmp(e->mime, mimeType) == 0)
-            return e->create();
-    }
-    ERROR("Failed to create %s", mimeType);
-    return NULL;
+
+    VaapiEncoderFactory::Type enc = VaapiEncoderFactory::create(mimeType);
+
+    if (!enc)
+        ERROR("Failed to create encoder for mimeType: '%s'", mimeType);
+    else
+        INFO("Created encoder for mimeType: '%s'", mimeType);
+
+    return enc;
 }
 
 void releaseVideoEncoder(IVideoEncoder* p) {

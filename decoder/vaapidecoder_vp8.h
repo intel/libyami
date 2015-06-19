@@ -88,6 +88,8 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
 #if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
     bool m_isFirstFrame;
 #endif
+
+    static const bool s_registered; // VaapiDecoderFactory registration result
 };
 }
 
