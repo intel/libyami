@@ -138,7 +138,7 @@ class NativeDisplayDrm : public NativeDisplayBase{
             return false;
         if (display.handle == 0 || display.handle == -1 || display.handle == m_handle)
             return true;
-        return true;
+        return false;
     }
 };
 
