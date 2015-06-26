@@ -49,6 +49,8 @@ extern "C" {
 #include <map>
 #include "vaapi/vaapiutils.h"
 #include "common/common_def.h"
+#include "common/condition.h"
+#include "common/lock.h"
 
 
 bool checkDrmRet(int ret,const char* msg)
@@ -78,10 +80,10 @@ private:
     bool bindToVaSurface();
     VADisplay m_display;
     int m_fd;
-    int m_bo;
-    uint32_t m_handle;
     uint32_t m_width;
     uint32_t m_height;
+    int m_bo;
+    uint32_t m_handle;
     uint32_t m_pitch;
     static const uint32_t BPP = 32;
 };
@@ -195,6 +197,37 @@ DrmFrame::~DrmFrame()
 
 class DrmRenderer
 {
+    typedef std::deque<SharedPtr<DrmFrame> > FrameQueue;
+    class Flipper {
+    public:
+        Flipper(int fd, uint32_t crtcID,
+            FrameQueue& fronts, FrameQueue& backs, SharedPtr<DrmFrame>& current,
+            Condition&, Lock&);
+        ~Flipper();
+        bool init();
+
+    private:
+        //thread loop
+        static void* start(void*);
+        void loop();
+
+        //flip buffer and wait it done
+        bool flip_l();
+
+        int        m_fd;
+        uint32_t   m_crtcID;
+
+        //all protected by m_lock;
+        FrameQueue& m_fronts;
+        FrameQueue& m_backs;
+        SharedPtr<DrmFrame>& m_current;
+        bool       m_quit;
+
+        Condition& m_cond;
+        Lock&      m_lock;
+
+        pthread_t  m_thread;
+    };
 public:
     ///init the render;
     bool init();
@@ -211,6 +244,9 @@ public:
     //it will return to back buffers.
     bool discard(const SharedPtr<VideoFrame>&);
 
+    //wait until all frames flipped.
+    void flush();
+
     uint32_t getWidth();
     uint32_t getHeight();
 
@@ -219,6 +255,7 @@ public:
     ~DrmRenderer();
 private:
     bool createFrames(uint32_t width, uint32_t height, int size);
+    bool createFlipper();
     bool getConnector(drmModeRes *resource);
     bool getCrtc(drmModeRes *resource);
     bool getPlane();
@@ -234,13 +271,100 @@ private:
     uint32_t m_planeID;
     drmModeModeInfo m_mode;
 
-    std::deque<SharedPtr<DrmFrame> > m_backs;
-    std::deque<SharedPtr<DrmFrame> > m_fronts;
+    Condition m_cond;
+    Lock      m_lock;
+    FrameQueue m_backs;
+    FrameQueue m_fronts;
+    SharedPtr<DrmFrame> m_current;
+    SharedPtr<Flipper>    m_flipper;
     int m_frameCount;
 };
 
+DrmRenderer::Flipper::Flipper(
+    int fd, uint32_t crtcID,
+    FrameQueue & fronts, FrameQueue & backs, SharedPtr<DrmFrame> & current,
+    Condition &cond, Lock &lock)
+    :m_fd(fd), m_crtcID(crtcID),
+     m_fronts(fronts),m_backs(backs), m_current(current), m_quit(false),
+     m_cond(cond), m_lock(lock),
+     m_thread(-1)
+{
+
+}
+
+DrmRenderer::Flipper::~Flipper()
+{
+    {
+        AutoLock lock(m_lock);
+        m_quit = true;
+        m_cond.signal();
+    }
+    pthread_join(m_thread, NULL);
+}
+
+bool DrmRenderer::Flipper::init()
+{
+    if (pthread_create(&m_thread, NULL, start, this)) {
+        ERROR("create thread failed");
+        return false;
+    }
+    return true;
+}
+
+bool DrmRenderer::Flipper::flip_l()
+{
+    //start a flip.
+    SharedPtr<DrmFrame>& frame = m_fronts.front();
+    uint32_t handle = frame->getFbHandle();
+    int ret = drmModePageFlip(m_fd, m_crtcID, handle, DRM_MODE_PAGE_FLIP_EVENT, NULL);
+    checkDrmRet(ret, "drmModePageFlip");
+
+    //wait it done
+    drmEventContext evctx;
+    struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
+    fd_set fds;
+    memset(&evctx, 0, sizeof evctx);
+    evctx.version = DRM_EVENT_CONTEXT_VERSION;
+    FD_ZERO(&fds);
+    FD_SET(m_fd, &fds);
+
+    //we hold the lock, release it here to
+    m_lock.release();
+    select(m_fd + 1, &fds, NULL, NULL, &timeout);
+    drmHandleEvent(m_fd, &evctx);
+    m_lock.acquire();
+    if (m_current)
+        m_backs.push_back(m_current);
+    m_current = m_fronts.front();
+    m_fronts.pop_front();
+    m_cond.signal();
+
+    return true;
+}
+
+void* DrmRenderer::Flipper::start(void* flipper)
+{
+    Flipper* f = (Flipper*)flipper;
+    f->loop();
+    return NULL;
+}
+
+void DrmRenderer::Flipper::loop()
+{
+    while (1) {
+        AutoLock lock(m_lock);
+        if (m_fronts.empty()) {
+            if (m_quit)
+                break;
+            m_cond.wait();
+        } else {
+            flip_l();
+        }
+    }
+}
+
 DrmRenderer::DrmRenderer(VADisplay display, int fd)
-    :m_display(display), m_fd(fd), m_frameCount(0)
+    :m_display(display), m_fd(fd), m_cond(m_lock), m_frameCount(0)
 {
 }
 
@@ -334,6 +458,7 @@ bool DrmRenderer::getPlane()
 
 bool DrmRenderer::setPlane()
 {
+    AutoLock lock(m_lock);
     SharedPtr<DrmFrame> frame = m_backs.front();
     uint32_t handle = frame->getFbHandle();
     int ret;
@@ -342,7 +467,15 @@ bool DrmRenderer::setPlane()
         return false;
 
     m_backs.pop_front();
-    m_fronts.push_back(frame);
+    m_current = frame;
+    return true;
+}
+
+bool DrmRenderer::createFlipper()
+{
+    m_flipper.reset(new Flipper(m_fd, m_crtcID, m_fronts, m_backs, m_current, m_cond, m_lock));
+    if (!m_flipper->init())
+        return false;
     return true;
 }
 
@@ -365,7 +498,7 @@ bool DrmRenderer::init()
 {
     if (!initDrm())
         return false;
-    if (!createFrames(m_mode.hdisplay, m_mode.vdisplay, 3) || !setPlane())
+    if (!createFrames(m_mode.hdisplay, m_mode.vdisplay, 5) || !setPlane() || !createFlipper())
         return false;
     ERROR("%dx%d@%d", m_mode.hdisplay, m_mode.vdisplay, m_mode.vrefresh);
     return true;
@@ -373,9 +506,10 @@ bool DrmRenderer::init()
 
 SharedPtr<VideoFrame> DrmRenderer::dequeue()
 {
+    AutoLock lock(m_lock);
     SharedPtr<VideoFrame> frame;
-    if (m_backs.empty())
-        return frame;
+    while (m_backs.empty())
+        m_cond.wait();
     frame = std::tr1::static_pointer_cast<VideoFrame>(m_backs.front());
     m_backs.pop_front();
     return frame;
@@ -389,27 +523,9 @@ bool DrmRenderer::queue(const SharedPtr<VideoFrame>& vframe)
         ERROR("invalid frame queued");
         return false;
     }
-    if (m_fronts.size() >= 2) {
-        //have two frame in flip chain, wait the flip done
-        drmEventContext evctx;
-        struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
-        fd_set fds;
-        memset(&evctx, 0, sizeof evctx);
-        evctx.version = DRM_EVENT_CONTEXT_VERSION;
-        evctx.vblank_handler = NULL;
-        FD_ZERO(&fds);
-        FD_SET(m_fd, &fds);
-        select(m_fd + 1, &fds, NULL, NULL, &timeout);
-        drmHandleEvent(m_fd, &evctx);
-
-        m_backs.push_back(m_fronts.front());
-        m_fronts.pop_front();
-    }
-    uint32_t handle = frame->getFbHandle();
-    int ret = drmModePageFlip(m_fd, m_crtcID, handle, DRM_MODE_PAGE_FLIP_EVENT, NULL);
-    if (!checkDrmRet(ret, "drmModePageFlip"))
-        return false;
+    AutoLock lock(m_lock);
     m_fronts.push_back(frame);
+    m_cond.signal();
     return true;
 }
 
@@ -421,18 +537,28 @@ bool DrmRenderer::discard(const SharedPtr<VideoFrame>& vframe)
         ERROR("invalid frame queued");
         return false;
     }
+    AutoLock lock(m_lock);
     m_backs.push_back(frame);
+    //no need signal
     return true;
+}
+
+void DrmRenderer::flush()
+{
+    AutoLock lock(m_lock);
+    while (!m_fronts.empty())
+        m_cond.wait();
 }
 
 DrmRenderer::~DrmRenderer()
 {
+    m_flipper.reset();
     int count = m_backs.size() + m_fronts.size();
+    if (m_current)
+        count++;
     if (m_frameCount != count) {
         ASSERT(0 && "!BUG, you need return all dequeued buffer before you destory render");
     }
-    m_backs.clear();
-    m_fronts.clear();
 }
 
 class Grid
@@ -511,7 +637,6 @@ private:
     void renderOutputs()
     {
         SharedPtr<VideoFrame> frame;
-        VAStatus status = VA_STATUS_SUCCESS;
         FpsCalc fps;
         int width = m_width / m_col;
         int height = m_height / m_row;
@@ -521,7 +646,8 @@ private:
                 for (int j = 0; j < m_col; j++) {
                     SharedPtr<VppInputDecode>& input = m_inputs[i * m_col + j];
                     if (!input->read(frame)) {
-                         m_renderer->discard(dest);
+                        m_renderer->discard(dest);
+                        m_renderer->flush();
                         goto DONE;
                     }
                     dest->crop.x = j * width;
@@ -545,7 +671,7 @@ DONE:
     {
         m_fd = open("/dev/dri/card0", O_RDWR);
         if (m_fd == -1) {
-            fprintf(stderr, "Failed to drm \n");
+            fprintf(stderr, "Failed to open card0 \n");
             return false;
         }
         m_vaDisplay = vaGetDisplayDRM(m_fd);
