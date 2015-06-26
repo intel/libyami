@@ -28,10 +28,9 @@
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 #include <stdint.h>
-#define EGL_EGLEXT_PROTOTYPES
 #include <EGL/eglext.h>
-#define GL_GLEXT_PROTOTYPES
 #include <GLES2/gl2ext.h>
+#include "egl/egl_util.h"
 
 typedef struct {
     EGLDisplay          display;
@@ -63,6 +62,7 @@ EGLContextType* eglInit(Display *x11Display, XID window, uint32_t fourcc, int is
 void eglRelease(EGLContextType *context);
 GLuint createTextureFromPixmap(EGLContextType *context, XID pixmap);
 int drawTextures(EGLContextType *context, GLenum target, GLuint *textureIds, int texCount);
+void imageTargetTexture2D(EGLenum, EGLImageKHR);
 
 #ifdef __cplusplus
 }

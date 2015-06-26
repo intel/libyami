@@ -518,7 +518,7 @@ int main(int argc, char** argv)
              if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
                  target = GL_TEXTURE_EXTERNAL_OES;
              glBindTexture(target, textureIds[i]);
-             glEGLImageTargetTexture2DOES(target, eglImages[i]);
+             imageTargetTexture2D(target, eglImages[i]);
 
              glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
              glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -594,7 +594,7 @@ int main(int argc, char** argv)
     glxRelease(glxContext, &pixmaps[0], &glxPixmaps[0], pixmaps.size());
 #else
     for (i=0; i<eglImages.size(); i++) {
-        eglDestroyImageKHR(eglContext->eglContext.display, eglImages[i]);
+        destroyImage(eglContext->eglContext.display, eglImages[i]);
     }
     /*
     there is still randomly fail in mesa; no good idea for it. seems mesa bug

@@ -77,15 +77,26 @@ static const char *vertexShaderText_rgba =
   "   v_texcoord  = texcoord;\n"
   "}\n";
 
+static PFNGLEGLIMAGETARGETTEXTURE2DOESPROC imageTargetTexture2DProc = NULL;
+
+void imageTargetTexture2D(EGLenum target, EGLImageKHR image)
+{
+    if (!imageTargetTexture2DProc) {
+        imageTargetTexture2DProc =
+            (void *) eglGetProcAddress("glEGLImageTargetTexture2DOES");
+    }
+    imageTargetTexture2DProc(target, image);
+}
+
 GLuint
 createTextureFromPixmap(EGLContextType *context, XID pixmap)
 {
     GLuint textureId;
 
-    EGLImageKHR image = eglCreateImageKHR(context->eglContext.display, context->eglContext.context, EGL_NATIVE_PIXMAP_KHR, (EGLClientBuffer)pixmap, NULL);
+    EGLImageKHR image = createImage(context->eglContext.display, context->eglContext.context, EGL_NATIVE_PIXMAP_KHR, (EGLClientBuffer)pixmap, NULL);
     glGenTextures(1, &textureId );
     glBindTexture(GL_TEXTURE_2D, textureId);
-    glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, image);
+    imageTargetTexture2D(GL_TEXTURE_2D, image);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);

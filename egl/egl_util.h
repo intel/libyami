@@ -23,7 +23,6 @@
 #ifndef __EGL_UTIL_H__
 #define __EGL_UTIL_H__
 #include <EGL/egl.h>
-#define EGL_EGLEXT_PROTOTYPES
 #include <EGL/eglext.h>
 
 #include "VideoCommonDefs.h"
@@ -31,6 +30,8 @@
 extern "C" {
 #endif /* __cplusplus */
 
+EGLImageKHR createImage(EGLDisplay, EGLContext, EGLenum, EGLClientBuffer, const EGLint *);
+EGLBoolean destroyImage(EGLDisplay, EGLImageKHR);
 EGLImageKHR createEglImageFromHandle(EGLDisplay eglDisplay, EGLContext eglContext, VideoDataMemoryType type, uint32_t dmaBuf, int width, int height, int pitch);
 
 #ifdef __cplusplus
