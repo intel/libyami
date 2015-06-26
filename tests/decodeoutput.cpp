@@ -483,12 +483,12 @@ Decode_Status DecodeOutputDmabuf::renderOneFrame(bool drain)
         eglImage = createEglImageFromHandle(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle,
                 m_frame.width, m_frame.height, m_frame.pitch[0]);
         if (eglImage != EGL_NO_IMAGE_KHR) {
-            glEGLImageTargetTexture2DOES(target, eglImage);
+            imageTargetTexture2D(target, eglImage);
             glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             drawTextures(m_eglContext, target, &m_textureId, 1);
 
-            eglDestroyImageKHR(m_eglContext->eglContext.display, eglImage);
+            destroyImage(m_eglContext->eglContext.display, eglImage);
         } else {
             ERROR("fail to create EGLImage from dma_buf");
         }

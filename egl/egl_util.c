@@ -30,6 +30,26 @@
 #include "libdrm/drm_fourcc.h"
 #endif
 
+static PFNEGLCREATEIMAGEKHRPROC createImageProc = NULL;
+static PFNEGLDESTROYIMAGEKHRPROC destroyImageProc = NULL;
+
+EGLImageKHR createImage(EGLDisplay dpy, EGLContext ctx, EGLenum target,
+                        EGLClientBuffer buffer, const EGLint *attrib_list)
+{
+    if (!createImageProc) {
+        createImageProc = (void *) eglGetProcAddress("eglCreateImageKHR");
+    }
+    return createImageProc(dpy, ctx, target, buffer, attrib_list);
+}
+
+EGLBoolean destroyImage(EGLDisplay dpy, EGLImageKHR image)
+{
+    if (!destroyImageProc) {
+        destroyImageProc = (void *) eglGetProcAddress("eglDestroyImageKHR");
+    }
+    return destroyImageProc(dpy, image);
+}
+
 static EGLImageKHR createEglImageFromDrmBuffer(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t drmName, int width, int height, int pitch)
 {
     EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
@@ -44,7 +64,7 @@ static EGLImageKHR createEglImageFromDrmBuffer(EGLDisplay eglDisplay, EGLContext
       EGL_NONE
     };
 
-    eglImage = eglCreateImageKHR(eglDisplay, eglContext, EGL_DRM_BUFFER_MESA,
+    eglImage = createImage(eglDisplay, eglContext, EGL_DRM_BUFFER_MESA,
                      (EGLClientBuffer)(intptr_t)drmName, attribs);
     return eglImage;
 }
@@ -63,7 +83,7 @@ static EGLImageKHR createEglImageFromDmaBuf(EGLDisplay eglDisplay, EGLContext eg
       EGL_NONE
     };
 
-    eglImage = eglCreateImageKHR(eglDisplay, EGL_NO_CONTEXT,
+    eglImage = createImage(eglDisplay, EGL_NO_CONTEXT,
                      EGL_LINUX_DMA_BUF_EXT, NULL, attribs);
     ASSERT(eglImage != EGL_NO_IMAGE_KHR);
     return eglImage;
