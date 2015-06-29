@@ -146,47 +146,16 @@ Decode_Status VaapiDecoderVP8::ensureContext()
 
 bool VaapiDecoderVP8::fillSliceParam(VASliceParameterBufferVP8* sliceParam)
 {
-    int32_t lastPartitionSize, i;
-
-    if (m_frameHdr.key_frame)
-        sliceParam->slice_data_offset =
-            VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME;
-    else
-        sliceParam->slice_data_offset =
-            VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME;
-
-    // XXX, the buf start address m_buffer
+    /* Fill in VASliceParameterBufferVP8 */
+    sliceParam->slice_data_offset = m_frameHdr.data_chunk_size;
     sliceParam->macroblock_offset = m_frameHdr.header_size;
-    sliceParam->num_of_partitions = (1 << m_frameHdr.log2_nbr_of_dct_partitions) + 1;   // +1 for the frame header partition
-
-    // first_part_size doesn't include the uncompress data(frame-tage/magic-number/frame-width/height) at the begining of the frame.
-    // partition_size[0] refer to 'first_part_size - parsed-bytes-by-range-decoder'
+    sliceParam->num_of_partitions =
+        (1 << m_frameHdr.log2_nbr_of_dct_partitions) + 1;
     sliceParam->partition_size[0] =
-        m_frameHdr.first_part_size - ((sliceParam->macroblock_offset +
-                                       7) >> 3);
-
-#if __PSB_VP8_INTERFACE_WORK_AROUND__
-    sliceParam->slice_data_offset = 0;
-    sliceParam->macroblock_offset =
-        8 - m_frameHdr.rangedecoder_state.remaining_bits;
-#endif
-
-    if (m_frameHdr.key_frame)
-        lastPartitionSize =
-            m_frameSize - VP8_UNCOMPRESSED_DATA_SIZE_KEY_FRAME;
-    else
-        lastPartitionSize =
-            m_frameSize - VP8_UNCOMPRESSED_DATA_SIZE_NON_KEY_FRAME;
-
-    lastPartitionSize -= m_frameHdr.first_part_size;
-
-    for (i = 1; i < sliceParam->num_of_partitions - 1; i++) {
+        m_frameHdr.first_part_size - ((sliceParam->macroblock_offset + 7) >> 3);
+    for (int32_t i = 1; i < sliceParam->num_of_partitions; i++)
         sliceParam->partition_size[i] = m_frameHdr.partition_size[i - 1];
-        lastPartitionSize -= (m_frameHdr.partition_size[i - 1] + 3);
-    }
-    sliceParam->partition_size[sliceParam->num_of_partitions - 1] =
-        lastPartitionSize;
-    return true;
+    return TRUE;
 }
 
 bool VaapiDecoderVP8::fillPictureParam(const PicturePtr&  picture)
