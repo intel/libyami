@@ -922,8 +922,8 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
         m_mbHeight = mbHeight;
         m_configBuffer.surfaceWidth = mbWidth * 16;
         m_configBuffer.surfaceHeight = mbHeight * 16;
-        m_configBuffer.width = sps->width;
-        m_configBuffer.height = sps->height;
+        m_configBuffer.width = sps->crop_rect_width ? sps->crop_rect_width : sps->width;
+        m_configBuffer.height = sps->crop_rect_height ? sps->crop_rect_height : sps->height;
         resetContext = true;
     }
 
