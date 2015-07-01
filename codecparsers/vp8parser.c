@@ -547,7 +547,7 @@ vp8_parser_parse_frame_header (Vp8Parser * parser,
 
   data += frame_hdr->data_chunk_size;
   size -= frame_hdr->data_chunk_size;
-  if (!vp8_range_decoder_init (&rd, data, frame_hdr->first_part_size))
+  if (!vp8_range_decoder_init (&rd, data, size))
     return VP8_PARSER_BROKEN_DATA;
 
   result = parse_frame_header (parser, &rd, frame_hdr);
