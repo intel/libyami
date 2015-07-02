@@ -214,11 +214,11 @@ bool DecodeInputVPX::init()
         fprintf (stderr, "fail to read ivf header, quit\n");
         return false;
     }
-    if (header.tag != 'FIKD')
+    if (header.tag != YAMI_FOURCC('D', 'K', 'I', 'F'))
         return false;
-    if (header.fourcc == '08PV')
+    if (header.fourcc == YAMI_FOURCC('V', 'P', '8', '0'))
         m_mimeType = YAMI_MIME_VP8;
-    else if (header.fourcc == '09PV')
+    else if (header.fourcc == YAMI_FOURCC('V', 'P', '9', '0'))
         m_mimeType = YAMI_MIME_VP9;
     return true;
 }

@@ -232,10 +232,10 @@ void setUint16(uint8_t* header, uint16_t value)
 
 static void get_ivf_file_header(uint8_t *header, int width, int height,int count)
 {
-    setUint32(header, 'FIKD');
+    setUint32(header, YAMI_FOURCC('D','K','I','F'));
     setUint16(header+4, 0);                     /* version */
     setUint16(header+6,  32);                   /* headersize */
-    setUint32(header+8,  '08PV');               /* headersize */
+    setUint32(header+8,  YAMI_FOURCC('V','P','8','0'));    /* headersize */
     setUint16(header+12, width);                /* width */
     setUint16(header+14, height);               /* height */
     setUint32(header+16, 30);                    /* rate */

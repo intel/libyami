@@ -539,7 +539,7 @@ struct FormatEntry {
 };
 
 #ifndef V4L2_PIX_FMT_VP9
-#define V4L2_PIX_FMT_VP9 '09PV'
+#define V4L2_PIX_FMT_VP9 YAMI_FOURCC('V', 'P', '9', '0')
 #endif
 
 static const FormatEntry FormatEntrys[] = {
