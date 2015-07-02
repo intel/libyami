@@ -45,6 +45,7 @@ public:
     virtual bool isEOS() {return m_parseToEOS;}
     virtual bool init() = 0;
     virtual const string& getCodecData();
+    virtual const VideoStreamInfo *getStreamInfo(void) {return NULL;}
 protected:
     FILE *m_fp;
     uint8_t *m_buffer;

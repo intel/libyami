@@ -27,6 +27,11 @@
 #include "VideoDecoderDefs.h"
 #include "VideoDecoderInterface.h"
 
+typedef struct {
+    int32_t width;
+    int32_t height;
+}VideoStreamInfo;
+
 using std::string;
 class DecodeInput {
 public:
@@ -36,7 +41,7 @@ public:
     virtual const char * getMimeType() = 0;
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer) = 0;
     virtual const string& getCodecData() = 0;
-
+    virtual const VideoStreamInfo *getStreamInfo(void) = 0;
 protected:
     virtual bool initInput(const char* fileName) = 0;
 

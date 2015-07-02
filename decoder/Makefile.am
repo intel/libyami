@@ -32,6 +32,10 @@ if BUILD_FAKE_DECODER
         libyami_decoder_source_c += vaapidecoder_fake.cpp
 endif
 
+if BUILD_H265_DECODER
+        libyami_decoder_source_c += vaapidecoder_h265.cpp
+endif
+
 libyami_decoder_source_h = \
         ../interface/VideoCommonDefs.h      \
         ../interface/VideoDecoderDefs.h      \
@@ -63,6 +67,10 @@ endif
 
 if BUILD_FAKE_DECODER
         libyami_decoder_source_h_priv += vaapidecoder_fake.h
+endif
+
+if BUILD_H265_DECODER
+        libyami_decoder_source_h_priv += vaapidecoder_h265.h
 endif
 
 libyami_decoder_la_LIBADD = \

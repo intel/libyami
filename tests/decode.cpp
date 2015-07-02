@@ -35,6 +35,7 @@
 #include "decodeinput.h"
 #include "decodeoutput.h"
 #include "decodehelp.h"
+#include "decodeinputavformat.h"
 #ifdef __ENABLE_X11__
 // #include <X11/Xlib.h>
 #endif
@@ -89,6 +90,12 @@ int main(int argc, char** argv)
         configBuffer.size = codecData.size();
     }
 
+    const VideoStreamInfo *streamInfo = input->getStreamInfo();
+    if (streamInfo) {
+        configBuffer.width = streamInfo->width;
+        configBuffer.height = streamInfo->height;
+    }
+
     status = decoder->start(&configBuffer);
     assert(status == DECODE_SUCCESS);
 
@@ -122,7 +129,7 @@ int main(int argc, char** argv)
     inputBuffer.size = 0;
     status = decoder->decode(&inputBuffer);
 #endif
-
+    decoder->flush();
     // drain the output buffer
     renderOutputFrames(output, true);
 

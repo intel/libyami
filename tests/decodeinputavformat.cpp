@@ -53,6 +53,8 @@ bool DecodeInputAvFormat::initInput(const char* fileName)
             if (ctx->extradata && ctx->extradata_size)
                 m_codecData.append((char*)ctx->extradata, ctx->extradata_size);
             m_videoId = i;
+            m_videoStreamInfo.width  =  ctx->width;
+            m_videoStreamInfo.height =  ctx->height;
             break;
         }
     }
@@ -82,7 +84,8 @@ static const MimeEntry MimeEntrys[] = {
     AV_CODEC_ID_VP9, YAMI_MIME_VP9,
 #endif
 
-    AV_CODEC_ID_H264, YAMI_MIME_H264
+    AV_CODEC_ID_H264, YAMI_MIME_H264,
+    AV_CODEC_ID_H265, YAMI_MIME_H265
 };
 
 const char * DecodeInputAvFormat::getMimeType()
@@ -122,6 +125,11 @@ bool DecodeInputAvFormat::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 const string& DecodeInputAvFormat::getCodecData()
 {
     return m_codecData;
+}
+
+const VideoStreamInfo *DecodeInputAvFormat::getStreamInfo(void)
+{
+    return &m_videoStreamInfo;
 }
 
 DecodeInputAvFormat::~DecodeInputAvFormat()
