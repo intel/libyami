@@ -247,7 +247,7 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 }
 
 #ifndef V4L2_PIX_FMT_VP9
-#define V4L2_PIX_FMT_VP9 '09PV'
+#define V4L2_PIX_FMT_VP9 YAMI_FOURCC('V', 'P', '9', '0')
 #endif
 
 int32_t V4l2Decoder::ioctl(int command, void* arg)
