@@ -88,10 +88,10 @@ public:
     // void getSupportedResolution();
 private:
     int m_fd;
-    CameraDataMode m_dataMode;
     std::vector<uint8_t*> m_frameBuffers;
     uint32_t m_frameBufferCount;
     uint32_t m_frameBufferSize;
+    CameraDataMode m_dataMode;
 
     bool openDevice();
     bool initDevice(const char *cameraDevicePath);

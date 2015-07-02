@@ -87,12 +87,12 @@ class VaapiSurface
 
     DisplayPtr m_display;
     VaapiChromaType m_chromaType;
-    VASurfaceID m_ID;
     uint32_t m_allocWidth;
     uint32_t m_allocHeight;
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_fourcc;
+    VASurfaceID m_ID;
     bool     m_owner;       //surface owner
 };
 }

@@ -61,9 +61,9 @@ public:
     bool init();
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
 private:
-    const char* m_mimeType;
     const int m_ivfFrmHdrSize;
     const int m_maxFrameSize;
+    const char* m_mimeType;
 };
 
 class DecodeInputRaw:public MyDecodeInput

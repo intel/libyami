@@ -72,16 +72,16 @@ typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
 }
 V4l2CodecBase::V4l2CodecBase()
     : m_memoryType(VIDEO_DATA_MEMORY_TYPE_RAW_COPY)
-    , m_inputThreadCond(m_frameLock[INPUT])
-    , m_outputThreadCond(m_frameLock[OUTPUT])
-    , m_hasEvent(false)
     , m_started(false)
-    , m_eosState(EosStateNormal)
 #if __ENABLE_V4L2_GLX__
     , m_x11Display(NULL)
 #else
     , m_drmfd(0)
 #endif
+    , m_hasEvent(false)
+    , m_inputThreadCond(m_frameLock[INPUT])
+    , m_outputThreadCond(m_frameLock[OUTPUT])
+    , m_eosState(EosStateNormal)
 {
     m_streamOn[INPUT] = false;
     m_streamOn[OUTPUT] = false;

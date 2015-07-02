@@ -160,8 +160,8 @@ public:
 
     }
 private:
-    FileIoFunc  m_io;
     SharedPtr<VADisplay>  m_display;
+    FileIoFunc  m_io;
 };
 
 

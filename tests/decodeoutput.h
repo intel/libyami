@@ -46,11 +46,11 @@ public:
 
 protected:
     DecodeOutput(IVideoDecoder* decoder);
-    VideoFrameRawData m_frame;
+    IVideoDecoder* m_decoder;
     int m_width;
     int m_height;
     uint32_t m_renderFrames;
-    IVideoDecoder* m_decoder;
+    VideoFrameRawData m_frame;
 };
 
 class DecodeOutputNull: public DecodeOutput
@@ -99,8 +99,8 @@ protected:
 
 private:
     std::ostringstream m_name;
-    bool m_appendSize;
     FILE* m_fp;
+    bool m_appendSize;
 
 };
 
