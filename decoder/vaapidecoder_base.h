@@ -88,7 +88,6 @@ class VaapiDecoderBase:public IVideoDecoder {
     NativeDisplay   m_externalDisplay;
     DisplayPtr m_display;
     ContextPtr m_context;
-    bool m_VAStarted;
 
     VideoConfigBuffer m_configBuffer;
     VideoFormatInfo m_videoFormatInfo;
@@ -108,6 +107,8 @@ class VaapiDecoderBase:public IVideoDecoder {
     // XXX, not used. reference frame management base on VaapiPicture
     VideoSurfaceBuffer *m_lastReference;
     VideoSurfaceBuffer *m_forwardReference;
+
+    bool m_VAStarted;
 
     /* hold serveral decoded picture coming from the dpb,
      * and rearrange the picture output order according to

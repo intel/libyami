@@ -676,9 +676,9 @@ public:
         m_pic(surface)
     {
     }
-    SurfacePtr m_pic;
     uint32_t m_frameNum;
     uint32_t m_poc;
+    SurfacePtr m_pic;
 };
 
 VaapiEncoderH264::VaapiEncoderH264():

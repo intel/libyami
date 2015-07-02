@@ -111,11 +111,11 @@ private:
     uint32_t m_mbHeight;
     bool  m_useCabac;
     bool  m_useDct8x8;
-    AVCStreamFormat m_streamFormat;
 
     /* re-ordering */
     std::list<PicturePtr> m_reorderFrameList;
     VaapiEncReorderState m_reorderState;
+    AVCStreamFormat m_streamFormat;
     uint32_t m_frameIndex;
     uint32_t m_curFrameNum;
     uint32_t m_curPresentIndex;

@@ -103,11 +103,11 @@ private:
               const uint32_t srcOffsets[3], const uint32_t srcPitches[3],
               const uint32_t width[3], const uint32_t height[3], uint32_t planes);
 
-    VideoDataMemoryType m_memoryType;
-    ImagePtr m_image;
     DisplayPtr m_display;
-    RealeaseCallback m_release;
+    ImagePtr m_image;
     intptr_t m_handle;
+    VideoDataMemoryType m_memoryType;
+    RealeaseCallback m_release;
 
 };
 

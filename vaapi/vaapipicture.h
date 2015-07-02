@@ -36,6 +36,11 @@
 namespace YamiMediaCodec{
 class VaapiPicture
 {
+protected:
+    DisplayPtr             m_display;
+    ContextPtr             m_context;
+    SurfacePtr             m_surface;
+
 public:
     VaapiPicture(const ContextPtr&, const SurfacePtr&, int64_t timeStamp);
     virtual ~VaapiPicture() {};
@@ -45,8 +50,8 @@ public:
     inline void setSurface(const SurfacePtr&);
     inline bool sync();
 
-    VaapiPictureType        m_type;
     int64_t                 m_timeStamp;
+    VaapiPictureType        m_type;
 
 protected:
     virtual bool doRender() = 0;
@@ -68,11 +73,6 @@ protected:
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
     inline BufObjectPtr createBufferObject(VABufferType bufType,
                                            uint32_t size,const void *data, void **mapped_data);
-
-protected:
-    DisplayPtr             m_display;
-    ContextPtr             m_context;
-    SurfacePtr             m_surface;
 };
 
 template<class T>
