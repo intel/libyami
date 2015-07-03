@@ -49,7 +49,7 @@
 #define     G_STMT_END      while(0)
 
 #define g_once_init_enter(location) true
-#define g_once_init_leave(location, result) 
+#define g_once_init_leave(location, result) *location=result
 
 #define TRACE(...)
 #define G_LIKELY(a) (a)
@@ -88,7 +88,7 @@ typedef struct _DebugCategory {
 }DebugCategory;
 
 #define DEBUG_CATEGORY(cat) DebugCategory *cat = NULL
-#define DEBUG_CATEGORY_INIT
+#define DEBUG_CATEGORY_INIT(var,name,color,desc) G_STMT_START{ }G_STMT_END
 #define _gst_debug_category_new(...) 0
 
 typedef struct _GArray {
