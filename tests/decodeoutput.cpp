@@ -48,9 +48,10 @@ bool DecodeOutput::setVideoSize(int width, int height)
 }
 
 DecodeOutput::DecodeOutput(IVideoDecoder* decoder)
-    :m_decoder(decoder), m_width(0), m_height(0), m_renderFrames(0), m_frame{VIDEO_DATA_MEMORY_TYPE_RAW_POINTER, 0}
+    :m_decoder(decoder), m_width(0), m_height(0), m_renderFrames(0)
 {
-
+    memset(&m_frame, 0, sizeof(m_frame));
+    m_frame.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
 }
 
 Decode_Status DecodeOutput::processOneFrame(bool drain)

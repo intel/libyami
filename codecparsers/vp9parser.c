@@ -141,9 +141,9 @@ static VP9_PROFILE read_profile(BitReader* br)
 }
 
 static void read_frame_size(BitReader* br,
-                     int *width, int *height) {
-  const int w = vp9_read_bits(br, 16) + 1;
-  const int h = vp9_read_bits(br, 16) + 1;
+                     uint32_t *width, uint32_t *height) {
+  const uint32_t w = vp9_read_bits(br, 16) + 1;
+  const uint32_t h = vp9_read_bits(br, 16) + 1;
   *width = w;
   *height = h;
 }
@@ -347,9 +347,9 @@ static void loop_filter_update(Vp9Parser* parser, const Vp9LoopFilter * lf)
   }
 }
 
-BOOL compare_and_set(uint8_t* dest, const uint8_t src)
+BOOL compare_and_set(int8_t* dest, const int8_t src)
 {
-  const uint8_t old = *dest;
+  const int8_t old = *dest;
   *dest = src;
   return old != src;
 }
