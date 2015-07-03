@@ -54,7 +54,7 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
-    DEBUG("inputFourcc: %.4s", &(inputFourcc));
+    DEBUG("inputFourcc: %.4s", (char*)(&(inputFourcc)));
     input = EncodeInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
     if (!input) {
         fprintf (stderr, "fail to init input stream\n");

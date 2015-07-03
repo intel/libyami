@@ -305,7 +305,7 @@ bool DecodeOutputX11::setVideoSize(int width, int height)
     }
     XSync(m_display, false);
     {
-        DEBUG("m_window=0x%x", m_window);
+        DEBUG("m_window=%lu", m_window);
         XWindowAttributes wattr;
         XGetWindowAttributes(m_display, m_window, &wattr);
     }

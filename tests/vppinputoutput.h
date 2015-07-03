@@ -77,7 +77,7 @@ public:
         VAStatus status = vaCreateSurfaces(*m_display, VA_RT_FORMAT_YUV420, width, height,
                                            &m_surfaces[0], m_surfaces.size(),&attrib, 1);
         if (status != VA_STATUS_SUCCESS) {
-            ERROR("create surface failed fourcc = %p", fourcc);
+            ERROR("create surface failed fourcc = %d", fourcc);
             m_surfaces.clear();
             return false;
         }

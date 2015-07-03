@@ -168,7 +168,7 @@ bool VaapiSurface::getImage(ImagePtr image)
 
     imageID = image->getID();
 
-    DEBUG("Display: 0x%x, surface: 0x%x, width: %d, height: %d, image: 0x%x", m_display->getID(), m_ID, width, height, imageID);
+    DEBUG("Display: 0x%p, surface: 0x%x, width: %d, height: %d, image: 0x%x", m_display->getID(), m_ID, width, height, imageID);
     status = vaGetImage(m_display->getID(), m_ID, 0, 0, width, height, imageID);
 
     if (!checkVaapiStatus(status, "vaGetImage()"))
