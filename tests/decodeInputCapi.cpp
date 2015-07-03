@@ -46,6 +46,8 @@ bool decodeInputIsEOS(DecodeInputHandler input)
 {
     if(input)
         return ((DecodeInput*)input)->isEOS();
+    else
+        return false;
 }
 
 bool getNextDecodeUnit(DecodeInputHandler input, VideoDecodeBuffer *inputbuffer)

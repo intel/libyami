@@ -453,6 +453,7 @@ Encode_Status VaapiEncoderBase::checkEmpty(VideoEncOutputBuffer *outBuffer, bool
            return getCodecConfig(outBuffer);
         return ENCODE_BUFFER_NO_MORE;
     }
+    return ENCODE_SUCCESS;
 }
 
 void VaapiEncoderBase::getPicture(PicturePtr &outPicture)

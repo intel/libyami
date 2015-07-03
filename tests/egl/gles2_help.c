@@ -305,9 +305,10 @@ EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc, int
     glEnable(GL_DEPTH_TEST);
     glClearDepthf(1.0f);
     {
-        int width, height;
+        unsigned int width, height;
         Window root;
-        int x, y, borderWidth, depth;
+        int x, y;
+        unsigned int borderWidth, depth;
         XGetGeometry(x11Display, x11Window, &root, &x, &y, &width, &height, &borderWidth, &depth);
         glViewport(0, 0, width, height);
     }

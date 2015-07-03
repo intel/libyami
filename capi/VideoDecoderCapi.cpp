@@ -71,8 +71,7 @@ Decode_Status decode(DecodeHandler p, VideoDecodeBuffer *buffer)
 
 const VideoRenderBuffer* decodeGetOutput(DecodeHandler p, bool draining)
 {
-     if(p)
-        return ((IVideoDecoder*)p)->getOutput(draining);
+    return (p ? ((IVideoDecoder*)p)->getOutput(draining) : NULL);
 }
 
 #ifdef __ENABLE_X11__
@@ -90,14 +89,12 @@ Decode_Status decodeGetOutput_x11(DecodeHandler p, Drawable draw, int64_t *timeS
 
 Decode_Status decodeGetOutputRawData(DecodeHandler p, VideoFrameRawData* frame, bool draining)
 {
-     if(p)
-        return ((IVideoDecoder*)p)->getOutput(frame, draining);
+    return (p ? ((IVideoDecoder*)p)->getOutput(frame, draining) : DECODE_FAIL);
 }
 
 const VideoFormatInfo* getFormatInfo(DecodeHandler p)
 {
-    if(p)
-        return ((IVideoDecoder*)p)->getFormatInfo();
+    return (p ? ((IVideoDecoder*)p)->getFormatInfo() : NULL);
 }
 
 void renderDone(DecodeHandler p, const VideoRenderBuffer* buffer)

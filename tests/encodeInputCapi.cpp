@@ -44,6 +44,8 @@ bool encodeInputIsEOS(EncodeInputHandler input)
 {
     if(input)
         return ((EncodeInput*)input)->isEOS();
+    else
+        return false;
 }
 
 const char * getOutputMimeType(EncodeOutputHandler output)

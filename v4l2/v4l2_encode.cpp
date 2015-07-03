@@ -377,7 +377,7 @@ void* V4l2Encoder::mmap (void* addr, size_t length,
                       int prot, int flags, unsigned int offset)
 {
     int i;
-    ASSERT(prot == PROT_READ | PROT_WRITE);
+    ASSERT((prot == PROT_READ) | PROT_WRITE);
     ASSERT(flags == MAP_SHARED);
 
     ASSERT(m_maxOutputBufferSize > 0);
