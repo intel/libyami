@@ -165,7 +165,7 @@ private:
         }
         XSync(display, false);
         {
-            DEBUG("m_window=0x%x", m_window);
+            DEBUG("m_window=%lu", m_window);
             XWindowAttributes wattr;
             XGetWindowAttributes(display, m_window, &wattr);
         }

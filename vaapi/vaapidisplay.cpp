@@ -279,7 +279,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay, const
     vaapiDisplay.reset();
 
     //crate new one
-    DEBUG("nativeDisplay: (type : %d), (handle : 0x%x)", nativeDisplay.type, nativeDisplay.handle);
+    DEBUG("nativeDisplay: (type : %d), (handle : %ld)", nativeDisplay.type, nativeDisplay.handle);
 
     switch (nativeDisplay.type) {
     case NATIVE_DISPLAY_AUTO:

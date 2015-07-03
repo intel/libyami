@@ -171,7 +171,7 @@ bool VaapiDecSurfacePool::ensureImagePool(VideoFrameRawData &frame)
         frame.height = m_surfaces[0]->getHeight();
     }
 
-    DEBUG("create image pool with fourcc:%.4s, size=%dx%d", &frame.fourcc, frame.width, frame.height);
+    DEBUG("create image pool with fourcc:%.4s, size=%dx%d", (char*)(&frame.fourcc), frame.width, frame.height);
     m_imagePool = VaapiImagePool::create(m_display, frame.fourcc, frame.width, frame.height, IMAGE_POOL_SIZE);
 
     ASSERT(m_imagePool);
@@ -326,7 +326,7 @@ void VaapiDecSurfacePool::recycleLocked(VASurfaceID id, SurfaceState flag)
 {
     const Allocated::iterator it = m_allocated.find(id);
     if (it == m_allocated.end()) {
-        ERROR("try to recycle %p from state %d, it's not an allocated buffer", id, flag);
+        ERROR("try to recycle %u from state %d, it's not an allocated buffer", id, flag);
         return;
     }
     it->second &= ~flag;
