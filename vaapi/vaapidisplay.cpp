@@ -59,7 +59,7 @@ static bool vaSelectDriver(VADisplay vaDisplay, const std::string& driverName)
     VAStatus vaStatus=VA_STATUS_SUCCESS;
     if (!driverName.empty())
     {
-        vaStatus = vaSetDriverName(vaDisplay, driverName.c_str());
+        vaStatus = vaSetDriverName(vaDisplay, const_cast<char*>(driverName.c_str()));
     }
     return checkVaapiStatus(vaStatus, "vaSetDriverName");
 }

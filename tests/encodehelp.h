@@ -27,7 +27,8 @@
 
 static const int kIPeriod = 30;
 static char *inputFileName = NULL;
-static char *outputFileName = NULL;
+static char defaultOutputFile[] = "test.264";
+static char *outputFileName = defaultOutputFile;
 static char *codec = NULL;
 static uint32_t inputFourcc = 0;
 static int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 30;
@@ -156,9 +157,6 @@ static bool process_cmdline(int argc, char *argv[])
 
     if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video")) && !frameCount)
         frameCount = 50;
-
-    if (!outputFileName)
-        outputFileName = "test.264";
 
     return true;
 }
