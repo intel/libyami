@@ -50,7 +50,6 @@ Decode_Status VaapiDecoderVP9::start(VideoConfigBuffer * buffer)
 {
     DEBUG("VP9: start() buffer size: %d x %d", buffer->width,
           buffer->height);
-    Decode_Status status;
 
     buffer->profile = VAProfileVP9Profile0;
     //8 reference frame + extra number
@@ -74,7 +73,6 @@ Decode_Status VaapiDecoderVP9::reset(VideoConfigBuffer * buffer)
 
 void VaapiDecoderVP9::stop(void)
 {
-    int i;
     DEBUG("VP9: stop()");
     flush();
     VaapiDecoderBase::stop();
@@ -313,7 +311,6 @@ static bool parse_super_frame(std::vector<uint32_t>& frameSize, const uint8_t* d
 Decode_Status VaapiDecoderVP9::decode(VideoDecodeBuffer * buffer)
 {
     Decode_Status status;
-    Vp9ParseResult result;
     if (!buffer)
         return DECODE_INVALID_DATA;
     uint8_t* data = buffer->data;

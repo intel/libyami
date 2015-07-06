@@ -354,7 +354,7 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
     break;
     case VIDIOC_S_CROP: {
         // ::SetFormats
-        struct v4l2_crop *crop = static_cast<struct v4l2_crop *>(arg);
+        //struct v4l2_crop *crop = static_cast<struct v4l2_crop *>(arg);
         INFO("ignore crop for now (the difference between buffer size and real size)");
     }
     break;

@@ -228,7 +228,7 @@ static void read_quantization(Vp9FrameHdr* frame_hdr, BitReader* br)
 
 static void read_segmentation(Vp9SegmentationInfo* seg, BitReader* br)
 {
-  int i, j;
+  int i;
 
   seg->update_map = FALSE;
   seg->update_data = FALSE;
@@ -505,7 +505,6 @@ uint8_t seg_get_filter_level(const Vp9Parser* parser, const Vp9FrameHdr * frame_
 static void segmentation_save(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr)
 {
   const Vp9SegmentationInfo* info = &frame_hdr->segmentation;
-  int i;
   if (!info->enabled)
     return;
   if (info->update_map) {

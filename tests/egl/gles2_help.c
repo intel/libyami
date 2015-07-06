@@ -95,10 +95,8 @@ createTextureFromPixmap(EGLContextType *context, XID pixmap)
 static GLProgram*
 createShaders(const char *vertexShaderText, const char *fragShaderText, int texCount)
 {
-    GLuint vertexShader, fragShader, program;
     GLProgram *glProgram = NULL;
     GLint stat;
-    int i;
     #define BUFFER_SIZE 256
     char log[BUFFER_SIZE];
     GLsizei logSize;
