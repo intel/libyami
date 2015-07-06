@@ -349,7 +349,6 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
         }
         break;
         case VIDIOC_REQBUFS: {
-            int i;
             struct v4l2_requestbuffers *reqbufs = static_cast<struct v4l2_requestbuffers *>(arg);
             if (reqbufs->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
                 port = INPUT;
@@ -493,7 +492,6 @@ int32_t V4l2CodecBase::poll(bool poll_device, bool* event_pending)
 {
     struct pollfd pollfds[2];
     nfds_t nfds;
-    int pollfd = -1;
 
     pollfds[0].fd = m_fd[1];
     pollfds[0].events = POLLIN | POLLERR;
@@ -503,7 +501,6 @@ int32_t V4l2CodecBase::poll(bool poll_device, bool* event_pending)
       DEBUG("Poll(): adding device fd to poll() set");
       pollfds[nfds].fd = m_fd[0];
       pollfds[nfds].events = POLLIN | POLLERR;
-      pollfd = nfds;
       nfds++;
     }
 
@@ -511,7 +508,7 @@ int32_t V4l2CodecBase::poll(bool poll_device, bool* event_pending)
       ERROR("poll() failed");
       return -1;
     }
-    // *event_pending = (pollfd != -1 && pollfds[pollfd].revents & (POLLPRI | POLLIN | POLLOUT));
+
     *event_pending = m_hasEvent;
 
     // clear event

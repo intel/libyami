@@ -217,7 +217,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if (!filename1) {
+    if (!strlen(filename1)) {
         fprintf(stderr, "no input media file specified\n");
         return -1;
     }

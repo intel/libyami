@@ -154,7 +154,7 @@ private:
         if (m_window) {
         //todo, resize window;
         } else {
-            int screen = DefaultScreen(display);
+            DefaultScreen(display);
 
             XSetWindowAttributes x11WindowAttrib;
             x11WindowAttrib.event_mask = KeyPressMask;

@@ -151,7 +151,10 @@ bool V4l2Decoder::inputPulse(int32_t index)
 bool V4l2Decoder::outputPulse(int32_t &index)
 {
     Decode_Status status = DECODE_SUCCESS;
-    VideoFrameRawData tempFrame, *frame=NULL;
+
+#if ! __ENABLE_V4L2_GLX__
+    VideoFrameRawData *frame=NULL;
+#endif
 
     ASSERT(index >= 0 && index < m_maxBufferCount[OUTPUT]);
     DEBUG("index: %d", index);
@@ -234,7 +237,6 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
 bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 {
     ASSERT(dqbuf);
-    int index = dqbuf->index;
     // for the buffers within range of [m_actualOutBufferCount, m_maxBufferCount[OUTPUT]]
     // there are not used in reality, but still be returned back to client during flush (seek/eos)
     ASSERT(dqbuf->index >= 0 && dqbuf->index < m_maxBufferCount[OUTPUT]);
@@ -252,7 +254,6 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 
 int32_t V4l2Decoder::ioctl(int command, void* arg)
 {
-    Decode_Status encodeStatus = DECODE_SUCCESS;
     int32_t ret = 0;
     int port = -1;
 
@@ -501,8 +502,6 @@ void V4l2Decoder::flush()
 #if __ENABLE_V4L2_GLX__
 int32_t V4l2Decoder::usePixmap(int bufferIndex, Pixmap pixmap)
 {
-    int i;
-
     if (m_pixmaps.empty()) {
         m_pixmaps.resize(m_maxBufferCount[OUTPUT]);
         memset(&m_pixmaps[0], 0, sizeof(Pixmap)*m_pixmaps.size());

@@ -94,7 +94,6 @@ bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index i
     struct v4l2_buffer buf;
     struct v4l2_plane planes[k_inputPlaneCount];
     int ioctlRet = -1;
-    static int32_t dqCountAfterEOS = 0;
 
     memset(&buf, 0, sizeof(buf));
     memset(&planes, 0, sizeof(planes));
@@ -272,7 +271,6 @@ int main(int argc, char** argv)
     int32_t fd = -1;
     int32_t i = 0;
     int32_t ioctlRet = -1;
-    char opt;
     YamiMediaCodec::CalcFps calcFps;
 
     renderMode = 3; // set default render mode to 3
