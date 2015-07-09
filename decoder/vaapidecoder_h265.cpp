@@ -110,13 +110,10 @@ VaapiH265FrameStore::~VaapiH265FrameStore()
 }
 
 VaapiDecoderH265::VaapiDecoderH265()
+    :m_nalLengthSize(4), m_newBitstream(true)
 {
-    m_flags = 0;
-    m_dpb_count = 0;
-    m_nalLengthSize = 4;
-    m_new_bitstream = true;
-    m_prev_nal_is_eos = false;
-    m_currentPicture.reset();
+    memset(&this->m_zeroInitStart, 0,
+           &this->m_zeroInitEnd - &this->m_zeroInitStart);
 }
 
 VaapiDecoderH265::~VaapiDecoderH265()
@@ -282,7 +279,7 @@ Decode_Status VaapiDecoderH265::decodeNalu(H265NalUnit *nalu)
         if (!m_gotSPS || !m_gotPPS)
             return DECODE_SUCCESS;
 
-        m_new_bitstream = false;
+        m_newBitstream = false;
         m_prev_nal_is_eos = false;
         status = decodeSlice(nalu);
         break;
@@ -1100,7 +1097,7 @@ bool VaapiDecoderH265::dpb_init (VaapiDecPictureH265 * picture, H265SliceHdr *sl
     H265SPS *const sps = pps->sps;
 
     if (nal_is_irap (nalu->type)
-      && picture->m_NoRaslOutputFlag && !m_new_bitstream) {
+      && picture->m_NoRaslOutputFlag && !m_newBitstream) {
         if (nalu->type == H265_NAL_SLICE_CRA_NUT)
             picture->m_NoOutputOfPriorPicsFlag = 1;
         else
@@ -1649,7 +1646,7 @@ bool VaapiDecoderH265::init_picture (PicturePtr& picture,  H265SliceHdr *slice_h
     5) has HandleCraAsBlaFlag == 1 (set by external means, so not considering )
     */
     if (nal_is_idr (nalu->type) || nal_is_bla (nalu->type) ||
-       (nal_is_cra (nalu->type) && m_new_bitstream)
+       (nal_is_cra (nalu->type) && m_newBitstream)
         || m_prev_nal_is_eos) {
         picture->m_NoRaslOutputFlag = 1;
     }

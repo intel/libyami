@@ -154,6 +154,10 @@ class VaapiDecoderH265:public VaapiDecoderBase {
     bool init_picture (PicturePtr& picture,  H265SliceHdr *slice_hdr, H265NalUnit * nalu);
 private:
     PicturePtr m_currentPicture;
+    VaapiH265FrameStore::Ptr m_dpb[16];
+
+    //folling member will be memset to zero in constructor
+    uint8_t m_zeroInitStart;
     H265Parser m_parser;
     H265SPS m_lastSPS;
     H265PPS m_lastPPS;
@@ -161,17 +165,13 @@ private:
     uint32_t m_mbHeight;
     uint32_t m_gotSPS:1;
     uint32_t m_gotPPS:1;
-    uint64_t m_nalLengthSize;
     uint32_t m_dpb_size;
     uint32_t m_dpb_count;
-
-    VaapiH265FrameStore::Ptr m_dpb[16];
 
     H265SliceHdr m_slice_hdr;
     H265SliceHdr *m_prev_slice;
     H265SliceHdr *m_prev_independent_slice;
 
-    uint32_t m_new_bitstream;
     uint32_t m_prev_nal_is_eos;
     uint32_t m_associated_irap_NoRaslOutputFlag:1;
 
@@ -206,6 +206,12 @@ private:
     VaapiDecPictureH265 *m_RefPicList1[16];
     uint32_t m_RefPicList1_count;
     uint32_t m_flags;
+    //memset end
+    uint8_t m_zeroInitEnd;
+
+    bool m_newBitstream;
+    uint32_t m_nalLengthSize;
+
     static const bool s_registered; // VaapiDecoderFactory registration result
 
 };
