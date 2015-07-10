@@ -221,16 +221,15 @@ bool VaapiDecoderVP8::fillPictureParam(const PicturePtr&  picture)
     }
 
     for (i = 0; i < 4; i++) {
+        int8_t level;
         if (seg->segmentation_enabled) {
-            picParam->loop_filter_level[i] = seg->lf_update_value[i];
-            if (!seg->segment_feature_mode) {
-                picParam->loop_filter_level[i] +=
-                    m_frameHdr.loop_filter_level;
-                picParam->loop_filter_level[i] =
-                    CLAMP(picParam->loop_filter_level[i], 0, 63);
-            }
-        } else
-            picParam->loop_filter_level[i] = m_frameHdr.loop_filter_level;
+            level = seg->lf_update_value[i];
+            if (!seg->segment_feature_mode)
+                level += m_frameHdr.loop_filter_level;
+        } else {
+            level = m_frameHdr.loop_filter_level;
+        }
+        picParam->loop_filter_level[i] = CLAMP(level, 0, 63);
 
         picParam->loop_filter_deltas_ref_frame[i] =
             m_parser.mb_lf_adjust.ref_frame_delta[i];
