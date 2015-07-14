@@ -51,6 +51,7 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.frameRate.frameRateNum = 30;
     m_videoParamCommon.frameRate.frameRateDenom = 1;
     m_videoParamCommon.intraPeriod = 15;
+    m_videoParamCommon.ipPeriod = 1;
     m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
@@ -388,6 +389,8 @@ const ProfileMapItem g_profileMap[] =
     {VAAPI_PROFILE_H264_MAIN, VAProfileH264Main},
     {VAAPI_PROFILE_H264_HIGH,VAProfileH264High},
     {VAAPI_PROFILE_JPEG_BASELINE,VAProfileJPEGBaseline},
+    {VAAPI_PROFILE_HEVC_MAIN, VAProfileHEVCMain},
+    {VAAPI_PROFILE_HEVC_MAIN10, VAProfileHEVCMain10},
 };
 
 VaapiProfile VaapiEncoderBase::profile() const

@@ -187,6 +187,11 @@ EncodeOutput* EncodeOutput::create(const char* outputFileName, int width , int h
                (strcasecmp(ext,"jpeg")==0)) {
                output = new EncodeStreamOutputJpeg();
    }
+    else if((strcasecmp(ext,"h265")==0) ||
+               (strcasecmp(ext,"265")==0) ||
+               (strcasecmp(ext,"hevc")==0)) {
+               output = new EncodeOutputHEVC();
+    }
     else
         return NULL;
 
@@ -225,6 +230,11 @@ const char* EncodeStreamOutputJpeg::getMimeType()
 const char* EncodeOutputVP8::getMimeType()
 {
     return YAMI_MIME_VP8;
+}
+
+const char* EncodeOutputHEVC::getMimeType()
+{
+    return YAMI_MIME_HEVC;
 }
 
 void setUint32(uint8_t* header, uint32_t value)

@@ -140,6 +140,11 @@ class EncodeStreamOutputJpeg : public EncodeOutput
     virtual const char* getMimeType();
 };
 
+class EncodeOutputHEVC : public EncodeOutput
+{
+    virtual const char* getMimeType();
+};
+
 bool createOutputBuffer(VideoEncOutputBuffer* outputBuffer, int maxOutSize);
 #ifdef __BUILD_GET_MV__
 bool createMVBuffer(VideoEncMVBuffer* MVBuffer, int Size);

@@ -22,6 +22,11 @@ endif
 if BUILD_VP8_ENCODER
         libyami_encoder_source_c += vaapiencoder_vp8.cpp
 endif
+
+if BUILD_HEVC_ENCODER
+        libyami_encoder_source_c += vaapiencoder_hevc.cpp
+endif
+
 libyami_encoder_source_h = \
         ../interface/VideoCommonDefs.h      \
         ../interface/VideoEncoderDefs.h      \
@@ -46,6 +51,12 @@ endif
 if BUILD_VP8_ENCODER
         libyami_encoder_source_h_priv += vaapiencoder_vp8.h
 endif
+
+if BUILD_HEVC_ENCODER
+        libyami_encoder_source_h_priv += vaapiencoder_hevc.h
+endif
+
+
 libyami_encoder_la_LIBADD = \
 		$(top_builddir)/common/libyami_common.la \
 		$(top_builddir)/vaapi/libyami_vaapi.la \
