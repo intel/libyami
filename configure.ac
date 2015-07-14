@@ -198,6 +198,12 @@ AC_DEFINE([__BUILD_GET_MV__], [1], [Defined to 1 if --enable-getmv="yes" ])
 fi
 AM_CONDITIONAL(BUILD_GET_MV, test "x$enable_getmv" = "xyes")
 
+dnl hevc encoder
+AC_ARG_ENABLE(hevcenc,
+    [AC_HELP_STRING([--enable-hevcenc], [build with hevc encoder support @<:@default=no@:>@])],
+    [], [enable_h264enc="no"])
+AM_CONDITIONAL(BUILD_HEVC_ENCODER, test "x$enable_hevcenc" = "xyes")
+
 # dnl Doxygen
 AC_ARG_ENABLE(docs,
               [AC_HELP_STRING([--enable-docs], [build with doxygen support @<:@default=yes@:>@])],
