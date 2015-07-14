@@ -388,6 +388,8 @@ const ProfileMapItem g_profileMap[] =
     {VAAPI_PROFILE_H264_MAIN, VAProfileH264Main},
     {VAAPI_PROFILE_H264_HIGH,VAProfileH264High},
     {VAAPI_PROFILE_JPEG_BASELINE,VAProfileJPEGBaseline},
+    {VAAPI_PROFILE_HEVC_MAIN, VAProfileHEVCMain},
+    {VAAPI_PROFILE_HEVC_MAIN10, VAProfileHEVCMain10},
 };
 
 VaapiProfile VaapiEncoderBase::profile() const

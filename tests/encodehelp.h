@@ -25,7 +25,7 @@
 #include "interface/VideoEncoderDefs.h"
 #include <getopt.h>
 
-static const int kIPeriod = 30;
+static const int kIPeriod = 1;
 static char *inputFileName = NULL;
 static char defaultOutputFile[] = "test.264";
 static char *outputFileName = defaultOutputFile;
