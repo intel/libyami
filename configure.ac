@@ -134,6 +134,10 @@ if test "$enable_baytrail" = "yes"; then
 AC_DEFINE([__PLATFORM_BYT__], [1], [Defined to 1 if --enable-baytrail="yes" ])
 fi
 
+AC_ARG_ENABLE(md5,
+    [AC_HELP_STRING([--enable-md5], [enable generate md5 by per frame@<:@default=yes@:>@])],
+    [], [enable_md5="yes"])
+
 dnl vp8 decoder
 AC_ARG_ENABLE(vp8dec,
     [AC_HELP_STRING([--enable-vp8dec], [build with vp8 decoder support @<:@default=yes@:>@])],
@@ -276,6 +280,14 @@ fi
 if test "$enable_avformat" = "yes"; then
 PKG_CHECK_MODULES(LIBAVFORMAT,  libavformat libavcodec libavutil)
 fi
+
+#check openssl
+if test "$enable_md5" = "yes"; then
+PKG_CHECK_MODULES(OPENSSL, [openssl],
+	         [AC_DEFINE([__ENABLE_MD5__], [1], [Defined to 1 if MD5 API and --enable-md5[default] are enabled])],
+	         [enable_md5="no"])
+fi
+AM_CONDITIONAL(ENABLE_MD5, test "x$enable_md5" = "xyes")
 
 # Checks for library functions.
 AC_FUNC_MALLOC

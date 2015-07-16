@@ -60,6 +60,7 @@ static void print_help(const char* app)
     printf("   -o dumped output dir\n");
     printf("   -n specifiy how many frames to be decoded\n");
     printf("   -m <render mode>\n");
+    printf("     -2: print MD5 by per frame and the whole decoded file MD5\n");
     printf("     -1: skip video rendering [*]\n");
     printf("      0: dump video frame to file\n");
     printf("      1: render to X window [*]\n");

@@ -45,6 +45,9 @@ endif
 if ENABLE_AVFORMAT
 YAMI_DECODE_LIBS += $(LIBAVFORMAT_LIBS)
 endif
+if ENABLE_MD5
+YAMI_DECODE_LIBS += -lcrypto
+endif
 
 YAMI_ENCODE_LIBS = \
 	$(YAMI_COMMON_LIBS)                             \

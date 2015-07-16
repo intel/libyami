@@ -4,6 +4,7 @@
  *  Copyright (C) 2011-2014 Intel Corporation
  *    Author: Halley Zhao<halley.zhao@intel.com>
  *    Author: Xu Guangxin <guangxin.xu@intel.com>
+ *    Author: Liu Yangbin <yangbinx.liu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -30,6 +31,10 @@
 #include <stdio.h>
 #include <vector>
 #include <sstream>
+
+#if  __ENABLE_MD5__
+#include <openssl/md5.h>
+#endif
 
 using namespace YamiMediaCodec;
 
@@ -69,6 +74,7 @@ class DecodeOutputRaw : public DecodeOutput
 {
 friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
+    virtual bool config(const char* source, const char* dest, uint32_t fourcc) = 0;
     virtual Decode_Status renderOneFrame(bool drain);
     ~DecodeOutputRaw();
 
@@ -104,6 +110,25 @@ private:
 
 };
 
+#if  __ENABLE_MD5__
+class DecodeOutputExtractMD5 : public DecodeOutputRaw
+{
+friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
+public:
+    DecodeOutputExtractMD5(IVideoDecoder* decoder);
+    ~DecodeOutputExtractMD5();
+
+    virtual bool render(VideoFrameRawData* frame);
+
+    bool config(const char* source, const char* dest, uint32_t fourcc);
+
+private:
+	std::string extractMd5ToHexStr(MD5_CTX& ctx);
+
+    MD5_CTX m_md5Ctx;
+    FILE* m_fp;
+};
+#endif
 
 //help functions
 bool renderOutputFrames(DecodeOutput* output, uint32_t maxframes, bool drain = false);
