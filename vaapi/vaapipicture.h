@@ -73,6 +73,7 @@ protected:
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
     inline BufObjectPtr createBufferObject(VABufferType bufType,
                                            uint32_t size,const void *data, void **mapped_data);
+    VaapiPicture();
 };
 
 template<class T>
