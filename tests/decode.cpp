@@ -65,6 +65,13 @@ int main(int argc, char** argv)
         return -1;
     }
 #endif
+#if !__ENABLE_MD5__
+    if (renderMode == -2) {
+        fprintf(stderr, "renderMode=%d is not supported, you must compile libyami without --disable-md5 option "
+                "and package libssl-dev should be installed\n", renderMode);
+        return -1;
+    }
+#endif
     input = DecodeInput::create(inputFileName);
 
     if (input==NULL) {

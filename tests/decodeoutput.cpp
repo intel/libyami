@@ -4,6 +4,7 @@
  *  Copyright (C) 2011-2014 Intel Corporation
  *    Author: Halley Zhao<halley.zhao@intel.com>
  *    Author: Xu Guangxin <guangxin.xu@intel.com>
+ *    Author: Liu Yangbin <yangbinx.liu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -268,6 +269,100 @@ DecodeOutputFileDump::~DecodeOutputFileDump()
         fclose(m_fp);
 }
 
+#if  __ENABLE_MD5__
+DecodeOutputExtractMD5::DecodeOutputExtractMD5(IVideoDecoder* decoder)
+    :DecodeOutputRaw(decoder)
+{
+    MD5_Init(&m_md5Ctx);
+}
+
+bool DecodeOutputExtractMD5::config(const char* source, const char* dest, uint32_t fourcc)
+{
+    std::ostringstream md5File;
+
+    if (!fourcc && dest)
+        fourcc = guessFourcc(dest);
+    setFourcc(fourcc);
+    const char* baseFileName = source;
+    const char* s = strrchr(source, '/');
+    if (s)
+        baseFileName = s + 1;
+    assert(dest);
+    struct stat buf;
+    int r = stat(dest, &buf);
+    if (r == 0 && buf.st_mode & S_IFDIR)
+        md5File<<dest<<"/"<<baseFileName;
+    else
+        md5File<<dest;
+
+    md5File<<"."<<"md5";
+    m_fp = fopen(md5File.str().c_str(), "wb");
+    if(m_fp == NULL) {
+        fprintf(stderr, "Open or create file for receiving md5 error\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool DecodeOutputExtractMD5::render(VideoFrameRawData* frame)
+{
+    MD5_CTX t_ctx = {0};
+
+    uint32_t width[3];
+    uint32_t height[3];
+    uint32_t planes;
+
+    //ASSERT(m_width == frame->width && m_height == frame->height);
+    if (!getPlaneResolution(frame->fourcc, frame->width, frame->height, width, height, planes))
+        return false;
+
+    MD5_Init(&t_ctx);
+
+    for (uint32_t i = 0; i < planes; i++) {
+        uint8_t* data = reinterpret_cast<uint8_t*>(frame->handle);
+        data += frame->offset[i];
+        for (uint32_t h = 0; h < height[i]; h++) {
+            MD5_Update(&t_ctx, data, width[i]);
+            MD5_Update(&m_md5Ctx, data, width[i]);
+            data += frame->pitch[i];
+        }
+    }
+
+    extractMd5ToHexStr(t_ctx);
+
+    return true;
+}
+
+std::string DecodeOutputExtractMD5::extractMd5ToHexStr(MD5_CTX& ctx)
+{
+    std::string strMD5;
+    char szTemp[4];
+    uint8_t result[16] = {0};
+
+    MD5_Final(result, &ctx);
+    for(uint32_t i = 0; i < 16; i++) {
+        memset(szTemp, 0, sizeof(szTemp));
+        snprintf(szTemp, sizeof(szTemp), "%02x", (uint32_t)result[i]);
+        strMD5 += szTemp;
+    }
+
+    fprintf(m_fp, "%s\n", strMD5.c_str());
+
+    return strMD5;
+}
+
+DecodeOutputExtractMD5::~DecodeOutputExtractMD5()
+{
+    fprintf(m_fp, "The whole frames MD5 ");
+    fprintf(stderr, "The whole frames MD5 ");
+
+    fprintf(stderr, "%s\n", extractMd5ToHexStr(m_md5Ctx).c_str());
+
+    if(m_fp)
+        fclose(m_fp);
+}
+#endif
 
 #ifdef __ENABLE_X11__
 class DecodeOutputX11 : public DecodeOutput
@@ -508,6 +603,10 @@ DecodeOutputDmabuf::DecodeOutputDmabuf(IVideoDecoder* decoder, VideoDataMemoryTy
 
 DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode)
 {
+#if  __ENABLE_MD5__
+    if(mode == -2)
+        return new DecodeOutputExtractMD5(decoder);
+#endif
     if (mode == -1)
         return new DecodeOutputNull(decoder);
     if (mode == 0)
@@ -560,7 +659,7 @@ extern char *inputFileName;
 bool configDecodeOutput(DecodeOutput* output)
 {
     bool ret = true;
-    DecodeOutputFileDump* dump = dynamic_cast<DecodeOutputFileDump*>(output);
+    DecodeOutputRaw* dump = dynamic_cast<DecodeOutputRaw*>(output);
     if (dump) {
         ret = dump->config(inputFileName, dumpOutputName, dumpFourcc);
     }
