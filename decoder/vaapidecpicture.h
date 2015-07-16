@@ -52,6 +52,9 @@ public:
 
     bool decode();
 
+protected:
+    VaapiDecPicture();
+
 private:
     virtual bool doRender();
 

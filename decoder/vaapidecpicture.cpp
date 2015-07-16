@@ -34,6 +34,10 @@ VaapiDecPicture::VaapiDecPicture(const ContextPtr& context,
 {
 }
 
+VaapiDecPicture::VaapiDecPicture()
+{
+}
+
 bool VaapiDecPicture::decode()
 {
     return render();

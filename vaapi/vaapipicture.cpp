@@ -41,6 +41,11 @@ m_timeStamp(timeStamp), m_type(VAAPI_PICTURE_TYPE_NONE)
 
 }
 
+VaapiPicture::VaapiPicture()
+:m_timeStamp(0), m_type(VAAPI_PICTURE_TYPE_NONE)
+{
+}
+
 bool VaapiPicture::render()
 {
     if (m_surface->getID() == VA_INVALID_SURFACE) {
