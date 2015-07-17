@@ -522,7 +522,7 @@ int main(int argc, char** argv)
 
              glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
              glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-             DEBUG("textureIds[%d]: 0x%x, eglImages[%d]: 0x%x", i, textureIds[i], i, eglImages[i]);
+             DEBUG("textureIds[%d]: 0x%x, eglImages[%d]: 0x%p", i, textureIds[i], i, eglImages[i]);
         }
     }
 #endif

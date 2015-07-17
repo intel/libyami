@@ -42,17 +42,16 @@ public:
     ~EglVaapiImage();
 private:
     bool acquireBufferHandle(VideoDataMemoryType);
-    EGLImageKHR     m_eglImage;
     VADisplay       m_display;
     VAImageFormat   m_format;
     VAImage         m_image;
     VABufferInfo    m_bufferInfo;
 
-
-    bool            m_inited;
-
     int             m_width;
     int             m_height;
+    bool            m_inited;
+
+    EGLImageKHR     m_eglImage;
 };
 
 }//namespace YamiMediaCodec
