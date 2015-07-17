@@ -150,6 +150,8 @@ static void read_frame_size(BitReader* br,
 
 static void read_display_frame_size(Vp9FrameHdr* frame_hdr, BitReader* br)
 {
+  frame_hdr->display_width = frame_hdr->width;
+  frame_hdr->display_height = frame_hdr->height;
   frame_hdr->display_size_enabled = vp9_read_bit(br);
   if (frame_hdr->display_size_enabled) {
     read_frame_size(br, &frame_hdr->display_width, &frame_hdr->display_height);
@@ -624,6 +626,49 @@ static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, const Vp9FrameHdr* co
   return VP9_PARSER_OK;
 }
 
+static BOOL read_display_attribute(Vp9FrameHdr * frame_hdr, BitReader* br)
+{
+  BOOL *ss_x = &frame_hdr->subsampling_x;
+  BOOL *ss_y = &frame_hdr->subsampling_y;
+
+  if (frame_hdr->profile > VP9_PROFILE_1)
+    frame_hdr->bit_depth = vp9_read_bit(br);
+  frame_hdr->color_space = (VP9_COLOR_SPACE)vp9_read_bits(br, 3);
+
+  if (frame_hdr->color_space == VP9_SRGB) {
+    if (frame_hdr->profile == VP9_PROFILE_1 || frame_hdr->profile == VP9_PROFILE_3) {
+      *ss_x = *ss_y = 0;
+      if (vp9_read_bit(br)) {
+        goto reserve_bit;
+      }
+    } else {
+        goto profile_not_support;
+    }
+  } else {
+    vp9_read_bit(br);
+    if (frame_hdr->profile == VP9_PROFILE_1 || frame_hdr->profile == VP9_PROFILE_3) {
+      *ss_x = vp9_read_bit(br);
+      *ss_y = vp9_read_bit(br);
+      if (*ss_x == 1 && *ss_y == 1) {
+        goto profile_not_support;
+      }
+      if (vp9_read_bit(br)) {
+        goto reserve_bit;
+      }
+    } else {
+      *ss_x = *ss_y = 1;
+    }
+  }
+
+  return TRUE;
+reserve_bit:
+  ERROR("reserve bit");
+  return FALSE;
+profile_not_support:
+  ERROR("YUV420 colorspace is not supported in profile VP9_PROFILE_1 and VP9_PROFILE_3");
+  return FALSE;
+}
+
 Vp9ParseResult
 vp9_parse_frame_header (Vp9Parser* parser, Vp9FrameHdr * frame_hdr, const uint8_t * data, uint32_t size)
 {
@@ -649,24 +694,8 @@ vp9_parse_frame_header (Vp9Parser* parser, Vp9FrameHdr * frame_hdr, const uint8_
   if (frame_hdr->frame_type == VP9_KEY_FRAME) {
     if (!verify_sync_code(br))
       goto error;
-    if (frame_hdr->profile > VP9_PROFILE_1)
-      frame_hdr->bit_depth = vp9_read_bit(br);
-    frame_hdr->color_space = (VP9_COLOR_SPACE)vp9_read_bits(br, 3);
-    if (frame_hdr->color_space != VP9_SRGB) {
-      vp9_read_bit(br);
-      if (frame_hdr->profile == VP9_PROFILE_1 || frame_hdr->profile == VP9_PROFILE_3) {
-        frame_hdr->subsampling_x = vp9_read_bit(br);
-        frame_hdr->subsampling_y = vp9_read_bit(br);
-        if (vp9_read_bit(br)) {
-          ERROR("reserved bit");
-          goto error;
-        }
-      } else {
-        frame_hdr->subsampling_y = frame_hdr->subsampling_x = 1;
-      }
-    } else {
-      assert(0 && "do not support SRGB");
-    }
+    if (!read_display_attribute(frame_hdr, br))
+      goto error;
     read_frame_size(br, &frame_hdr->width, &frame_hdr->height);
     read_display_frame_size(frame_hdr, br);
   } else {
@@ -676,9 +705,18 @@ vp9_parse_frame_header (Vp9Parser* parser, Vp9FrameHdr * frame_hdr, const uint8_
     if (frame_hdr->intra_only) {
       if (!verify_sync_code(br))
         goto error;
+
+      if (frame_hdr->profile > VP9_PROFILE_0) {
+        if (!read_display_attribute(frame_hdr, br))
+          goto error;
+      } else {
+        frame_hdr->subsampling_x = frame_hdr->subsampling_y = 1;
+        frame_hdr->color_space = VP9_BT_601;
+      }
+
       frame_hdr->refresh_frame_flags = vp9_read_bits(br, VP9_REF_FRAMES);
-      frame_hdr->color_space = VP9_BT_601;
-      frame_hdr->subsampling_y = frame_hdr->subsampling_x = 1;
+      read_frame_size(br, &frame_hdr->width, &frame_hdr->height);
+      read_display_frame_size(frame_hdr, br);
     } else {
       int i;
       frame_hdr->refresh_frame_flags = vp9_read_bits(br, VP9_REF_FRAMES);
