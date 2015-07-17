@@ -68,7 +68,7 @@ class V4l2CodecBase {
     virtual int32_t usePixmap(int bufferIndex, Pixmap pixmap) {return 0;};
 #else
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
-    bool setDrmFd(int drm_fd) {m_drmfd = drm_fd; };
+    bool setDrmFd(int drm_fd) {m_drmfd = drm_fd; return true;};
 
 #endif
     void workerThread();
