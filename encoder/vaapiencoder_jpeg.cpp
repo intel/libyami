@@ -263,7 +263,7 @@ void VaapiEncoderJpeg::flush()
 Encode_Status VaapiEncoderJpeg::stop()
 {
     flush();
-    VaapiEncoderBase::stop();
+    return VaapiEncoderBase::stop();
 }
 
 Encode_Status VaapiEncoderJpeg::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
@@ -371,12 +371,11 @@ bool VaapiEncoderJpeg::fill(VAEncSliceParameterBufferJPEG *sliceParam) const
 
 bool VaapiEncoderJpeg::fill(VAHuffmanTableBufferJPEGBaseline *huffTableParam) const
 {
-    JpegHuffmanTables *const hufTables = &m_hufTables;
-    VaapiBufObject *object;
+    const JpegHuffmanTables *const hufTables = &m_hufTables;
     uint32_t i, numTables;
 
     if (!m_hasHufTable)
-        jpeg_get_default_huffman_tables(&m_hufTables);
+        jpeg_get_default_huffman_tables(const_cast<JpegHuffmanTables*>(&m_hufTables));
     
     numTables = MIN(N_ELEMENTS(huffTableParam->huffman_table),
                     JPEG_MAX_SCAN_COMPONENTS);
@@ -455,7 +454,6 @@ bool VaapiEncoderJpeg::ensureHuffTable(const PicturePtr & picture)
 
 bool VaapiEncoderJpeg::addSliceHeaders (const PicturePtr& picture) const
 {    
-    VAEncPackedHeaderParameterBuffer packed_header_param_buffer;
     unsigned int length_in_bits;
     unsigned char *packed_header_buffer = NULL;
     //length_in_bits = build_packed_jpeg_header_buffer(&packed_header_buffer, width(), height(), 0);
