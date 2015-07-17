@@ -279,7 +279,7 @@ Decode_Status VaapiDecoderH265::decodeNalu(H265NalUnit *nalu)
         if (!m_gotSPS || !m_gotPPS)
             return DECODE_SUCCESS;
 
-        m_newBitstream = false;
+        //m_newBitstream = false;
         m_prev_nal_is_eos = false;
         status = decodeSlice(nalu);
         break;
@@ -318,34 +318,6 @@ uint32_t VaapiDecoderH265::get_slice_data_byte_offset (H265SliceHdr *slice_hdr, 
     epb_count = slice_hdr->n_emulation_prevention_bytes;
 
     return nal_header_bytes + (slice_hdr->header_size + 7) / 8 - epb_count;
-}
-
-bool VaapiDecoderH265::fillPredWeightTable(VASliceParameterBufferHEVC*sliceParam)
-{
-    uint32_t i, j;
-    sliceParam->luma_log2_weight_denom = 0;
-    sliceParam->delta_chroma_log2_weight_denom = 0;
-
-    if (0) {
-    }
-    /* Fixme: Optimize */
-    else {
-        for (i = 0; i < 15; i++) {
-            sliceParam->delta_luma_weight_l0[i] = 0;
-            sliceParam->luma_offset_l0[i] = 0;
-            sliceParam->delta_luma_weight_l1[i] = 0;
-            sliceParam->luma_offset_l1[i] = 0;
-        }
-        for (i = 0; i < 15; i++) {
-            for (j = 0; j < 2; j++) {
-                sliceParam->delta_chroma_weight_l0[i][j] = 0;
-                sliceParam->ChromaOffsetL0[i][j] = 0;
-                sliceParam->delta_chroma_weight_l1[i][j] = 0;
-                sliceParam->ChromaOffsetL1[i][j] = 0;
-            }
-        }
-    }
-    return true;
 }
 
 void VaapiDecoderH265::vaapi_init_picture (VAPictureHEVC * pic)
@@ -438,7 +410,7 @@ bool VaapiDecoderH265::fillSlice(VaapiDecPictureH265 * picture, VASliceParameter
     /* use most recent independent slice segment header syntax elements
     * for filling the missing fields in dependent slice segment header */
     if (sliceHdr->dependent_slice_segment_flag)
-        sliceHdr = m_prev_independent_slice;
+        sliceHdr = &m_prev_independent_slice;
 
     COPY_LFF (mvd_l1_zero_flag);
     COPY_LFF (cabac_init_flag);
@@ -478,9 +450,10 @@ bool VaapiDecoderH265::fillSlice(VaapiDecPictureH265 * picture, VASliceParameter
     if (!fill_RefPicList(picture, sliceParam, sliceHdr)) {
         return false;
     }
-    if (!fillPredWeightTable (sliceParam)) {
+    if (!fill_pred_weight_table (sliceParam, sliceHdr)) {
         return false;
     }
+
     return true;
 }
 
@@ -1419,7 +1392,7 @@ void VaapiDecoderH265::init_picture_refs(VaapiDecPictureH265 * picture, H265Slic
         return;
 
     if (slice_hdr->dependent_slice_segment_flag) {
-        H265SliceHdr *tmp = m_prev_independent_slice;
+        H265SliceHdr *tmp = &m_prev_independent_slice;
         num_ref_idx_l0_active_minus1 = tmp->num_ref_idx_l0_active_minus1;
         num_ref_idx_l1_active_minus1 = tmp->num_ref_idx_l1_active_minus1;
         ref_pic_list_modification = &tmp->ref_pic_list_modification;
@@ -1682,6 +1655,9 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit * nalu)
         return DECODE_FAIL;
     }
 
+    if (!m_slice_hdr.dependent_slice_segment_flag) {
+        memcpy(&m_prev_independent_slice, &m_slice_hdr, sizeof(m_prev_independent_slice));
+    }
     H265PPS *const pps = sliceHdr->pps;
     H265SPS *const sps = pps->sps;
     ensure_dpb(sps);
@@ -1708,6 +1684,13 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit * nalu)
         if (!init_picture(picture, sliceHdr, nalu))
             return DECODE_FAIL;
 
+        /* Drop all RASL pictures having NoRaslOutputFlag is TRUE for the
+        * associated IRAP picture */
+        if (nal_is_rasl (nalu->type) && m_associated_irap_NoRaslOutputFlag) {
+            m_currentPicture.reset();
+            return DECODE_SUCCESS;
+        }
+
         if (!decode_ref_pic_set (picture, sliceHdr, nalu))
             return DECODE_FAIL;
 
@@ -1717,6 +1700,7 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit * nalu)
         if (!fillPicture(picture, nalu)) {
             return DECODE_FAIL;
         }
+        m_newBitstream = false;
         m_currentPicture = picture;
     }
 

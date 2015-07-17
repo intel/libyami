@@ -105,7 +105,6 @@ class VaapiDecoderH265:public VaapiDecoderBase {
     Decode_Status ensureContext();
     Decode_Status decodeNalu(H265NalUnit * nalu);
     uint32_t get_slice_data_byte_offset (H265SliceHdr * slice_hdr, uint32_t nal_header_bytes);
-    bool fillPredWeightTable(VASliceParameterBufferHEVC*sliceParam);
     bool fillSlice(VaapiDecPictureH265 * picture, VASliceParameterBufferHEVC* sliceParam, H265SliceHdr * sliceHdr, H265NalUnit * nalu);
     bool fillPicture(PicturePtr& picture, H265NalUnit * nalu);
     void fill_iq_matrix_4x4 (VAIQMatrixBufferHEVC * iq_matrix, H265ScalingList * scaling_list);
@@ -170,7 +169,7 @@ private:
 
     H265SliceHdr m_slice_hdr;
     H265SliceHdr *m_prev_slice;
-    H265SliceHdr *m_prev_independent_slice;
+    H265SliceHdr m_prev_independent_slice;
 
     uint32_t m_prev_nal_is_eos;
     uint32_t m_associated_irap_NoRaslOutputFlag:1;
