@@ -140,7 +140,9 @@ int main(int argc, char** argv)
 #endif
         } while (status != ENCODE_BUFFER_NO_MORE);
 
-        if (frameCount &&  encodeFrameCount++ > frameCount)
+        encodeFrameCount++;
+
+        if (frameCount && encodeFrameCount >= frameCount)
             break;
     }
 
