@@ -1,7 +1,23 @@
-libyami NEWS -- summary of changes.  2015-05-22
+libyami NEWS -- summary of changes.  2015-07-20
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2015 Intel Corporation
+
+libyami 0.2.5 release, work with libva 2015Q2 release
+=====================
++update codec parser to latest version
++fix all compile warnings.
++add  CBR for h264 and vp8 encoder.
++add "SharedPtr<VideoFrame> getOutput()" to decoder
++fix one loop filter issue in vp8dec
++1 bug in NativeDisplayDrm
++handle annexb format codec data in h264 decoder
++one “deref NULL” bug in v4l2 encoder.
++self-register enc/dec/vpp with their factories.
++add a simple player to demo decoder api usage(200 lines)
++add grid application to demo MxN ways decode + dipslay
++select driver name base on decoder profile
+
 
 libyami 0.2.4 release
 =====================
