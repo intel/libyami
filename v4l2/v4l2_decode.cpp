@@ -161,7 +161,7 @@ bool V4l2Decoder::outputPulse(int32_t &index)
 
 #if __ENABLE_V4L2_GLX__
     int64_t timeStamp = -1;
-    DEBUG("renders to Pixmap=0x%x", m_pixmaps[index]);
+    DEBUG("renders to Pixmap=0x%lx", m_pixmaps[index]);
     status = m_decoder->getOutput(m_pixmaps[index], &timeStamp, 0, 0, m_videoWidth, m_videoHeight);
 #else
     frame = &m_outputRawFrames[index];
