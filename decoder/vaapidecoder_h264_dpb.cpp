@@ -277,7 +277,7 @@ void VaapiDPBManager::evictDPB(uint32_t idx)
 bool VaapiDPBManager::bumpDPB()
 {
     PicturePtr foundPicture;
-    uint32_t i, j, frameIndex;
+    uint32_t i, j, frameIndex = 0;
     bool success;
 
     for (i = 0; i < DPBLayer->DPBCount; i++) {
