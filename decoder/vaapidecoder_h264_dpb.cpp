@@ -509,16 +509,15 @@ bool VaapiDPBManager::execRefPicMarking(const PicturePtr& pic,
 
     if (!VAAPI_H264_PICTURE_IS_IDR(pic)) {
         H264SliceHdr* header = pic->getLastSliceHeader();
+        if (!header)
+            return false;
         H264DecRefPicMarking *const decRefPicMarking =
             &header->dec_ref_pic_marking;
         if (decRefPicMarking->adaptive_ref_pic_marking_mode_flag) {
             if (!execRefPicMarkingAdaptive(pic, decRefPicMarking, hasMMCO5))
                 return false;
-        } else {
-            if (!execRefPicMarkingSlidingWindow(pic))
-                return false;
-        }
-
+        } else if (!execRefPicMarkingSlidingWindow(pic))
+            return false;
     }
 
     return true;
