@@ -32,6 +32,7 @@ extern "C" {
     #define AV_CODEC_ID_NONE   CODEC_ID_NONE
     #define AV_CODEC_ID_VP8    CODEC_ID_VP8
     #define AV_CODEC_ID_H264   CODEC_ID_H264
+    #define AV_CODEC_ID_H265   CODEC_ID_H265
 #endif
 }
 
@@ -44,6 +45,7 @@ public:
     virtual const char * getMimeType();
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
     virtual const string& getCodecData();
+    virtual const VideoStreamInfo *getStreamInfo(void);
 
 protected:
     virtual bool initInput(const char* fileName);
@@ -54,6 +56,8 @@ private:
     AVPacket m_packet;
     bool m_isEos;
     string m_codecData;
+    VideoStreamInfo m_videoStreamInfo;
+
 };
 
 #endif

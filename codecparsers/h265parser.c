@@ -885,7 +885,7 @@ h265_slice_parse_ref_pic_list_modification (H265SliceHdr * slice,
   READ_UINT8 (nr, rpl_mod->ref_pic_list_modification_flag_l0, 1);
 
   if (rpl_mod->ref_pic_list_modification_flag_l0) {
-    for (i = 0; i < slice->num_ref_idx_l0_active_minus1; i++) {
+    for (i = 0; i <= slice->num_ref_idx_l0_active_minus1; i++) {
       READ_UINT32 (nr, rpl_mod->list_entry_l0[i], n);
       CHECK_ALLOWED_MAX (rpl_mod->list_entry_l0[i], (NumPocTotalCurr - 1));
     }
@@ -933,8 +933,10 @@ h265_slice_parse_pred_weight_table (H265SliceHdr * slice, NalReader * nr)
     }
   }
 
-  if (sps->chroma_format_idc != 0)
-    READ_SE_ALLOWED (nr, p->delta_chroma_log2_weight_denom, 0, 7);
+  if (sps->chroma_format_idc != 0) {
+    READ_SE_ALLOWED (nr, p->delta_chroma_log2_weight_denom,
+        (0 - p->luma_log2_weight_denom), (7 - p->luma_log2_weight_denom));
+  }
 
   for (i = 0; i <= slice->num_ref_idx_l0_active_minus1; i++)
     READ_UINT8 (nr, p->luma_weight_l0_flag[i], 1);

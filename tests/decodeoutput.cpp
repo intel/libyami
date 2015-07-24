@@ -239,8 +239,9 @@ bool DecodeOutputFileDump::render(VideoFrameRawData* frame)
     uint32_t width[3];
     uint32_t height[3];
     uint32_t planes;
-    if (!m_fp)
-        return false;
+    if (!m_fp) {
+        setVideoSize(frame->width, frame->height);
+    }
 
     //ASSERT(m_width == frame->width && m_height == frame->height);
     if (!getPlaneResolution(frame->fourcc, frame->width, frame->height, width, height, planes))
