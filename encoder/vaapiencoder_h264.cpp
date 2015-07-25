@@ -538,8 +538,15 @@ private:
             m_headers.insert(m_headers.end(), s, e);
             if (e == h.end())
                 break;
-            m_headers.insert(m_headers.end(), emulation, emulation + N_ELEMENTS(emulation));
-            s = e + N_ELEMENTS(zeros);
+            
+            s = e + N_ELEMENTS(zeros); 
+            
+            /* only when bitstream contains 0x000000/0x000001/0x000002/0x000003
+               need to insert emulation prevention byte 0x03 */
+            if (*s <= 3)
+                m_headers.insert(m_headers.end(), emulation, emulation + N_ELEMENTS(emulation));
+            else
+                m_headers.insert(m_headers.end(), zeros, zeros + N_ELEMENTS(zeros));
          } while (1);
     }
 
