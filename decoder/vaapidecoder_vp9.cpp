@@ -105,8 +105,9 @@ Decode_Status VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
         if (status != DECODE_SUCCESS)
             return status;
         return DECODE_FORMAT_CHANGE;
-    } else if (m_videoFormatInfo.width != hdr->width
-        || m_videoFormatInfo.height != hdr->height) {
+    } else if ((m_videoFormatInfo.width != hdr->width
+        || m_videoFormatInfo.height != hdr->height) &&
+        (!hdr->show_existing_frame)) {
         // notify client of resolution change, no need to reset hw context
             INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d\n", m_videoFormatInfo.width, m_videoFormatInfo.height, hdr->width, hdr->height);
             m_videoFormatInfo.width = hdr->width;
@@ -251,10 +252,6 @@ Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* dat
     PicturePtr picture = createPicture(timeStamp);
     if (!picture)
         return DECODE_MEMORY_FAIL;
-    if (!picture->getSurface()->resize(hdr->width, hdr->height)) {
-        ERROR("resize to %dx%d failed", hdr->width, hdr->height);
-        return DECODE_MEMORY_FAIL;
-    }
 
     if (hdr->show_existing_frame) {
         SurfacePtr& surface = m_reference[hdr->frame_to_show];
@@ -264,6 +261,11 @@ Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* dat
         }
         picture->setSurface(surface);
         return outputPicture(picture);
+    }
+
+    if (!picture->getSurface()->resize(hdr->width, hdr->height)) {
+        ERROR("resize to %dx%d failed", hdr->width, hdr->height);
+        return DECODE_MEMORY_FAIL;
     }
 
     if (!ensurePicture(picture, hdr))
