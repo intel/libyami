@@ -192,6 +192,9 @@ uint32_t getMaxDecFrameBuffering(H264SPS * sps, uint32_t views)
     case 51:
         maxDpbMbs = 184320;
         break;
+    case 52:
+        maxDpbMbs = 184320;
+        break;
     default:
         assert(0);
         break;
