@@ -9,7 +9,7 @@
 
 #include "common/log.h"
 #include "codecparserdef.h"
-#include "gstutils.h"
+#include "byteutils.h"
 #include "memory.h"
 #include "value.h"
 
