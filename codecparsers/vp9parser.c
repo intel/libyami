@@ -590,6 +590,9 @@ vp9_parse_frame_header (Vp9Parser* parser, Vp9FrameHdr * frame_hdr, const uint8_
       if (!verify_sync_code(br))
         goto error;
       frame_hdr->refresh_frame_flags = vp9_read_bits(br, VP9_REF_FRAMES);
+      read_frame_size(br, &frame_hdr->width, &frame_hdr->height);
+      read_display_frame_size(frame_hdr, br);
+
       frame_hdr->color_space = VP9_BT_601;
       frame_hdr->subsampling_y = frame_hdr->subsampling_x = 1;
     } else {
