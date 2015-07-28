@@ -510,7 +510,7 @@ public:
 
     Encode_Status getCodecConfig(VideoEncOutputBuffer *outBuffer)
     {
-        ASSERT((outBuffer && outBuffer->format == OUTPUT_CODEC_DATA) || outBuffer->format == OUTPUT_EVERYTHING);
+        ASSERT(outBuffer && ((outBuffer->format == OUTPUT_CODEC_DATA) || (outBuffer->format == OUTPUT_EVERYTHING)));
         if (outBuffer->bufferSize < m_headers.size())
             return ENCODE_BUFFER_TOO_SMALL;
         if (m_headers.empty())
