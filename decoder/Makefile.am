@@ -16,6 +16,10 @@ if BUILD_H264_DECODER
         libyami_decoder_source_c += vaapidecoder_h264_dpb.cpp
 endif
 
+if BUILD_H265_DECODER
+        libyami_decoder_source_c += vaapidecoder_h265.cpp
+endif
+
 if BUILD_VP8_DECODER
         libyami_decoder_source_c += vaapidecoder_vp8.cpp
 endif
@@ -47,6 +51,10 @@ libyami_decoder_source_h_priv = \
 
 if BUILD_H264_DECODER
         libyami_decoder_source_h_priv += vaapidecoder_h264.h
+endif
+
+if BUILD_H265_DECODER
+        libyami_decoder_source_h_priv += vaapidecoder_h265.h
 endif
 
 if BUILD_VP8_DECODER

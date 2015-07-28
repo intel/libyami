@@ -3,12 +3,14 @@ INCLUDES = -I$(top_srcdir)
 libyami_common_source_c = \
         log.cpp \
         utils.cpp \
+        nalreader.cpp \
         $(NULL)
 
 libyami_common_source_h_priv = \
         log.h \
         utils.h \
-		common_def.h \
+        common_def.h \
+        nalreader.h \
 	$(NULL)
 
 libyami_common_ldflags = \
