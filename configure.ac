@@ -162,6 +162,12 @@ AC_ARG_ENABLE(h264dec,
     [], [enable_h264dec="yes"])
 AM_CONDITIONAL(BUILD_H264_DECODER, test "x$enable_h264dec" = "xyes")
 
+dnl h265 decoder
+AC_ARG_ENABLE(h265dec,
+    [AC_HELP_STRING([--enable-h265dec], [build with h265 decoder support @<:@default=yes@:>@])],
+    [], [enable_h265dec="yes"])
+AM_CONDITIONAL(BUILD_H265_DECODER, test "x$enable_h265dec" = "xyes")
+
 dnl fake decoder
 AC_ARG_ENABLE(fakedec,
     [AC_HELP_STRING([--enable-fakedec], [build with fake decoder support @<:@default=no@:>@])],
