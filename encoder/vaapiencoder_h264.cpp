@@ -973,6 +973,8 @@ Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t tim
         if (!m_maxCodedbufSize)
             ensureCodedBufferSize();
         CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
+        if (!codedBuffer)
+            return ENCODE_NO_MEMORY;
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
         picture->m_codedBuffer = codedBuffer;
