@@ -82,7 +82,8 @@ static const MimeEntry MimeEntrys[] = {
     AV_CODEC_ID_VP9, YAMI_MIME_VP9,
 #endif
 
-    AV_CODEC_ID_H264, YAMI_MIME_H264
+    AV_CODEC_ID_H264, YAMI_MIME_H264,
+    AV_CODEC_ID_H265, YAMI_MIME_H265
 };
 
 const char * DecodeInputAvFormat::getMimeType()
