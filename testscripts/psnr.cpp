@@ -18,7 +18,8 @@ static void print_help(const char* app)
 }
 
 int
-psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresult, int width, int height, int standardpsnr)
+psnr_calculate(char *filename1, char *filename2, const char *eachpsnr, const char *psnrresult,
+               int width, int height, int standardpsnr)
 {
     int size1,size2;
     char videofile[512] = {0};
@@ -176,14 +177,13 @@ psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresul
 
 int main(int argc, char *argv[])
 {
-    char filename1[256] = {0};
-    char filename2[256] = {0};
-    char eachpsnr[256] = {0};
-    char psnrresult[256] = {0};
+    char* filename1 = NULL;
+    char* filename2 = NULL;
+    const char* eachpsnr = "every_frame_psnr.txt";
+    const char* psnrresult = "average_psnr.txt";
     int width=0,height=0;
     int standardpsnr = NORMAL_PSNR;
     char opt;
-    char *path = NULL;
     while ((opt = getopt(argc, argv, "h:W:H:i:o:s:?")) != -1)
     {
         switch (opt) {
@@ -192,16 +192,10 @@ int main(int argc, char *argv[])
                 print_help(argv[0]);
                 return false;
             case 'i':
-                strcpy(filename1,optarg);
+                filename1 = optarg;
                 break;
             case 'o':
-                strcpy(filename2,optarg);
-                strcat(eachpsnr,filename2);
-                strcat(eachpsnr,".txt");
-                if ((path = strrchr(filename2, '/')))
-                    path++;
-                memcpy(psnrresult,filename2,path-filename2);
-                strcat(psnrresult,"jpg_psnr.txt");
+                filename2 = optarg;
                 break;
             case 'W':
                 width = atoi(optarg);
@@ -222,8 +216,8 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    if (!strlen(filename1)) {
-        fprintf(stderr, "no input media file specified\n");
+    if ( !filename1 || !filename2 ) {
+        fprintf(stderr, "no comparison media file specified\n");
         return -1;
     }
     printf(" filename1 %s\n filename2 %s\n result    %s \n",filename1,filename2,psnrresult);
