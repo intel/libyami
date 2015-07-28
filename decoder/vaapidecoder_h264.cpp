@@ -1452,7 +1452,7 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer * buffer)
     size = buffer->size;
 
     DEBUG("H264: Decode(bufsize =%d, timestamp=%ld)", size, m_currentPTS);
-    if (buf == NULL && size == 0) { // got EOS
+    if (buf == NULL || size == 0) { // got EOS
         INFO("flush-debug got EOS, set all frames output-able");
         flushOutport();
         return DECODE_SUCCESS;
