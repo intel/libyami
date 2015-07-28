@@ -70,10 +70,13 @@ psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresul
         return -1;
     }
 
-    if(!bufferyuv1)
+    if (!bufferyuv1)
         bufferyuv1 = (unsigned char*)malloc(sizey);
-    if(!bufferyuv2)
+    if (!bufferyuv2)
         bufferyuv2 = (unsigned char*)malloc(sizey);
+    if (!bufferyuv1 || !bufferyuv2)
+        return -1;
+
     while(1)
     {
         int i, j;
@@ -153,6 +156,8 @@ psnr_calculate(char *filename1, char *filename2, char *eachpsnr, char *psnrresul
     char *path = NULL ;
     if ((path = strrchr (filename2, '/')))
         path++;
+    else
+        path = filename2;
     strcpy(videofile,path);
     if(avgy<standardpsnr || avgu<standardpsnr || avgv<standardpsnr)
         fprintf(fppsnrresult,"%s: Y:%f  U:%f  V:%f    fail\n",videofile,avgy,avgu,avgv);
