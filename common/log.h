@@ -48,12 +48,13 @@ extern int isIni;
 }while (0)
 #endif
 
-#define FILE_NAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
-
 #define YAMI_DEBUG_MESSAGE(LEVEL, prefix, format, ...) \
     do {\
-        if (yamiLogFlag >= YAMI_LOG_##LEVEL) \
-            yamiMessage(yamiLogFn, "libyami %s(%s, %d): " format "\n", #prefix, FILE_NAME, __LINE__, ##__VA_ARGS__); \
+        if (yamiLogFlag >= YAMI_LOG_##LEVEL) { \
+            const char* name = strrchr(__FILE__, '/'); \
+            name = (name ? (name + 1) : __FILE__); \
+            yamiMessage(yamiLogFn, "libyami %s(%s, %d): " format "\n", #prefix, name, __LINE__, ##__VA_ARGS__); \
+        } \
     } while (0)
 
 #ifndef ERROR
