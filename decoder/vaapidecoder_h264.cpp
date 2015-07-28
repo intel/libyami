@@ -138,15 +138,17 @@ static void
 fillIqMatrix8x8(VAIQMatrixBufferH264 *iq_matrix, const H264PPS *pps)
 {
     const H264SPS *const sps = pps->sequence;
-    uint32_t i, n;
+    uint32_t i;
 
     /* If chroma_format_idc != 3, there are up to 2 8x8 scaling lists */
     if (!pps->transform_8x8_mode_flag)
         return;
     assert(G_N_ELEMENTS(iq_matrix->ScalingList8x8) >= 2);
     assert(G_N_ELEMENTS(iq_matrix->ScalingList8x8[0]) == 64);
-    n = (sps->chroma_format_idc != 3) ? 2 : 6;
-    for (i = 0; i < n; i++) {
+    /* can't support 4:4:4 because ScalingLists8x8[] defined by libva
+       is not large enough to hold lists for 4:4:4 */
+    assert (sps->chroma_format_idc != 3);
+    for (i = 0; i < G_N_ELEMENTS(iq_matrix->ScalingList8x8); i++) {
         h264_quant_matrix_8x8_get_raster_from_zigzag(
         iq_matrix->ScalingList8x8[i], pps->scaling_lists_8x8[i]);
     }
