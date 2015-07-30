@@ -44,7 +44,6 @@ int main(int argc, char** argv)
     VideoConfigBuffer configBuffer;
     const VideoFormatInfo *formatInfo = NULL;
     Decode_Status status;
-    NativeDisplay nativeDisplay;
 
     if (!process_cmdline(argc, argv))
         return -1;

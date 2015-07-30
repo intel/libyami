@@ -25,5 +25,5 @@ fi
 cd "$olddir"
 
 if test -z "$NOCONFIGURE"; then
-    CXXFLAGS="-Wno-unused-function -Wno-sign-compare -Wno-cpp -Wall -Werror" $srcdir/configure "$@" && echo "Now type 'make' to compile $PROJECT."
+    $srcdir/configure "$@" && echo "Now type 'make' to compile $PROJECT."
 fi

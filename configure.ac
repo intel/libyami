@@ -206,6 +206,9 @@ if test "$enable_docs" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_DOCS, test "$enable_docs" = "yes")
 
+: ${CFLAGS="-g -O2 -Wno-unused-function -Wno-sign-compare -Wno-cpp -Wall -Werror"}
+: ${CXXFLAGS="-g -O2 -Wno-unused-function -Wno-sign-compare -Wno-cpp -Wall -Werror"}
+
 # Checks for programs.
 AC_DISABLE_STATIC
 AC_PROG_CXX

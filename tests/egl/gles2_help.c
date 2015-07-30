@@ -295,8 +295,7 @@ EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc, int
     result = eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext);
     EGL_CHECK_RESULT_RET(result, "eglMakeCurrent", NULL);
 
-    const unsigned char* glVersion = glGetString(GL_VERSION);
-    INFO("Runing GL version: %s, please make sure it support GL 2.0 API", glVersion);
+    INFO("Runing GL version: %s, please make sure it support GL 2.0 API", glGetString(GL_VERSION));
 
     // clear to middle blue
     glClearColor(0.0, 0.0, 0.5, 0.0);

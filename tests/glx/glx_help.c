@@ -117,8 +117,6 @@ void glxRelease(GLXContextType *glxContext, Pixmap *pixmaps, GLXPixmap *glxPixma
 
 int createPixmapForTexture(GLXContextType *glxContext, GLuint texture, uint32_t width, uint32_t height, Pixmap *pixmap, GLXPixmap *glxPixmap)
 {
-    int i;
-
     if (!glxContext || !texture || !width || !height || !pixmap || !glxPixmap)
         return -1;
 
