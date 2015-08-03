@@ -538,8 +538,12 @@ private:
             m_headers.insert(m_headers.end(), s, e);
             if (e == h.end())
                 break;
-            m_headers.insert(m_headers.end(), emulation, emulation + N_ELEMENTS(emulation));
+            
             s = e + N_ELEMENTS(zeros);
+            if (*s <= 3)
+                m_headers.insert(m_headers.end(), emulation, emulation + N_ELEMENTS(emulation));
+            else
+                m_headers.insert(m_headers.end(), zeros, zeros + N_ELEMENTS(zeros));
          } while (1);
     }
 
@@ -688,7 +692,7 @@ VaapiEncoderH264::VaapiEncoderH264():
     m_streamFormat(AVC_STREAM_FORMAT_ANNEXB)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
-    m_videoParamCommon.level = 40;
+    m_videoParamCommon.level = 52;
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
 
