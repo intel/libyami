@@ -517,9 +517,18 @@ static void set_default_lf_deltas(Vp9Parser* parser)
   priv->mode_deltas[1] = 0;
 }
 
+static void set_default_segmentation_info(Vp9Parser* parser)
+{
+  Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
+
+  memset(priv->segmentation, 0, sizeof(priv->segmentation));
+  priv->segmentation_abs_delta = FALSE;
+}
+
 static void setup_past_independence(Vp9Parser* parser)
 {
   set_default_lf_deltas(parser);
+  set_default_segmentation_info(parser);
 }
 
 static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, const Vp9FrameHdr* const frame_hdr)
