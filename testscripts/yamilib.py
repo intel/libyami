@@ -75,7 +75,9 @@ class libyami:
         for i in range(1, len(self.playmode)):
             if self.decodefunc(self.playmode[0], self.playmode[i], message):
                 if self.playmode[0] == 'm' and self.playmode[i]== '0' and self.compmode:
-                    self.writetologlist(message[0], self.comparemd5())
+                    self.writetologlist(message[0], self.comparemd5(0))
+                elif self.playmode[0] == 'm' and self.playmode[i]== '-2' and self.compmode:
+                    self.writetologlist(message[0], self.comparemd5(-2))
                 else:
                     self.writetologlist(message[0], True)
             else:
@@ -107,15 +109,15 @@ class libyami:
         if mode == 'm' and modevalue == '0':
             decodeCmd = self.decode+' -i '+self.currentinput+' -'+mode+' '+modevalue+' -o '+self.currentoutput
         else:
-            decodeCmd = self.decode+' -i '+self.currentinput+' -'+mode+' '+modevalue
-        message[0] = os.path.basename(self.decode)+' '+self.currentinputbase+' -'+mode+' '+modevalue
+            decodeCmd = self.decode+' -i '+self.currentinput+' -'+mode+' '+modevalue + ' -w 0'
+        message[0] = self.currentinputbase + '\r'
         if os.system(decodeCmd) != 0:
             return False
         return True
     def encodefunc(self, message):
         W_H = self.get_w_h(self.currentinputbase)
         encodeCmd = self.encode+' -i '+self.currentinput+' -s I420 -W '+str(W_H[0])+' -H '+str(W_H[1])+' -o '+self.currentoutput
-        message[0] = os.path.basename(self.encode)+' '+self.currentinputbase
+        message[0] = os.path.basename(self.encode) + '\r'
         if os.system(encodeCmd) != 0:
             return False
         return True
@@ -128,15 +130,26 @@ class libyami:
         filenamelist = filenamelist[len(filenamelist) - 1].split('.')
         W_H = filenamelist[0].split('x')
         return W_H
-    def comparemd5(self):
-        currentmd5 = self.getmd5sum()
+    def comparemd5(self, mode):
+        currentmd5 = self.getmd5sum(mode)
         return self.verifymd5(currentmd5)
-    def getmd5sum(self):
-        fmd5value = hashlib.md5()
-        fd = open(self.currentoutput, 'rb')
-        fmd5value.update(fd.read())
-        fd.close()
-        return fmd5value.hexdigest()
+    def getmd5sum(self, mode):
+        if mode == 0: #calc md5 with dumped file
+            fmd5value = hashlib.md5()
+            fd = open(self.currentoutput, 'rb')
+            fmd5value.update(fd.read())
+            fd.close()
+            return fmd5value.hexdigest()
+        else:
+            md5file = os.path.basename(self.currentinput) + '.md5'
+            fd = open(md5file, 'r')
+            for line in fd.readlines():
+                line = line.strip('\n')
+                if 'whole' in line:
+                    strlist = line.split()
+                    break
+            fd.close()
+            return strlist[4]
     def verifymd5(self, md5value):
         returnvalue = False
         refmd5 = os.path.join(os.path.dirname(self.currentinput),'bits.md5')
@@ -160,6 +173,9 @@ class libyami:
         else:
             self.faillist.append(message)
             self.failnumber += 1
+        md5file = os.path.basename(self.currentinput) + '.md5'
+        if os.path.exists(md5file):
+            os.remove(md5file)
     def parsepsnrresult(self):
         psnrfile = os.path.join(self.outputdir, 'jpg_psnr.txt')
         if not os.path.exists(psnrfile):

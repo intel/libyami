@@ -47,13 +47,18 @@ single_md5()
     refmd5file=`ls ${testfilepath}bits.md5`
     if [ ${refmd5file} ];then
         if [ ${refmd5file} != ${testfilepath}${file} ];then
-            ${yamipath}/tests/yamidecode -i ${testfilepath}${file}  -m 0 -f I420 -o ${outputpath}
-            mv ${file}* ${file}
-            currentmd5=`md5sum ${file} | awk '{print $1}'`
-            verify_md5 ${file} ${currentmd5}
+            ${yamipath}/tests/yamidecode -i ${testfilepath}${file} -m -2
+            currentmd5=`grep whole ${file}.md5 | awk '{print $5}'`
+            refmd5=` awk  '$2 ~/^'${file}'/{print $1}' ${refmd5file} | awk '{print $1}'`
+            if [ "$currentmd5" = "$refmd5" ]; then
+                echo "${file}    pass"  >> ${tmpass}
+            else
+                echo "${file}    fail"  >>  ${tmpfail}
+                failnumber=$(($failnumber+1))
+            fi
             i=$(($i+1))
             echo ${i}---${testfilepath}${file}
-            rm -f ${file}
+            rm -f ${file}.md5
         else
             openfile=$(($openfile-1))
             echo "${testfilepath}${file} is md5 file"
