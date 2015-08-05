@@ -37,7 +37,7 @@ using namespace YamiMediaCodec;
 
 class MyDecodeInput : public DecodeInput{
 public:
-    static const int MaxNaluSize = 1024*1024; // assume max nalu size is 1M
+    static const int MaxNaluSize = 1024*1024*4; // assume max nalu size is 4M
     static const int CacheBufferSize = 8 * MaxNaluSize;
     MyDecodeInput();
     virtual ~MyDecodeInput();
