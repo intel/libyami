@@ -23,10 +23,10 @@ if __name__ == '__main__':
     capidecode = os.path.join(yamitestpath, 'decodecapi')
     capiencode = os.path.join(yamitestpath, 'encodecapi')
     psnr       = os.path.join(autotestpath, 'psnr')
-    decodemodelist = ['m', '0']
+    decodemodelist = ['m', '0', '-2']
     encodemodelist = ['m', '0']
-    v4l2wmodelist  = ['w', '0', '1']
-    v4l2mmodelist  = ['m', '-1', '0', '1', '2', '3', '4']
+    v4l2wmodelist  = ['w', '0']
+    v4l2mmodelist  = ['m', '0', '3', '4']
 
     if testformat == 'decode':
         yamiobject = libyami(yamidecode, yamiencode, psnr)
