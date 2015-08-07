@@ -827,6 +827,9 @@ struct _H265PPS
 
   uint8_t pps_extension_flag;
 
+  //calcated value
+  uint32_t PicWidthInCtbsY;
+  uint32_t PicHeightInCtbsY;
   bool valid;
 };
 
