@@ -100,7 +100,7 @@ class NativeDisplayBase {
 class NativeDisplayX11 : public NativeDisplayBase{
   public:
     NativeDisplayX11() :NativeDisplayBase(){ };
-    ~NativeDisplayX11() {
+    virtual ~NativeDisplayX11() {
         if (m_selfCreated && m_handle)
             XCloseDisplay((Display*)(m_handle));
     };
@@ -128,7 +128,7 @@ class NativeDisplayX11 : public NativeDisplayBase{
 class NativeDisplayDrm : public NativeDisplayBase{
   public:
     NativeDisplayDrm() :NativeDisplayBase(){ };
-    ~NativeDisplayDrm() {
+    virtual ~NativeDisplayDrm() {
         if (m_selfCreated && m_handle && m_handle != -1)
             ::close(m_handle);
     };
@@ -249,8 +249,10 @@ private:
 SharedPtr<DisplayCache> DisplayCache::getInstance()
 {
     static SharedPtr<DisplayCache> cache;
-    if (!cache)
-        cache.reset(new DisplayCache);
+    if (!cache) {
+        SharedPtr<DisplayCache> temp(new DisplayCache);
+        cache = temp;
+    }
     return cache;
 }
 
@@ -319,9 +321,10 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay, const
     if (!driverName.empty())
         vaSelectDriver(vaDisplay, driverName);
 
-    if (nativeDisplay.type == NATIVE_DISPLAY_VA || vaInit(vaDisplay))
-        vaapiDisplay.reset(new VaapiDisplay(nativeDisplayObj, vaDisplay));
-
+    if (nativeDisplay.type == NATIVE_DISPLAY_VA || vaInit(vaDisplay)) {
+        DisplayPtr temp(new VaapiDisplay(nativeDisplayObj, vaDisplay));
+        vaapiDisplay = temp;
+    }
     if (vaapiDisplay) {
         weak_ptr<VaapiDisplay> weak(vaapiDisplay);
         m_cache.push_back(weak);

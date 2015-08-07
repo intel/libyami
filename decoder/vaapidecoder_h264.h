@@ -166,8 +166,17 @@ struct VaapiDecPicBufLayer {
     typedef SharedPtr<VaapiDecPicBufLayer> Ptr;
     VaapiDecPicBufLayer(uint32_t size)
     {
-        memset(&DPBCount, 0, sizeof(*this) - offsetof(VaapiDecPicBufLayer, DPBCount));
+        DPBCount = 0;
         DPBSize = size;
+        memset(shortRef, 0, sizeof(shortRef));
+        memset(longRef, 0, sizeof(longRef));
+        memset(refPicList0, 0, sizeof(refPicList0));
+        memset(refPicList1, 0, sizeof(refPicList1));
+        shortRefCount = 0;
+        longRefCount = 0;
+        refPicList0Count = 0;
+        refPicList1Count = 0;
+        isValid = 0;
     }
     VaapiFrameStore::Ptr DPB[16];
     uint32_t DPBCount;

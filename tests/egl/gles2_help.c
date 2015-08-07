@@ -39,14 +39,14 @@
 
 #define EGL_CHECK_RESULT_RET(result, promptStr, ret) do {   \
     if (result != EGL_TRUE) {                               \
-        ERROR("%s failed", promptStr);                      \
-        return ret;                                          \
+        ERROR("%s failed", promptStr);                                         \
+        goto error;                                          \
     }                                                       \
 }while(0)
 #define CHECK_HANDLE_RET(handle, invalid, promptStr, ret) do {  \
     if (handle == invalid) {                                    \
-        ERROR("%s failed", promptStr);                          \
-        return ret;                                              \
+        ERROR("%s failed", promptStr);                                                   \
+        goto error;                                              \
     }                                                           \
 } while(0)
 
@@ -123,6 +123,7 @@ createShaders(const char *vertexShaderText, const char *fragShaderText, int texC
     if (!stat) {
         glGetShaderInfoLog(glProgram->vertexShader, BUFFER_SIZE, &logSize, log);
         ERROR(" vertex shader fail to compile!: %s", log);
+        free(glProgram);
         return NULL;
     }
 
@@ -133,6 +134,7 @@ createShaders(const char *vertexShaderText, const char *fragShaderText, int texC
     if (!stat) {
         glGetShaderInfoLog(glProgram->fragShader, BUFFER_SIZE, &logSize, log);
         ERROR(" fragment shader fail to compile!: %s", log);
+        free(glProgram);
         return NULL;
     }
 
@@ -145,6 +147,7 @@ createShaders(const char *vertexShaderText, const char *fragShaderText, int texC
     if (!stat) {
        glGetProgramInfoLog(glProgram->program, BUFFER_SIZE, &logSize, log);
        printf("Shader fail to link!: %s\n", log);
+       free(glProgram);
        return NULL;
     }
 
@@ -260,6 +263,8 @@ EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc, int
     GLProgram *glProgram = NULL;
 
     context = calloc(1, sizeof(EGLContextType));
+    if (!context)
+        return NULL;
     EGLDisplay eglDisplay = eglGetDisplay(x11Display);
     if (eglDisplay == EGL_NO_DISPLAY) {
         ERROR("eglGetDisplay fail");
@@ -328,6 +333,10 @@ EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc, int
     context->glProgram = glProgram;
 
     return context;
+error:
+    if (context)
+        free(context);
+    return NULL;
 }
 
 void eglRelease(EGLContextType *context)

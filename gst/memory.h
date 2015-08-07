@@ -31,19 +31,14 @@
     (struct_type*)malloc(sizeof(struct_type)*(n_structs))
 
 #define g_new0(struct_type, n_structs)  \
-    ({ struct_type* tmp = (struct_type*)malloc(sizeof(struct_type)*(n_structs)); \
-    if(tmp) \
-        memset(tmp, 0, sizeof(struct_type)*(n_structs));\
-	tmp; })
+    (struct_type*)calloc((n_structs), sizeof(struct_type))
 
 #define g_slice_new(struct_type) \
     (struct_type*)malloc(sizeof(struct_type))
 
+
 #define g_slice_new0(struct_type) \
-    ({ struct_type* tmp = (struct_type*)malloc(sizeof(struct_type)); \
-    if(tmp) \
-        memset(tmp, 0, sizeof(struct_type));\
-	tmp; })
+    (struct_type*)calloc(1, sizeof(struct_type))
 
 #define g_slice_free(type, mem) \
     free(mem)

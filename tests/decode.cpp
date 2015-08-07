@@ -85,6 +85,7 @@ int main(int argc, char** argv)
     output = DecodeOutput::create(decoder, renderMode);
     if (!output || !configDecodeOutput(output)) {
         fprintf(stderr, "failed to config decode output of mode: %d\n", renderMode);
+        delete input;
         return -1;
     }
 
@@ -151,4 +152,5 @@ int main(int argc, char** argv)
     if (dumpOutputName)
         free(dumpOutputName);
     fprintf(stderr, "decode done\n");
+    return 0;
 }

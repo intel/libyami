@@ -50,6 +50,8 @@ protected:
     uint8_t *m_buffer;
     bool m_readToEOS;
     bool m_parseToEOS;
+private:
+   DISALLOW_COPY_AND_ASSIGN(MyDecodeInput);
 };
 
 class DecodeInputVPX :public MyDecodeInput

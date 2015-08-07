@@ -57,10 +57,10 @@ ByteReader *
 byte_reader_new (const uint8_t * data, uint32_t size)
 {
   ByteReader *ret = g_slice_new0 (ByteReader);
-
-  ret->data = data;
-  ret->size = size;
-
+  if (ret) {
+    ret->data = data;
+    ret->size = size;
+  }
   return ret;
 }
 

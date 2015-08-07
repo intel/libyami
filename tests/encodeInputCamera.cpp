@@ -261,7 +261,7 @@ int32_t EncodeInputCamera::dequeFrame(void)
         } while (errno == EAGAIN || EINTR == errno);
 
         ASSERT(ret != -1);
-        ASSERT(buf.index >=0 && buf.index < m_frameBufferCount);
+        ASSERT(buf.index < m_frameBufferCount);
     }
     break;
     default:
@@ -312,7 +312,7 @@ bool EncodeInputCamera::recycleOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     INFO();
 
-    ASSERT(inputBuffer.internalID >= 0 && inputBuffer.internalID < m_frameBufferCount);
+    ASSERT(inputBuffer.internalID < m_frameBufferCount);
     bool ret = enqueFrame(inputBuffer.internalID);
     ASSERT(ret);
     return ret;
