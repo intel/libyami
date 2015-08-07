@@ -39,7 +39,7 @@ extern "C" {
 #endif
 #include "common/log.h"
 #include <unistd.h>
-
+#include <limits.h>
 
 #ifndef VA_FOURCC_I420
 #define VA_FOURCC_I420 VA_FOURCC('I','4','2','0')
@@ -49,7 +49,7 @@ uint32_t dumpFourcc = VA_FOURCC_I420;
 char *inputFileName = NULL;
 int renderMode = 1;
 static int32_t waitBeforeQuit = 1;
-
+static uint32_t frameCount = UINT_MAX;
 
 static void print_help(const char* app)
 {
@@ -58,6 +58,7 @@ static void print_help(const char* app)
     printf("   -w wait before quit: 0:no-wait, 1:auto(jpeg wait), 2:wait\n");
     printf("   -f dumped fourcc [*]\n");
     printf("   -o dumped output dir\n");
+    printf("   -n specifiy how many frames to be decoded\n");
     printf("   -m <render mode>\n");
     printf("     -1: skip video rendering [*]\n");
     printf("      0: dump video frame to file\n");
@@ -73,7 +74,7 @@ static bool process_cmdline(int argc, char *argv[])
 {
     char opt;
 
-    while ((opt = getopt(argc, argv, "h:m:i:f:o:w:?")) != -1)
+    while ((opt = getopt(argc, argv, "h:m:n:i:f:o:w:?")) != -1)
     {
         switch (opt) {
         case 'h':
@@ -88,6 +89,9 @@ static bool process_cmdline(int argc, char *argv[])
             break;
         case 'm':
             renderMode = atoi(optarg);
+            break;
+        case 'n':
+            frameCount = atoi(optarg);
             break;
         case 'f':
             if (strlen(optarg) == 4) {

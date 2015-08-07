@@ -106,7 +106,7 @@ private:
 
 
 //help functions
-bool renderOutputFrames(DecodeOutput* output, bool drain = false);
+bool renderOutputFrames(DecodeOutput* output, uint32_t maxframes, bool drain = false);
 bool configDecodeOutput(DecodeOutput* output);
 
 #endif //decodeoutput_h

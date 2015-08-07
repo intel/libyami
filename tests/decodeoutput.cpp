@@ -542,17 +542,16 @@ DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode)
 #endif //__ENABLE_X11__
 }
 
-
-
-bool renderOutputFrames(DecodeOutput* output, bool drain)
+bool renderOutputFrames(DecodeOutput* output, uint32_t maxframes, bool drain)
 {
     Decode_Status status;
     do {
+        if(output->renderFrameCount() == maxframes)
+            break;
         status = output->processOneFrame(drain);
     } while (status != RENDER_NO_AVAILABLE_FRAME && status > 0);
     return true;
 }
-
 
 extern char *dumpOutputName;
 extern uint32_t dumpFourcc;
