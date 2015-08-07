@@ -64,6 +64,7 @@ SharedPtr<VADisplay> createVADisplay()
     VAStatus vaStatus = vaInitialize(vadisplay, &majorVersion, &minorVersion);
     if (vaStatus != VA_STATUS_SUCCESS) {
         ERROR("va init failed, status =  %d", vaStatus);
+        close(fd);
         return display;
     }
     display.reset(new VADisplay(vadisplay), VADisplayDeleter(fd));

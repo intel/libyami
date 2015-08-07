@@ -67,6 +67,8 @@ protected:
     FILE *m_fp;
     uint8_t *m_buffer;
     bool m_readToEOS;
+private:
+    DISALLOW_COPY_AND_ASSIGN(EncodeInputFile);
 };
 
 class EncodeInputCamera : public EncodeInput {

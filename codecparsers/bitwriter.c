@@ -97,8 +97,8 @@ BitWriter *
 bit_writer_new (uint32_t reserved_bits)
 {
   BitWriter *ret = g_slice_new0 (BitWriter);
-
-  bit_writer_init (ret, reserved_bits);
+  if (ret)
+    bit_writer_init (ret, reserved_bits);
 
   return ret;
 }
@@ -119,8 +119,8 @@ BitWriter *
 bit_writer_new_fill (uint8_t * data, uint32_t bits)
 {
   BitWriter *ret = g_slice_new0 (BitWriter);
-
-  bit_writer_init_fill (ret, data, bits);
+  if (ret)
+    bit_writer_init_fill (ret, data, bits);
 
   return ret;
 }

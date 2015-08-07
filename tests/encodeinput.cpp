@@ -37,6 +37,8 @@
 
 using namespace YamiMediaCodec;
 
+#define MAX_WIDTH  8192
+#define MAX_HEIGHT 4320
 EncodeInput * EncodeInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
     EncodeInput *input = NULL;
@@ -55,8 +57,10 @@ EncodeInput * EncodeInput::create(const char* inputFileName, uint32_t fourcc, in
     if (!input)
         return NULL;
 
-    if (!(input->init(inputFileName, fourcc, width, height)))
+    if (!(input->init(inputFileName, fourcc, width, height))) {
+        delete input;
         return NULL;
+    }
 
     return input;
 }
@@ -79,6 +83,11 @@ bool EncodeInputFile::init(const char* inputFileName, uint32_t fourcc, int width
     m_width = width;
     m_height = height;
     m_fourcc = fourcc;
+
+    if ((m_width <= 0) ||(m_height <= 0) ||(m_width > MAX_WIDTH) || (m_height > MAX_HEIGHT)) {
+        fprintf(stderr, "input width and height is invalid\n");
+        return false;
+    }
 
     if (!m_fourcc)
         m_fourcc = guessFourcc(inputFileName);

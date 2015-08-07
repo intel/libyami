@@ -51,8 +51,8 @@ ByteWriter *
 byte_writer_new (void)
 {
   ByteWriter *ret = g_slice_new0 (ByteWriter);
-
-  ret->owned = TRUE;
+  if (ret)
+    ret->owned = TRUE;
   return ret;
 }
 
@@ -72,12 +72,12 @@ ByteWriter *
 byte_writer_new_with_size (uint32_t size, bool fixed)
 {
   ByteWriter *ret = byte_writer_new ();
-
-  ret->alloc_size = size;
-  ret->parent.data = g_malloc (ret->alloc_size);
-  ret->fixed = fixed;
-  ret->owned = TRUE;
-
+  if (ret) {
+    ret->alloc_size = size;
+    ret->parent.data = g_malloc (ret->alloc_size);
+    ret->fixed = fixed;
+    ret->owned = TRUE;
+  }
   return ret;
 }
 
@@ -99,13 +99,13 @@ ByteWriter *
 byte_writer_new_with_data (uint8_t * data, uint32_t size, bool initialized)
 {
   ByteWriter *ret = byte_writer_new ();
-
-  ret->parent.data = data;
-  ret->parent.size = (initialized) ? size : 0;
-  ret->alloc_size = size;
-  ret->fixed = TRUE;
-  ret->owned = FALSE;
-
+  if (ret) {
+    ret->parent.data = data;
+    ret->parent.size = (initialized) ? size : 0;
+    ret->alloc_size = size;
+    ret->fixed = TRUE;
+    ret->owned = FALSE;
+  }
   return ret;
 }
 

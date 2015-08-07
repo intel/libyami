@@ -52,7 +52,8 @@ DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoCo
         s->resize(config->width, config->height);
         surfaces.push_back(s);
     }
-    pool.reset(new VaapiDecSurfacePool(display, surfaces));
+    DecSurfacePoolPtr temp(new VaapiDecSurfacePool(display, surfaces));
+    pool = temp;
     return pool;
 }
 

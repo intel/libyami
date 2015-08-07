@@ -89,6 +89,7 @@ private:
     uint32_t m_srcFourcc;
     uint32_t m_destFourcc;
     bool m_enableSoftI420Convert;
+    DISALLOW_COPY_AND_ASSIGN(DecodeOutputRaw);
 };
 
 class DecodeOutputFileDump : public DecodeOutputRaw

@@ -70,7 +70,6 @@ void VppOutputEncode::initOuputBuffer()
     uint32_t maxOutSize;
     m_encoder->getMaxOutSize(&maxOutSize);
     m_buffer.resize(maxOutSize);
-    memset(&m_outputBuffer, 0, sizeof(m_outputBuffer));
     m_outputBuffer.bufferSize = maxOutSize;
     m_outputBuffer.format = OUTPUT_EVERYTHING;
     m_outputBuffer.data = &m_buffer[0];

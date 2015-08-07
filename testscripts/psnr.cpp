@@ -5,6 +5,8 @@
 #include<unistd.h>
 
 #define NORMAL_PSNR 35
+#define MAX_WIDTH  8192
+#define MAX_HEIGHT 4320
 static unsigned char *bufferyuv1 = NULL;
 static unsigned char *bufferyuv2 = NULL;
 
@@ -35,6 +37,11 @@ psnr_calculate(char *filename1, char *filename2, const char *eachpsnr, const cha
     double psnrsumy=0;
     double psnrsumu=0;
     double psnrsumv=0;
+    double avgy;
+    double avgu;
+    double avgv;
+
+    char *path = NULL ;
     int framecount=0;
     int uvWidth = (width+1)/2;
     int uvHeight = (height+1)/2;
@@ -45,7 +52,7 @@ psnr_calculate(char *filename1, char *filename2, const char *eachpsnr, const cha
     if (NULL==fppsnrresult)
     {
         printf("open result psnr fail\n");
-        return -1;
+        goto error;
     }
 
     fpraw1=fopen(filename1,"rb");
@@ -53,14 +60,14 @@ psnr_calculate(char *filename1, char *filename2, const char *eachpsnr, const cha
     {
         printf("open ref yuv fail\n");
         fprintf(fppsnrresult,"open %s fail\n",filename1);
-        return -1;
+        goto error;
     }
     fpraw2=fopen(filename2,"rb");
     if (NULL==fpraw2)
     {
         printf("open decode yuv fail\n");
         fprintf(fppsnrresult,"open %s fail\n",filename2);
-        return -1;
+        goto error;
     }
     fpeachpsnr=fopen(eachpsnr,"wb");
 
@@ -68,15 +75,16 @@ psnr_calculate(char *filename1, char *filename2, const char *eachpsnr, const cha
     {
         printf("open record psnr fail\n");
         fprintf(fppsnrresult,"open %s fail\n",eachpsnr);
-        return -1;
+        goto error;
     }
 
     if (!bufferyuv1)
         bufferyuv1 = (unsigned char*)malloc(sizey);
     if (!bufferyuv2)
         bufferyuv2 = (unsigned char*)malloc(sizey);
-    if (!bufferyuv1 || !bufferyuv2)
-        return -1;
+    if (!bufferyuv1 || !bufferyuv2) {
+        goto error;
+    }
 
     while(1)
     {
@@ -148,13 +156,12 @@ psnr_calculate(char *filename1, char *filename2, const char *eachpsnr, const cha
         if (size1<0)
             break;
     }
-    double avgy = psnrsumy/framecount;
-    double avgu = psnrsumu/framecount;
-    double avgv = psnrsumv/framecount;
+    avgy = psnrsumy/framecount;
+    avgu = psnrsumu/framecount;
+    avgv = psnrsumv/framecount;
     printf(" %s: %f  %f  %f\n\n ",filename2,avgy,avgu,avgv);
     fprintf(fpeachpsnr,"[%dx%d] frame = %d\n",width,height,framecount);
     fprintf(fpeachpsnr,"Average of psnr  %f  %f  %f\n",avgy,avgu,avgv);
-    char *path = NULL ;
     if ((path = strrchr (filename2, '/')))
         path++;
     else
@@ -173,6 +180,16 @@ psnr_calculate(char *filename1, char *filename2, const char *eachpsnr, const cha
     if(bufferyuv2)
         free(bufferyuv2);
     return 0;
+error:
+    if (fppsnrresult)
+        fclose(fppsnrresult);
+    if (fpraw1)
+        fclose(fpraw1);
+    if (fpraw2)
+        fclose(fpraw2);
+    if (fpeachpsnr)
+        fclose(fpeachpsnr);
+    return -1;
 }
 
 int main(int argc, char *argv[])
@@ -218,6 +235,10 @@ int main(int argc, char *argv[])
 
     if ( !filename1 || !filename2 ) {
         fprintf(stderr, "no comparison media file specified\n");
+        return -1;
+    }
+    if ((width <= 0) ||(height <= 0) ||(width > MAX_WIDTH) || (height > MAX_HEIGHT)) {
+        printf("input width and height is invalid\n");
         return -1;
     }
     printf(" filename1 %s\n filename2 %s\n result    %s \n",filename1,filename2,psnrresult);

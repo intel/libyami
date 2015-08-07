@@ -86,19 +86,23 @@ static bool process_cmdline(int argc, char *argv[])
             inputFileName = optarg;
             break;
         case 'w':
-            waitBeforeQuit = atoi(optarg);
+            if (optarg)
+                waitBeforeQuit = atoi(optarg);
             break;
         case 'm':
-            renderMode = atoi(optarg);
+            if (optarg)
+                renderMode = atoi(optarg);
             break;
         case 'n':
             frameCount = atoi(optarg);
             break;
         case 'f':
-            if (strlen(optarg) == 4) {
-                dumpFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
-            } else {
-                fprintf(stderr, "invalid fourcc: %s\n", optarg);
+            if (optarg) {
+                if (strlen(optarg) == 4) {
+                    dumpFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
+                } else {
+                    fprintf(stderr, "invalid fourcc: %s\n", optarg);
+                }
             }
             break;
         case 'o':

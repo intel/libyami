@@ -67,6 +67,7 @@ int main(int argc, char** argv)
     output = EncodeOutput::create(outputFileName, videoWidth, videoHeight);
     if (!output) {
         fprintf (stderr, "fail to init ouput stream\n");
+        delete input;
         return -1;
     }
 
@@ -109,6 +110,8 @@ int main(int argc, char** argv)
 #endif
     if (!createOutputBuffer(&outputBuffer, maxOutSize)) {
         fprintf (stderr, "fail to create output\n");
+        delete input;
+        delete output;
         return -1;
     }
 

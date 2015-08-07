@@ -990,7 +990,11 @@ Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t tim
 
 Encode_Status VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer * outBuffer)
 {
-    ASSERT((outBuffer && outBuffer->flag == OUTPUT_CODEC_DATA) || outBuffer->flag == OUTPUT_EVERYTHING);
+    if (!outBuffer) {
+        return ENCODE_NULL_PTR;
+    }
+
+    ASSERT((outBuffer->flag == OUTPUT_CODEC_DATA) || outBuffer->flag == OUTPUT_EVERYTHING);
     AutoLock locker(m_paramLock);
     if (!m_headers)
         return ENCODE_NO_REQUEST_DATA;

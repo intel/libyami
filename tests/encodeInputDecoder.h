@@ -42,5 +42,6 @@ private:
     DecodeInput* m_input;
     IVideoDecoder* m_decoder;
     bool m_isEOS;
+    DISALLOW_COPY_AND_ASSIGN(EncodeInputDecoder);
 };
 #endif

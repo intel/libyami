@@ -356,19 +356,22 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
     VAEncMiscParameterHRD* hrd = NULL;
     if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
         return false;
-    fill(hrd);
+    if (hrd)
+        fill(hrd);
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR ||
             mode == RATE_CONTROL_VBR) {
         VAEncMiscParameterRateControl* rateControl = NULL;
         if (!picture->newMisc(VAEncMiscParameterTypeRateControl, rateControl))
             return false;
-        fill(rateControl);
+        if (rateControl)
+            fill(rateControl);
 
-        VAEncMiscParameterFrameRate* frameRate;
+        VAEncMiscParameterFrameRate* frameRate = NULL;
         if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
             return false;
-        fill(frameRate);
+        if (frameRate)
+            fill(frameRate);
     }
     return true;
 }

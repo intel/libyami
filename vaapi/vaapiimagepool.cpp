@@ -43,7 +43,8 @@ ImagePoolPtr VaapiImagePool::create(const DisplayPtr& display, uint32_t format, 
             return pool;
         images.push_back(image);
     }
-    pool.reset(new VaapiImagePool(images));
+    ImagePoolPtr temp(new VaapiImagePool(images));
+    pool = temp;
     return pool;
 }
 

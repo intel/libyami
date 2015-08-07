@@ -468,6 +468,8 @@ protected:
     bool setVideoSize(int width, int height, bool externalTexture);
     EGLContextType *m_eglContext;
     GLuint m_textureId;
+private:
+    DISALLOW_COPY_AND_ASSIGN(DecodeOutputEgl);
 };
 
 class DecodeOutputPixelMap : public DecodeOutputEgl

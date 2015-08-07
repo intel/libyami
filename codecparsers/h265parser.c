@@ -282,6 +282,8 @@ h265_parse_profile_tier_level (H265ProfileTierLevel * ptl,
   }
 
   for (i = 0; i < maxNumSubLayersMinus1; i++) {
+    if (i >= 6)
+      goto error;
     if (ptl->sub_layer_profile_present_flag[i]) {
       READ_UINT8 (nr, ptl->sub_layer_profile_space[i], 2);
       READ_UINT8 (nr, ptl->sub_layer_tier_flag[i], 1);
@@ -430,6 +432,9 @@ error:
 static bool
 h265_parse_vui_parameters (H265SPS * sps, NalReader * nr)
 {
+  if (!sps)
+    return FALSE;
+
   H265VUIParams *vui = &sps->vui_params;
 
   DEBUG ("parsing \"VUI Parameters\"");
@@ -582,6 +587,8 @@ get_scaling_list_params (H265ScalingList * dest_scaling_list,
             dest_scaling_list->scaling_list_dc_coef_minus8_16x16;
       break;
     case H265_QUANT_MATIX_32X32:
+      if (matrixId >=2)
+        return FALSE;
       *sl = dest_scaling_list->scaling_lists_32x32[matrixId];
       if (size)
         *size = 64;
@@ -772,12 +779,16 @@ h265_parser_parse_short_term_ref_pic_sets (H265ShortTermRefPicSet *
     for (j = (RefRPS->NumPositivePics - 1); j >= 0; j--) {
       dPoc = RefRPS->DeltaPocS1[j] + deltaRps;
       if (dPoc < 0 && use_delta_flag[RefRPS->NumNegativePics + j]) {
+        if (i >= 16)
+          goto error;
         stRPS->DeltaPocS0[i] = dPoc;
         stRPS->UsedByCurrPicS0[i++] =
             used_by_curr_pic_flag[RefRPS->NumNegativePics + j];
       }
     }
     if (deltaRps < 0 && use_delta_flag[RefRPS->NumDeltaPocs]) {
+      if (i >= 16)
+          goto error;
       stRPS->DeltaPocS0[i] = deltaRps;
       stRPS->UsedByCurrPicS0[i++] = used_by_curr_pic_flag[RefRPS->NumDeltaPocs];
     }
@@ -800,6 +811,8 @@ h265_parser_parse_short_term_ref_pic_sets (H265ShortTermRefPicSet *
       }
     }
     if (deltaRps > 0 && use_delta_flag[RefRPS->NumDeltaPocs]) {
+      if (i >= 16)
+        goto error;
       stRPS->DeltaPocS1[i] = deltaRps;
       stRPS->UsedByCurrPicS1[i++] = used_by_curr_pic_flag[RefRPS->NumDeltaPocs];
     }
@@ -1457,6 +1470,8 @@ h265_parse_vps (H265NalUnit * nalu, H265VPS * vps)
   for (i =
       (vps->sub_layer_ordering_info_present_flag ? 0 :
           vps->max_sub_layers_minus1); i <= vps->max_sub_layers_minus1; i++) {
+    if (i >= H265_MAX_SUB_LAYERS)
+      goto error;
     READ_UE_MAX (&nr, vps->max_dec_pic_buffering_minus1[i], G_MAXUINT32 - 1);
     READ_UE_MAX (&nr, vps->max_num_reorder_pics[i],
         vps->max_dec_pic_buffering_minus1[i]);
@@ -1465,6 +1480,8 @@ h265_parse_vps (H265NalUnit * nalu, H265VPS * vps)
   /* setting default values if vps->sub_layer_ordering_info_present_flag is zero */
   if (!vps->sub_layer_ordering_info_present_flag && vps->max_sub_layers_minus1) {
     for (i = 0; i <= (vps->max_sub_layers_minus1 - 1); i++) {
+      if ((i >= H265_MAX_SUB_LAYERS) || (vps->max_sub_layers_minus1 >= H265_MAX_SUB_LAYERS))
+        goto error;
       vps->max_dec_pic_buffering_minus1[i] =
           vps->max_dec_pic_buffering_minus1[vps->max_sub_layers_minus1];
       vps->max_num_reorder_pics[i] =
@@ -1626,6 +1643,8 @@ h265_parse_sps (H265Parser * parser, H265NalUnit * nalu,
   for (i =
       (sps->sub_layer_ordering_info_present_flag ? 0 :
           sps->max_sub_layers_minus1); i <= sps->max_sub_layers_minus1; i++) {
+    if (i >= H265_MAX_SUB_LAYERS)
+      goto error;
     READ_UE_MAX (&nr, sps->max_dec_pic_buffering_minus1[i], 16);
     READ_UE_MAX (&nr, sps->max_num_reorder_pics[i],
         sps->max_dec_pic_buffering_minus1[i]);
@@ -1634,10 +1653,13 @@ h265_parse_sps (H265Parser * parser, H265NalUnit * nalu,
   /* setting default values if sps->sub_layer_ordering_info_present_flag is zero */
   if (!sps->sub_layer_ordering_info_present_flag && sps->max_sub_layers_minus1) {
     for (i = 0; i <= (sps->max_sub_layers_minus1 - 1); i++) {
+      if ((i >= H265_MAX_SUB_LAYERS) || (sps->max_sub_layers_minus1 >= H265_MAX_SUB_LAYERS))
+        goto error;
       sps->max_dec_pic_buffering_minus1[i] =
           sps->max_dec_pic_buffering_minus1[sps->max_sub_layers_minus1];
       sps->max_num_reorder_pics[i] =
           sps->max_num_reorder_pics[sps->max_sub_layers_minus1];
+
       sps->max_latency_increase_plus1[i] =
           sps->max_latency_increase_plus1[sps->max_sub_layers_minus1];
     }
@@ -1947,7 +1969,7 @@ h265_parser_parse_slice_hdr (H265Parser * parser,
     DEBUG ("Invalid Nal Unit");
     return H265_PARSER_ERROR;
   }
-
+  memset(UsedByCurrPicLt, 0, sizeof(UsedByCurrPicLt));
   nal_reader_init (&nr, nalu->data + nalu->offset + nalu->header_bytes,
       nalu->size - nalu->header_bytes);
 
@@ -2367,9 +2389,11 @@ h265_slice_hdr_copy (H265SliceHdr * dst_slice,
   if (dst_slice->num_entry_point_offsets > 0) {
     dst_slice->entry_point_offset_minus1 =
         g_new0 (uint32_t, dst_slice->num_entry_point_offsets);
-    for (i = 0; i < dst_slice->num_entry_point_offsets; i++)
+    g_return_val_if_fail (dst_slice->entry_point_offset_minus1 != NULL, FALSE);
+    for (i = 0; i < dst_slice->num_entry_point_offsets; i++) {
       dst_slice->entry_point_offset_minus1[i] =
           src_slice->entry_point_offset_minus1[i];
+    }
   }
 
   return TRUE;
@@ -2422,6 +2446,9 @@ h265_sei_copy (H265SEIMessage * dst_sei,
           g_new0 (uint32_t, (dst_pic_timing->num_decoding_units_minus1 + 1));
       dst_pic_timing->du_cpb_removal_delay_increment_minus1 =
           g_new0 (uint8_t, (dst_pic_timing->num_decoding_units_minus1 + 1));
+
+      g_return_val_if_fail (dst_pic_timing->num_nalus_in_du_minus1 != NULL, FALSE);
+      g_return_val_if_fail (dst_pic_timing->du_cpb_removal_delay_increment_minus1 != NULL, FALSE);
 
       for (i = 0; i <= dst_pic_timing->num_decoding_units_minus1; i++) {
         dst_pic_timing->num_nalus_in_du_minus1[i] =
