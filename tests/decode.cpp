@@ -109,11 +109,14 @@ int main(int argc, char** argv)
             status = decoder->decode(&inputBuffer);
         }
 
-        renderOutputFrames(output);
+        renderOutputFrames(output, frameCount);
         if (output->renderFrameCount() >= 5 && !skipFrameCount4NetFps) {
             skipFrameCount4NetFps = output->renderFrameCount();
             calcFpsNet.setAnchor();
         }
+
+        if(output->renderFrameCount() == frameCount)
+            break;
     }
 
 #if 0
@@ -124,7 +127,7 @@ int main(int argc, char** argv)
 #endif
 
     // drain the output buffer
-    renderOutputFrames(output, true);
+    renderOutputFrames(output, frameCount, true);
 
     calcFpsGross.fps(output->renderFrameCount());
     if (output->renderFrameCount() > skipFrameCount4NetFps)
