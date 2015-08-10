@@ -330,7 +330,16 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         ASSERT(!m_streamOn[INPUT] && !m_streamOn[OUTPUT]);
         if (format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
             // ::Initialize
-            ASSERT(format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_NV12M);
+            uint32_t size;
+            size = *(uint32_t*)format->fmt.raw_data;
+            if(size <= (sizeof(format->fmt.raw_data)-sizeof(uint32_t))) {
+                m_configBuffer.size = size;
+                m_configBuffer.data = (uint8_t*)(format->fmt.raw_data) + sizeof(uint32_t);
+            } else {
+                ret = -1;
+                ERROR("unvalid codec size");
+            }
+            //ASSERT(format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_NV12M);
         } else if (format->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
             // ::CreateInputBuffers
             ASSERT(format->fmt.pix_mp.num_planes == 1);
