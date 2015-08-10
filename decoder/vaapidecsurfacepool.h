@@ -37,7 +37,7 @@
 
 namespace YamiMediaCodec{
 
-/**
+/***
  * \class VaapiDecSurfacePool
  * \brief surface pool used for decoding rendering
  * <pre>
@@ -55,8 +55,6 @@ namespace YamiMediaCodec{
  *    until all surface recycled.
  *</pre>
 */
-
-
 class VaapiDecSurfacePool : public std::tr1::enable_shared_from_this<VaapiDecSurfacePool>
 {
 public:
