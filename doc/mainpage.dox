@@ -3,16 +3,16 @@
 * <pre>
 * ==== Here are API of libyami
 * == Decoder APIs
-* class IVideoDecoder
+* class YamiMediaCodec::IVideoDecoder
 * func createVideoDecoder()
 * func releaseVideoDecoder()
 *
 * == Encoder APIs
-* class IVideoEncoder
+* class YamiMediaCodec::IVideoEncoder
 * func createVideoEncoder()
 * func releaseVideoEncoder()
 *
 * ==== More information on internal implementation:
-* class VaapiSurfaceBufferPool
+* class YamiMediaCodec::VaapiDecSurfacePool
 * </pre>
 */

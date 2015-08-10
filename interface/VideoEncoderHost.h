@@ -32,9 +32,7 @@ extern "C" { // for dlsym usage
  * \brief create encoder basing on given mimetype
 */
 YamiMediaCodec::IVideoEncoder *createVideoEncoder(const char *mimeType);
-/** \fn void releaseVideoEncoder(IVideoEncoder *p)
- * \brief destroy encoder
-*/
+///brief destroy encoder
 void releaseVideoEncoder(YamiMediaCodec::IVideoEncoder * p);
 
 typedef YamiMediaCodec::IVideoEncoder *(*YamiCreateVideoEncoderFuncPtr) (const char *mimeType);
