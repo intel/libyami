@@ -353,7 +353,17 @@ int main(int argc, char** argv)
     // set preferred output format
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_NV12M;
+    uint8_t* data = (uint8_t*)input->getCodecData().data();
+    uint32_t size = input->getCodecData().size();
+    //save codecdata, size+data, the type of format.fmt.raw_data is __u8[200]
+    //we must make sure enough space (>=sizeof(uint32_t) + size) to store codecdata
+    memcpy(format.fmt.raw_data, &size, sizeof(uint32_t));
+    if(sizeof(format.fmt.raw_data) >= size + sizeof(uint32_t))
+        memcpy(format.fmt.raw_data + sizeof(uint32_t), data, size);
+    else {
+        ERROR("No enough space to store codec data");
+        return -1;
+    }
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
 
