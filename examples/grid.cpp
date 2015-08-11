@@ -26,6 +26,7 @@
 #include "common/log.h"
 #include "common/utils.h"
 #include "tests/vppinputdecode.h"
+#include "tests/vppinputasync.h"
 #include "interface/VideoPostProcessHost.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -591,7 +592,12 @@ public:
             if (!input->config(*m_nativeDisplay)) {
                 return false;
             }
-            m_inputs.push_back(input);
+            SharedPtr<VppInput> async = VppInputAsync::create(input, 3);
+            if (!async) {
+                ERROR("can't create async input");
+                return false;
+            }
+            m_inputs.push_back(async);
         }
 
         m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
@@ -644,7 +650,7 @@ private:
             SharedPtr<VideoFrame> dest = m_renderer->dequeue();
             for (int i = 0; i < m_row; i++) {
                 for (int j = 0; j < m_col; j++) {
-                    SharedPtr<VppInputDecode>& input = m_inputs[i * m_col + j];
+                    SharedPtr<VppInput>& input = m_inputs[i * m_col + j];
                     if (!input->read(frame)) {
                         m_renderer->discard(dest);
                         m_renderer->flush();
@@ -730,7 +736,7 @@ DONE:
     SharedPtr<NativeDisplay> m_nativeDisplay;
     VADisplay m_vaDisplay;
 
-    vector< SharedPtr<VppInputDecode> > m_inputs;
+    vector< SharedPtr<VppInput> > m_inputs;
     SharedPtr<IVideoPostProcess> m_vpp;
     SharedPtr<DrmRenderer> m_renderer;
     uint32_t m_width, m_height;
