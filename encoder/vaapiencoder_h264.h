@@ -132,6 +132,7 @@ private:
     uint32_t m_maxPicOrderCnt;
     uint32_t m_log2MaxPicOrderCnt;
     uint32_t m_idrNum;
+    uint32_t m_maxCodedbufSize;
 
     StreamHeaderPtr m_headers;
     Lock m_paramLock; // locker for parameters update, for example: m_sps/m_pps/m_maxCodedbufSize (width/height etc)
