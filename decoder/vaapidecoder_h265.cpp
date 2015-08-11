@@ -1002,6 +1002,9 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit *nalu)
     if (result == H265_PARSER_ERROR) {
         return DECODE_FAIL;
     }
+    if (result == H265_PARSER_BROKEN_LINK) {
+        return DECODE_SUCCESS;
+    }
     status = ensureContext(slice->pps->sps);
     if (status != DECODE_SUCCESS) {
         return status;
