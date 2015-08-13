@@ -46,6 +46,9 @@ using std::vector;
 /* Define the maximum IDR period */
 #define MAX_IDR_PERIOD 512
 
+#define LEVEL51_MAX_MBPS 983040
+#define H264_FRAME_FR 172
+#define H264_MIN_CR 2
 
 #define VAAPI_ENCODER_H264_NAL_REF_IDC_NONE        0
 #define VAAPI_ENCODER_H264_NAL_REF_IDC_LOW         1
@@ -730,33 +733,11 @@ bool VaapiEncoderH264::ensureCodedBufferSize()
         m_numSlices = (mbSize + 1) / 2;
     ASSERT (m_numSlices);
 
-    /* Maximum sizes for common headers (in bits) */
-    enum
-    {
-      MAX_SPS_HDR_SIZE = 16473,
-      MAX_VUI_PARAMS_SIZE = 210,
-      MAX_HRD_PARAMS_SIZE = 4103,
-      MAX_PPS_HDR_SIZE = 101,
-      MAX_SLICE_HDR_SIZE = 397 + 2572 + 6670 + 2402,
-    };
+    /* As spec A.3.1, max coded buffer size should be:
+     * 384 *( Max( PicSizeInMbs, fR * MaxMBPS ) + MaxMBPS / fps ) ÷ MinCR
+     * The max level we support now is 5.1*/
+    m_maxCodedbufSize = 384 * (MAX(mbSize, LEVEL51_MAX_MBPS / H264_FRAME_FR) + LEVEL51_MAX_MBPS / fps()) / H264_MIN_CR;
 
-    /* Only YUV 4:2:0 formats are supported for now. This means that we
-       have a limit of 3200 bits per macroblock. */
-    /* XXX: check profile and compute RawMbBits */
-    m_maxCodedbufSize = m_mbWidth * m_mbHeight * 400;
-
-    /* Account for SPS header */
-    /* XXX: exclude scaling lists, MVC/SVC extensions */
-    m_maxCodedbufSize += 4 + (MAX_SPS_HDR_SIZE +
-        MAX_VUI_PARAMS_SIZE + 2 * MAX_HRD_PARAMS_SIZE + 7)/8;
-
-    /* Account for PPS header */
-    /* XXX: exclude slice groups, scaling lists, MVC/SVC extensions */
-    m_maxCodedbufSize += 4 + (MAX_PPS_HDR_SIZE + 7) / 8;
-
-    /* Account for slice header */
-    m_maxCodedbufSize += m_numSlices * (4 +
-        (MAX_SLICE_HDR_SIZE + 7) / 8);
     DEBUG("m_maxCodedbufSize: %u", m_maxCodedbufSize);
 
     return true;
