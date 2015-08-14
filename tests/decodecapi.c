@@ -37,6 +37,7 @@
 
 int main(int argc, char** argv)
 {
+    int frames = 0;
     DecodeHandler decoder = NULL;
     DecodeInputHandler input = NULL;
     DecodeOutputHandler output = NULL;
@@ -96,10 +97,12 @@ int main(int argc, char** argv)
             status = decode(decoder, &inputBuffer);
         }
 
-        renderOutputFrames(output, false);
+        frames = renderOutputFrames(output, frameCount, false);
+        if((frames == -1) || (frames == frameCount))
+            break;
     }
 
-    renderOutputFrames(output, true);
+    renderOutputFrames(output, frameCount, true);
 
     possibleWait(getMimeType(input));
 

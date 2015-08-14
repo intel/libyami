@@ -47,12 +47,14 @@ bool decodeOutputSetVideoSize(DecodeOutputHandler output, int width , int height
     return out->setVideoSize(width, height);
 }
 
-bool renderOutputFrames(DecodeOutputHandler output, bool drain)
+int renderOutputFrames(DecodeOutputHandler output, uint32_t maxframes, bool drain)
 {
     if (!output)
-        return false;
+        return -1;
     DecodeOutput* out = reinterpret_cast<DecodeOutput*>(output);
-    return renderOutputFrames(out, drain);
+    if(out->renderFrameCount() != maxframes)
+        renderOutputFrames(out, maxframes, drain);
+    return out->renderFrameCount();
 }
 
 void releaseDecodeOutput(DecodeOutputHandler output)

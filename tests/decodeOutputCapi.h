@@ -38,7 +38,7 @@ typedef struct DecodeOutputTag* DecodeOutputHandler;
 DecodeOutputHandler createDecodeOutput(DecodeHandler decoder, int renderMode);
 bool configDecodeOutput(DecodeOutputHandler output);
 bool decodeOutputSetVideoSize(DecodeOutputHandler output, int width , int height);
-bool renderOutputFrames(DecodeOutputHandler output, bool drain);
+int renderOutputFrames(DecodeOutputHandler output, uint32_t maxframes, bool drain);
 void releaseDecodeOutput(DecodeOutputHandler output);
 
 
