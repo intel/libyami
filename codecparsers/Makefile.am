@@ -7,16 +7,29 @@ libyami_codecparser_source_c = \
 	dboolhuff.c \
 	$(NULL)
 
+if BUILD_VP8_DECODER
+libyami_codecparser_source_c += \
+	vp8_bool_decoder.cpp \
+	vp8_parser.cpp \
+	$(NULL)
+endif
+
 libyami_codecparser_source_h_priv = \
 	bitReader.h \
 	nalReader.h \
 	vp9quant.h \
 	$(NULL)
 
+if BUILD_VP8_DECODER
+libyami_codecparser_source_h_priv += \
+	vp8_bool_decoder.h \
+	vp8_parser.h \
+	$(NULL)
+endif
+
 libyami_codecparser_source_h_priv = \
 	dboolhuff.h \
 	$(NULL)
-
 EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
 
 libyami_codecparser_ldflags = \
@@ -45,12 +58,19 @@ unittest_SOURCES = \
 	bitReader_unittest.cpp \
 	$(NULL)
 
+if BUILD_VP8_DECODER
+unittest_SOURCES += \
+        vp8_bool_decoder_unittest.cpp \
+        $(NULL)
+endif
+
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
 	$(NULL)
 
 unittest_LDADD = \
 	libyami_codecparser.la \
+	$(top_builddir)/common/libyami_common.la \
 	$(GTEST_LIBS) \
 	$(NULL)
 
