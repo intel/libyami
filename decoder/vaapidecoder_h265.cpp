@@ -391,7 +391,7 @@ bool VaapiDecoderH265::DPB::output(const PicturePtr& picture)
 {
     picture->m_picOutputFlag = false;
 
-    ERROR("DPB: output picture(Poc:%d)", picture->m_poc);
+    //    ERROR("DPB: output picture(Poc:%d)", picture->m_poc);
     return m_output(picture) == DECODE_SUCCESS;
 }
 
@@ -550,7 +550,7 @@ bool VaapiDecoderH265::fillIqMatrix(const PicturePtr& picture, const H265SliceHd
 void VaapiDecoderH265::fillReference(VAPictureHEVC* refs, int32_t& n,
     const RefSet& refset, uint32_t flags)
 {
-    ERROR("fill ref(%x):", flags);
+  //ERROR("fill ref(%x):", flags);
     for (int32_t i = 0; i < refset.size(); i++) {
         VAPictureHEVC* r = refs + n;
         const VaapiDecPictureH265* pic = refset[i];
@@ -561,7 +561,7 @@ void VaapiDecoderH265::fillReference(VAPictureHEVC* refs, int32_t& n,
 
         //record for late use
         m_pocToIndex[pic->m_poc] = n;
-        ERROR("%d", pic->m_poc);
+	//    ERROR("%d", pic->m_poc);
 
         n++;
 
@@ -960,7 +960,7 @@ void VaapiDecoderH265::getPoc(const PicturePtr& picture,
     }
     picture->m_poc = picOrderCntMsb + pocLsb;
     picture->m_pocLsb = pocLsb;
-    ERROR("poc = %d", picture->m_poc);
+    //ERROR("poc = %d", picture->m_poc);
 
     uint8_t temporalID = nalu->temporal_id_plus1 - 1;
     //fixme:sub-layer non-reference picture.
