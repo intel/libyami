@@ -525,19 +525,20 @@ static void set_default_segmentation_info(Vp9Parser* parser)
   priv->segmentation_abs_delta = FALSE;
 }
 
-static void setup_past_independence(Vp9Parser* parser)
+static void setup_past_independence(Vp9Parser* parser, Vp9FrameHdr* const frame_hdr)
 {
   set_default_lf_deltas(parser);
   set_default_segmentation_info(parser);
+  memset(frame_hdr->ref_frame_sign_bias, 0, sizeof(frame_hdr->ref_frame_sign_bias));
 }
 
-static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, const Vp9FrameHdr* const frame_hdr)
+static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, Vp9FrameHdr* const frame_hdr)
 {
   if (frame_hdr->frame_type == VP9_KEY_FRAME) {
     init_vp9_parser(parser);
   }
   if (frame_is_intra_only(frame_hdr) || frame_hdr->error_resilient_mode) {
-    setup_past_independence(parser);
+    setup_past_independence(parser, frame_hdr);
   }
   loop_filter_update(parser, &frame_hdr->loopfilter);
   quantization_update(parser, frame_hdr);
