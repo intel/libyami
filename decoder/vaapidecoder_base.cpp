@@ -178,29 +178,30 @@ void VaapiDecoderBase::flushOutport(void)
 
 struct BufferRecycler
 {
-    BufferRecycler(IVideoDecoder* decoder, VideoRenderBuffer* buffer)
-        :m_decoder(decoder), m_buffer(buffer)
+    BufferRecycler(const DecSurfacePoolPtr&  pool, VideoRenderBuffer* buffer)
+        :m_pool(pool), m_buffer(buffer)
     {
     }
     void operator()(VideoFrame* frame)
     {
-        m_decoder->renderDone(m_buffer);
+        m_pool->recycle(m_buffer);
         delete frame;
     }
 
 private:
-    IVideoDecoder* m_decoder;
+    DecSurfacePoolPtr  m_pool;
     VideoRenderBuffer* m_buffer;
 };
 
 SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
 {
     SharedPtr<VideoFrame> frame;
-    if (!m_surfacePool)
+    DecSurfacePoolPtr pool = m_surfacePool;
+    if (!pool)
         return frame;
-    VideoRenderBuffer *buffer = m_surfacePool->getOutput();
+    VideoRenderBuffer *buffer = pool->getOutput();
     if (buffer) {
-        frame.reset(new VideoFrame, BufferRecycler(this, buffer));
+        frame.reset(new VideoFrame, BufferRecycler(pool, buffer));
         frame->surface = (intptr_t)buffer->surface;
         frame->timeStamp = buffer->timeStamp;
         frame->crop.x = 0;
