@@ -85,13 +85,14 @@ public:
     uint32_t StartCodeSize;
 };
 
-class DecodeInputH264:public DecodeInputRaw
+class DecodeInputH26x:public DecodeInputRaw
 {
 public:
-    DecodeInputH264();
-    ~DecodeInputH264();
+    DecodeInputH26x(const char* mime);
+    ~DecodeInputH26x();
     const char * getMimeType();
     bool isSyncWord(const uint8_t* buf);
+    const char* m_mime;
 };
 
 class DecodeInputJPEG:public DecodeInputRaw
@@ -125,9 +126,12 @@ DecodeInput* DecodeInput::create(const char* fileName)
         strcasecmp(ext,"avc")==0 ||
         strcasecmp(ext,"26l")==0 ||
         strcasecmp(ext,"jvt")==0 ) {
-            input = new DecodeInputH264();
-        }
-    else if((strcasecmp(ext,"ivf")==0) ||
+        input = new DecodeInputH26x(YAMI_MIME_H264);
+    } else if (strcasecmp(ext,"265") == 0 ||
+               strcasecmp(ext,"h265") == 0 ||
+               strcasecmp(ext,"bin") == 0 ) {
+        input = new DecodeInputH26x(YAMI_MIME_H265);
+    } else if((strcasecmp(ext,"ivf")==0) ||
             (strcasecmp(ext,"vp8")==0) ||
             (strcasecmp(ext,"vp9")==0)) {
             input = new DecodeInputVPX();
@@ -360,22 +364,23 @@ bool DecodeInputRaw::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     return true;
 }
 
-DecodeInputH264::DecodeInputH264()
+DecodeInputH26x::DecodeInputH26x(const char* mime)
+    :m_mime(mime)
 {
     StartCodeSize = 3;
 }
 
-DecodeInputH264::~DecodeInputH264()
+DecodeInputH26x::~DecodeInputH26x()
 {
 
 }
 
-const char *DecodeInputH264::getMimeType()
+const char *DecodeInputH26x::getMimeType()
 {
-    return YAMI_MIME_H264;
+    return m_mime;
 }
 
-bool DecodeInputH264::isSyncWord(const uint8_t* buf)
+bool DecodeInputH26x::isSyncWord(const uint8_t* buf)
 {
     return buf[0] == 0 && buf[1] == 0 && buf[2] == 1;
 }
