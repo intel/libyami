@@ -190,10 +190,21 @@ private:
     SharedPtr<IVideoPostProcess> m_vpp;
 };
 
+void usage()
+{
+    printf("a tool to do video post process, support scaling and CSC\n");
+    printf("we can guess size and color format from your file name\n");
+    printf("current supported format are i420, yv12, nv12\n");
+    printf("usage: yamivpp input_1920x1080.i420 output_320x240.yv12\n");
+
+
+
+}
+
 int main(int argc, char** argv)
 {
     if (argc != 3) {
-        printf("usage: yamivpp input_1920x1080.i420 output_320x240.yv12\n");
+        usage();
         return -1;
     }
     VppTest vpp;
