@@ -499,7 +499,7 @@ Decode_Status VaapiDecoderH265::decodeCurrent()
 void fillScalingList##mxm(VAIQMatrixBufferHEVC* iqMatrix, const H265ScalingList* const scalingList) \
 { \
     for (int i = 0; i < N_ELEMENTS(iqMatrix->ScalingList##mxm); i++) { \
-        h265_quant_matrix_##mxm##_get_raster_from_zigzag(iqMatrix->ScalingList##mxm[i], \
+        h265_quant_matrix_##mxm##_get_raster_from_uprightdiagonal(iqMatrix->ScalingList##mxm[i], \
             scalingList->scaling_lists_##mxm[i]); \
     } \
 }
@@ -528,9 +528,12 @@ bool VaapiDecoderH265::fillIqMatrix(const PicturePtr& picture, const H265SliceHd
     H265ScalingList* scalingList;
     if (pps->scaling_list_data_present_flag) {
         scalingList = &pps->scaling_list;
-    } else if (sps->scaling_list_enabled_flag
-               && sps->scaling_list_data_present_flag) {
-        scalingList = &sps->scaling_list;
+    } else if(sps->scaling_list_enabled_flag) {
+        if(sps->scaling_list_data_present_flag) {
+            scalingList = &sps->scaling_list;
+        } else {
+            scalingList = &pps->scaling_list;
+        }
     } else {
         //default scaling list
         return true;
