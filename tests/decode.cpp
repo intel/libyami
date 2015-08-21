@@ -97,6 +97,11 @@ int main(int argc, char** argv)
         configBuffer.size = codecData.size();
     }
 
+    if (input->getWidth() && input->getHeight()) {
+        configBuffer.surfaceWidth = input->getWidth();
+        configBuffer.surfaceHeight = input->getHeight();
+    }
+
     status = decoder->start(&configBuffer);
     assert(status == DECODE_SUCCESS);
 

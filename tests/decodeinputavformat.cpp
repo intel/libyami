@@ -53,6 +53,7 @@ bool DecodeInputAvFormat::initInput(const char* fileName)
             if (ctx->extradata && ctx->extradata_size)
                 m_codecData.append((char*)ctx->extradata, ctx->extradata_size);
             m_videoId = i;
+            setResolution(ctx->coded_width, ctx->coded_height);
             break;
         }
     }
