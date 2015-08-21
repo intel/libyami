@@ -587,22 +587,27 @@ public:
 
         int len = m_col * m_row;
         for (int i = 0; i < len; i++) {
-            SharedPtr<VppInputDecode> input(new VppInputDecode);
+            SharedPtr<VppInputDecode> decodeInput(new VppInputDecode);
             char* file = m_files[i % m_files.size()];
-            if (!input->init(file)) {
+            if (!decodeInput->init(file)) {
                 fprintf(stderr, "failed to open %s", file);
                 return false;
             }
             //set native display
-            if (!input->config(*m_nativeDisplay)) {
+            if (!decodeInput->config(*m_nativeDisplay)) {
                 return false;
             }
-            SharedPtr<VppInput> async = VppInputAsync::create(input, 3);
-            if (!async) {
-                ERROR("can't create async input");
-                return false;
+            SharedPtr<VppInput> input;
+            if (m_singleThread) {
+                input = decodeInput;
+            } else {
+                input = VppInputAsync::create(decodeInput, 3);
+                if (!input) {
+                    ERROR("can't create async input");
+                    return false;
+                }
             }
-            m_inputs.push_back(async);
+            m_inputs.push_back(input);
         }
 
         m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
@@ -629,7 +634,8 @@ public:
         renderOutputs();
         return true;
     }
-    Grid():m_fd(-1), m_width(0), m_height(0), m_col(0), m_row(0), m_displayIdx(1) {}
+    Grid():m_fd(-1), m_width(0), m_height(0), m_col(0), m_row(0), m_displayIdx(1),
+        m_singleThread(false){}
     ~Grid()
     {
         //reset before we terminate the va
@@ -702,7 +708,7 @@ DONE:
     bool processCmdline(int argc, char** argv)
     {
         char opt;
-        while ((opt = getopt(argc, argv, "c:r:d:")) != -1)
+        while ((opt = getopt(argc, argv, "c:r:d:s")) != -1)
         {
             switch (opt) {
                 case 'c':
@@ -713,6 +719,9 @@ DONE:
                     break;
                 case 'd':
                     m_displayIdx = atoi(optarg);
+                    break;
+                case 's':
+                    m_singleThread = true;
                     break;
                 default:
                     return false;
@@ -739,6 +748,7 @@ DONE:
             printf("   -c <column> \n");
             printf("   -r <row> \n");
             printf("   -d <index>, target display index, start from 1 \n");
+            printf("   -s, put vpp and decode in single thread \n");
     }
 
     int m_fd;
@@ -751,6 +761,8 @@ DONE:
     uint32_t m_width, m_height;
     int m_col, m_row;
     int m_displayIdx;
+    //put decode and vpp in single thread
+    bool m_singleThread;
     vector<char*> m_files;
 };
 
