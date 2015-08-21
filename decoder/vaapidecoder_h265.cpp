@@ -815,7 +815,7 @@ void fillPredWedightTableL##n(VASliceParameterBufferHEVC* sliceParam, \
                     int32_t chromaWeight = (1 << chromaLog2WeightDenom) + deltaWeight; \
                     int16_t deltaOffset = w.delta_chroma_offset_l##n[i][j]; \
                     int32_t chromaOffset = \
-                        deltaOffset - (((128*chromaWeight)>>chromaLog2WeightDenom) + 128);\
+                        128 + deltaOffset - ((128*chromaWeight)>>chromaLog2WeightDenom);\
 \
                     sliceParam->delta_chroma_weight_l##n[i][j] = deltaWeight; \
                     sliceParam->ChromaOffsetL##n[i][j]= (int8_t)clip3(-128, 127, chromaOffset); \
