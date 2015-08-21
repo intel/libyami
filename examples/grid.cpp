@@ -252,7 +252,7 @@ public:
     uint32_t getHeight();
 
 
-    DrmRenderer(VADisplay, int fd);
+    DrmRenderer(VADisplay, int fd, int displayIdx);
     ~DrmRenderer();
 private:
     bool createFrames(uint32_t width, uint32_t height, int size);
@@ -265,6 +265,7 @@ private:
 
     VADisplay m_display;
     int m_fd;
+    int m_displayIdx;
     uint32_t m_connectorID;
     uint32_t m_encoderID;
     uint32_t m_crtcID;
@@ -364,8 +365,8 @@ void DrmRenderer::Flipper::loop()
     }
 }
 
-DrmRenderer::DrmRenderer(VADisplay display, int fd)
-    :m_display(display), m_fd(fd), m_cond(m_lock), m_frameCount(0)
+DrmRenderer::DrmRenderer(VADisplay display, int fd, int displayIdx)
+    :m_display(display), m_fd(fd), m_displayIdx(displayIdx), m_cond(m_lock), m_frameCount(0)
 {
 }
 
@@ -394,20 +395,24 @@ uint32_t DrmRenderer::getHeight()
 bool DrmRenderer::getConnector(drmModeRes *resource)
 {
     drmModeConnectorPtr connector = NULL;
+    int idx = 0;
     for(int i = 0; i < resource->count_connectors; i++) {
         connector = drmModeGetConnector(m_fd, resource->connectors[i]);
         if(connector) {
             if (connector->connection == DRM_MODE_CONNECTED) {
-                m_connectorID = connector->connector_id;
-                m_encoderID = connector->encoder_id;
-                m_mode  = *connector->modes;
-                drmModeFreeConnector(connector);
-                return true;
+                idx++;
+                if (idx == m_displayIdx) {
+                    m_connectorID = connector->connector_id;
+                    m_encoderID = connector->encoder_id;
+                    m_mode  = *connector->modes;
+                    drmModeFreeConnector(connector);
+                    return true;
+                }
             }
             drmModeFreeConnector(connector);
         }
     }
-    ERROR("can't get connect connector");
+    ERROR("target display %d, but you have only %d conntected display", m_displayIdx, idx);
     return false;
 }
 
@@ -610,7 +615,7 @@ public:
             return false;
         }
 
-        m_renderer.reset(new DrmRenderer(m_vaDisplay, m_fd));
+        m_renderer.reset(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx));
         if (!m_renderer->init()) {
             ERROR("init drm renderer failed");
             return false;
@@ -624,7 +629,7 @@ public:
         renderOutputs();
         return true;
     }
-    Grid():m_fd(-1), m_width(0), m_height(0), m_col(0), m_row(0) {}
+    Grid():m_fd(-1), m_width(0), m_height(0), m_col(0), m_row(0), m_displayIdx(1) {}
     ~Grid()
     {
         //reset before we terminate the va
@@ -697,7 +702,7 @@ DONE:
     bool processCmdline(int argc, char** argv)
     {
         char opt;
-        while ((opt = getopt(argc, argv, "c:r:")) != -1)
+        while ((opt = getopt(argc, argv, "c:r:d:")) != -1)
         {
             switch (opt) {
                 case 'c':
@@ -705,6 +710,9 @@ DONE:
                     break;
                 case 'r':
                     m_row = atoi(optarg);
+                    break;
+                case 'd':
+                    m_displayIdx = atoi(optarg);
                     break;
                 default:
                     return false;
@@ -730,6 +738,7 @@ DONE:
             printf("usage: %s <options> file1 [file2] ...\n", app);
             printf("   -c <column> \n");
             printf("   -r <row> \n");
+            printf("   -d <index>, target display index, start from 1 \n");
     }
 
     int m_fd;
@@ -741,6 +750,7 @@ DONE:
     SharedPtr<DrmRenderer> m_renderer;
     uint32_t m_width, m_height;
     int m_col, m_row;
+    int m_displayIdx;
     vector<char*> m_files;
 };
 
