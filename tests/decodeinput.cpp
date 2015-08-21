@@ -105,6 +105,11 @@ private:
     int m_countSOI;
 };
 
+DecodeInput::DecodeInput()
+: m_width(0), m_height(0)
+{
+}
+
 DecodeInput* DecodeInput::create(const char* fileName)
 {
     DecodeInput* input = NULL;
@@ -148,6 +153,12 @@ DecodeInput* DecodeInput::create(const char* fileName)
     return input;
 }
 
+void DecodeInput::setResolution(const uint16_t width, const uint16_t height)
+{
+  m_width = width;
+  m_height = height;
+}
+
 MyDecodeInput::MyDecodeInput()
     : m_fp(NULL)
     , m_buffer(NULL)
@@ -188,7 +199,9 @@ struct IvfHeader {
     uint32_t tag;
     uint32_t version;
     uint32_t fourcc;
-    uint32_t dummy[5];
+    uint16_t width;
+    uint16_t height;
+    uint32_t dummy[4];
 };
 
 DecodeInputVPX::DecodeInputVPX()
@@ -222,6 +235,9 @@ bool DecodeInputVPX::init()
         m_mimeType = YAMI_MIME_VP8;
     else if (header.fourcc == YAMI_FOURCC('V', 'P', '9', '0'))
         m_mimeType = YAMI_MIME_VP9;
+
+    setResolution(header.width, header.height);
+
     return true;
 }
 

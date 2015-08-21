@@ -30,15 +30,21 @@
 using std::string;
 class DecodeInput {
 public:
+    DecodeInput();
     virtual ~DecodeInput() {}
     static DecodeInput * create(const char* fileName);
     virtual bool isEOS() = 0;
     virtual const char * getMimeType() = 0;
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer) = 0;
     virtual const string& getCodecData() = 0;
+    virtual uint16_t getWidth() {return m_width;}
+    virtual uint16_t getHeight() {return m_height;}
 
 protected:
     virtual bool initInput(const char* fileName) = 0;
+    virtual void setResolution(const uint16_t width, const uint16_t height);
+    uint16_t m_width;
+    uint16_t m_height;
 
 };
 #endif
