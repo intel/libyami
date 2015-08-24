@@ -34,6 +34,7 @@
 #include <unistd.h>
 #include <vector>
 #include <deque>
+#include <string.h>
 
 
 using namespace YamiMediaCodec;
@@ -48,11 +49,13 @@ extern "C" {
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 #include <map>
+#include <sstream>
 #include "vaapi/vaapiutils.h"
 #include "common/common_def.h"
 #include "common/condition.h"
 #include "common/lock.h"
 
+using namespace std;
 
 bool checkDrmRet(int ret,const char* msg)
 {
@@ -301,7 +304,8 @@ DrmRenderer::Flipper::~Flipper()
         m_quit = true;
         m_cond.signal();
     }
-    pthread_join(m_thread, NULL);
+    if (m_thread != -1)
+        pthread_join(m_thread, NULL);
 }
 
 bool DrmRenderer::Flipper::init()
@@ -567,21 +571,91 @@ DrmRenderer::~DrmRenderer()
     }
 }
 
+void usage(const char* app) {
+        printf("%s: a tool to display MxN ways decode output in a grid\n", app);
+        printf("usage: %s <options> file1 [file2] ...\n", app);
+        printf("   -c <column> \n");
+        printf("   -r <row> \n");
+        printf("   -d <index>, target display index, start from 1 \n");
+        printf("   -s, put vpp and decode in single thread \n");
+        printf("   -g, <grid command line> create other grid instance  \n");
+        printf("       example: grid a.mp4 -g \"b.mp4 -d 2\"\n");
+        printf("       it will render a.mp4 in first display and b.mp4 in second\n");
+}
+
 class Grid
 {
-    struct NullDeleter
+    class Arg
     {
-        void operator ()(VADisplay *) {}
+    public:
+        Arg()
+        {
+        }
+        ~Arg()
+        {
+            for (int i = 0; i < m_argv.size(); i++)
+                free(m_argv[i]);
+        }
+        void init (const string& args)
+        {
+            istringstream is(args);
+            append("grid");
+            while (is) {
+                string tmp;
+                is>>tmp;
+                if (tmp.size()) {
+                    append(tmp.c_str());
+                }
+            }
+        }
+        int getArgc()
+        {
+            return (int)m_argv.size();
+        }
+        char** getArgv()
+        {
+            return &m_argv[0];
+        }
+    private:
+        void append(const char* param)
+        {
+            m_argv.push_back(strdup(param));
+        }
+
+        vector<char*> m_argv;
     };
 public:
+    bool init(const string& args)
+    {
+         m_arg.init(args);
+         return init(m_arg.getArgc(), m_arg.getArgv());
+    }
+    bool run()
+    {
+        if (pthread_create(&m_vppThread, NULL, start, this)) {
+            ERROR("create thread failed");
+            return false;
+        }
+        return true;
+    }
+    Grid(int fd, const SharedPtr<NativeDisplay>& nativeDisplay):m_fd(fd), m_nativeDisplay(nativeDisplay),
+        m_vaDisplay((VADisplay)nativeDisplay->handle),
+        m_width(0), m_height(0), m_col(0), m_row(0),
+        m_displayIdx(1), m_singleThread(false), m_vppThread(-1){}
+
+    ~Grid()
+    {
+        if (m_vppThread != -1)
+            pthread_join(m_vppThread, NULL);
+        m_renderer.reset();
+        m_vpp.reset();
+        m_inputs.clear();
+    }
+private:
     bool init(int argc, char** argv)
     {
         if (!processCmdline(argc, argv)) {
             usage("grid");
-            return false;
-        }
-
-        if (!initDisplay()) {
             return false;
         }
 
@@ -590,7 +664,7 @@ public:
             SharedPtr<VppInputDecode> decodeInput(new VppInputDecode);
             char* file = m_files[i % m_files.size()];
             if (!decodeInput->init(file)) {
-                fprintf(stderr, "failed to open %s", file);
+                fprintf(stderr, "failed to open %s\n", file);
                 return false;
             }
             //set native display
@@ -629,28 +703,13 @@ public:
         m_height = m_renderer->getHeight();
         return true;
     }
-    bool run()
-    {
-        renderOutputs();
-        return true;
-    }
-    Grid():m_fd(-1), m_width(0), m_height(0), m_col(0), m_row(0), m_displayIdx(1),
-        m_singleThread(false){}
-    ~Grid()
-    {
-        //reset before we terminate the va
-        m_renderer.reset();
-        m_vpp.reset();
-        m_inputs.clear();
 
-        if (m_nativeDisplay) {
-            vaTerminate(m_vaDisplay);
-        }
-        if (m_fd != 0) {
-            close(m_fd);
-        }
+    static void* start(void* grid)
+    {
+        Grid* g = (Grid*)grid;
+        g->renderOutputs();
+        return NULL;
     }
-private:
     void renderOutputs()
     {
         SharedPtr<VideoFrame> frame;
@@ -682,32 +741,13 @@ private:
             fps.addFrame();
         } while (1);
 DONE:
+        printf("playback on display %d done\n", m_displayIdx);
         fps.log();
-    }
-    bool initDisplay()
-    {
-        m_fd = open("/dev/dri/card0", O_RDWR);
-        if (m_fd == -1) {
-            fprintf(stderr, "Failed to open card0 \n");
-            return false;
-        }
-        m_vaDisplay = vaGetDisplayDRM(m_fd);
-        int major, minor;
-        VAStatus status;
-        status = vaInitialize(m_vaDisplay, &major, &minor);
-        if (status != VA_STATUS_SUCCESS) {
-            fprintf(stderr, "init va failed status = %d", status);
-            return false;
-        }
-        m_nativeDisplay.reset(new NativeDisplay);
-        m_nativeDisplay->type = NATIVE_DISPLAY_VA;
-        m_nativeDisplay->handle = (intptr_t)m_vaDisplay;
-
-        return true;
     }
     bool processCmdline(int argc, char** argv)
     {
         char opt;
+        optind = 0;
         while ((opt = getopt(argc, argv, "c:r:d:s")) != -1)
         {
             switch (opt) {
@@ -742,15 +782,6 @@ DONE:
         return true;
     }
 
-    void usage(const char* app) {
-            printf("%s: a tool to display MxN ways decode output in a grid\n", app);
-            printf("usage: %s <options> file1 [file2] ...\n", app);
-            printf("   -c <column> \n");
-            printf("   -r <row> \n");
-            printf("   -d <index>, target display index, start from 1 \n");
-            printf("   -s, put vpp and decode in single thread \n");
-    }
-
     int m_fd;
     SharedPtr<NativeDisplay> m_nativeDisplay;
     VADisplay m_vaDisplay;
@@ -764,21 +795,127 @@ DONE:
     //put decode and vpp in single thread
     bool m_singleThread;
     vector<char*> m_files;
+    pthread_t m_vppThread;
+    Arg m_arg;
+};
+
+class App
+{
+public:
+    bool init(int argc, char** argv)
+    {
+        if (!processCmdline(argc, argv)) {
+            usage("grid");
+            return false;
+        }
+        if (!initDisplay()) {
+            fprintf(stderr, "init display failed");
+            return false;
+        }
+        for (int i = 0; i < m_args.size(); i++) {
+            string& arg = m_args[i];
+            SharedPtr<Grid> grid(new Grid(m_fd, m_nativeDisplay));
+            if (!grid->init(arg)) {
+                return false;
+            }
+            m_grids.push_back(grid);
+        }
+        return true;
+    }
+    bool run()
+    {
+        for (int i = 0; i < m_grids.size(); i++) {
+            SharedPtr<Grid>& grid = m_grids[i];
+            if (!grid->run()) {
+                ERROR("run grid %d failed", i);
+                return false;
+            }
+        }
+        return true;
+    }
+    ~App()
+    {
+        //make sure we destory all grid instance before we destory va
+        m_grids.clear();
+
+        if (m_nativeDisplay) {
+            vaTerminate(m_vaDisplay);
+        }
+        if (m_fd != 0) {
+            close(m_fd);
+        }
+    }
+private:
+
+    bool initDisplay()
+    {
+        m_fd = open("/dev/dri/card0", O_RDWR);
+        if (m_fd == -1) {
+            fprintf(stderr, "Failed to open card0 \n");
+            return false;
+        }
+        m_vaDisplay = vaGetDisplayDRM(m_fd);
+        int major, minor;
+        VAStatus status;
+        status = vaInitialize(m_vaDisplay, &major, &minor);
+        if (status != VA_STATUS_SUCCESS) {
+            fprintf(stderr, "init va failed status = %d", status);
+            return false;
+        }
+        m_nativeDisplay.reset(new NativeDisplay);
+        m_nativeDisplay->type = NATIVE_DISPLAY_VA;
+        m_nativeDisplay->handle = (intptr_t)m_vaDisplay;
+
+        return true;
+    }
+
+    void append(string& cmd, char* arg)
+    {
+        cmd += arg;
+        cmd += ' ';
+    }
+    bool processCmdline(int argc, char** argv)
+    {
+        //input param not in -g option.
+        string cmd;
+
+        for (int i = 1; i < argc; i++) {
+            if (strcmp(argv[i], "-g") == 0) {
+                i++;
+                if (i == argc)
+                    return false;
+                string tmp = argv[i];
+                m_args.push_back(tmp);
+            } else {
+                append(cmd, argv[i]);
+            }
+        }
+        if (cmd.size()) {
+            m_args.push_back(cmd);
+        }
+        return m_args.size();
+    }
+
+    int m_fd;
+    SharedPtr<NativeDisplay> m_nativeDisplay;
+    VADisplay m_vaDisplay;
+
+    vector<string> m_args;
+    vector< SharedPtr<Grid> > m_grids;
 };
 
 int main(int argc, char** argv)
 {
-
-    Grid grid;
-    if (!grid.init(argc, argv)) {
-        ERROR("init grid failed with %s", argv[1]);
+    App app;
+    if (!app.init(argc, argv)) {
+        ERROR("init grid app failed");
         return -1;
     }
-    if (!grid.run()){
+    if (!app.run()){
         ERROR("run grid failed");
         return -1;
     }
-    printf("play file done\n");
+
     return  0;
 
 }
