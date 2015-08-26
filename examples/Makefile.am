@@ -87,6 +87,6 @@ endif
 if ENABLE_DMABUF
 grid_CFLAGS = $(LIBDRM_CFLAGS)
 grid_CXXFLAGS = $(LIBDRM_CFLAGS)
-grid_LDADD = $(VPP_INPUT_LIBS) $(LIBDRM_LIBS)
+grid_LDADD = $(VPP_INPUT_LIBS) $(LIBDRM_LIBS) -lpthread
 grid_SOURCES = grid.cpp $(VPP_INPUT_SOURCES)
 endif
