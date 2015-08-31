@@ -59,10 +59,11 @@ Decode_Status DecodeOutput::processOneFrame(bool drain)
 {
     Decode_Status status = renderOneFrame(drain);
 
-    if (status == RENDER_SUCCESS)
+    if (status == RENDER_SUCCESS) {
         m_renderFrames++;
+        m_decoder->renderDone(&m_frame);
+    }
 
-    m_decoder->renderDone(&m_frame);
     return status;
 }
 
