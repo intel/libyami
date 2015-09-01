@@ -983,8 +983,11 @@ PicturePtr VaapiDecoderH265::createPicture(const H265SliceHdr* const slice,
     picture.reset(new VaapiDecPictureH265(m_context, surface, m_currentPTS));
 
     picture->m_noRaslOutputFlag = isIdr(nalu) || isBla(nalu) || m_newStream;
+    m_noRaslOutputFlag = picture->m_noRaslOutputFlag;
+    if (isIrap(nalu))
+        m_associatedIrapNoRaslOutputFlag = picture->m_noRaslOutputFlag;
     picture->m_picOutputFlag
-        = (isRasl(nalu) && picture->m_noRaslOutputFlag) ? false : slice->pic_output_flag;
+        = (isRasl(nalu) && m_associatedIrapNoRaslOutputFlag) ? false : slice->pic_output_flag;
 
     getPoc(picture, slice, nalu);
 
@@ -1013,6 +1016,8 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit *nalu)
         status = decodeCurrent();
         if (status != DECODE_SUCCESS)
             return status;
+        if (m_noRaslOutputFlag && isRasl(nalu))
+            return DECODE_SUCCESS;
         m_current = createPicture(slice, nalu);
         if (!m_current || !m_dpb.init(m_current, slice, nalu, m_newStream))
             return DECODE_FAIL;
