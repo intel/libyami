@@ -142,6 +142,8 @@ private:
     PicturePtr  m_current;
     uint16_t    m_prevPicOrderCntMsb;
     int32_t     m_prevPicOrderCntLsb;
+    bool        m_associatedIrapNoRaslOutputFlag;
+    bool        m_noRaslOutputFlag;
     bool        m_newStream;
     DPB         m_dpb;
     std::map<int32_t, uint8_t> m_pocToIndex;
