@@ -138,7 +138,9 @@ class NativeDisplayDrm : public NativeDisplayBase{
         if (acceptValidExternalHandle(display))
             return true;
 
-        m_handle = open("/dev/dri/card0", O_RDWR);
+        m_handle = open("/dev/dri/renderD128", O_RDWR);
+        if (m_handle < 0)
+            m_handle = open("/dev/dri/card0", O_RDWR);
         m_selfCreated = true;
         return m_handle != -1;
     };
