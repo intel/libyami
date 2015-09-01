@@ -41,8 +41,6 @@ Encode_Status encodeStart(EncodeHandler p);
 
 void encodeStop(EncodeHandler p);
 
-void encodeflush(EncodeHandler p);
-
 Encode_Status encode(EncodeHandler p, VideoFrameRawData * inBuffer);
 
 Encode_Status encodeGetOutput(EncodeHandler p, VideoEncOutputBuffer * outBuffer, bool withWait);
