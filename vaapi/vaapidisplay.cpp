@@ -340,10 +340,6 @@ DisplayPtr VaapiDisplay::create(const NativeDisplay& display)
 DisplayPtr VaapiDisplay::create(const NativeDisplay& display, VAProfile profile)
 {
     SharedPtr<DisplayCache> cache = DisplayCache::getInstance();
-    const std::string name="hybrid";
-    if (profile == VAProfileVP9Profile0)
-        return cache->createDisplay(display, name);
-    else
         return cache->createDisplay(display);
 }
 } //YamiMediaCodec
