@@ -888,7 +888,11 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     FILL_LONG(mvd_l1_zero_flag);
     FILL_LONG(cabac_init_flag);
     FILL_LONG_SLICE(temporal_mvp_enabled_flag);
-    FILL_LONG_SLICE(deblocking_filter_disabled_flag);
+    if (slice->deblocking_filter_override_flag)
+        FILL_LONG_SLICE(deblocking_filter_disabled_flag);
+    else
+        sliceParam->LongSliceFlags.fields.slice_deblocking_filter_disabled_flag=
+          slice->pps->deblocking_filter_disabled_flag;
     FILL_LONG(collocated_from_l0_flag);
     FILL_LONG_SLICE(loop_filter_across_slices_enabled_flag);
 
