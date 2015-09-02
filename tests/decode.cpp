@@ -111,6 +111,8 @@ int main(int argc, char** argv)
             status = decoder->decode(&inputBuffer);
         } else
             break;
+        if (status == DECODE_INVALID_DATA)
+            break;
 
         if (DECODE_FORMAT_CHANGE == status) {
             formatInfo = decoder->getFormatInfo();

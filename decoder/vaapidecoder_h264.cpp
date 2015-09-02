@@ -80,8 +80,11 @@ static VAProfile getH264VAProfile(H264PPS * pps)
             profile = VAProfileH264Baseline;
         break;
     case 77:
-    case 88:
         profile = VAProfileH264Main;
+        break;
+    case 88:
+        /* extend profile is not supported in driver */
+        profile = VAProfileNone;
         break;
     case 100:
         profile = VAProfileH264High;
@@ -894,6 +897,12 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
     }
 
     parsedProfile = getH264VAProfile(pps);
+
+    if (parsedProfile == VAProfileNone) {
+        ERROR("profile is not supported");
+        return DECODE_INVALID_DATA;
+    }
+
     if (parsedProfile != m_configBuffer.profile) {
         DEBUG("H264: profile changed: old = %d, new = %d, \n",
               m_configBuffer.profile, parsedProfile);
