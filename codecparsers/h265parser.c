@@ -2010,7 +2010,6 @@ h265_parser_parse_slice_hdr (H265Parser * parser,
   H265PPS *pps;
   H265SPS *sps;
   uint32_t i;
-  uint32_t CurrRpsIdx = 0;
   H265ShortTermRefPicSet *stRPS = NULL;
   uint32_t UsedByCurrPicLt[16];
   uint32_t PicSizeInCtbsY;
@@ -2174,11 +2173,10 @@ h265_parser_parse_slice_hdr (H265Parser * parser,
       }
 
       /* calculate NumPocTotalCurr */
-      if (slice->short_term_ref_pic_set_sps_flag)
-        CurrRpsIdx = slice->short_term_ref_pic_set_idx;
+      if (!slice->short_term_ref_pic_set_sps_flag)
+        stRPS = &slice->short_term_ref_pic_sets;
       else
-        CurrRpsIdx = sps->num_short_term_ref_pic_sets;
-      stRPS = &sps->short_term_ref_pic_set[CurrRpsIdx];
+        stRPS = &sps->short_term_ref_pic_set[slice->short_term_ref_pic_set_idx];
       for (i = 0; i < stRPS->NumNegativePics; i++)
         if (stRPS->UsedByCurrPicS0[i])
           NumPocTotalCurr++;
