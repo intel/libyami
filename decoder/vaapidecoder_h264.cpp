@@ -1549,17 +1549,24 @@ processForGapsInFrameNum(const PicturePtr& pic,
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
     const int32_t maxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
+    int32_t prevFrameNum = m_prevFrameNum;
     int32_t finalFrameNum;
 
-    if (m_frameNum == m_prevFrameNum ||
-        m_frameNum == (m_prevFrameNum + 1)%maxFrameNum)
+    if (m_frameNum == prevFrameNum ||
+        m_frameNum == (prevFrameNum + 1)%maxFrameNum)
         return true;
 
     finalFrameNum = m_frameNum;
-    m_frameNum = (m_prevFrameNum + 1)%maxFrameNum;
+    m_frameNum = (prevFrameNum + 1)%maxFrameNum;
 
     while(finalFrameNum != m_frameNum) {
-        PicturePtr dummyPic = m_DPBManager->addDummyPicture(pic, m_frameNum);
+        if (!m_prevFrame || !m_prevFrame->m_buffers[0] || !m_prevFrame->m_buffers[0]->m_surface) {
+            ERROR("fail to get surface for dummy picture");
+            return false;
+        }
+
+        const SurfacePtr& surface = m_prevFrame->m_buffers[0]->m_surface;
+        PicturePtr dummyPic = m_DPBManager->addDummyPicture(pic, m_frameNum, surface);
         if (!m_DPBManager->execDummyPictureMarking(dummyPic, sliceHdr, m_frameNum))
             return false;
 
@@ -1567,8 +1574,8 @@ processForGapsInFrameNum(const PicturePtr& pic,
         if (!storeDecodedPicture(dummyPic))
             return false;
 
-        m_prevFrameNum = m_frameNum;
-        m_frameNum = (m_prevFrameNum + 1)%maxFrameNum;
+        prevFrameNum = m_frameNum;
+        m_frameNum = (prevFrameNum + 1)%maxFrameNum;
     }
     m_frameNum = finalFrameNum;
     m_currentPicture = pic;
