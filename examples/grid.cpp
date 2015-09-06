@@ -35,6 +35,7 @@
 #include <vector>
 #include <deque>
 #include <string.h>
+#include <sys/time.h>
 
 
 using namespace YamiMediaCodec;
@@ -204,9 +205,7 @@ class DrmRenderer
     typedef std::deque<SharedPtr<DrmFrame> > FrameQueue;
     class Flipper {
     public:
-        Flipper(int fd, uint32_t crtcID,
-            FrameQueue& fronts, FrameQueue& backs, SharedPtr<DrmFrame>& current,
-            Condition&, Lock&);
+        Flipper(DrmRenderer* render);
         ~Flipper();
         bool init();
 
@@ -217,6 +216,9 @@ class DrmRenderer
 
         //flip buffer and wait it done
         bool flip_l();
+
+        //sync to time
+        void waitingRenderTime();
 
         int        m_fd;
         uint32_t   m_crtcID;
@@ -231,6 +233,12 @@ class DrmRenderer
         Lock&      m_lock;
 
         pthread_t  m_thread;
+
+        //for frame reate control
+        bool       m_firstFrame;
+        timeval    m_nextTime;
+        timeval    m_duration;
+        int        m_fps;
     };
 public:
     ///init the render;
@@ -255,7 +263,7 @@ public:
     uint32_t getHeight();
 
 
-    DrmRenderer(VADisplay, int fd, int displayIdx);
+    DrmRenderer(VADisplay, int fd, int displayIdx, int fps);
     ~DrmRenderer();
 private:
     bool createFrames(uint32_t width, uint32_t height, int size);
@@ -283,16 +291,14 @@ private:
     SharedPtr<DrmFrame> m_current;
     SharedPtr<Flipper>    m_flipper;
     int m_frameCount;
+    int m_fps;
 };
 
-DrmRenderer::Flipper::Flipper(
-    int fd, uint32_t crtcID,
-    FrameQueue & fronts, FrameQueue & backs, SharedPtr<DrmFrame> & current,
-    Condition &cond, Lock &lock)
-    :m_fd(fd), m_crtcID(crtcID),
-     m_fronts(fronts),m_backs(backs), m_current(current), m_quit(false),
-     m_cond(cond), m_lock(lock),
-     m_thread(-1)
+DrmRenderer::Flipper::Flipper(DrmRenderer* r)
+    :m_fd(r->m_fd), m_crtcID(r->m_crtcID),
+     m_fronts(r->m_fronts),m_backs(r->m_backs), m_current(r->m_current), m_quit(false),
+     m_cond(r->m_cond), m_lock(r->m_lock),
+     m_thread(-1), m_firstFrame(true), m_fps(r->m_fps)
 {
 
 }
@@ -315,6 +321,28 @@ bool DrmRenderer::Flipper::init()
         return false;
     }
     return true;
+}
+
+void DrmRenderer::Flipper::waitingRenderTime()
+{
+    if (!m_fps)
+        return;
+    timeval current;
+    if (m_firstFrame) {
+        m_firstFrame = false;
+        gettimeofday(&m_nextTime, NULL);
+        m_duration.tv_sec = 0;
+        m_duration.tv_usec = 1000 * 1000  / m_fps;
+    } else {
+        gettimeofday(&current, NULL);
+        if (timercmp(&current, &m_nextTime, <)) {
+            timeval sleepTime;
+            timersub(&m_nextTime, &current, &sleepTime);
+            usleep(sleepTime.tv_usec);
+        }
+    }
+    current = m_nextTime;
+    timeradd(&current, &m_duration, &m_nextTime);
 }
 
 bool DrmRenderer::Flipper::flip_l()
@@ -358,6 +386,7 @@ void* DrmRenderer::Flipper::start(void* flipper)
 void DrmRenderer::Flipper::loop()
 {
     while (1) {
+        waitingRenderTime();
         AutoLock lock(m_lock);
         if (m_fronts.empty()) {
             if (m_quit)
@@ -369,8 +398,8 @@ void DrmRenderer::Flipper::loop()
     }
 }
 
-DrmRenderer::DrmRenderer(VADisplay display, int fd, int displayIdx)
-    :m_display(display), m_fd(fd), m_displayIdx(displayIdx), m_cond(m_lock), m_frameCount(0)
+DrmRenderer::DrmRenderer(VADisplay display, int fd, int displayIdx, int fps)
+    :m_display(display), m_fd(fd), m_displayIdx(displayIdx), m_cond(m_lock), m_frameCount(0), m_fps(fps)
 {
 }
 
@@ -483,7 +512,7 @@ bool DrmRenderer::setPlane()
 
 bool DrmRenderer::createFlipper()
 {
-    m_flipper.reset(new Flipper(m_fd, m_crtcID, m_fronts, m_backs, m_current, m_cond, m_lock));
+    m_flipper.reset(new Flipper(this));
     if (!m_flipper->init())
         return false;
     return true;
@@ -581,6 +610,7 @@ void usage(const char* app) {
         printf("   -g, <grid command line> create other grid instance  \n");
         printf("       example: grid a.mp4 -g \"b.mp4 -d 2\"\n");
         printf("       it will render a.mp4 in first display and b.mp4 in second\n");
+        printf("   -f, <frame rate> you can force video sync to this frame rate \n");
 }
 
 class Grid
@@ -641,7 +671,7 @@ public:
     Grid(int fd, const SharedPtr<NativeDisplay>& nativeDisplay):m_fd(fd), m_nativeDisplay(nativeDisplay),
         m_vaDisplay((VADisplay)nativeDisplay->handle),
         m_width(0), m_height(0), m_col(0), m_row(0),
-        m_displayIdx(1), m_singleThread(false), m_vppThread(-1){}
+        m_displayIdx(1), m_singleThread(false), m_vppThread(-1), m_fps(0){}
 
     ~Grid()
     {
@@ -694,7 +724,7 @@ private:
             return false;
         }
 
-        SharedPtr<DrmRenderer> tmp(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx));
+        SharedPtr<DrmRenderer> tmp(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx, m_fps));
         if (!tmp->init()) {
             ERROR("init drm renderer failed");
             return false;
@@ -749,7 +779,7 @@ DONE:
     {
         char opt;
         optind = 0;
-        while ((opt = getopt(argc, argv, "c:r:d:s")) != -1)
+        while ((opt = getopt(argc, argv, "c:r:d:f:s")) != -1)
         {
             switch (opt) {
                 case 'c':
@@ -763,6 +793,9 @@ DONE:
                     break;
                 case 's':
                     m_singleThread = true;
+                    break;
+                case 'f':
+                    m_fps = atoi(optarg);
                     break;
                 default:
                     return false;
@@ -798,6 +831,7 @@ DONE:
     vector<char*> m_files;
     pthread_t m_vppThread;
     Arg m_arg;
+    int m_fps;
 };
 
 class App
