@@ -219,7 +219,8 @@ class VaapiDPBManager {
     /* marking pic after slice decoded */
     bool execRefPicMarking(const PicturePtr& pic, bool * hasMMCO5);
     PicturePtr addDummyPicture(const PicturePtr& pic,
-                               int32_t frameNum);
+                               int32_t frameNum,
+                               const SurfacePtr& surface);
     bool execDummyPictureMarking(const PicturePtr& dummyPic,
                                  const SliceHeaderPtr& sliceHdr,
                                  int32_t frameNum);
