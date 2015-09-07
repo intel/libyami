@@ -445,6 +445,7 @@ VaapiDecoderH265::VaapiDecoderH265():
     m_prevPicOrderCntMsb(0),
     m_prevPicOrderCntLsb(0),
     m_newStream(true),
+    m_endOfSequence(false),
     m_dpb(bind(&VaapiDecoderH265::outputPicture, this, _1))
 {
     m_parser = h265_parser_new();
@@ -917,8 +918,8 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
 Decode_Status VaapiDecoderH265::ensureContext(const H265SPS* const sps)
 {
     uint8_t surfaceNumber = sps->max_dec_pic_buffering_minus1[0] + 1 + H265_EXTRA_SURFACE_NUMBER;
-    if (m_configBuffer.width != sps->width
-        || m_configBuffer.height <  sps->height
+    if (m_configBuffer.surfaceWidth < sps->width
+        || m_configBuffer.surfaceHeight <  sps->height
         || m_configBuffer.surfaceNumber < surfaceNumber) {
         INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d",
                 m_configBuffer.width, m_configBuffer.height, sps->width, sps->height);
@@ -986,7 +987,8 @@ PicturePtr VaapiDecoderH265::createPicture(const H265SliceHdr* const slice,
         return picture;
     picture.reset(new VaapiDecPictureH265(m_context, surface, m_currentPTS));
 
-    picture->m_noRaslOutputFlag = isIdr(nalu) || isBla(nalu) || m_newStream;
+    picture->m_noRaslOutputFlag = isIdr(nalu) || isBla(nalu) ||
+                                  m_newStream || m_endOfSequence;
     m_noRaslOutputFlag = picture->m_noRaslOutputFlag;
     if (isIrap(nalu))
         m_associatedIrapNoRaslOutputFlag = picture->m_noRaslOutputFlag;
@@ -1020,9 +1022,9 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit *nalu)
         status = decodeCurrent();
         if (status != DECODE_SUCCESS)
             return status;
+        m_current = createPicture(slice, nalu);
         if (m_noRaslOutputFlag && isRasl(nalu))
             return DECODE_SUCCESS;
-        m_current = createPicture(slice, nalu);
         if (!m_current || !m_dpb.init(m_current, slice, nalu, m_newStream))
             return DECODE_FAIL;
         if (!fillPicture(m_current, slice) || !fillIqMatrix(m_current, slice))
@@ -1059,9 +1061,13 @@ Decode_Status VaapiDecoderH265::decodeNalu(H265NalUnit *nalu)
             case H265_NAL_PPS:
                 status = decodeParamSet(nalu);
                 break;
-            case H265_NAL_AUD:
-            case H265_NAL_EOS:
             case H265_NAL_EOB:
+                m_newStream = true;
+                break;
+            case H265_NAL_EOS:
+                m_endOfSequence = true;
+                break;
+            case H265_NAL_AUD:
             case H265_NAL_FD:
             case H265_NAL_PREFIX_SEI:
             case H265_NAL_SUFFIX_SEI:
@@ -1081,6 +1087,7 @@ Decode_Status VaapiDecoderH265::decode(VideoDecodeBuffer *buffer)
         m_prevPicOrderCntMsb = 0;
         m_prevPicOrderCntLsb = 0;
         m_newStream = true;
+        m_endOfSequence = false;
     }
     m_currentPTS = buffer->timeStamp;
 
