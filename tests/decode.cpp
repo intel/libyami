@@ -125,6 +125,9 @@ int main(int argc, char** argv)
             // resend the buffer
             status = decoder->decode(&inputBuffer);
         }
+        if(status != DECODE_SUCCESS) {
+            break;
+        }
 
         renderOutputFrames(output, frameCount);
         if (output->renderFrameCount() >= 5 && !skipFrameCount4NetFps) {

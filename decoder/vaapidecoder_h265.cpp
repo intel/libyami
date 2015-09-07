@@ -469,7 +469,7 @@ Decode_Status VaapiDecoderH265::start(VideoConfigBuffer * buffer)
 Decode_Status VaapiDecoderH265::decodeParamSet(H265NalUnit *nalu)
 {
     H265ParserResult result = h265_parser_parse_nal(m_parser, nalu);
-    return result == H265_PARSER_OK ? DECODE_SUCCESS : DECODE_FAIL;
+    return result == H265_PARSER_OK ? DECODE_SUCCESS : DECODE_INVALID_DATA;
 }
 
 Decode_Status VaapiDecoderH265::outputPicture(const PicturePtr& picture)
@@ -488,8 +488,8 @@ Decode_Status VaapiDecoderH265::decodeCurrent()
         //ignore it
         return status;
     }
-    if (!m_dpb.add(m_current, m_prevSlice))
-        return DECODE_FAIL;
+    if (!m_dpb.add(m_current, m_prevSlice.get()))
+        return DECODE_INVALID_DATA;
     m_current.reset();
     m_newStream = false;
     return status;
@@ -939,7 +939,7 @@ Decode_Status VaapiDecoderH265::ensureContext(const H265SPS* const sps)
             return status;
         return DECODE_FORMAT_CHANGE;
     }
-    return DECODE_SUCCESS;
+    return (m_context) ? DECODE_SUCCESS : DECODE_FAIL;
 }
 
 /* 8.3.1 */
@@ -1009,7 +1009,7 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit *nalu)
     memset(slice, 0, sizeof(H265SliceHdr));
     result = h265_parser_parse_slice_hdr(m_parser, nalu, slice);
     if (result == H265_PARSER_ERROR) {
-        return DECODE_FAIL;
+        return DECODE_INVALID_DATA;
     }
     if (result == H265_PARSER_BROKEN_LINK) {
         return DECODE_SUCCESS;
@@ -1026,15 +1026,16 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit *nalu)
         if (m_noRaslOutputFlag && isRasl(nalu))
             return DECODE_SUCCESS;
         if (!m_current || !m_dpb.init(m_current, slice, nalu, m_newStream))
-            return DECODE_FAIL;
+            return DECODE_INVALID_DATA;
         if (!fillPicture(m_current, slice) || !fillIqMatrix(m_current, slice))
             return DECODE_FAIL;
     }
     if (!m_current)
         return DECODE_FAIL;
-    status = fillSlice(m_current, slice, nalu);
-    if (status == DECODE_SUCCESS && !slice->dependent_slice_segment_flag)
-        std::swap(m_currSlice, m_prevSlice);
+    if (!fillSlice(m_current, slice, nalu))
+        return DECODE_FAIL;
+    if (!slice->dependent_slice_segment_flag)
+        std::swap(currSlice, m_prevSlice);
     return status;
 
 }
@@ -1046,8 +1047,8 @@ Decode_Status VaapiDecoderH265::decodeNalu(H265NalUnit *nalu)
 
     if (H265_NAL_SLICE_TRAIL_N <= type && type <= H265_NAL_SLICE_CRA_NUT) {
         status = decodeSlice(nalu);
-        if (status == DECODE_FAIL) {
-            //ignore the decode slice failed
+        if (status == DECODE_INVALID_DATA) {
+            //ignore invalid data while decoding slice
             m_current.reset();
             status = DECODE_SUCCESS;
         }
