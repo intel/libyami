@@ -145,6 +145,7 @@ private:
     bool        m_associatedIrapNoRaslOutputFlag;
     bool        m_noRaslOutputFlag;
     bool        m_newStream;
+    bool        m_endOfSequence;
     DPB         m_dpb;
     std::map<int32_t, uint8_t> m_pocToIndex;
     H265SliceHdr* m_prevSlice;
