@@ -26,6 +26,8 @@
 #include <getopt.h>
 
 static const int kIPeriod = 30;
+static int ipPeriod = 1;
+static int ipbMode = 1;
 static char *inputFileName = NULL;
 static char defaultOutputFile[] = "test.264";
 static char *outputFileName = defaultOutputFile;
@@ -66,6 +68,7 @@ static void print_help(const char* app)
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
+    printf("   --ipbmode <0(I frame only ) | 1 (I and P frames) | 2 (I,P,B frames)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -90,6 +93,7 @@ static bool process_cmdline(int argc, char *argv[])
         {"help", no_argument, NULL, 'h' },
         {"qp", required_argument, NULL, 0 },
         {"rcmode", required_argument, NULL, 0 },
+        {"ipbmode", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -140,6 +144,8 @@ static bool process_cmdline(int argc, char *argv[])
                     break;
                 case 2:
                     rcMode = string_to_rc_mode(optarg);
+                case 3:
+                    ipbMode= atoi(optarg);
                     break;
             }
         }
@@ -166,6 +172,13 @@ void ensureInputParameters()
     if (!fps)
         fps = 30;
 
+    if (ipbMode == 0)
+        ipPeriod = 0;
+    else if (ipbMode == 1)
+        ipPeriod = 1;
+    else if (ipbMode == 2)
+        ipPeriod = 3;
+
     /* if (!bitRate) {
         int rawBitRate = videoWidth * videoHeight * fps  * 3 / 2 * 8;
         int EmpiricalVaue = 40;
@@ -187,6 +200,7 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
 
     //picture type and bitrate
     encVideoParams->intraPeriod = kIPeriod;
+    encVideoParams->ipPeriod = ipPeriod;
     encVideoParams->rcParams.bitRate = bitRate;
     encVideoParams->rcParams.initQP = initQp;
     encVideoParams->rcMode = rcMode;
