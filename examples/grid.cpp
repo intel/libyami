@@ -58,6 +58,27 @@ extern "C" {
 
 using namespace std;
 
+class Timer
+{
+public:
+    Timer(const char* str):m_str(str)
+    {
+        gettimeofday(&start, NULL);
+    }
+    ~Timer()
+    {
+        timeval end, diff;
+        gettimeofday(&end, NULL);
+        timersub(&end, &start, &diff);
+        if (diff.tv_usec > 999)
+            ERROR("%s: %d ms", m_str, (int)diff.tv_usec/1000);
+    }
+private:
+    timeval start;
+    const char* m_str;
+};
+
+
 bool checkDrmRet(int ret,const char* msg)
 {
     if (ret) {
@@ -379,6 +400,11 @@ bool DrmRenderer::Flipper::waitingRenderTime()
             } else {
                 if (neverSleep) {
                     late = !timercmp(&current, &m_nextTime, <);
+		    /*       if (late) {
+                        timeval diff;
+                        timersub(&current, &m_nextTime, &diff);
+                        ERROR("late %d ms",(int)diff.tv_usec/1000);
+			}*/
                 }
                 break;
             }
@@ -452,7 +478,13 @@ void DrmRenderer::Flipper::loop()
             ERROR("late m_fronts.size = %d", (int)m_fronts.size());
         }
         m_pending = true;
-        flip_l();
+        if (m_fps)
+        {
+          Timer t("flip");
+          flip_l();
+        } else {
+          flip_l();
+        }
     }
 }
 
