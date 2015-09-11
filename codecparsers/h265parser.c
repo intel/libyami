@@ -149,6 +149,24 @@ static const uint8_t zigzag_8x8[64] = {
   53, 60, 61, 54, 47, 55, 62, 63
 };
 
+static const uint8_t uprightdiagonal_4x4[16] = {
+  0, 4, 1, 8,
+  5, 2, 12, 9,
+  6, 3, 13, 10,
+  7, 14, 11, 15
+};
+
+static const uint8_t uprightdiagonal_8x8[64] = {
+  0, 8, 1, 16, 9, 2, 24, 17,
+  10, 3, 32, 25, 18, 11, 4, 40,
+  33, 26, 19, 12, 5, 48, 41, 34,
+  27, 20, 13, 6, 56, 49, 42, 35,
+  28, 21, 14, 7, 57, 50, 43, 36,
+  29, 22, 15, 58, 51, 44, 37, 30,
+  23, 59, 52, 45, 38, 31, 60, 53,
+  46, 39, 61, 54, 47, 62, 55, 63
+};
+
 typedef struct
 {
   uint32_t par_n, par_d;
@@ -2645,4 +2663,106 @@ h265_quant_matrix_8x8_get_raster_from_zigzag (uint8_t out_quant[64],
 
   for (i = 0; i < 64; i++)
     out_quant[zigzag_8x8[i]] = quant[i];
+}
+
+/**
+ * h265_quant_matrix_4x4_get_uprightdiagonal_from_raster:
+ * @out_quant: (out): The resulting quantization matrix
+ * @quant: The source quantization matrix
+ *
+ * Converts quantization matrix @quant from raster scan order to
+ * uprightdiagonal scan order and store the resulting factors
+ * into @out_quant.
+ *
+ * Note: it is an error to pass the same table in both @quant and
+ * @out_quant arguments.
+ *
+ * Since: 1.6
+ */
+void
+h265_quant_matrix_4x4_get_uprightdiagonal_from_raster (uint8_t out_quant[16],
+    const uint8_t quant[16])
+{
+  uint32_t i;
+
+  g_return_if_fail (out_quant != quant);
+
+  for (i = 0; i < 16; i++)
+    out_quant[i] = quant[uprightdiagonal_4x4[i]];
+}
+
+/**
+ * h265_quant_matrix_4x4_get_raster_from_uprightdiagonal:
+ * @out_quant: (out): The resulting quantization matrix
+ * @quant: The source quantization matrix
+ *
+ * Converts quantization matrix @quant from uprightdiagonal scan order to
+ * raster scan order and store the resulting factors into @out_quant.
+ *
+ * Note: it is an error to pass the same table in both @quant and
+ * @out_quant arguments.
+ *
+ * Since: 1.6
+ */
+void
+h265_quant_matrix_4x4_get_raster_from_uprightdiagonal (uint8_t out_quant[16],
+    const uint8_t quant[16])
+{
+  uint32_t i;
+
+  g_return_if_fail (out_quant != quant);
+
+  for (i = 0; i < 16; i++)
+    out_quant[uprightdiagonal_4x4[i]] = quant[i];
+}
+
+/**
+ * h265_quant_matrix_8x8_get_uprightdiagonal_from_raster:
+ * @out_quant: (out): The resulting quantization matrix
+ * @quant: The source quantization matrix
+ *
+ * Converts quantization matrix @quant from raster scan order to
+ * uprightdiagonal scan order and store the resulting factors
+ * into @out_quant.
+ *
+ * Note: it is an error to pass the same table in both @quant and
+ * @out_quant arguments.
+ *
+ * Since: 1.6
+ */
+void
+h265_quant_matrix_8x8_get_uprightdiagonal_from_raster (uint8_t out_quant[64],
+    const uint8_t quant[64])
+{
+  uint32_t i;
+
+  g_return_if_fail (out_quant != quant);
+
+  for (i = 0; i < 64; i++)
+    out_quant[i] = quant[uprightdiagonal_8x8[i]];
+}
+
+/**
+ * h265_quant_matrix_8x8_get_raster_from_uprightdiagonal:
+ * @out_quant: (out): The resulting quantization matrix
+ * @quant: The source quantization matrix
+ *
+ * Converts quantization matrix @quant from uprightdiagonal scan order to
+ * raster scan order and store the resulting factors into @out_quant.
+ *
+ * Note: it is an error to pass the same table in both @quant and
+ * @out_quant arguments.
+ *
+ * Since: 1.6
+ */
+void
+h265_quant_matrix_8x8_get_raster_from_uprightdiagonal (uint8_t out_quant[64],
+    const uint8_t quant[64])
+{
+  uint32_t i;
+
+  g_return_if_fail (out_quant != quant);
+
+  for (i = 0; i < 64; i++)
+    out_quant[uprightdiagonal_8x8[i]] = quant[i];
 }
