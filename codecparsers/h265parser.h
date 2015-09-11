@@ -1087,5 +1087,26 @@ void    h265_quant_matrix_8x8_get_raster_from_zigzag (uint8_t out_quant[64],
 #define h265_quant_matrix_32x32_get_raster_from_zigzag \
         h265_quant_matrix_8x8_get_raster_from_zigzag
 
+void    h265_quant_matrix_4x4_get_uprightdiagonal_from_raster (uint8_t out_quant[16],
+                                                          const uint8_t quant[16]);
+
+void    h265_quant_matrix_4x4_get_raster_from_uprightdiagonal (uint8_t out_quant[16],
+                                                          const uint8_t quant[16]);
+
+void    h265_quant_matrix_8x8_get_uprightdiagonal_from_raster (uint8_t out_quant[64],
+                                                          const uint8_t quant[64]);
+
+void    h265_quant_matrix_8x8_get_raster_from_uprightdiagonal (uint8_t out_quant[64],
+                                                          const uint8_t quant[64]);
+
+#define h265_quant_matrix_16x16_get_uprightdiagonal_from_raster \
+        h265_quant_matrix_8x8_get_uprightdiagonal_from_raster
+#define h265_quant_matrix_16x16_get_raster_from_uprightdiagonal\
+        h265_quant_matrix_8x8_get_raster_from_uprightdiagonal
+#define h265_quant_matrix_32x32_get_uprightdiagonal_from_raster \
+        h265_quant_matrix_8x8_get_uprightdiagonal_from_raster
+#define h265_quant_matrix_32x32_get_raster_from_uprightdiagonal\
+        h265_quant_matrix_8x8_get_raster_from_uprightdiagonal
+
 G_END_DECLS
 #endif
