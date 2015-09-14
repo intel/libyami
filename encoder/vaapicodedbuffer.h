@@ -39,7 +39,7 @@ public:
     }
     bool copyInto(void* data);
     bool setFlag(uint32_t flag) { m_flags |= flag; return true; }
-    bool clearFlag(uint32_t flag) { m_flags &= !flag; return true; }
+    bool clearFlag(uint32_t flag) { m_flags &= ~flag; return true; }
     uint32_t getFlags() { return m_flags; }
 
 private:
