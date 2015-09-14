@@ -94,7 +94,8 @@ static bool process_cmdline(int argc, char *argv[])
                 renderMode = atoi(optarg);
             break;
         case 'n':
-            frameCount = atoi(optarg);
+            if (optarg)
+                frameCount = atoi(optarg);
             break;
         case 'f':
             if (optarg) {
