@@ -62,13 +62,9 @@ Decode_Status VaapiDecoderVP9::start(VideoConfigBuffer * buffer)
     m_configBuffer.data = NULL;
     m_configBuffer.size = 0;
 
-    if (m_configBuffer.surfaceWidth && m_configBuffer.surfaceHeight) {
-        m_configBuffer.width
-            = m_configBuffer.surfaceWidth
-            = ALIGN8(m_configBuffer.surfaceWidth);
-        m_configBuffer.height
-            = m_configBuffer.surfaceHeight
-            = ALIGN32(m_configBuffer.surfaceHeight);
+    if (m_configBuffer.width && m_configBuffer.height) {
+        m_configBuffer.surfaceWidth = ALIGN8(m_configBuffer.width);
+        m_configBuffer.surfaceHeight = ALIGN32(m_configBuffer.height);
         Decode_Status status = VaapiDecoderBase::start(&m_configBuffer);
         if (status != DECODE_SUCCESS)
             return status;
