@@ -709,6 +709,10 @@ bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const H265SliceHdr
 bool VaapiDecoderH265::getRefPicList(RefSet& refset, const RefSet& stCurr0, const RefSet& stCurr1,
     uint8_t numActive, bool modify, const uint32_t* modiList)
 {
+    if (numActive > 15) {
+        ERROR("bug: reference picutre can't large than 15");
+        return false;
+    }
     const RefSet& ltCurr = m_dpb.m_ltCurr;
     uint8_t numPocTotalCurr = stCurr0.size() + stCurr1.size() + ltCurr.size();
     if (numActive && !numPocTotalCurr) {
