@@ -694,11 +694,12 @@ private:
             return false;
         }
 
-        m_renderer.reset(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx));
-        if (!m_renderer->init()) {
+        SharedPtr<DrmRenderer> tmp(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx));
+        if (!tmp->init()) {
             ERROR("init drm renderer failed");
             return false;
         }
+        m_renderer = tmp;
         m_width = m_renderer->getWidth();
         m_height = m_renderer->getHeight();
         return true;
