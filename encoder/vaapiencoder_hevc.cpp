@@ -1408,6 +1408,7 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
                                         const VAEncSliceParameterBufferHEVC* const sliceParam,
                                         uint32_t sliceIndex) const
 {
+    bool ret = true;
     BitWriter bs;
     BOOL short_term_ref_pic_set_sps_flag = !!m_shortRFS.num_short_term_ref_pic_sets;
     HevcNalUnitType nalUnitType = (picture->isIdr() ? IDR_W_RADL : TRAIL_R );
@@ -1479,10 +1480,12 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
     
     bit_writer_write_trailing_bits(&bs);
      
-     if(!picture->addPackedHeader(VAEncPackedHeaderSlice, bs.data, bs.bit_size))
-         return false;
-     
-     return true;
+    if(!picture->addPackedHeader(VAEncPackedHeaderSlice, bs.data, bs.bit_size)) {
+        ret = false;
+    }
+
+    bit_writer_clear (&bs, TRUE);
+    return ret;
 }
 
 /* Add slice headers to picture */
