@@ -159,6 +159,8 @@ VaapiDecoderH265::DPB::DPB(OutputCallback output):
 bool VaapiDecoderH265::DPB::initShortTermRef(RefSet& ref, int32_t currPoc,
             const int32_t* delta, const uint8_t* used,  uint8_t num)
 {
+    if (num > 16)
+        return false;
     ref.clear();
     for (uint8_t i = 0; i < num; i++) {
         int32_t poc = currPoc + delta[i];
