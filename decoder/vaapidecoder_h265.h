@@ -148,8 +148,7 @@ private:
     bool        m_endOfSequence;
     DPB         m_dpb;
     std::map<int32_t, uint8_t> m_pocToIndex;
-    H265SliceHdr* m_prevSlice;
-    H265SliceHdr* m_currSlice;
+    SharedPtr<H265SliceHdr> m_prevSlice;
 
 
     static const bool s_registered; // VaapiDecoderFactory registration result

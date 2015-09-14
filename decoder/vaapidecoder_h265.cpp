@@ -48,6 +48,12 @@ using std::tr1::bind;
 using std::tr1::placeholders::_1;
 using std::tr1::ref;
 
+void h265SliceHdrFree(H265SliceHdr* pSlice)
+{
+    h265_slice_hdr_free(pSlice);
+    delete pSlice;
+}
+
 bool isIdr(const H265NalUnit* const nalu)
 {
     return nalu->type == H265_NAL_SLICE_IDR_W_RADL
@@ -449,16 +455,13 @@ VaapiDecoderH265::VaapiDecoderH265():
     m_dpb(bind(&VaapiDecoderH265::outputPicture, this, _1))
 {
     m_parser = h265_parser_new();
-    m_prevSlice = new H265SliceHdr;
-    m_currSlice = new H265SliceHdr;
+    m_prevSlice.reset(new H265SliceHdr(), h265SliceHdrFree);
 }
 
 VaapiDecoderH265::~VaapiDecoderH265()
 {
     stop();
     h265_parser_free(m_parser);
-    delete m_prevSlice;
-    delete m_currSlice;
 }
 
 Decode_Status VaapiDecoderH265::start(VideoConfigBuffer * buffer)
@@ -876,7 +879,7 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
 
     //follow spec
     if (slice->dependent_slice_segment_flag) {
-        slice = m_prevSlice;
+        slice = m_prevSlice.get();
     }
 
     if (!fillReferenceIndex(sliceParam, slice))
@@ -1002,7 +1005,8 @@ PicturePtr VaapiDecoderH265::createPicture(const H265SliceHdr* const slice,
 
 Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit *nalu)
 {
-    H265SliceHdr* slice = m_currSlice;
+    SharedPtr<H265SliceHdr> currSlice(new H265SliceHdr(), h265SliceHdrFree);
+    H265SliceHdr* slice = currSlice.get();
     H265ParserResult result;
     Decode_Status status;
 
