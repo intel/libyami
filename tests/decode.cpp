@@ -98,8 +98,10 @@ int main(int argc, char** argv)
     }
 
     if (input->getWidth() && input->getHeight()) {
-        configBuffer.surfaceWidth = input->getWidth();
-        configBuffer.surfaceHeight = input->getHeight();
+        configBuffer.width = input->getWidth();
+        configBuffer.height = input->getHeight();
+        if (!output->setVideoSize(input->getWidth(), input->getHeight()))
+            assert(0 && "set video size failed");
     }
 
     status = decoder->start(&configBuffer);
