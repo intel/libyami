@@ -86,6 +86,7 @@ int main(int argc, char** argv)
     if (!output || !configDecodeOutput(output)) {
         fprintf(stderr, "failed to config decode output of mode: %d\n", renderMode);
         delete input;
+        delete output;
         return -1;
     }
 
