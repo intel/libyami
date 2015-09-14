@@ -1093,6 +1093,7 @@ Decode_Status VaapiDecoderH265::decode(VideoDecodeBuffer *buffer)
         m_prevPicOrderCntLsb = 0;
         m_newStream = true;
         m_endOfSequence = false;
+        return DECODE_SUCCESS;
     }
     m_currentPTS = buffer->timeStamp;
 
