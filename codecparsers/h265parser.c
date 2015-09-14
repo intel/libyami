@@ -1891,8 +1891,8 @@ h265_parse_pps (H265Parser * parser, H265NalUnit * nalu,
   READ_UINT8 (&nr, pps->entropy_coding_sync_enabled_flag, 1);
 
   if (pps->tiles_enabled_flag) {
-    READ_UE_ALLOWED (&nr, pps->num_tile_columns_minus1, 0, 19);
-    READ_UE_ALLOWED (&nr, pps->num_tile_rows_minus1, 0, 21);
+    READ_UE_ALLOWED (&nr, pps->num_tile_columns_minus1, 0, 18);
+    READ_UE_ALLOWED (&nr, pps->num_tile_rows_minus1, 0, 20);
 
     READ_UINT8 (&nr, pps->uniform_spacing_flag, 1);
     if (pps->uniform_spacing_flag) {
