@@ -31,7 +31,6 @@
 #include <va/va_x11.h>
 #endif
 #include <va/va_drm.h>
-#include <string>
 #include <vector>
 #include "interface/VideoCommonDefs.h"
 #include "common/lock.h"
@@ -51,7 +50,6 @@ public:
     ~VaapiDisplay();
     //FIXME: add more create functions.
     static DisplayPtr create(const NativeDisplay& display);
-    static DisplayPtr create(const NativeDisplay& display, VAProfile profile);
     virtual bool setRotation(int degree);
     VADisplay getID() const { return m_vaDisplay; }
     const VAImageFormat* getVaFormat(uint32_t fourcc);

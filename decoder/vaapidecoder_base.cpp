@@ -375,7 +375,7 @@ Decode_Status
         INFO("setting LIBVA_DRIVER_NAME to wrapper for chromeos");
     }
 #endif
-    m_display = VaapiDisplay::create(m_externalDisplay, profile);
+    m_display = VaapiDisplay::create(m_externalDisplay);
 
     if (!m_display) {
         ERROR("failed to create display");
