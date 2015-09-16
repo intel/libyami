@@ -23,7 +23,7 @@ if BUILD_VP8_ENCODER
         libyami_encoder_source_c += vaapiencoder_vp8.cpp
 endif
 
-if BUILD_HEVC_ENCODER
+if BUILD_H265_ENCODER
         libyami_encoder_source_c += vaapiencoder_hevc.cpp
 endif
 
@@ -52,7 +52,7 @@ if BUILD_VP8_ENCODER
         libyami_encoder_source_h_priv += vaapiencoder_vp8.h
 endif
 
-if BUILD_HEVC_ENCODER
+if BUILD_H265_ENCODER
         libyami_encoder_source_h_priv += vaapiencoder_hevc.h
 endif
 
