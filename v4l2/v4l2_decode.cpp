@@ -331,7 +331,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         if (format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
             // ::Initialize
             uint32_t size;
-            size = *(uint32_t*)format->fmt.raw_data;
+            memcpy(&size, format->fmt.raw_data, sizeof(uint32_t));
             if(size <= (sizeof(format->fmt.raw_data)-sizeof(uint32_t))) {
                 m_configBuffer.size = size;
                 m_configBuffer.data = (uint8_t*)(format->fmt.raw_data) + sizeof(uint32_t);
