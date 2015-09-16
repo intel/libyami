@@ -1,7 +1,14 @@
-libyami NEWS -- summary of changes.  2015-07-20
+libyami NEWS -- summary of changes.  2015-09-16
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2015 Intel Corporation
+
+libyami 0.3.0 release, work with libva 2015Q3 release
+=====================
++h265 decoder
++h265 encoder
++new mode -2 for yamidecode, it will ouput per frame md5 for decoded yuv
++some bug fix for vp8,vp9,h264 confomrance.
 
 libyami 0.2.5 release, work with libva 2015Q2 release
 =====================

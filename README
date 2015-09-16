@@ -36,8 +36,8 @@ libyami consists of several libraries:
 Features
 --------
 
-  * H.264, VP8, VP9, JPEG ad-hoc decoder
-  * H.264, VP8 ad-hoc decoder
+  * H.264, H.265, VP8, VP9, JPEG ad-hoc decoder
+  * H.264, H.265, VP8, JPEG ad-hoc encoder
   * CSC and scaling
 
 
@@ -47,7 +47,7 @@ Requirements
 Hardware requirements
 
   * Intel Sandybridge, Ivybridge, Haswell and Broadwell (HD Graphics)
-  * Intel Baytrail
+  * Intel Baytrail, Braswell
 
 
 Usage
@@ -61,6 +61,9 @@ Sources
   Git repository for work-in-progress changes is available at:
   <https://github.com/01org/libyami>
 
+Docs
+-------
+http://01org.github.io/libyami_doxygen/index.html
 
 Contributing
 ------------
