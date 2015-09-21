@@ -280,6 +280,19 @@ fi
 AM_CONDITIONAL(ENABLE_DOCS,
     [test "$enable_docs" = "yes"])
 
+# dnl enable vpg
+AC_ARG_ENABLE(vpg,
+    [AC_HELP_STRING([--enable-vpg],
+        [enable vpg driver @<:@default=no@:>@])],
+    [], [enable_vpg="no"])
+
+if test "$enable_vpg" = "yes"; then
+    AC_DEFINE([__ENABLE_VPG__], [1],
+        [Defined to 1 if --enable-vpg="yes"])
+fi
+AM_CONDITIONAL(ENABLE_VPG,
+    [test "x$enable_vpg" = "xyes"])
+
 : ${CFLAGS="-g -O2 -Wno-unused-function -Wno-sign-compare -Wno-cpp -Wall -Werror"}
 : ${CXXFLAGS="-g -O2 -Wno-unused-function -Wno-sign-compare -Wno-cpp -Wall -Werror"}
 

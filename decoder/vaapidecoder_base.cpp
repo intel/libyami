@@ -414,10 +414,11 @@ Decode_Status
         return DECODE_FAIL;
     }
 
+#ifndef __ENABLE_VPG__
     if (!m_display->setRotation(m_configBuffer.rotationDegrees)) {
         return DECODE_FAIL;
     }
-
+#endif
 
     if (!(m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER)) {
         m_videoFormatInfo.surfaceWidth = m_videoFormatInfo.width;
