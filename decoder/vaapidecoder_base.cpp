@@ -415,7 +415,7 @@ Decode_Status
     }
 
     if (!m_display->setRotation(m_configBuffer.rotationDegrees)) {
-        return DECODE_FAIL;
+        WARNING("set rotation failed");
     }
 
 
