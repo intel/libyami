@@ -172,17 +172,32 @@ VaapiDisplay::~VaapiDisplay()
 bool VaapiDisplay::setRotation(int degree)
 {
     VAStatus vaStatus;
+    VADisplayAttribute* attrList = NULL;
     VADisplayAttribute rotate;
+    int i, numAttributes;
     rotate.type = VADisplayAttribRotation;
     rotate.value = VA_ROTATION_NONE;
-    if (degree == 0)
-        rotate.value = VA_ROTATION_NONE;
+    if (degree == 0) //no need to set rotation when degree is zero
+        return true;
     else if (degree == 90)
         rotate.value = VA_ROTATION_90;
     else if (degree == 180)
         rotate.value = VA_ROTATION_180;
     else if (degree == 270)
         rotate.value = VA_ROTATION_270;
+
+    /* should query before set display attributres */
+    vaStatus = vaQueryDisplayAttributes(m_vaDisplay, attrList, &numAttributes);
+    if (!checkVaapiStatus(vaStatus, "vaQueryDisplayAttributes") || !attrList)
+       return false;
+
+    for (i = 0; i < numAttributes; i++) {
+        if (attrList[i].type == VADisplayAttribRotation)
+            break;
+    }
+
+    if ((i == numAttributes) || !(attrList[i].flags & VA_DISPLAY_ATTRIB_SETTABLE) )
+        return false;
 
     vaStatus = vaSetDisplayAttributes(m_vaDisplay, &rotate, 1);
     if (!checkVaapiStatus(vaStatus, "vaSetDisplayAttributes"))
