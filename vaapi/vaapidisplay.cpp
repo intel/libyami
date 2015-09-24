@@ -166,7 +166,9 @@ bool VaapiDisplay::isCompatible(const NativeDisplay& other)
 
 VaapiDisplay::~VaapiDisplay()
 {
-    vaTerminate(m_vaDisplay);
+    if (!std::tr1::dynamic_pointer_cast<NativeDisplayVADisplay>(m_nativeDisplay)) {
+        vaTerminate(m_vaDisplay);
+    }
 }
 
 bool VaapiDisplay::setRotation(int degree)
