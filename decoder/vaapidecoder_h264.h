@@ -304,7 +304,7 @@ class VaapiDecoderH264:public VaapiDecoderBase {
     int32_t m_prevFrameNum;     // prevFrameNum
     bool m_prevPicHasMMCO5;     // prevMMCO5Pic
     uint32_t m_progressiveSequence;
-    bool m_prevPicStructure;    // previous picture structure
+    uint32_t m_prevPicStructure;    // previous picture structure
     int32_t m_frameNumOffset;   // FrameNumOffset
 
   private:
