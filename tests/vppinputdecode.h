@@ -29,12 +29,14 @@
 class VppInputDecode : public VppInput
 {
 public:
+    VppInputDecode():m_eos(false) {}
     bool init(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0);
     bool read(SharedPtr<VideoFrame>& frame);
 
     bool config(NativeDisplay& nativeDisplay);
     virtual ~VppInputDecode() {}
 private:
+    bool m_eos;
     SharedPtr<IVideoDecoder> m_decoder;
     SharedPtr<DecodeInput> m_input;
 };

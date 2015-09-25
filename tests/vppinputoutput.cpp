@@ -35,6 +35,7 @@
 #include "common/lock.h"
 #include "vppinputoutput.h"
 #include "vppoutputencode.h"
+#include "vppinputdecode.h"
 
 using namespace YamiMediaCodec;
 
@@ -44,10 +45,15 @@ SharedPtr<VppInput> VppInput::create(const char* inputFileName, uint32_t fourcc,
     if (!inputFileName)
         return input;
 
+    input.reset(new VppInputDecode);
+    if(input->init(inputFileName, fourcc, width, height))
+        return input;
     input.reset(new VppInputFile);
-    if (!(input->init(inputFileName, fourcc, width, height))) {
-        input.reset();
-    }
+    if (input->init(inputFileName, fourcc, width, height))
+        return input;
+
+    ERROR("Wrong input file format %s?", inputFileName);
+    input.reset();
     return input;
 }
 
@@ -86,9 +92,10 @@ static bool guessFormat(const char* filename, uint32_t& fourcc, int& width, int&
 
 bool VppInputFile::init(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
-    if (!guessFormat(inputFileName, fourcc, width, height)) {
-        return false;
-    }
+    if(!fourcc || !width || !height)
+        if (!guessFormat(inputFileName, fourcc, width, height))
+            return false;
+
     m_width = width;
     m_height = height;
     m_fourcc = fourcc;
@@ -132,7 +139,7 @@ VppOutput::VppOutput()
 {
 }
 
-SharedPtr<VppOutput> VppOutput::create(const char* outputFileName)
+SharedPtr<VppOutput> VppOutput::create(const char* outputFileName, uint32_t fourcc, int width, int height)
 {
     SharedPtr<VppOutput> output;
     if (!outputFileName) {
@@ -140,10 +147,10 @@ SharedPtr<VppOutput> VppOutput::create(const char* outputFileName)
         return output;
     }
     output.reset(new VppOutputEncode);
-    if (output->init(outputFileName))
+    if (output->init(outputFileName, fourcc, width, height))
         return output;
     output.reset(new VppOutputFile);
-    if (output->init(outputFileName))
+    if (output->init(outputFileName, fourcc, width, height))
         return output;
     ERROR("can't open %s, wroing extension?",outputFileName);
     output.reset();
@@ -160,16 +167,21 @@ bool VppOutput::getFormat(uint32_t& fourcc, int& width, int& height)
 }
 
 
-bool VppOutputFile::init(const char* outputFileName)
+bool VppOutputFile::init(const char* outputFileName, uint32_t fourcc, int width, int height)
 {
     if (!outputFileName) {
         ERROR("output file name is null");
         return false;
     }
-    if (!guessFormat(outputFileName, m_fourcc, m_width, m_height)) {
-        ERROR("guess format from %s failed", outputFileName);
-        return false;
+    if(!fourcc || !width || !height) {
+        if (!guessFormat(outputFileName, fourcc, width, height)) {
+            ERROR("guess format from %s failed", outputFileName);
+            return false;
+        }
     }
+    m_fourcc = fourcc;
+    m_width = width;
+    m_height = height;
     m_fp = fopen(outputFileName, "wb");
     if (!m_fp) {
         ERROR("fail to open input file: %s", outputFileName);
