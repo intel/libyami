@@ -65,6 +65,13 @@ bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
                 //resend the buffer
                 status = m_decoder->decode(&inputBuffer);
             }
+        } else { /*EOS, need to flush*/
+            if(m_eos)
+                return false;
+            inputBuffer.data = NULL;
+            inputBuffer.size = 0;
+            status = m_decoder->decode(&inputBuffer);
+            m_eos = true;
         }
         if (status != DECODE_SUCCESS)
             return false;

@@ -30,7 +30,7 @@
 #include <va/va.h>
 #include <va/va_drm.h>
 #include <vector>
-
+#include <limits.h>
 
 using namespace YamiMediaCodec;
 
@@ -219,7 +219,7 @@ class VppInput {
 public:
     static SharedPtr<VppInput>
         create(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0);
-    virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height) = 0;
+    virtual bool init(const char* inputFileName = 0, uint32_t fourcc = 0, int width = 0, int height = 0) = 0;
     virtual bool read(SharedPtr<VideoFrame>& frame) = 0;
     int getWidth() { return m_width;}
     int getHeight() { return m_height;}
@@ -252,13 +252,13 @@ class VppOutput
 {
 public:
     static SharedPtr<VppOutput>
-        create(const char* outputFileName);
+        create(const char* outputFileName, uint32_t fourcc = 0, int width = 0, int height = 0);
     bool getFormat(uint32_t& fourcc, int& width, int& height);
     virtual bool output(const SharedPtr<VideoFrame>& frame) = 0;
     VppOutput();
     virtual ~VppOutput(){}
 protected:
-    virtual bool init(const char* outputFileName) = 0;
+    virtual bool init(const char* outputFileName, uint32_t fourcc, int width, int height) = 0;
     uint32_t m_fourcc;
     int m_width;
     int m_height;
@@ -274,7 +274,7 @@ public:
     virtual ~VppOutputFile();
     VppOutputFile();
 protected:
-    bool init(const char* outputFileName);
+    bool init(const char* outputFileName, uint32_t fourcc, int width, int height);
 private:
     bool write(const SharedPtr<VideoFrame>& frame);
     SharedPtr<FrameWriter> m_writer;

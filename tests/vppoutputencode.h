@@ -35,7 +35,7 @@ public:
     virtual ~VppOutputEncode(){}
     bool config(NativeDisplay& nativeDisplay);
 protected:
-    virtual bool init(const char* outputFileName);
+    virtual bool init(const char* outputFileName, uint32_t fourcc, int width, int height);
 private:
     void initOuputBuffer();
     const char* m_mime;

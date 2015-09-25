@@ -3,7 +3,7 @@ INCLUDES = -I$(top_srcdir)
 if ENABLE_CAPI
 bin_PROGRAMS = decodecapi encodecapi
 else
-bin_PROGRAMS = yamidecode yamiencode yamivpp
+bin_PROGRAMS = yamidecode yamiencode yamivpp yamitranscode
 if ENABLE_V4L2
 bin_PROGRAMS += v4l2encode v4l2decode
 endif
@@ -167,5 +167,7 @@ endif
 
 yamivpp_LDADD    = $(YAMI_VPP_LIBS)
 yamivpp_LDFLAGS  = $(YAMI_VPP_LDFLAGS)
-yamivpp_SOURCES  = vppinputoutput.cpp vppoutputencode.cpp  vpp.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
+yamivpp_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  vpp.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
 
+yamitranscode_LDADD    = $(YAMI_VPP_LIBS)
+yamitranscode_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  yamitranscode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
