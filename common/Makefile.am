@@ -31,6 +31,7 @@ libyami_common_la_LDFLAGS     = $(libyami_common_ldflags)
 libyami_common_la_CPPFLAGS    = $(libyami_common_cppflags)
 
 DISTCLEANFILES = \
-	Makefile.in 
-
+	Makefile.in \
+	libyami_version.h.in \
+	$(NULL)
 

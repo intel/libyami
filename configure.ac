@@ -40,6 +40,15 @@ AC_SUBST(LIBYAMI_LT_LDFLAGS)
 AM_CONDITIONAL(BUILD_STATIC,
     [test "x$enable_static" = "xyes"])
 
+LIBYAMI_MAJOR_VERSION=libyami_major_version
+LIBYAMI_MINOR_VERSION=libyami_minor_version
+LIBYAMI_MICRO_VERSION=libyami_micro_version
+LIBYAMI_VERSION=libyami_version
+AC_SUBST(LIBYAMI_MAJOR_VERSION)
+AC_SUBST(LIBYAMI_MINOR_VERSION)
+AC_SUBST(LIBYAMI_MICRO_VERSION)
+AC_SUBST(LIBYAMI_VERSION)
+
 AC_ARG_ENABLE(debug,
     [AC_HELP_STRING([--enable-debug],
         [build with extra debug @<:@default=no@:>@])],
@@ -401,6 +410,7 @@ AC_OUTPUT([
          pkgconfig/libyami_encoder.pc
          pkgconfig/libyami_vaapi.pc
          pkgconfig/libyami_vpp.pc
+         common/libyami_version.h
 ])
 
 # Print a configuration summary
