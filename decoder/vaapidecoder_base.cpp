@@ -371,11 +371,6 @@ Decode_Status
         return DECODE_FAIL;
     }
 
-#if __PLATFORM_BYT__
-    if (setenv("LIBVA_DRIVER_NAME", "wrapper", 1) == 0) {
-        INFO("setting LIBVA_DRIVER_NAME to wrapper for chromeos");
-    }
-#endif
     m_display = VaapiDisplay::create(m_externalDisplay);
 
     if (!m_display) {

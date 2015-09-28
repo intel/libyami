@@ -148,8 +148,11 @@ Decode_Status VaapiDecoderVP8::ensureContext()
 bool VaapiDecoderVP8::fillSliceParam(VASliceParameterBufferVP8* sliceParam)
 {
     /* Fill in VASliceParameterBufferVP8 */
-    sliceParam->slice_data_offset = m_frameHdr.data_chunk_size;
+    sliceParam->slice_data_offset = 0;
     sliceParam->macroblock_offset = m_frameHdr.header_size;
+#if __PSB_VP8_INTERFACE_WORK_AROUND__
+    sliceParam->macroblock_offset = m_frameHdr.header_size + 8;
+#endif
     sliceParam->num_of_partitions =
         (1 << m_frameHdr.log2_nbr_of_dct_partitions) + 1;
     sliceParam->partition_size[0] =
@@ -442,14 +445,8 @@ Decode_Status VaapiDecoderVP8::decodePicture()
     }
 
     VASliceParameterBufferVP8* sliceParam = NULL;
-    const void* sliceData = m_buffer;;
-    uint32_t sliceSize = m_frameSize;
-
-#if __PSB_VP8_INTERFACE_WORK_AROUND__
-    sliceData = m_frameHdr.rangedecoder_state.buffer,
-    sliceSize = m_frameSize - (m_frameHdr.rangedecoder_state.buffer - m_buffer);
-#endif
-
+    const void* sliceData = m_buffer + m_frameHdr.data_chunk_size;
+    uint32_t sliceSize = m_frameSize - m_frameHdr.data_chunk_size;
 
     if (!m_currentPicture->newSlice(sliceParam, sliceData, sliceSize))
         return DECODE_FAIL;
