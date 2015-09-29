@@ -17,4 +17,3 @@ autom4te.cache/
 m4/
 pkgconfig/
 aux/
-common/libyami_version.h

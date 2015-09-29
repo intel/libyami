@@ -407,9 +407,7 @@ bool VaapiDPBManager::addDPB(const VaapiFrameStore::Ptr& newFrameStore,
             if (!foundPicture) {
                 bool ret = true;
                 if (newFrameStore->hasFrame()) {
-                    if (newFrameStore->m_outputNeeded == 0) {
-                        newFrameStore->m_outputNeeded++;
-                    }
+                    newFrameStore->m_outputNeeded++;
                     ret = outputDPB(newFrameStore, pic);
                 } else {
                     m_prevFrameStore = newFrameStore;   // wait for a complete frame to render
