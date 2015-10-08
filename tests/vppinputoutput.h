@@ -31,8 +31,26 @@
 #include <va/va_drm.h>
 #include <vector>
 #include <limits.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 using namespace YamiMediaCodec;
+
+struct VADisplayDeleter
+{
+    VADisplayDeleter(int fd):m_fd(fd) {}
+    void operator()(VADisplay* display)
+    {
+        vaTerminate(*display);
+        delete display;
+        close(m_fd);
+    }
+private:
+    int m_fd;
+};
+
+SharedPtr<VADisplay> createVADisplay();
+
 
 //virtual bool setFormat(uint32_t fourcc, int width, int height) = 0;
 class FrameReader

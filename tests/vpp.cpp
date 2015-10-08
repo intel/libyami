@@ -33,43 +33,8 @@
 #include "VideoPostProcessHost.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <unistd.h>
 
 using namespace YamiMediaCodec;
-
-struct VADisplayDeleter
-{
-    VADisplayDeleter(int fd):m_fd(fd) {}
-    void operator()(VADisplay* display)
-    {
-        vaTerminate(*display);
-        delete display;
-        close(m_fd);
-    }
-private:
-    int m_fd;
-};
-
-SharedPtr<VADisplay> createVADisplay()
-{
-    SharedPtr<VADisplay> display;
-    int fd = open("/dev/dri/card0", O_RDWR);
-    if (fd < 0) {
-        ERROR("open card0 failed");
-        return display;
-    }
-    VADisplay vadisplay = vaGetDisplayDRM(fd);
-    int majorVersion, minorVersion;
-    VAStatus vaStatus = vaInitialize(vadisplay, &majorVersion, &minorVersion);
-    if (vaStatus != VA_STATUS_SUCCESS) {
-        ERROR("va init failed, status =  %d", vaStatus);
-        close(fd);
-        return display;
-    }
-    display.reset(new VADisplay(vadisplay), VADisplayDeleter(fd));
-    return display;
-}
 
 SharedPtr<VppInput> createInput(const char* filename, const SharedPtr<VADisplay>& display)
 {
