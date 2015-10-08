@@ -39,6 +39,26 @@
 
 using namespace YamiMediaCodec;
 
+SharedPtr<VADisplay> createVADisplay()
+{
+    SharedPtr<VADisplay> display;
+    int fd = open("/dev/dri/card0", O_RDWR);
+    if (fd < 0) {
+        ERROR("open card0 failed");
+        return display;
+    }
+    VADisplay vadisplay = vaGetDisplayDRM(fd);
+    int majorVersion, minorVersion;
+    VAStatus vaStatus = vaInitialize(vadisplay, &majorVersion, &minorVersion);
+    if (vaStatus != VA_STATUS_SUCCESS) {
+        ERROR("va init failed, status =  %d", vaStatus);
+        close(fd);
+        return display;
+    }
+    display.reset(new VADisplay(vadisplay), VADisplayDeleter(fd));
+    return display;
+}
+
 SharedPtr<VppInput> VppInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
     SharedPtr<VppInput> input;
