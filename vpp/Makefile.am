@@ -12,6 +12,7 @@ libyami_vpp_source_c = \
 
 
 libyami_vpp_source_h = \
+        ../interface/VideoCommonDefs.h                \
         ../interface/VideoPostProcessHost.h           \
         ../interface/VideoPostProcessInterface.h      \
         $(NULL)
