@@ -37,6 +37,9 @@ LIBYAMI_LT_LDFLAGS="-version-number $LIBYAMI_LT_VERSION"
 AC_SUBST(LIBYAMI_LT_VERSION)
 AC_SUBST(LIBYAMI_LT_LDFLAGS)
 
+AM_CONDITIONAL(BUILD_STATIC,
+    [test "x$enable_static" = "xyes"])
+
 AC_ARG_ENABLE(debug,
     [AC_HELP_STRING([--enable-debug],
         [build with extra debug @<:@default=no@:>@])],
