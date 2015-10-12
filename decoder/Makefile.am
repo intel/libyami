@@ -80,8 +80,14 @@ libyami_decoder_la_LIBADD = \
 
 libyami_decoder_ldflags = \
         $(LIBYAMI_LT_LDFLAGS) \
+        $(LIBVA_LIBS) \
+        $(LIBVA_DRM_LIBS) \
         -ldl                 \
         $(NULL)
+
+if ENABLE_X11
+libyami_decoder_ldflags += $(LIBVA_X11_LIBS) $(X11_LIBS)
+endif
 
 libyami_decoder_cppflags = \
         $(LIBVA_CFLAGS) \
