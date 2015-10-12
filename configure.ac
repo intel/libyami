@@ -396,6 +396,7 @@ AC_OUTPUT([
          pkgconfig/libyami_common.pc
          pkgconfig/libyami_decoder.pc
          pkgconfig/libyami_encoder.pc
+         pkgconfig/libyami_vaapi.pc
          pkgconfig/libyami_vpp.pc
 ])
 
