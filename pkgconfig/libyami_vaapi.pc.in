@@ -1,0 +1,17 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libyami vaapi part
+Description: Intel Open source libyami interface to vaapi
+Version: 1.0.0
+Requires: @AX_LIBVA_PKG_REQ@ \
+          @AX_LIBVA_DRM_PKG_REQ@ \
+          @AX_LIBVA_X11_PKG_REQ@ \
+          @AX_X11_PKG_REQ@
+Requires.private: @AX_LIBVA_PKG_REQ_PRIV@ \
+                  @AX_LIBVA_DRM_PKG_REQ_PRIV@ \
+                  @AX_LIBVA_X11_PKG_REQ_PRIV@ \
+                  @AX_X11_PKG_REQ_PRIV@
+Libs: -L${libdir} -lyami_vaapi
