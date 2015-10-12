@@ -29,7 +29,7 @@ libyami_vaapi_ldflags = \
         $(LIBVA_DRM_LIBS) \
 	$(NULL)
 if ENABLE_X11
-libyami_vaapi_ldflags += $(LIBVA_X11_LIBS) -lX11
+libyami_vaapi_ldflags += $(LIBVA_X11_LIBS) $(X11_LIBS)
 endif
 
 libyami_vaapi_cppflags = \
