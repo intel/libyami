@@ -29,6 +29,8 @@ libyami_vpp_la_LIBADD = \
 
 libyami_vpp_ldflags = \
         $(LIBYAMI_LT_LDFLAGS) \
+        $(LIBVA_LIBS) \
+        $(LIBVA_DRM_LIBS) \
         -ldl                 \
         $(NULL)
 
