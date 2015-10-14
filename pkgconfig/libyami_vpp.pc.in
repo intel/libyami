@@ -13,4 +13,4 @@ Requires.private: @AX_LIBVA_PKG_REQ_PRIV@ \
                   @AX_LIBVA_DRM_PKG_REQ_PRIV@
 Libs: -L${libdir} -lyami_vpp
 Libs.private: -Wl,--whole-archive -lyami_vpp -Wl,--no-whole-archive
-Cflags: -I${includedir}/libyami_vpp
+Cflags: -I${includedir}/libyami
