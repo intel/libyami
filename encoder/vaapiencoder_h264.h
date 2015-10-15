@@ -30,6 +30,7 @@
 #include "common/lock.h"
 #include <list>
 #include <queue>
+#include <deque>
 #include <pthread.h>
 #include <va/va_enc_h264.h>
 
@@ -71,9 +72,7 @@ private:
     bool fill(VAEncPictureParameterBufferH264*, const PicturePtr&, const SurfacePtr&) const ;
     bool ensureSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferH264* const);
     bool ensurePictureHeader(const PicturePtr&, const VAEncPictureParameterBufferH264* const );
-    bool addSliceHeaders (const PicturePtr&,
-                          const std::vector<ReferencePtr>& refList0,
-                          const std::vector<ReferencePtr>& refList1) const;
+    bool addSliceHeaders (const PicturePtr&) const;
     bool ensureSequence(const PicturePtr&);
     bool ensurePicture (const PicturePtr&, const SurfacePtr&);
     bool ensureSlices(const PicturePtr&);
@@ -81,11 +80,9 @@ private:
 
     //reference list related
     Encode_Status reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame);
+    bool fillReferenceList(VAEncSliceParameterBufferH264* slice) const;
     bool referenceListUpdate (const PicturePtr&, const SurfacePtr&);
-    bool referenceListInit (
-        const PicturePtr& ,
-        std::vector<ReferencePtr>& reflist0,
-        std::vector<ReferencePtr>& reflist1) const;
+    bool pictureReferenceListSet (const PicturePtr&);
 
     void referenceListFree();
     //template end
@@ -98,7 +95,6 @@ private:
     void setPFrame(const PicturePtr&);
     void setIFrame(const PicturePtr&);
     void setIdrFrame(const PicturePtr&);
-    void setIntraFrame(const PicturePtr&, bool idIdr);
 
     void resetParams();
 
@@ -118,9 +114,12 @@ private:
     AVCStreamFormat m_streamFormat;
     uint32_t m_frameIndex;
     uint32_t m_curFrameNum;
-    uint32_t m_curPresentIndex;
+
     /* reference list */
-    std::list<ReferencePtr> m_refList;
+    std::deque<ReferencePtr> m_refList;
+    std::deque<ReferencePtr> m_refList0;
+    std::deque<ReferencePtr> m_refList1;
+
     uint32_t m_maxRefFrames;
     /* max reflist count */
     uint32_t m_maxRefList0Count;

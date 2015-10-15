@@ -751,8 +751,12 @@ void VaapiEncoderH264::resetParams ()
     DEBUG("resetParams, ensureCodedBufferSize");
     ensureCodedBufferSize();
 
-    //FIXME:
-    m_numBFrames = 0;
+    if (ipPeriod() == 0)
+        m_videoParamCommon.intraPeriod = 1;
+    else
+        m_numBFrames = ipPeriod() - 1;
+
+    assert(intraPeriod() > ipPeriod());
 
     if (keyFramePeriod() < intraPeriod())
         keyFramePeriod() = intraPeriod();
@@ -819,7 +823,7 @@ void VaapiEncoderH264::flush()
     FUNC_ENTER();
     resetGopStart();
     m_reorderFrameList.clear();
-    m_refList.clear();
+    referenceListFree();
 
     VaapiEncoderBase::flush();
 }
@@ -912,38 +916,32 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
     if (!surface)
         return ENCODE_INVALID_PARAMS;
 
-    ++m_curPresentIndex;
     PicturePtr picture(new VaapiEncPictureH264(m_context, surface, timeStamp));
-    picture->m_poc = ((m_curPresentIndex * 2) % m_maxPicOrderCnt);
 
     bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= keyFramePeriod() || forceKeyFrame);
 
-    /* check key frames */
-    if (isIdr || (m_frameIndex % intraPeriod() == 0)) {
-        ++m_curFrameNum;
-        ++m_frameIndex;
-        /* b frame enabled,  check queue of reorder_frame_list */
-        if (m_numBFrames
-                && (m_reorderFrameList.size() > 0)) {
-            assert(0);
-
-        }
-        setIntraFrame (picture, isIdr);
+    if (isIdr) {
+        setIdrFrame (picture);
         m_reorderFrameList.push_back(picture);
+        m_curFrameNum++;
         m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
-        return ENCODE_SUCCESS;
-    }
-    /* new p/b frames coming */
-    ++m_frameIndex;
-    if (m_reorderFrameList.size() < m_numBFrames) {
-        assert(0);
+    } else if (m_frameIndex % intraPeriod() == 0) {
+        setIFrame (picture);
+        m_reorderFrameList.push_front(picture);
+        m_curFrameNum++;
+        m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
+    }else if (m_frameIndex % (m_numBFrames + 1) != 0) {
+        setBFrame (picture);
         m_reorderFrameList.push_back(picture);
-        return ENCODE_SUCCESS;
+    } else {
+        setPFrame (picture);
+        m_reorderFrameList.push_front(picture);
+        m_curFrameNum++;
+        m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
     }
-    ++m_curFrameNum;
-    setPFrame (picture);
-    m_reorderFrameList.push_front(picture);
-    m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
+
+    picture->m_poc = ((m_frameIndex * 2) % m_maxPicOrderCnt);
+    m_frameIndex++;
     return ENCODE_SUCCESS;
 }
 
@@ -957,7 +955,8 @@ Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t tim
     ret = reorder(surface, timeStamp, forceKeyFrame);
     if (ret != ENCODE_SUCCESS)
         return ret;
-    if (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
+
+    while (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
         if (!m_maxCodedbufSize)
             ensureCodedBufferSize();
         CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
@@ -1007,7 +1006,6 @@ void VaapiEncoderH264::resetGopStart ()
     m_idrNum = 0;
     m_frameIndex = 0;
     m_curFrameNum = 0;
-    m_curPresentIndex = 0;
 }
 
 /* Marks the supplied picture as a B-frame */
@@ -1034,21 +1032,10 @@ void VaapiEncoderH264::setIFrame (const PicturePtr& pic)
 /* Marks the supplied picture as an IDR frame */
 void VaapiEncoderH264::setIdrFrame (const PicturePtr& pic)
 {
+    resetGopStart();
     pic->m_type = VAAPI_PICTURE_TYPE_I;
     pic->m_frameNum = 0;
     pic->m_poc = 0;
-}
-
-/* Marks the supplied picture a a key-frame */
-void VaapiEncoderH264::setIntraFrame (const PicturePtr& picture,bool idIdr)
-{
-    if (idIdr) {
-        resetGopStart();
-        setIdrFrame(picture);
-        //+1 for next frame
-        m_frameIndex++;
-    } else
-        setIFrame(picture);
 }
 
 bool VaapiEncoderH264::
@@ -1058,30 +1045,39 @@ referenceListUpdate (const PicturePtr& picture, const SurfacePtr& surface)
         return true;
     }
     if (picture->isIdr()) {
-        referenceListFree();
+        m_refList.clear();
     } else if (m_refList.size() >= m_maxRefFrames) {
-        m_refList.pop_front();
+        m_refList.pop_back();
     }
     ReferencePtr ref(new VaapiEncoderH264Ref(picture, surface));
-    m_refList.push_front(ref); // recent first
+    m_refList.push_front(ref); // descending order for short-term reference list
     assert (m_refList.size() <= m_maxRefFrames);
     return true;
 }
 
-bool  VaapiEncoderH264::referenceListInit (
-    const PicturePtr& picture,
-    vector<ReferencePtr>& refList0,
-    vector<ReferencePtr>& refList1) const
+bool  VaapiEncoderH264::pictureReferenceListSet (
+    const PicturePtr& picture)
 {
-    assert(picture->m_type == VAAPI_PICTURE_TYPE_P);
-    refList0.reserve(m_refList.size());
-    refList0.insert(refList0.end(), m_refList.begin(), m_refList.end());
+    uint32_t i;
 
-    assert (refList0.size() + refList1.size() <= m_maxRefFrames);
-    if (refList0.size() > m_maxRefList0Count)
-        refList0.resize(m_maxRefList0Count);
-    if (refList1.size() > m_maxRefList1Count)
-        refList1.resize(m_maxRefList1Count);
+    /* reset reflist0 and reflist1 every time  */
+    m_refList0.clear();
+    m_refList1.clear();
+
+    for (i = 0; i < m_refList.size(); i++) {
+        assert(picture->m_poc != m_refList[i]->m_poc);
+        if (picture->m_poc > m_refList[i]->m_poc)
+            m_refList0.push_back(m_refList[i]);/* set forward reflist: descending order */
+        else
+            m_refList1.push_front(m_refList[i]);/* set backward reflist: ascending order */
+    }
+
+    if (m_refList0.size() > m_maxRefList0Count)
+        m_refList0.resize(m_maxRefList0Count);
+    if (m_refList1.size() > m_maxRefList1Count)
+        m_refList1.resize(m_maxRefList1Count);
+
+    assert (m_refList0.size() + m_refList1.size() <= m_maxRefFrames);
 
     return true;
 }
@@ -1089,6 +1085,8 @@ bool  VaapiEncoderH264::referenceListInit (
 void VaapiEncoderH264::referenceListFree()
 {
     m_refList.clear();
+    m_refList0.clear();
+    m_refList1.clear();
 }
 
 bool VaapiEncoderH264::fill(VAEncSequenceParameterBufferH264* seqParam) const
@@ -1165,13 +1163,12 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
     picParam->CurrPic.TopFieldOrderCnt = picture->m_poc;
 
     if (picture->m_type != VAAPI_PICTURE_TYPE_I) {
-        list<ReferencePtr>::const_iterator it;
-        for (it = m_refList.begin(); it != m_refList.end(); ++it) {
-            assert(*it && (*it)->m_pic && ((*it)->m_pic->getID() != VA_INVALID_ID));
-            picParam->ReferenceFrames[i].picture_id = (*it)->m_pic->getID();
-            ++i;
+        for (i = 0; i < m_refList.size(); i++) {
+            picParam->ReferenceFrames[i].picture_id = m_refList[i]->m_pic->getID();
+            picParam->ReferenceFrames[i].TopFieldOrderCnt = m_refList[i]->m_poc;
         }
     }
+
     for (; i < 16; ++i) {
         picParam->ReferenceFrames[i].picture_id = VA_INVALID_ID;
     }
@@ -1215,29 +1212,29 @@ bool VaapiEncoderH264::ensurePictureHeader(const PicturePtr& picture, const VAEn
     return true;
 }
 
-static void fillReferenceList(VAEncSliceParameterBufferH264* slice, const vector<ReferencePtr>& refList, uint32_t index)
+bool VaapiEncoderH264::fillReferenceList(VAEncSliceParameterBufferH264* slice) const
 {
-    VAPictureH264* picList;
-    int total;
-    if (!index) {
-        picList = slice->RefPicList0;
-        total = N_ELEMENTS(slice->RefPicList0);
+    uint32_t i = 0;
+    for (i = 0; i < m_refList0.size(); i++) {
+        assert(m_refList0[i] && m_refList0[i]->m_pic && (m_refList0[i]->m_pic->getID() != VA_INVALID_ID));
+        slice->RefPicList0[i].picture_id = m_refList0[i]->m_pic->getID();
+        slice->RefPicList0[i].TopFieldOrderCnt= m_refList0[i]->m_poc;
     }
-    else {
-        picList = slice->RefPicList1;
-        total = N_ELEMENTS(slice->RefPicList1);
+    for (; i < N_ELEMENTS(slice->RefPicList0); i++)
+        slice->RefPicList0[i].picture_id = VA_INVALID_SURFACE;
+
+    for (i = 0; i < m_refList1.size(); i++){
+        assert(m_refList1[i] && m_refList1[i]->m_pic && (m_refList1[i]->m_pic->getID() != VA_INVALID_ID));
+        slice->RefPicList1[i].picture_id = m_refList1[i]->m_pic->getID();
+        slice->RefPicList1[i].TopFieldOrderCnt= m_refList1[i]->m_poc;
     }
-    int i = 0;
-    for (; i < refList.size(); i++)
-        picList[i].picture_id = refList[i]->m_pic->getID();
-    for (; i <total; i++)
-        picList[i].picture_id = VA_INVALID_SURFACE;
+    for (; i < N_ELEMENTS(slice->RefPicList1); i++)
+        slice->RefPicList1[i].picture_id = VA_INVALID_SURFACE;
+    return true;
 }
 
 /* Adds slice headers to picture */
-bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture,
-                                        const vector<ReferencePtr>& refList0,
-                                        const vector<ReferencePtr>& refList1) const
+bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
 {
     VAEncSliceParameterBufferH264 *sliceParam;
     uint32_t sliceOfMbs, sliceModMbs, curSliceMbs;
@@ -1245,14 +1242,10 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture,
     uint32_t lastMbIndex;
 
     assert (picture);
-    /*one reference frame supported */
-    if (picture->m_type == VAAPI_PICTURE_TYPE_I) {
-        assert(!refList0.size() && !refList1.size());
-    }
-    else {
-        assert(refList0.size() == 1);
-        if (picture->m_type == VAAPI_PICTURE_TYPE_B)
-            assert(refList1.size() == 1);
+
+    if (picture->m_type != VAAPI_PICTURE_TYPE_I) {
+        /* have one reference frame at least */
+        assert(m_refList0.size() > 0);
     }
 
     mbSize = m_mbWidth * m_mbHeight;
@@ -1278,14 +1271,13 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture,
         sliceParam->idr_pic_id = m_idrNum;
         sliceParam->pic_order_cnt_lsb = picture->m_poc;
 
-        if (picture->m_type != VAAPI_PICTURE_TYPE_I && refList0.size() > 0)
-            sliceParam->num_ref_idx_l0_active_minus1 = refList0.size() - 1;
-        if (picture->m_type == VAAPI_PICTURE_TYPE_B && refList1.size() > 0)
-            sliceParam->num_ref_idx_l1_active_minus1 = refList1.size() - 1;
+        sliceParam->num_ref_idx_active_override_flag = 1;
+        if (picture->m_type != VAAPI_PICTURE_TYPE_I && m_refList0.size() > 0)
+            sliceParam->num_ref_idx_l0_active_minus1 = m_refList0.size() - 1;
+        if (picture->m_type == VAAPI_PICTURE_TYPE_B && m_refList1.size() > 0)
+            sliceParam->num_ref_idx_l1_active_minus1 = m_refList1.size() - 1;
 
-        fillReferenceList(sliceParam, refList0, 0);
-        fillReferenceList(sliceParam, refList1, 1);
-
+        fillReferenceList(sliceParam);
 
         sliceParam->slice_qp_delta = initQP() - minQP();
         if (sliceParam->slice_qp_delta > 4)
@@ -1324,6 +1316,12 @@ bool VaapiEncoderH264::ensurePicture (const PicturePtr& picture, const SurfacePt
 {
     VAEncPictureParameterBufferH264 *picParam;
 
+    if (picture->m_type != VAAPI_PICTURE_TYPE_I &&
+            !pictureReferenceListSet(picture)) {
+        ERROR ("reference list reorder failed");
+        return false;
+    }
+
     if (!picture->editPicture(picParam) || !fill(picParam, picture, surface)) {
         ERROR("failed to create picture parameter buffer (PPS)");
         return false;
@@ -1340,15 +1338,7 @@ bool VaapiEncoderH264::ensureSlices(const PicturePtr& picture)
 {
     assert (picture);
 
-    vector<ReferencePtr> refList0;
-    vector<ReferencePtr> refList1;
-
-    if (picture->m_type != VAAPI_PICTURE_TYPE_I &&
-            !referenceListInit(picture, refList0, refList1)) {
-        ERROR ("reference list reorder failed");
-        return false;
-    }
-    if (!addSliceHeaders (picture, refList0, refList1))
+    if (!addSliceHeaders (picture))
         return false;
     return true;
 }
