@@ -34,7 +34,6 @@ endif
 
 libyami_vaapi_cppflags = \
         $(LIBVA_CFLAGS) \
-        -fpermissive \
 	$(NULL)
 
 lib_LTLIBRARIES              = libyami_vaapi.la

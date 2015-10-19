@@ -37,7 +37,6 @@ libyami_vpp_ldflags = \
 libyami_vpp_cppflags = \
         $(LIBVA_CFLAGS) \
         $(LIBVA_DRM_CFLAGS) \
-        -fpermissive \
         $(NULL)
 
 lib_LTLIBRARIES             = libyami_vpp.la
