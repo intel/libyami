@@ -75,7 +75,6 @@ endif
 libyami_encoder_cppflags = \
         $(LIBVA_CFLAGS) \
         $(LIBVA_DRM_CFLAGS) \
-        -fpermissive \
 	$(NULL)
 if ENABLE_X11
 libyami_encoder_cppflags += $(LIBVA_X11_CFLAGS)

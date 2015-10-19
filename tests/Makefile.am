@@ -128,7 +128,6 @@ endif
 
 YAMI_VPP_CFLAGS = \
     $(LIBVA_CFLAGS) \
-    -fpermissive \
 	$(NULL)
 
 if ENABLE_CAPI

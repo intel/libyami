@@ -21,7 +21,6 @@ libyami_common_ldflags = \
 
 libyami_common_cppflags = \
         $(LIBVA_CFLAGS) \
-        -fpermissive \
 	$(NULL)
 
 lib_LTLIBRARIES	              = libyami_common.la

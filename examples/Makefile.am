@@ -99,7 +99,6 @@ endif
 
 VPP_INPUT_CFLAGS = \
     $(LIBVA_CFLAGS) \
-    -fpermissive \
 	$(NULL)
 
 if ENABLE_X11
