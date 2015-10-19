@@ -40,6 +40,13 @@ namespace YamiMediaCodec{
 class VaapiEncPictureVP8 : public VaapiEncPicture
 {
 public:
+    VaapiEncPictureVP8(const ContextPtr& context, const SurfacePtr& surface,
+                       int64_t timeStamp)
+        : VaapiEncPicture(context, surface, timeStamp)
+    {
+        return;
+    }
+
     VAGenericID getCodedBufferID()
     {
         return m_codedBuffer->getID();
@@ -125,7 +132,7 @@ Encode_Status VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t time
     if (!surface)
         return ENCODE_INVALID_PARAMS;
 
-    PicturePtr picture(new VaapiEncPicture(m_context, surface, timeStamp));
+    PicturePtr picture(new VaapiEncPictureVP8(m_context, surface, timeStamp));
 
     m_frameCount %= keyFramePeriod();
     picture->m_type = (m_frameCount ? VAAPI_PICTURE_TYPE_P : VAAPI_PICTURE_TYPE_I);
