@@ -275,10 +275,15 @@ inline bool isUnusedPicture(const PicturePtr& picture)
 void VaapiDecoderH265::DPB::removeUnused()
 {
     forEach(clearReference);
+
     /* Remove unused pictures from DPB */
-    PictureList::iterator it =
-            remove_if(m_pictures.begin(), m_pictures.end(), isUnusedPicture);
-    m_pictures.erase(it, m_pictures.end());
+    PictureList::iterator it;
+    for (it = m_pictures.begin(); it != m_pictures.end();) {
+        if (isUnusedPicture(*it))
+            m_pictures.erase(it++);
+        else
+            ++it;
+    }
 }
 
 void VaapiDecoderH265::DPB::clearRefSet()
