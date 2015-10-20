@@ -27,3 +27,6 @@ cd "$olddir"
 if test -z "$NOCONFIGURE"; then
     $srcdir/configure "$@" && echo "Now type 'make' to compile $PROJECT."
 fi
+
+
+#xxxxxxxxxxxxxxxx
