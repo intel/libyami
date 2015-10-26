@@ -21,11 +21,11 @@
 #define vaapipostprocess_factory_h
 
 #include "common/factory.h"
-#include "vaapipostprocess_base.h"
+#include "interface/VideoPostProcessInterface.h"
 
 namespace YamiMediaCodec {
 
-typedef Factory<VaapiPostProcessBase> VaapiPostProcessFactory;
+typedef Factory<IVideoPostProcess> VaapiPostProcessFactory;
 
 } // namespace YamiMediaCodec
 #endif // vaapipostprocess_factory_h

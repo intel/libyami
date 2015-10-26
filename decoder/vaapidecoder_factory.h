@@ -21,11 +21,11 @@
 #define vaapidecoder_factory_h
 
 #include "common/factory.h"
-#include "vaapidecoder_base.h"
+#include "interface/VideoDecoderInterface.h"
 
 namespace YamiMediaCodec {
 
-typedef Factory<VaapiDecoderBase> VaapiDecoderFactory;
+typedef Factory<IVideoDecoder> VaapiDecoderFactory;
 
 } // namespace YamiMediaCodec
 #endif // vaapidecoder_factory_h
