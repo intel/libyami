@@ -11,6 +11,14 @@ libyami_vpp_source_c = \
 	vaapivpppicture.cpp \
 	$(NULL)
 
+if BUILD_OCL_BLENDER
+libyami_vpp_source_c += ../ocl/oclcontext.cpp
+libyami_vpp_source_c += oclpostprocess_base.cpp
+endif
+
+if BUILD_OCL_BLENDER
+libyami_vpp_source_c += oclpostprocess_blender.cpp
+endif
 
 libyami_vpp_source_h = \
 	../interface/VideoCommonDefs.h \
@@ -23,6 +31,15 @@ libyami_vpp_source_h_priv = \
 	vaapipostprocess_scaler.h \
 	vaapivpppicture.h \
 	$(NULL)
+
+if BUILD_OCL_BLENDER
+libyami_vpp_source_h_priv += ../ocl/oclcontext.h
+libyami_vpp_source_h_priv += oclpostprocess_base.h
+endif
+
+if BUILD_OCL_BLENDER
+libyami_vpp_source_h_priv += oclpostprocess_blender.h
+endif
 
 libyami_vpp_la_LIBADD = \
 	$(top_builddir)/common/libyami_common.la \
@@ -40,6 +57,10 @@ libyami_vpp_cppflags = \
 	$(LIBVA_CFLAGS) \
 	$(LIBVA_DRM_CFLAGS) \
 	$(NULL)
+
+if BUILD_OCL_BLENDER
+libyami_vpp_ldflags += -lOpenCL
+endif
 
 lib_LTLIBRARIES             = libyami_vpp.la
 libyami_vppincludedir       = $(includedir)/libyami_vpp
