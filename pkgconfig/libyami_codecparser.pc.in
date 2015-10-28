@@ -7,4 +7,4 @@ Name: libyami_codecparser
 Description: Intel open source video streamer parsers
 Version: 1.0.0
 Libs: -L${libdir} -lyami_codecparser
-Cflags: -I${includedir}/libyami_codecparser
+Cflags: -I${includedir}/libyami

@@ -9,4 +9,4 @@ Version: 1.0.0
 Requires:@AX_LIBVA_PKG_REQ@@AX_LIBVA_DRM_PKG_REQ@
 Requires.private:@AX_LIBVA_PKG_REQ_PRIV@@AX_LIBVA_DRM_PKG_REQ_PRIV@
 Libs: -L${libdir} -lyami_common
-Cflags: -I${includedir}/libyami_common
+Cflags: -I${includedir}/libyami

@@ -1,0 +1,52 @@
+/*
+ *  Copyright (C) 2013-2014 Intel Corporation
+ *    Author: Lin Hai <clearlylin@outlook.com>
+ *
+ *  This library is free software; you can redistribute it and/or
+ *  modify it under the terms of the GNU Lesser General Public License
+ *  as published by the Free Software Foundation; either version 2.1
+ *  of the License, or (at your option) any later version.
+ *
+ *  This library is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ *  Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; if not, write to the Free
+ *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+ *  Boston, MA 02110-1301 USA
+ */
+
+#ifndef YAMI_VERSION_H
+#define YAMI_VERSION_H
+
+/**
+ * yami_major_version
+ */
+#define YAMI_MAJOR_VERSION    @YAMI_MAJOR_VERSION@
+
+/**
+ * yami_minor_version
+ */
+#define YAMI_MINOR_VERSION    @YAMI_MINOR_VERSION@
+
+/**
+ * yami_micro_version
+ */
+#define YAMI_MICRO_VERSION    @YAMI_MICRO_VERSION@
+
+/**
+ * yami_version_string
+ */
+#define YAMI_VERSION_STRING    "@YAMI_VERSION@"
+
+/**
+ * yami_version_int
+ */
+#define YAMI_VERSION_INT     ((YAMI_MAJOR_VERSION << 24) | \
+                                 (YAMI_MINOR_VERSION << 16) | \
+                                 (YAMI_MICRO_VERSION << 8))
+
+
+#endif /* YAMI_VERSION_H */
