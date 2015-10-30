@@ -103,7 +103,7 @@ bool DecodeInputAvFormat::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     int ret;
     while (1) {
         //free old packet
-        av_free_packet(&m_packet);
+        av_packet_unref(&m_packet);
 
         ret = av_read_frame(m_format, &m_packet);
         if (ret) {
@@ -129,7 +129,7 @@ const string& DecodeInputAvFormat::getCodecData()
 DecodeInputAvFormat::~DecodeInputAvFormat()
 {
     if (m_format) {
-        av_free_packet(&m_packet);
+        av_packet_unref(&m_packet);
         avformat_close_input(&m_format);
     }
 
