@@ -169,8 +169,8 @@ typedef struct _SurfaceAllocator
 
 typedef struct VideoRect
 {
-    int32_t  x;
-    int32_t  y;
+    uint32_t  x;
+    uint32_t  y;
     uint32_t width;
     uint32_t height;
 } VideoRect;
