@@ -48,11 +48,22 @@ bool VppInputDecode::config(NativeDisplay& nativeDisplay)
     }
 
     Decode_Status status = m_decoder->start(&configBuffer);
+    if (status == DECODE_SUCCESS) {
+        //read first frame to update width height
+        if (!read(m_first))
+            status = DECODE_FAIL;
+    }
     return status == DECODE_SUCCESS;
 }
 
 bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
 {
+    if (m_first) {
+        frame = m_first;
+        m_first.reset();
+        return true;
+    }
+
     while (1)  {
         frame = m_decoder->getOutput();
         if (frame)
@@ -62,6 +73,12 @@ bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
         if (m_input->getNextDecodeUnit(inputBuffer)) {
             status = m_decoder->decode(&inputBuffer);
             if (DECODE_FORMAT_CHANGE == status) {
+
+                //update width height
+                const VideoFormatInfo* info = m_decoder->getFormatInfo();
+                m_width = info->width;
+                m_height = info->height;
+
                 //resend the buffer
                 status = m_decoder->decode(&inputBuffer);
             }
