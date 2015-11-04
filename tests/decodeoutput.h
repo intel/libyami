@@ -2,9 +2,6 @@
  *  decodeoutput.h - decode outputs
  *
  *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Halley Zhao<halley.zhao@intel.com>
- *    Author: Xu Guangxin <guangxin.xu@intel.com>
- *    Author: Liu Yangbin <yangbinx.liu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -22,117 +19,207 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifndef decodeoutput_h
-#define decodeoutput_h
+#ifndef decodeoutput2_h
+#define decodeoutput2_h
 
-#include "VideoDecoderDefs.h"
-#include "VideoDecoderInterface.h"
-
-#include <stdio.h>
-#include <vector>
-#include <sstream>
+#include "vppinputoutput.h"
+#include "VideoPostProcessHost.h"
+#include "VideoCommonDefs.h"
 
 #if  __ENABLE_MD5__
 #include <openssl/md5.h>
 #endif
 
-using namespace YamiMediaCodec;
+#ifdef __ENABLE_X11__
+#include <X11/Xlib.h>
+#include <va/va_x11.h>
+#endif
+
+#ifdef __ENABLE_TESTS_GLES__
+#include "./egl/gles2_help.h"
+#include "egl/egl_util.h"
+#include "egl/egl_vaapi_image.h"
+#endif
+
+#include <vector>
 
 class DecodeOutput
 {
 public:
-    static DecodeOutput* create(IVideoDecoder* decoder, int mode);
-    virtual bool setVideoSize(int width, int height);
-    virtual Decode_Status renderOneFrame(bool drain) = 0;
-    Decode_Status processOneFrame(bool drain);
-    uint32_t renderFrameCount() { return m_renderFrames; };
-
-    virtual ~DecodeOutput() {};
-
+	virtual ~DecodeOutput() {}
+    virtual bool init();
+    virtual bool output(SharedPtr<VideoFrame>& frame) = 0;
+    SharedPtr<NativeDisplay> nativeDisplay(){ return m_nativeDisplay;}
+    static SharedPtr<DecodeOutput> create(int renderMode, uint32_t fourcc, const char* inputFile, const char* outputFile);
 protected:
-    DecodeOutput(IVideoDecoder* decoder);
-    IVideoDecoder* m_decoder;
-    int m_width;
-    int m_height;
-    uint32_t m_renderFrames;
-    VideoFrameRawData m_frame;
+    SharedPtr<VADisplay> m_vaDisplay;
+    SharedPtr<NativeDisplay> m_nativeDisplay;
 };
 
 class DecodeOutputNull: public DecodeOutput
 {
-friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
-    virtual Decode_Status renderOneFrame(bool drain);
-    ~DecodeOutputNull() {};
-
-private:
-    DecodeOutputNull(IVideoDecoder* decoder):DecodeOutput(decoder) {};
+	DecodeOutputNull() {}
+    ~DecodeOutputNull() {}
+    bool init();
+    bool output(SharedPtr<VideoFrame>& frame);
 };
 
-class ColorConvert;
-class DecodeOutputRaw : public DecodeOutput
+class ColorConvert
 {
-friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
-    virtual bool config(const char* source, const char* dest, uint32_t fourcc) = 0;
-    virtual Decode_Status renderOneFrame(bool drain);
-    ~DecodeOutputRaw();
-
-protected:
-    virtual bool render(VideoFrameRawData* frame) = 0;
-    void setFourcc(uint32_t fourcc);
-    uint32_t getFourcc();
-    DecodeOutputRaw(IVideoDecoder* decoder);
-
+    uint8_t* convert(SharedPtr<VideoFrame>& frame, SharedPtr<VADisplay> display, uint32_t pitches[3], uint32_t offsets[3])
+    {
+        VASurfaceID surface = (VASurfaceID)frame->surface;
+        VAImage image;
+        VAStatus status = vaDeriveImage(*display,surface,&image);
+        if (status != VA_STATUS_SUCCESS) {
+            ERROR("vaDeriveImage failed = %d", status);
+            return NULL;
+        }
+        uint32_t byteWidth[3], byteHeight[3], planes;
+        if (!getPlaneResolution(image.format.fourcc, image.width, image.height, byteWidth, byteHeight, planes)) {
+            ERROR("get plane reoslution failed for %x, %dx%d", image.format.fourcc, image.width, image.height);
+            return NULL;
+        }
+        uint8_t* buf;
+        status = vaMapBuffer(*display, image.buf, (void**)&buf);
+        if (status != VA_STATUS_SUCCESS) {
+            vaDestroyImage(*display, image.image_id);
+            ERROR("vaMapBuffer failed = %d", status);
+            return NULL;
+        }
+        m_tmp.clear();
+        //copy y
+        pitches[0] = byteWidth[0];
+        uint8_t* tmp = buf + image.offsets[0];
+        for (uint32_t h = 0; h < byteHeight[0]; h++) {
+            m_tmp.insert(m_tmp.end(), tmp, tmp + byteWidth[0]);
+            tmp += image.pitches[0];
+        }
+        //copy uv
+        for (uint32_t i = 0; i < 2; i++) {
+            offsets[i+1] = m_tmp.size();
+            pitches[i+1] = byteWidth[1]>>1;
+            tmp = buf + (image.offsets[1] + i);
+            for (uint32_t h = 0; h < byteHeight[1]; h++) {
+                uint8_t* start = tmp;
+                uint8_t* end = tmp + byteWidth[1];
+                while (start < end) {
+                   m_tmp.push_back(*start);
+                   start += 2;
+                }
+                tmp += image.pitches[1];
+           }
+        }
+        vaUnmapBuffer(*display, image.buf);
+        vaDestroyImage(*display, image.image_id);
+        return reinterpret_cast<uint8_t*>(&m_tmp[0]);
+    }
 private:
-    ColorConvert* m_convert;
-    uint32_t m_srcFourcc;
-    uint32_t m_destFourcc;
-    bool m_enableSoftI420Convert;
-    DISALLOW_COPY_AND_ASSIGN(DecodeOutputRaw);
+    std::vector<uint8_t> m_tmp;
 };
 
-class DecodeOutputFileDump : public DecodeOutputRaw
+class DecodeOutputFile: public DecodeOutput
 {
-friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
-    bool config(const char* source, const char* dest, uint32_t fourcc);
-    virtual bool setVideoSize(int width, int height);
-    ~DecodeOutputFileDump();
-
+    DecodeOutputFile(const char* outputFile, const char* inputFile, uint32_t fourcc)
+        : m_outputFile(outputFile)
+        , m_inputFile(inputFile)
+        , m_destFourcc(fourcc) {}
+    ~DecodeOutputFile();
+    bool init();
+    bool output(SharedPtr<VideoFrame>& frame);
 protected:
-    DecodeOutputFileDump(IVideoDecoder* decoder);
-    virtual bool render(VideoFrameRawData* frame);
+    virtual bool initFile();
+    virtual bool write(SharedPtr<VideoFrame>& frame);
+    virtual bool writeToFile(uint8_t*, uint32_t, uint32_t*, uint32_t*, uint32_t*, uint32_t*);
 
+    FILE*        m_file;
+    const char*  m_outputFile;
+    const char*  m_inputFile;
+    uint32_t     m_destFourcc;
 private:
-    std::ostringstream m_name;
-    FILE* m_fp;
-    bool m_appendSize;
-
+    bool                 m_isConverted;
+    ColorConvert*        m_convert;
+    SharedPtr<VppOutput> m_output;
+    VideoFrameRawData*   m_convertedFrame;
 };
 
 #if  __ENABLE_MD5__
-class DecodeOutputExtractMD5 : public DecodeOutputRaw
+class DecoudeOutputMD5: public DecodeOutputFile
 {
-friend DecodeOutput* DecodeOutput::create(IVideoDecoder* decoder, int mode);
 public:
-    DecodeOutputExtractMD5(IVideoDecoder* decoder);
-    ~DecodeOutputExtractMD5();
-
-    virtual bool render(VideoFrameRawData* frame);
-
-    bool config(const char* source, const char* dest, uint32_t fourcc);
-
+    DecoudeOutputMD5(const char* outputFile, const char* inputFile, uint32_t fourcc)
+    : DecodeOutputFile(outputFile, inputFile, fourcc) {}
+    ~DecoudeOutputMD5();
+protected:
+    bool initFile();
+    bool write(SharedPtr<VideoFrame>& frame);
+    bool writeToFile(uint8_t*, uint32_t, uint32_t*, uint32_t*, uint32_t*, uint32_t*);
+    bool writeMd5ToFile(MD5_CTX&);
 private:
-	std::string extractMd5ToHexStr(MD5_CTX& ctx);
-
-    MD5_CTX m_md5Ctx;
-    FILE* m_fp;
+    MD5_CTX m_fileMd5;
 };
-#endif
+#endif //__ENABLE_MD5__
 
-//help functions
-bool renderOutputFrames(DecodeOutput* output, uint32_t maxframes, bool drain = false);
-bool configDecodeOutput(DecodeOutput* output);
+#ifdef __ENABLE_X11__
+class DecodeOutputX11 : public DecodeOutput
+{
+public:
+    DecodeOutputX11(){ m_isInit = false;}
+    virtual ~DecodeOutputX11();
+    bool init();
+    virtual bool initWindow();
+protected:
+    Display* m_display;
+    Window   m_window;
+    bool     m_isInit;
+    int      m_width;
+    int      m_height;
+};
 
-#endif //decodeoutput_h
+class DecodeOutputXWindow: public DecodeOutputX11
+{
+public:
+    DecodeOutputXWindow(){}
+    ~DecodeOutputXWindow(){}
+    bool output(SharedPtr<VideoFrame>& frame);
+};
+
+#ifdef __ENABLE_TESTS_GLES__
+class DecodeOutputPixelMap : public DecodeOutputX11
+{
+public:
+    DecodeOutputPixelMap(){}
+    ~DecodeOutputPixelMap();
+    bool initWindow();
+    bool output(SharedPtr<VideoFrame>& frame);
+private:
+    XID m_pixmap;
+    GLuint m_textureId;
+    EGLContextType *m_eglContext;
+};
+
+class DecodeOutputDmabuf: public DecodeOutputX11
+{
+public:
+    DecodeOutputDmabuf(VideoDataMemoryType memoryType)
+    : m_memoryType(memoryType){}
+    ~DecodeOutputDmabuf();
+    bool initWindow();
+    bool output(SharedPtr<VideoFrame>& frame);
+protected:
+    void createEGLImage(EGLImageKHR&, SharedPtr<VideoFrame>&);
+    bool draw2D(EGLImageKHR&);
+private:
+    GLuint m_textureId;
+    EGLContextType *m_eglContext;
+    VideoDataMemoryType m_memoryType;
+    SharedPtr<FrameAllocator> m_allocator;
+    SharedPtr<IVideoPostProcess> m_vpp;
+};
+#endif //__ENABLE_TESTS_GLES__
+#endif //__ENABLE_X11__
+
+#endif //decodeoutput2_h

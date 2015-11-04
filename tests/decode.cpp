@@ -2,7 +2,6 @@
  *  decode.cpp - h264 decode test
  *
  *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Halley Zhao<halley.zhao@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -23,147 +22,189 @@
 #include "config.h"
 #endif
 
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <assert.h>
-
-#include "common/log.h"
-#include "common/utils.h"
-#include "VideoDecoderHost.h"
-#include "decodeinput.h"
+#include "vppinputdecode.h"
+#include "vppinputoutput.h"
 #include "decodeoutput.h"
-#include "decodehelp.h"
-#ifdef __ENABLE_X11__
-// #include <X11/Xlib.h>
-#endif
+#include "common/utils.h"
 
-using namespace YamiMediaCodec;
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <limits.h>
 
-int main(int argc, char** argv)
+struct DecodeParameter
 {
-    IVideoDecoder *decoder = NULL;
-    DecodeInput *input;
-    DecodeOutput *output;
-    VideoDecodeBuffer inputBuffer;
-    VideoConfigBuffer configBuffer;
-    const VideoFormatInfo *formatInfo = NULL;
-    Decode_Status status;
-    class CalcFps calcFpsGross, calcFpsNet;
-    int skipFrameCount4NetFps = 0;
-#ifdef __ENABLE_X11__
-    // XInitThreads();
-#endif
-    calcFpsGross.setAnchor();
-    yamiTraceInit();
-    if (!process_cmdline(argc, argv))
-        return -1;
-#if !__ENABLE_TESTS_GLES__
-    if (renderMode > 1) {
-        fprintf(stderr, "renderMode=%d is not supported, please rebuild with --enable-tests-gles option\n", renderMode);
-        return -1;
-    }
-#endif
-#if !__ENABLE_MD5__
-    if (renderMode == -2) {
-        fprintf(stderr, "renderMode=%d is not supported, you must compile libyami without --disable-md5 option "
-                "and package libssl-dev should be installed\n", renderMode);
-        return -1;
-    }
-#endif
-    input = DecodeInput::create(inputFileName);
+    char*    outputFile;
+    char*    inputFile;
+    int      width;
+    int      height;
+    short    renderMode;
+    short    waitBeforeQuit;
+    bool     isConverted;      //convert NV12 to I420
+    uint32_t renderFrames;
+    uint32_t renderFourcc;
+};
 
-    if (input==NULL) {
-        fprintf(stderr, "fail to init input stream\n");
-        return -1;
-    }
+static void print_help(const char* app)
+{
+    printf("%s <options>\n", app);
+    printf("   -i media file to decode\n");
+    printf("   -w wait before quit: 0:no-wait, 1:auto(jpeg wait), 2:wait\n");
+    printf("   -f dumped fourcc [*]\n");
+    printf("   -o dumped output dir\n");
+    printf("   -n specifiy how many frames to be decoded\n");
+    printf("   -m <render mode>\n");
+    printf("     -2: print MD5 by per frame and the whole decoded file MD5\n");
+    printf("     -1: skip video rendering [*]\n");
+    printf("      0: dump video frame to file\n");
+    printf("      1: render to X window [*]\n");
+    printf("      2: texture: render to Pixmap + texture from Pixmap [*]\n");
+    printf("      3: texture: export video frame as drm name (RGBX) + texture from drm name\n");
+    printf("      4: texture: export video frame as dma_buf(RGBX) + texutre from dma_buf\n");
+    printf("      5: texture: export video frame as dma_buf(NV12) + texture from dma_buf. not implement yet\n");
+    printf(" [*] v4l2decode doesn't support the option\n");
+}
 
-    decoder = createVideoDecoder(input->getMimeType());
-    assert(decoder != NULL);
+bool processArguments(int argc, char** argv, DecodeParameter& parameters)
+{
+    bool isSetFourcc = false;
+    parameters.renderFrames   = UINT_MAX;
+    parameters.waitBeforeQuit = 1;
+    parameters.renderMode     = 1;
+    parameters.inputFile      = NULL;
+    parameters.outputFile     = NULL;
 
-    output = DecodeOutput::create(decoder, renderMode);
-    if (!output || !configDecodeOutput(output)) {
-        fprintf(stderr, "failed to config decode output of mode: %d\n", renderMode);
-        delete input;
-        delete output;
-        return -1;
-    }
-
-    memset(&configBuffer,0,sizeof(VideoConfigBuffer));
-    configBuffer.profile = VAProfileNone;
-    const string codecData = input->getCodecData();
-    if (codecData.size()) {
-        configBuffer.data = (uint8_t*)codecData.data();
-        configBuffer.size = codecData.size();
-    }
-
-    if (input->getWidth() && input->getHeight()) {
-        configBuffer.width = input->getWidth();
-        configBuffer.height = input->getHeight();
-        if (!output->setVideoSize(input->getWidth(), input->getHeight()))
-            assert(0 && "set video size failed");
-    }
-
-    status = decoder->start(&configBuffer);
-    assert(status == DECODE_SUCCESS);
-
-    while (!input->isEOS())
+    char opt;
+    while ((opt = getopt(argc, argv, "h:m:n:i:f:o:w:?")) != -1)
     {
-        if (input->getNextDecodeUnit(inputBuffer)){
-            status = decoder->decode(&inputBuffer);
-        } else
+        switch (opt) {
+        case 'h':
+        case '?':
+            print_help (argv[0]);
+            return false;
+        case 'i':
+                parameters.inputFile = optarg;
             break;
-        if (status == DECODE_INVALID_DATA)
+        case 'w':
+            if (optarg)
+                parameters.waitBeforeQuit = atoi(optarg);
             break;
-
-        if (DECODE_FORMAT_CHANGE == status) {
-            formatInfo = decoder->getFormatInfo();
-            if (!output->setVideoSize(formatInfo->width, formatInfo->height)) {
-                assert(0 && "set video size failed");
-                break;
+        case 'm':
+            if (optarg)
+                parameters.renderMode = atoi(optarg);
+            break;
+        case 'n':
+            if (optarg)
+                parameters.renderFrames = atoi(optarg);
+            break;
+        case 'f':
+            if (optarg) {
+                if (strlen(optarg) == 4) {
+                    parameters.renderFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
+                    isSetFourcc = true;
+                } else {
+                    fprintf(stderr, "invalid fourcc: %s\n", optarg);
+                    return false;
+                }
             }
-            // resend the buffer
-            status = decoder->decode(&inputBuffer);
-        }
-        if(status != DECODE_SUCCESS) {
+            break;
+        case 'o':
+            if (optarg)
+                parameters.outputFile = strdup(optarg);
+            break;
+        default:
+            print_help(argv[0]);
             break;
         }
+    }
+    if (!parameters.inputFile) {
+        fprintf(stderr, "no input media file specified.\n");
+        return false;
+    }
+    if (!parameters.outputFile)
+        parameters.outputFile = strdup ("./");
+    if (!isSetFourcc)
+        parameters.renderFourcc = guessFourcc(parameters.outputFile);
+    int width, height;
+    if (guessResolution(parameters.inputFile, width, height)) {
+        parameters.width =  width;
+        parameters.height =  height;
+    }
+    return true;
+}
 
-        renderOutputFrames(output, frameCount);
-        if (output->renderFrameCount() >= 5 && !skipFrameCount4NetFps) {
-            skipFrameCount4NetFps = output->renderFrameCount();
-            calcFpsNet.setAnchor();
+
+SharedPtr<VppInput> createInput(DecodeParameter& para, SharedPtr<NativeDisplay> display)
+{
+    SharedPtr<VppInput> input(VppInput::create(para.inputFile, para.renderFourcc, para.width, para.height));
+    if (!input) {
+        fprintf(stderr, "VppInput create failed.\n");
+        return input;
+    }
+    SharedPtr<VppInputDecode> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecode>(input);
+    if (!inputDecode || !inputDecode->config(*display)) {
+        fprintf(stderr, "VppInputDecode config failed.\n");
+        input.reset();
+        return input;
+    }
+    return input;
+}
+
+
+class DecodeTest
+{
+public:
+    bool init(int argc, char **argv)
+    {
+        if ( !processArguments(argc, argv, m_parameter)) {
+            fprintf(stderr, "process arguments failed.\n");
+            return false;
         }
+        m_output = DecodeOutput::create(m_parameter.renderMode, m_parameter.renderFourcc, m_parameter.inputFile, m_parameter.outputFile);
+        if (!m_output) {
+            fprintf(stderr, "DecodeOutput::create failed.\n");
+            return false;
+        }
+        m_nativeDisplay = m_output->nativeDisplay();
+        m_vppInput      = createInput(m_parameter, m_nativeDisplay);
 
-        if(output->renderFrameCount() == frameCount)
-            break;
+        if (!m_nativeDisplay || !m_vppInput) {
+            fprintf(stderr, "DecodeTest init failed.\n");
+            return false;
+        }
+        return true;
+    }
+    bool run()
+    {
+        FpsCalc  fps;
+        SharedPtr<VideoFrame> src;
+        int count = 0;
+        while (m_vppInput->read(src)) {
+            if(!m_output->output(src))
+                break;
+            count++;
+            fps.addFrame();
+            if (count == m_parameter.renderFrames)
+                break;
+        }
+        fps.log();
+        return true;
     }
 
-#if 1
-    // send EOS to decoder
-    inputBuffer.data = NULL;
-    inputBuffer.size = 0;
-    status = decoder->decode(&inputBuffer);
-#endif
+private:
+    SharedPtr<DecodeOutput>   m_output;
+    SharedPtr<NativeDisplay>  m_nativeDisplay;
+    SharedPtr<VppInput>       m_vppInput;
+    DecodeParameter           m_parameter;
+};
 
-    // drain the output buffer
-    renderOutputFrames(output, frameCount, true);
 
-    calcFpsGross.fps(output->renderFrameCount());
-    if (output->renderFrameCount() > skipFrameCount4NetFps)
-        calcFpsNet.fps(output->renderFrameCount()-skipFrameCount4NetFps);
-
-    possibleWait(input->getMimeType());
-
-    decoder->stop();
-    releaseVideoDecoder(decoder);
-
-    delete input;
-    delete output;
-
-    if (dumpOutputName)
-        free(dumpOutputName);
-    fprintf(stderr, "decode done\n");
-    return 0;
+int main(int argc, char *argv[])
+{
+    DecodeTest decode;
+    if (!decode.init(argc, argv))
+        return 1;
+    decode.run();
+	return 0;
 }
