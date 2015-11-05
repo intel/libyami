@@ -17,4 +17,4 @@ Requires.private: @AX_LIBVA_PKG_REQ_PRIV@ \
                   @AX_X11_PKG_REQ_PRIV@
 Libs: -L${libdir} -lyami_decoder
 Libs.private: -Wl,--whole-archive -lyami_decoder -Wl,--no-whole-archive
-Cflags: -I${includedir}/libyami_decoder
+Cflags: -I${includedir}/libyami

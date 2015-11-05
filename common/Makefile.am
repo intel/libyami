@@ -6,11 +6,10 @@ libyami_common_source_c = \
         nalreader.cpp \
         $(NULL)
 
-libyami_common_source_h_priv = \
-        log.h \
-        utils.h \
+libyami_common_source_h = \
         common_def.h \
         nalreader.h \
+        YamiVersion.h \
 	$(NULL)
 
 libyami_common_ldflags = \
@@ -24,13 +23,14 @@ libyami_common_cppflags = \
 	$(NULL)
 
 lib_LTLIBRARIES	              = libyami_common.la
-libyami_commonincludedir      = ${includedir}/libyami_common
+libyami_commonincludedir      = ${includedir}/libyami
 libyami_commoninclude_HEADERS = $(libyami_common_source_h)
 libyami_common_la_SOURCES     = $(libyami_common_source_c)
 libyami_common_la_LDFLAGS     = $(libyami_common_ldflags)
 libyami_common_la_CPPFLAGS    = $(libyami_common_cppflags)
 
 DISTCLEANFILES = \
-	Makefile.in 
-
+	Makefile.in \
+	YamiVersion.h.in \
+	$(NULL)
 
