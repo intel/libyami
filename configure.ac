@@ -40,6 +40,15 @@ AC_SUBST(LIBYAMI_LT_LDFLAGS)
 AM_CONDITIONAL(BUILD_STATIC,
     [test "x$enable_static" = "xyes"])
 
+YAMI_MAJOR_VERSION=libyami_major_version
+YAMI_MINOR_VERSION=libyami_minor_version
+YAMI_MICRO_VERSION=libyami_micro_version
+YAMI_VERSION=libyami_version
+AC_SUBST(YAMI_MAJOR_VERSION)
+AC_SUBST(YAMI_MINOR_VERSION)
+AC_SUBST(YAMI_MICRO_VERSION)
+AC_SUBST(YAMI_VERSION)
+
 AC_ARG_ENABLE(debug,
     [AC_HELP_STRING([--enable-debug],
         [build with extra debug @<:@default=no@:>@])],
@@ -160,51 +169,6 @@ AC_ARG_ENABLE(md5,
     [AC_HELP_STRING([--enable-md5], [enable generate md5 by per frame@<:@default=yes@:>@])],
     [], [enable_md5="yes"])
 
-dnl vp8 decoder
-AC_ARG_ENABLE(vp8dec,
-    [AC_HELP_STRING([--enable-vp8dec],
-        [build with vp8 decoder support @<:@default=yes@:>@])],
-    [], [enable_vp8dec="yes"])
-
-AM_CONDITIONAL(BUILD_VP8_DECODER,
-    [test "x$enable_vp8dec" = "xyes"])
-
-dnl vp9 decoder
-AC_ARG_ENABLE(vp9dec,
-    [AC_HELP_STRING([--enable-vp9dec],
-        [build with vp9 decoder support @<:@default=no@:>@])],
-    [], [enable_vp9dec="no"])
-
-AM_CONDITIONAL(BUILD_VP9_DECODER,
-    [test "x$enable_vp9dec" = "xyes"])
-
-dnl jpeg decoder
-AC_ARG_ENABLE(jpegdec,
-    [AC_HELP_STRING([--enable-jpegdec],
-        [build with jpeg decoder support @<:@default=yes@:>@])],
-    [], [enable_jpegdec="yes"])
-
-AM_CONDITIONAL(BUILD_JPEG_DECODER,
-    [test "x$enable_jpegdec" = "xyes"])
-
-dnl h264 decoder
-AC_ARG_ENABLE(h264dec,
-    [AC_HELP_STRING([--enable-h264dec],
-        [build with h264 decoder support @<:@default=yes@:>@])],
-    [], [enable_h264dec="yes"])
-
-AM_CONDITIONAL(BUILD_H264_DECODER,
-    [test "x$enable_h264dec" = "xyes"])
-
-dnl h265 decoder
-AC_ARG_ENABLE(h265dec,
-    [AC_HELP_STRING([--enable-h265dec],
-        [build with h265 decoder support @<:@default=yes@:>@])],
-    [], [enable_h265dec="yes"])
-
-AM_CONDITIONAL(BUILD_H265_DECODER,
-    [test "x$enable_h265dec" = "xyes"])
-
 dnl fake decoder
 AC_ARG_ENABLE(fakedec,
     [AC_HELP_STRING([--enable-fakedec],
@@ -218,48 +182,79 @@ fi
 AM_CONDITIONAL(BUILD_FAKE_DECODER,
     [test "x$enable_fakedec" = "xyes"])
 
-dnl h264 encoder
-AC_ARG_ENABLE(h264enc,
-    [AC_HELP_STRING([--enable-h264enc],
-        [build with h264 encoder support @<:@default=yes@:>@])],
-    [], [enable_h264enc="yes"])
+dnl vp8 decoder
+AC_ARG_ENABLE([vp8dec],
+    AC_HELP_STRING([--enable-vp8dec],
+        [build with vp8 decoder support]),
+    [],[enable_vp8dec="auto"])
+if test "x$enable_vp8dec" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va_dec_vp8.h>],[])],
+        [enable_vp8dec="yes"],[enable_vp8dec="no"])
+fi
+AM_CONDITIONAL(BUILD_VP8_DECODER,
+    [test "x$enable_vp8dec" = "xyes"])
 
-AM_CONDITIONAL(BUILD_H264_ENCODER,
-    [test "x$enable_h264enc" = "xyes"])
+dnl vp9 decoder
+AC_ARG_ENABLE(vp9dec,
+    [AC_HELP_STRING([--enable-vp9dec],
+        [build with vp9 decoder support])],
+    [], [enable_vp9dec="auto"])
+if test "x$enable_vp9dec" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va_dec_vp9.h>],[])],
+        [enable_vp9dec="yes"],[enable_vp9dec="no"])
+fi
+AM_CONDITIONAL(BUILD_VP9_DECODER,
+    [test "x$enable_vp9dec" = "xyes"])
 
-dnl jpeg encoder
-AC_ARG_ENABLE(jpegenc,
-    [AC_HELP_STRING([--enable-jpegenc],
-        [build with jpeg encoder support @<:@default=no@:>@])],
-    [], [enable_jpegenc="no"])
+dnl jpeg decoder
+AC_ARG_ENABLE(jpegdec,
+    [AC_HELP_STRING([--enable-jpegdec],
+        [build with jpeg decoder support])],
+    [], [enable_jpegdec="auto"])
+if test "x$enable_jpegdec" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va_dec_jpeg.h>],
+            [VASliceParameterBufferJPEGBaseline va_slice_jpeg;])],
+        [enable_jpegdec="yes"],[enable_jpegdec="no"])
+fi
+AM_CONDITIONAL(BUILD_JPEG_DECODER,
+    [test "x$enable_jpegdec" = "xyes"])
 
-AM_CONDITIONAL(BUILD_JPEG_ENCODER,
-    [test "x$enable_jpegenc" = "xyes"])
+dnl h264 decoder
+AC_ARG_ENABLE(h264dec,
+    [AC_HELP_STRING([--enable-h264dec],
+        [build with h264 decoder support])],
+    [], [enable_h264dec="auto"])
+if test "x$enable_h264dec" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va.h>],
+            [VASliceParameterBufferH264 va_slice_h264;])],
+        [enable_h264dec="yes"],[enable_h264dec="no"])
+fi
+AM_CONDITIONAL(BUILD_H264_DECODER,
+    [test "x$enable_h264dec" = "xyes"])
 
-dnl vp8 encoder
-AC_ARG_ENABLE(vp8enc,
-    [AC_HELP_STRING([--enable-vp8enc],
-        [build with vp8 encoder support @<:@default=no@:>@])],
-    [], [enable_vp8enc="no"])
-
-AM_CONDITIONAL(BUILD_VP8_ENCODER,
-    [test "x$enable_vp8enc" = "xyes"])
-
-dnl h265 encoder
-AC_ARG_ENABLE(h265enc,
-    [AC_HELP_STRING([--enable-h265enc],
-        [build with h265 encoder support @<:@default=no@:>@])],
-    [], [enable_h265enc="no"])
-
-AM_CONDITIONAL(BUILD_H265_ENCODER,
-    [test "x$enable_h265enc" = "xyes"])
+dnl h265 decoder
+AC_ARG_ENABLE(h265dec,
+    [AC_HELP_STRING([--enable-h265dec],
+        [build with h265 decoder support])],
+    [], [enable_h265dec="auto"])
+if test "x$enable_h265dec" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va_dec_hevc.h>],
+            [VASliceParameterBufferHEVC va_slice_hevc;])],
+        [enable_h265dec="yes"],[enable_h265dec="no"])
+fi
+AM_CONDITIONAL(BUILD_H265_DECODER,
+    [test "x$enable_h265dec" = "xyes"])
 
 dnl encoder getmv
 AC_ARG_ENABLE(getmv,
     [AC_HELP_STRING([--enable-getmv],
         [build with get mv support @<:@default=no@:>@])],
     [], [enable_getmv="no"])
-
 if test "$enable_getmv" = "yes"; then
     AC_DEFINE([__BUILD_GET_MV__], [1],
         [Defined to 1 if --enable-getmv="yes"])
@@ -267,6 +262,57 @@ fi
 AM_CONDITIONAL(BUILD_GET_MV,
     [test "x$enable_getmv" = "xyes"])
 
+dnl vp8 encoder
+AC_ARG_ENABLE(vp8enc,
+    [AC_HELP_STRING([--enable-vp8enc],
+        [build with vp8 encoder support])],
+    [], [enable_vp8enc="auto"])
+if test "x$enable_vp8enc" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va_enc_vp8.h>],[])],
+        [enable_vp8enc="yes"],[enable_vp8enc="no"])
+fi
+AM_CONDITIONAL(BUILD_VP8_ENCODER,
+    [test "x$enable_vp8enc" = "xyes"])
+
+dnl jpeg encoder
+AC_ARG_ENABLE(jpegenc,
+    [AC_HELP_STRING([--enable-jpegenc],
+        [build with jpeg encoder support])],
+    [], [enable_jpegenc="auto"])
+if test "x$enable_jpegenc" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va_enc_jpeg.h>],[])],
+        [enable_jpegenc="yes"],[enable_jpegenc="no"])
+fi
+AM_CONDITIONAL(BUILD_JPEG_ENCODER,
+    [test "x$enable_jpegenc" = "xyes"])
+
+dnl h264 encoder
+AC_ARG_ENABLE(h264enc,
+    [AC_HELP_STRING([--enable-h264enc],
+        [build with h264 encoder support])],
+    [], [enable_h264enc="auto"])
+if test "x$enable_h264enc" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va_enc_h264.h>],[])],
+        [enable_h264enc="yes"],[enable_h264enc="no"])
+fi
+AM_CONDITIONAL(BUILD_H264_ENCODER,
+    [test "x$enable_h264enc" = "xyes"])
+
+dnl h265 encoder
+AC_ARG_ENABLE(h265enc,
+    [AC_HELP_STRING([--enable-h265enc],
+        [build with h265 encoder support])],
+    [], [enable_h265enc="auto"])
+if test "x$enable_h265enc" = "xauto"; then
+    AC_PREPROC_IFELSE(
+        [AC_LANG_PROGRAM([#include<va/va_enc_hevc.h>],[])],
+        [enable_h265enc="yes"],[enable_h265enc="no"])
+fi
+AM_CONDITIONAL(BUILD_H265_ENCODER,
+    [test "x$enable_h265enc" = "xyes"])
 
 # dnl Doxygen
 AC_ARG_ENABLE(docs,
@@ -401,6 +447,7 @@ AC_OUTPUT([
          pkgconfig/libyami_encoder.pc
          pkgconfig/libyami_vaapi.pc
          pkgconfig/libyami_vpp.pc
+         common/YamiVersion.h
 ])
 
 # Print a configuration summary
