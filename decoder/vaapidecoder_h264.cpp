@@ -89,6 +89,18 @@ static VAProfile getH264VAProfile(H264PPS * pps)
     case 100:
         profile = VAProfileH264High;
         break;
+    case 110:
+        /* high10 profile is not supported in driver */
+        profile = VAProfileNone;
+        break;
+    case 122:
+        /* high_422 profile is not supported in driver */
+        profile = VAProfileNone;
+        break;
+    case 244:
+        /* high_444 profile is not supported in driver */
+        profile = VAProfileNone;
+        break;
     }
     return profile;
 }
