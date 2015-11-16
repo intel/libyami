@@ -25,10 +25,64 @@
 #include "vaapi/vaapicontext.h"
 
 #include "common/log.h"
+#include "common/common_def.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapiutils.h"
+#include <algorithm>
+#include <vector>
 
 namespace YamiMediaCodec{
+using std::vector;
+static const VAProfile h264ProfileList[] = {VAProfileH264ConstrainedBaseline, VAProfileH264Main, VAProfileH264High};
+
+//Driver may declare support higher profile but don't support lower profile.
+//In this case, higher profile should be created.
+//Note: creating higher va profile won't affect the detail encoding/decoding process of libva driver.
+static bool checkH264Profile(VAProfile& profile, vector<VAProfile>& profileList)
+{
+    vector<VAProfile>h264Profiles(h264ProfileList, h264ProfileList + N_ELEMENTS(h264ProfileList));
+    vector<VAProfile>::iterator start = std::find(h264Profiles.begin(), h264Profiles.end(), profile);
+    vector<VAProfile>::iterator result = std::find_first_of(profileList.begin(), profileList.end(), start, h264Profiles.end());
+
+    if (result != profileList.end()){
+        profile = *result;
+    } else{
+        // VAProfileH264Baseline is super profile for VAProfileH264ConstrainedBaseline
+        // old i965 driver incorrectly claims supporting VAProfileH264Baseline, but not VAProfileH264ConstrainedBaseline
+        if (profile == VAProfileH264ConstrainedBaseline && std::count(profileList.begin(), profileList.end(), VAProfileH264Baseline))
+            profile = VAProfileH264Baseline;
+        else
+            return false;
+    }
+
+    return true;
+}
+
+static bool checkProfileCompatible(const DisplayPtr& display, VAProfile& profile)
+{
+    int maxNumProfiles, numProfiles;
+    VAStatus vaStatus;
+
+    maxNumProfiles = vaMaxNumProfiles(display->getID());
+
+    vector<VAProfile> profileList(maxNumProfiles);
+
+    vaStatus = vaQueryConfigProfiles(display->getID(), &profileList[0], &numProfiles);
+    if (!checkVaapiStatus(vaStatus, "vaQueryConfigProfiles"))
+        return false;
+    assert((numProfiles > 0) && (numProfiles <= maxNumProfiles));
+
+    profileList.resize(numProfiles);
+
+    if (profile == VAProfileH264ConstrainedBaseline || profile == VAProfileH264Main){
+        if (!checkH264Profile(profile, profileList))
+            return false;
+    } else if (!std::count(profileList.begin(), profileList.end(), profile))
+        return false;
+
+    return true;
+}
+
 ConfigPtr VaapiConfig::create(const DisplayPtr& display,
                                      VAProfile profile, VAEntrypoint entry,
                                      VAConfigAttrib *attribList, int numAttribs)
@@ -38,16 +92,13 @@ ConfigPtr VaapiConfig::create(const DisplayPtr& display,
         return ret;
     VAStatus vaStatus;
     VAConfigID config;
-    vaStatus = vaCreateConfig(display->getID(), profile, entry, attribList, numAttribs, &config);
 
-    // VAProfileH264Baseline is super profile for VAProfileH264ConstrainedBaseline
-    // old i965 driver incorrectly claims supporting VAProfileH264Baseline, but not VAProfileH264ConstrainedBaseline
-    if (vaStatus == VA_STATUS_ERROR_UNSUPPORTED_PROFILE
-        && profile == VAProfileH264ConstrainedBaseline
-        && entry == VAEntrypointVLD)
-        vaStatus = vaCreateConfig(display->getID(),
-                                  VAProfileH264Baseline,
-                                  VAEntrypointVLD, attribList, numAttribs, &config);
+    if (!checkProfileCompatible(display, profile)){
+        ERROR("Unsupport profile");
+        return ret;
+    }
+
+    vaStatus = vaCreateConfig(display->getID(), profile, entry, attribList, numAttribs, &config);
 
     if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
         return ret;
