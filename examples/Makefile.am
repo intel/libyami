@@ -1,6 +1,7 @@
 INCLUDES = -I$(top_srcdir) -I$(top_srcdir)/tests
 
 bin_PROGRAMS =
+
 if ENABLE_X11
 bin_PROGRAMS += simpleplayer
 endif
@@ -10,9 +11,9 @@ bin_PROGRAMS += grid
 endif
 
 AM_CFLAGS = \
-	-I$(top_srcdir)			\
-	-I$(top_srcdir)/interface	\
-	$(LIBVA_CFLAGS)             \
+	-I$(top_srcdir) \
+	-I$(top_srcdir)/interface \
+	$(LIBVA_CFLAGS) \
 	$(NULL)
 
 DECODE_INPUT_SOURCES = \
@@ -22,14 +23,14 @@ DECODE_INPUT_SOURCES = \
 if ENABLE_AVFORMAT
 DECODE_INPUT_SOURCES += $(top_builddir)/tests/decodeinputavformat.cpp
 AM_CFLAGS += -D__STDC_CONSTANT_MACROS \
-			 $(LIBAVFORMAT_CFLAGS)
+	$(LIBAVFORMAT_CFLAGS)
 endif
 
 VPP_INPUT_SOURCES = \
 	$(DECODE_INPUT_SOURCES) \
 	$(top_builddir)/tests/vppinputoutput.cpp \
 	$(top_builddir)/tests/vppinputdecode.cpp \
-        $(top_builddir)/tests/vppinputasync.cpp \
+	$(top_builddir)/tests/vppinputasync.cpp \
 	$(top_builddir)/tests/vppoutputencode.cpp \
 	$(top_builddir)/tests/encodeinput.cpp \
 	$(top_builddir)/tests/encodeInputDecoder.cpp \
@@ -37,24 +38,24 @@ VPP_INPUT_SOURCES = \
 	$(NULL)
 
 AM_CPPFLAGS = $(AM_CFLAGS)
-YAMI_COMMON_LIBS 	= \
-	$(top_builddir)/common/libyami_common.la	\
-	$(top_builddir)/vaapi/libyami_vaapi.la		\
+YAMI_COMMON_LIBS = \
+	$(top_builddir)/common/libyami_common.la \
+	$(top_builddir)/vaapi/libyami_vaapi.la \
 	$(NULL)
 
 if ENABLE_X11
 YAMI_COMMON_LIBS += $(LIBVA_X11_LIBS) -lX11
 endif
 
-YAMI_DECODE_LIBS 	= \
-	$(YAMI_COMMON_LIBS)                            	\
-	$(top_builddir)/decoder/libyami_decoder.la      \
+YAMI_DECODE_LIBS = \
+	$(YAMI_COMMON_LIBS) \
+	$(top_builddir)/decoder/libyami_decoder.la \
 	$(NULL)
 
 if BUILD_STATIC
-YAMI_DECODE_LDFLAGS =						\
-	-Wl,--whole-archive					\
-	-Wl,$(top_builddir)/decoder/.libs/libyami_decoder.a	\
+YAMI_DECODE_LDFLAGS = \
+	-Wl,--whole-archive \
+	-Wl,$(top_builddir)/decoder/.libs/libyami_decoder.a \
 	-Wl,--no-whole-archive
 endif
 
@@ -67,44 +68,45 @@ YAMI_DECODE_LIBS += $(LIBAVFORMAT_LIBS)
 endif
 
 YAMI_ENCODE_LIBS = \
-	$(YAMI_COMMON_LIBS)                             \
-	$(top_builddir)/encoder/libyami_encoder.la      \
-	$(YAMI_DECODE_LIBS)								\
+	$(YAMI_COMMON_LIBS) \
+	$(top_builddir)/encoder/libyami_encoder.la \
+	$(YAMI_DECODE_LIBS) \
 	$(NULL)
 
 if BUILD_STATIC
-YAMI_ENCODE_LDFLAGS =						\
-	-Wl,--whole-archive					\
-	-Wl,$(top_builddir)/encoder/.libs/libyami_encoder.a	\
-	-Wl,--no-whole-archive					\
-	$(YAMI_DECODE_LDFLAGS)
+YAMI_ENCODE_LDFLAGS = \
+	-Wl,--whole-archive \
+	-Wl,$(top_builddir)/encoder/.libs/libyami_encoder.a \
+	-Wl,--no-whole-archive \
+	$(YAMI_DECODE_LDFLAGS) \
+	$(NULL)
 endif
 
 VPP_INPUT_LIBS = \
-    $(YAMI_COMMON_LIBS)   \
-    $(top_builddir)/vpp/libyami_vpp.la	\
-    $(LIBYAMI_LT_LDFLAGS) \
-    $(LIBVA_LIBS) \
-    $(LIBVA_DRM_LIBS) \
-    $(YAMI_ENCODE_LIBS) \
+	$(YAMI_COMMON_LIBS) \
+	$(top_builddir)/vpp/libyami_vpp.la \
+	$(LIBYAMI_LT_LDFLAGS) \
+	$(LIBVA_LIBS) \
+	$(LIBVA_DRM_LIBS) \
+	$(YAMI_ENCODE_LIBS) \
 	$(NULL)
 
 if BUILD_STATIC
-VPP_INPUT_LDFLAGS =					\
-	-Wl,--whole-archive				\
-	-Wl,$(top_builddir)/vpp/.libs/libyami_vpp.a	\
-	-Wl,--no-whole-archive				\
+VPP_INPUT_LDFLAGS = \
+	-Wl,--whole-archive \
+	-Wl,$(top_builddir)/vpp/.libs/libyami_vpp.a \
+	-Wl,--no-whole-archive \
 	$(YAMI_ENCODE_LDFLAGS)
 endif
 
 VPP_INPUT_CFLAGS = \
-    $(LIBVA_CFLAGS) \
+	$(LIBVA_CFLAGS) \
 	$(NULL)
 
 if ENABLE_X11
 simpleplayer_LDADD = $(YAMI_DECODE_LIBS)
 simpleplayer_LDFLAGS = $(YAMI_DECODE_LDFLAGS)
-simpleplayer_SOURCES	= simpleplayer.cpp $(DECODE_INPUT_SOURCES)
+simpleplayer_SOURCES = simpleplayer.cpp $(DECODE_INPUT_SOURCES)
 endif
 
 if ENABLE_DMABUF
