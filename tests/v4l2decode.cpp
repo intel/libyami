@@ -276,8 +276,9 @@ int main(int argc, char** argv)
     renderMode = 3; // set default render mode to 3
 
     yamiTraceInit();
+#if __ENABLE_V4L2_GLX__
     XInitThreads();
-
+#endif
     if (!process_cmdline(argc, argv))
         return -1;
 
@@ -319,9 +320,9 @@ int main(int argc, char** argv)
     fd = YamiV4L2_Open("decoder", 0);
     ASSERT(fd!=-1);
 
+#if __ENABLE_V4L2_GLX__
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
-#if __ENABLE_V4L2_GLX__
     ioctlRet = YamiV4L2_SetXDisplay(fd, x11Display);
 #endif
     // set output frame memory type
@@ -450,11 +451,11 @@ int main(int argc, char** argv)
     ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
 
+#if __ENABLE_V4L2_GLX__
     x11Window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
         , 0, 0, videoWidth, videoHeight, 0, 0
         , WhitePixel(x11Display, 0));
     XMapWindow(x11Display, x11Window);
-#if __ENABLE_V4L2_GLX__
     pixmaps.resize(outputQueueCapacity);
     glxPixmaps.resize(outputQueueCapacity);
     textureIds.resize(outputQueueCapacity);
@@ -635,10 +636,12 @@ int main(int argc, char** argv)
     if (dumpOutputName)
         free(dumpOutputName);
 
+#if __ENABLE_V4L2_GLX__
     if (x11Display && x11Window)
         XDestroyWindow(x11Display, x11Window);
     if (x11Display)
         XCloseDisplay(x11Display);
+#endif
 
     fprintf(stdout, "decode done\n");
 }

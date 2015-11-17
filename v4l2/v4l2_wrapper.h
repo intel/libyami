@@ -27,10 +27,13 @@
 #else
 #include <EGL/egl.h>
 #endif
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 
 #ifndef v4l2_wrapper_h
 #define v4l2_wrapper_h
+#ifndef V4L2_EVENT_RESOLUTION_CHANGE
+    #define V4L2_EVENT_RESOLUTION_CHANGE 5
+#endif
 extern "C" {
 int32_t YamiV4L2_Open(const char* name, int32_t flags);
 int32_t YamiV4L2_Close(int32_t fd);

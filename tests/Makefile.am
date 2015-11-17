@@ -28,6 +28,7 @@ endif
 AM_CPPFLAGS = $(AM_CFLAGS)
 
 YAMI_COMMON_LIBS 	= \
+	$(LIBVA_LIBS)								\
 	$(top_builddir)/common/libyami_common.la	\
 	$(top_builddir)/vaapi/libyami_vaapi.la		\
 	$(NULL)
