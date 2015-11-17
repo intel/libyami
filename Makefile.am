@@ -9,7 +9,7 @@ DISTCLEANFILES = \
 	configure config.h.in config.h.in~ depcomp install-sh ltmain.sh \
 	Makefile.in missing
 
-SUBDIRS = codecparsers common vaapi decoder encoder vpp pkgconfig
+SUBDIRS = common codecparsers vaapi decoder encoder vpp pkgconfig
 if ENABLE_DOCS
 SUBDIRS += doc
 endif
