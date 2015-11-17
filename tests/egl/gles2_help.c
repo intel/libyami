@@ -318,11 +318,13 @@ EGLContextType *eglInit(Display *x11Display, XID x11Window, uint32_t fourcc, int
     glEnable(GL_DEPTH_TEST);
     glClearDepthf(1.0f);
     {
-        unsigned int width, height;
+        unsigned int width=800, height=600;
+#ifdef __ENABLE_X11__
         Window root;
         int x, y;
         unsigned int borderWidth, depth;
         XGetGeometry(x11Display, x11Window, &root, &x, &y, &width, &height, &borderWidth, &depth);
+#endif
         glViewport(0, 0, width, height);
     }
     if (isExternalTexture)
