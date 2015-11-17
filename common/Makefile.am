@@ -44,6 +44,7 @@ noinst_PROGRAMS = unittest
 
 unittest_SOURCES = \
 	$(top_builddir)/common/unittest_main.cpp \
+	factory_unittest.cpp \
 	$(NULL)
 
 unittest_LDFLAGS = \
