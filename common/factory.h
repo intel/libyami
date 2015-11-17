@@ -44,7 +44,7 @@ public:
     static bool register_(const KeyType& key)
     {
         std::pair<iterator, bool> result =
-            m_creators.insert(std::make_pair(key, create<C>));
+            getCreators().insert(std::make_pair(key, create<C>));
         return result.second;
     }
 
@@ -55,8 +55,9 @@ public:
      */
     static Type create(const KeyType& key)
     {
-        const const_iterator creator(m_creators.find(key));
-        if (creator != m_creators.end())
+        Creators& creators = getCreators();
+        const const_iterator creator(creators.find(key));
+        if (creator != creators.end())
             return creator->second();
         return NULL;
     }
@@ -67,10 +68,11 @@ private:
     {
         return new C;
     }
-
-    static Creators m_creators;
+    static Creators& getCreators()
+    {
+        static Creators creators;
+        return creators;
+    }
 };
-
-template < class T > typename Factory<T>::Creators Factory<T>::m_creators;
 
 #endif // __COMMON_FACTORY_H__
