@@ -11,7 +11,7 @@ DISTCLEANFILES = \
 
 SUBDIRS = codecparsers common vaapi decoder encoder vpp pkgconfig
 if ENABLE_DOCS
-	SUBDIRS += doc
+SUBDIRS += doc
 endif
 
 if ENABLE_V4L2
