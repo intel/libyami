@@ -357,7 +357,7 @@ void VaapiDecoderH264::initPicturePOC0(const PicturePtr& picture,
     } else if (m_prevPicHasMMCO5) {
         m_prevPOCMsb = 0;
         m_prevPOCLsb =
-            (m_prevPicStructure == VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD ?
+            ((m_prevPicStructure == VAAPI_PICTURE_STRUCTURE_BOTTOM_FIELD) ?
              0 : m_fieldPoc[TOP_FIELD]);
     } else {
         m_prevPOCMsb = m_POCMsb;
