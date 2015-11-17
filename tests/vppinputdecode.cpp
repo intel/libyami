@@ -21,6 +21,12 @@
  */
 #include "tests/vppinputdecode.h"
 
+VppInputDecode::~VppInputDecode()
+{
+    if (m_decoder)
+        m_decoder->stop();
+}
+
 bool VppInputDecode::init(const char* inputFileName, uint32_t /*fourcc*/, int /*width*/, int /*height*/)
 {
     m_input.reset(DecodeInput::create(inputFileName));
@@ -57,6 +63,8 @@ bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
         frame = m_decoder->getOutput();
         if (frame)
             return true;
+        if (m_error || m_eos)
+            return false;
         VideoDecodeBuffer inputBuffer;
         Decode_Status status = DECODE_FAIL;
         if (m_input->getNextDecodeUnit(inputBuffer)) {
@@ -66,15 +74,18 @@ bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
                 status = m_decoder->decode(&inputBuffer);
             }
         } else { /*EOS, need to flush*/
-            if(m_eos)
-                return false;
             inputBuffer.data = NULL;
             inputBuffer.size = 0;
             status = m_decoder->decode(&inputBuffer);
             m_eos = true;
         }
-        if (status != DECODE_SUCCESS)
-            return false;
+        if (status != DECODE_SUCCESS){  /*failed, need to flush*/
+            inputBuffer.data = NULL;
+            inputBuffer.size = 0;
+            m_decoder->decode(&inputBuffer);
+            m_error = true;
+        }
+
     }
 
 }
