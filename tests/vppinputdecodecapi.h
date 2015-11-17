@@ -1,7 +1,7 @@
 /*
- *  VideoDecoderCapi.h - capi wrapper for decoder
+ *  vppinputdecodecapi.h - vpp input from decoded file for capi
  *
- *  Copyright (C) 2014 Intel Corporation
+ *  Copyright (C) 2015 Intel Corporation
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -18,36 +18,25 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+#ifndef vppinputdecodecapi_h
+#define vppinputdecodecapi_h
+#include "VideoDecoderHost.h"
+#include "decodeinput.h"
+#include "vppinputoutput.h"
+#include "capi/VideoDecoderCapi.h"
 
-#ifndef videodecodercapi_h
-#define videodecodercapi_h
-
-#include "VideoCommonDefs.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef void* DecodeHandler;
-
-DecodeHandler createDecoder(const char*);
-
-void setNativeDisplay(DecodeHandler, NativeDisplay*);
-
-Decode_Status decodeStart(DecodeHandler, VideoConfigBuffer*);
-
-Decode_Status decode(DecodeHandler, VideoDecodeBuffer*);
-
-VideoFrame* getOutput(DecodeHandler);
-
-void renderDone(VideoFrame*);
-
-void decodeStop(DecodeHandler);
-
-void releaseDecoder(DecodeHandler);
-
-#ifdef __cplusplus
+class VppInputDecodeCapi : public VppInput
+{
+public:
+    VppInputDecodeCapi():m_eos(false), m_error(false) {}
+    ~VppInputDecodeCapi();
+    bool init(const char* inputFileName, uint32_t fourcc = 0, int width = 0, int height = 0);
+    bool read(SharedPtr<VideoFrame>& frame);
+    bool config(NativeDisplay& nativeDisplay);
+private:
+    bool m_eos;
+    bool m_error;
+    DecodeHandler m_decoder;
+    SharedPtr<DecodeInput> m_input;
 };
-#endif
-
-#endif
+#endif //vppinputdecodecapi_h

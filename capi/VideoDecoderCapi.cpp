@@ -19,138 +19,83 @@
  *  Boston, MA 02110-1301 USA
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-#include "VideoDecoderCapi.h"
 #include "VideoDecoderInterface.h"
 #include "VideoDecoderHost.h"
+#include "VideoDecoderCapi.h"
 
 using namespace YamiMediaCodec;
 
+class SharedPtrHold
+{
+public:
+    SharedPtrHold(SharedPtr<VideoFrame> frame):frame(frame){}
+private:
+    SharedPtr<VideoFrame> frame;
+};
+
+static void freeHold(VideoFrame* frame)
+{
+    delete (SharedPtrHold*)frame->user_data;
+}
+
 DecodeHandler createDecoder(const char *mimeType)
 {
-    return createVideoDecoder(mimeType);
+     return createVideoDecoder(mimeType);
 }
 
-Decode_Status decodeStart(DecodeHandler p, VideoConfigBuffer *buffer)
+void setNativeDisplay(DecodeHandler handler, NativeDisplay * display)
 {
-    if(p)
-        return ((IVideoDecoder*)p)->start(buffer);
+    if(handler)
+        ((IVideoDecoder*)handler)->setNativeDisplay(display);
+}
+
+Decode_Status decodeStart(DecodeHandler handler, VideoConfigBuffer* configBuffer)
+{
+    if(handler)
+        return ((IVideoDecoder*)handler)->start(configBuffer);
     else
         return DECODE_FAIL;
 }
 
-Decode_Status decodeReset(DecodeHandler p, VideoConfigBuffer *buffer)
+Decode_Status decode(DecodeHandler handler, VideoDecodeBuffer* buffer)
 {
-     if(p)
-        return ((IVideoDecoder*)p)->reset(buffer);
+    if(handler) {
+        Decode_Status status = ((IVideoDecoder*)handler)->decode(buffer);
+        if (DECODE_FORMAT_CHANGE == status)
+            return ((IVideoDecoder*)handler)->decode(buffer);
+        return status;
+    }
      else
         return DECODE_FAIL;
 }
 
-void decodeStop(DecodeHandler p)
+VideoFrame* getOutput(DecodeHandler handler)
 {
-     if(p)
-        ((IVideoDecoder*)p)->stop();
+    if (handler) {
+        SharedPtr<VideoFrame> frame = ((IVideoDecoder*)handler)->getOutput();
+        if (frame) {
+            SharedPtrHold *hold= new SharedPtrHold(frame);
+            frame->user_data = (intptr_t)hold;
+            frame->free = freeHold;
+            return frame.get();
+        }
+    }
+    return NULL;
 }
 
-void decodeFlush(DecodeHandler p)
+void renderDone(VideoFrame* frame)
 {
-     if(p)
-        ((IVideoDecoder*)p)->flush();
+    frame->free(frame);
 }
 
-Decode_Status decode(DecodeHandler p, VideoDecodeBuffer *buffer)
+void decodeStop(DecodeHandler handler)
 {
-     if(p)
-        return ((IVideoDecoder*)p)->decode(buffer);
-     else
-        return DECODE_FAIL;
+    if (handler)
+        ((IVideoDecoder*)handler)->stop();
 }
 
-const VideoRenderBuffer* decodeGetOutput(DecodeHandler p, bool draining)
+void releaseDecoder(DecodeHandler handler)
 {
-    return (p ? ((IVideoDecoder*)p)->getOutput(draining) : NULL);
-}
-
-#ifdef __ENABLE_X11__
-Decode_Status decodeGetOutput_x11(DecodeHandler p, Drawable draw, int64_t *timeStamp
-        , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
-        , int frameX, int frameY, int frameWidth, int frameHeight)
-{
-    if(p)
-        return ((IVideoDecoder*)p)->getOutput(draw, timeStamp, drawX, drawY, drawWidth, drawHeight, draining
-                        , frameX, frameY, frameWidth, frameHeight);
-    else
-        return DECODE_FAIL;
-}
-#endif
-
-Decode_Status decodeGetOutputRawData(DecodeHandler p, VideoFrameRawData* frame, bool draining)
-{
-    return (p ? ((IVideoDecoder*)p)->getOutput(frame, draining) : DECODE_FAIL);
-}
-
-const VideoFormatInfo* getFormatInfo(DecodeHandler p)
-{
-    return (p ? ((IVideoDecoder*)p)->getFormatInfo() : NULL);
-}
-
-void renderDone(DecodeHandler p, const VideoRenderBuffer* buffer)
-{
-    if(p)
-        ((IVideoDecoder*)p)->renderDone(buffer);
-}
-
-void renderDoneRawData(DecodeHandler p, VideoFrameRawData* buffer)
-{
-    if(p)
-        ((IVideoDecoder*)p)->renderDone(buffer);
-}
-
-void decodeSetNativeDisplay(DecodeHandler p, NativeDisplay * display)
-{
-    if(p)
-        ((IVideoDecoder*)p)->setNativeDisplay(display);
-}
-
-void flushOutport(DecodeHandler p)
-{
-    if(p)
-        ((IVideoDecoder*)p)->flushOutport();
-}
-
-void enableNativeBuffers(DecodeHandler p)
-{
-    if(p)
-        ((IVideoDecoder*)p)->enableNativeBuffers();
-}
-
-Decode_Status getClientNativeWindowBuffer(DecodeHandler p, void *bufferHeader, void *nativeBufferHandle)
-{
-    if(p)
-        return ((IVideoDecoder*)p)->getClientNativeWindowBuffer(bufferHeader, nativeBufferHandle);
-    else
-        return DECODE_FAIL;
-}
-
-Decode_Status flagNativeBuffer(DecodeHandler p, void * pBuffer)
-{
-    if(p)
-        return ((IVideoDecoder*)p)->flagNativeBuffer(pBuffer);
-    else
-        return DECODE_FAIL;
-}
-
-void releaseLock(DecodeHandler p)
-{
-    if(p)
-        ((IVideoDecoder*)p)->releaseLock();
-}
-
-void releaseDecoder(DecodeHandler p)
-{
-    if(p)
-        releaseVideoDecoder((IVideoDecoder*)p);
+    if (handler)
+        releaseVideoDecoder((IVideoDecoder*)handler);
 }
