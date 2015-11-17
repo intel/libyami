@@ -41,6 +41,34 @@ libyami_vaapi_la_SOURCES     = $(libyami_vaapi_source_c)
 libyami_vaapi_la_LDFLAGS     = $(libyami_vaapi_ldflags)
 libyami_vaapi_la_CPPFLAGS    = $(libyami_vaapi_cppflags)
 
+if ENABLE_UNITTESTS
+noinst_PROGRAMS = unittest
+
+unittest_SOURCES = \
+	$(top_builddir)/common/unittest_main.cpp \
+	$(NULL)
+
+unittest_LDFLAGS = \
+	$(GTEST_LDFLAGS) \
+	$(NULL)
+
+unittest_LDADD = \
+	libyami_vaapi.la \
+	$(GTEST_LIBS) \
+	$(NULL)
+
+unittest_CPPFLAGS = \
+	$(GTEST_CPPFLAGS) \
+	$(NULL)
+
+unittest_CXXFLAGS = \
+	$(GTEST_CXXFLAGS) \
+	$(NULL)
+
+check-local: unittest
+	$(builddir)/unittest
+endif
+
 DISTCLEANFILES = \
 	Makefile.in 
 

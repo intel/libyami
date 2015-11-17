@@ -85,5 +85,33 @@ libyami_encoder_la_SOURCES     = $(libyami_encoder_source_c)
 libyami_encoder_la_LDFLAGS     = $(libyami_encoder_ldflags)
 libyami_encoder_la_CPPFLAGS    = $(libyami_encoder_cppflags)
 
+if ENABLE_UNITTESTS
+noinst_PROGRAMS = unittest
+
+unittest_SOURCES = \
+	$(top_builddir)/common/unittest_main.cpp \
+	$(NULL)
+
+unittest_LDFLAGS = \
+	$(GTEST_LDFLAGS) \
+	$(NULL)
+
+unittest_LDADD = \
+	libyami_encoder.la \
+	$(GTEST_LIBS) \
+	$(NULL)
+
+unittest_CPPFLAGS = \
+	$(GTEST_CPPFLAGS) \
+	$(NULL)
+
+unittest_CXXFLAGS = \
+	$(GTEST_CXXFLAGS) \
+	$(NULL)
+
+check-local: unittest
+	$(builddir)/unittest
+endif
+
 DISTCLEANFILES = \
 	Makefile.in
