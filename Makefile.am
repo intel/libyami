@@ -6,12 +6,12 @@ AUTOMAKE_OPTIONS = foreign
 # Extra clean files so that maintainer-clean removes *everything*
 DISTCLEANFILES = \
 	aclocal.m4 autom4te.cache compile config.guess config.sub \
-	configure config.h.in config.h.in~ depcomp install-sh ltmain.sh     \
+	configure config.h.in config.h.in~ depcomp install-sh ltmain.sh \
 	Makefile.in missing
 
-SUBDIRS = codecparsers common vaapi decoder encoder vpp pkgconfig
+SUBDIRS = common codecparsers vaapi decoder encoder vpp pkgconfig
 if ENABLE_DOCS
-	SUBDIRS += doc
+SUBDIRS += doc
 endif
 
 if ENABLE_V4L2

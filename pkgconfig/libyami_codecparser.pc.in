@@ -6,5 +6,6 @@ includedir=@includedir@
 Name: libyami_codecparser
 Description: Intel open source video streamer parsers
 Version: 1.0.0
+Requires: libyami_common
 Libs: -L${libdir} -lyami_codecparser
 Cflags: -I${includedir}/libyami_codecparser
