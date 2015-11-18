@@ -148,6 +148,10 @@ if BUILD_VC1_DECODER
 unittest_SOURCES += vaapidecoder_vc1_unittest.cpp
 endif
 
+if BUILD_VP9_DECODER
+unittest_SOURCES += vaapidecoder_vp9_unittest.cpp
+endif
+
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
 	$(NULL)
