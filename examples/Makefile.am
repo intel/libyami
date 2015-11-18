@@ -66,6 +66,11 @@ if ENABLE_AVFORMAT
 YAMI_DECODE_LIBS += $(LIBAVFORMAT_LIBS)
 endif
 
+if ENABLE_CAPI
+YAMI_DECODE_LIBS += $(top_builddir)/capi/libyami_capi.la
+VPP_INPUT_SOURCES += $(top_builddir)/tests/vppinputdecodecapi.cpp
+endif
+
 YAMI_ENCODE_LIBS = \
 	$(YAMI_COMMON_LIBS)                             \
 	$(top_builddir)/encoder/libyami_encoder.la      \

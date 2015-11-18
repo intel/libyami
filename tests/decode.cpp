@@ -1,8 +1,7 @@
 /*
- *  decode.cpp - h264 decode test
+ *  decode.cpp - decode test
  *
  *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Halley Zhao<halley.zhao@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -19,151 +18,102 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-#ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "vppinputdecode.h"
+#include "decodeoutput.h"
+#include "common/utils.h"
+#include "decodehelp.h"
+
+#ifdef __ENABLE_CAPI__
+#include "vppinputdecodecapi.h"
 #endif
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <unistd.h>
-#include <assert.h>
+#include <limits.h>
 
-#include "common/log.h"
-#include "common/utils.h"
-#include "VideoDecoderHost.h"
-#include "decodeinput.h"
-#include "decodeoutput.h"
-#include "decodehelp.h"
-#ifdef __ENABLE_X11__
-// #include <X11/Xlib.h>
-#endif
-
-using namespace YamiMediaCodec;
-
-int main(int argc, char** argv)
+SharedPtr<VppInput> createInput(DecodeParameter& para, SharedPtr<NativeDisplay> display)
 {
-    IVideoDecoder *decoder = NULL;
-    DecodeInput *input;
-    DecodeOutput *output;
-    VideoDecodeBuffer inputBuffer;
-    VideoConfigBuffer configBuffer;
-    const VideoFormatInfo *formatInfo = NULL;
-    Decode_Status status;
-    class CalcFps calcFpsGross, calcFpsNet;
-    int skipFrameCount4NetFps = 0;
-#ifdef __ENABLE_X11__
-    // XInitThreads();
+    SharedPtr<VppInput> input(VppInput::create(para.inputFile, para.renderFourcc, para.width, para.height));
+    if (!input) {
+        fprintf(stderr, "VppInput create failed.\n");
+        return input;
+    }
+    SharedPtr<VppInputDecode> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecode>(input);
+    if (inputDecode)
+        if (!inputDecode->config(*display)) {
+            input.reset();
+            fprintf(stderr, "VppInputDecode config failed.\n");
+            return input;
+        }
+
+#ifdef __ENABLE_CAPI__
+    SharedPtr<VppInputDecodeCapi> inputCapi = std::tr1::dynamic_pointer_cast<VppInputDecodeCapi>(input);
+    if (inputCapi)
+        if (!inputCapi->config(*display)) {
+            input.reset();
+            fprintf(stderr, "VppInputDecodeCapi config failed.\n");
+            return inputCapi;
+        }
 #endif
-    calcFpsGross.setAnchor();
-    yamiTraceInit();
-    if (!process_cmdline(argc, argv))
-        return -1;
-#if !__ENABLE_TESTS_GLES__
-    if (renderMode > 1) {
-        fprintf(stderr, "renderMode=%d is not supported, please rebuild with --enable-tests-gles option\n", renderMode);
-        return -1;
-    }
-#endif
-#if !__ENABLE_MD5__
-    if (renderMode == -2) {
-        fprintf(stderr, "renderMode=%d is not supported, you must compile libyami without --disable-md5 option "
-                "and package libssl-dev should be installed\n", renderMode);
-        return -1;
-    }
-#endif
-    input = DecodeInput::create(inputFileName);
+    return input;
+}
 
-    if (input==NULL) {
-        fprintf(stderr, "fail to init input stream\n");
-        return -1;
-    }
 
-    decoder = createVideoDecoder(input->getMimeType());
-    assert(decoder != NULL);
-
-    output = DecodeOutput::create(decoder, renderMode);
-    if (!output || !configDecodeOutput(output)) {
-        fprintf(stderr, "failed to config decode output of mode: %d\n", renderMode);
-        delete input;
-        delete output;
-        return -1;
-    }
-
-    memset(&configBuffer,0,sizeof(VideoConfigBuffer));
-    configBuffer.profile = VAProfileNone;
-    const string codecData = input->getCodecData();
-    if (codecData.size()) {
-        configBuffer.data = (uint8_t*)codecData.data();
-        configBuffer.size = codecData.size();
-    }
-
-    if (input->getWidth() && input->getHeight()) {
-        configBuffer.width = input->getWidth();
-        configBuffer.height = input->getHeight();
-        if (!output->setVideoSize(input->getWidth(), input->getHeight()))
-            assert(0 && "set video size failed");
-    }
-
-    status = decoder->start(&configBuffer);
-    assert(status == DECODE_SUCCESS);
-
-    while (!input->isEOS())
+class DecodeTest
+{
+public:
+    bool init(int argc, char **argv)
     {
-        if (input->getNextDecodeUnit(inputBuffer)){
-            status = decoder->decode(&inputBuffer);
-        } else
-            break;
-        if (status == DECODE_INVALID_DATA)
-            break;
+        if ( !processCmdLine(argc, argv, &m_params)) {
+            fprintf(stderr, "process arguments failed.\n");
+            return false;
+        }
+        m_output.reset(DecodeOutput::create(m_params.renderMode, m_params.renderFourcc, m_params.inputFile, m_params.outputFile));
+        if (!m_output) {
+            fprintf(stderr, "DecodeOutput::create failed.\n");
+            return false;
+        }
+        m_nativeDisplay = m_output->nativeDisplay();
+        m_vppInput      = createInput(m_params, m_nativeDisplay);
 
-        if (DECODE_FORMAT_CHANGE == status) {
-            formatInfo = decoder->getFormatInfo();
-            if (!output->setVideoSize(formatInfo->width, formatInfo->height)) {
-                assert(0 && "set video size failed");
+        if (!m_nativeDisplay || !m_vppInput) {
+            fprintf(stderr, "DecodeTest init failed.\n");
+            return false;
+        }
+        return true;
+    }
+    bool run()
+    {
+        FpsCalc  fps;
+        SharedPtr<VideoFrame> src;
+        int count = 0;
+        while (m_vppInput->read(src)) {
+            if(!m_output->output(src))
                 break;
-            }
-            // resend the buffer
-            status = decoder->decode(&inputBuffer);
+            count++;
+            fps.addFrame();
+            if (count == m_params.renderFrames)
+                break;
         }
-        if(status != DECODE_SUCCESS) {
-            break;
-        }
-
-        renderOutputFrames(output, frameCount);
-        if (output->renderFrameCount() >= 5 && !skipFrameCount4NetFps) {
-            skipFrameCount4NetFps = output->renderFrameCount();
-            calcFpsNet.setAnchor();
-        }
-
-        if(output->renderFrameCount() == frameCount)
-            break;
+        fps.log();
+        return true;
     }
 
-#if 1
-    // send EOS to decoder
-    inputBuffer.data = NULL;
-    inputBuffer.size = 0;
-    status = decoder->decode(&inputBuffer);
-#endif
+private:
+    SharedPtr<DecodeOutput>   m_output;
+    SharedPtr<NativeDisplay>  m_nativeDisplay;
+    SharedPtr<VppInput>       m_vppInput;
+    DecodeParameter           m_params;
+};
 
-    // drain the output buffer
-    renderOutputFrames(output, frameCount, true);
 
-    calcFpsGross.fps(output->renderFrameCount());
-    if (output->renderFrameCount() > skipFrameCount4NetFps)
-        calcFpsNet.fps(output->renderFrameCount()-skipFrameCount4NetFps);
-
-    possibleWait(input->getMimeType());
-
-    decoder->stop();
-    releaseVideoDecoder(decoder);
-
-    delete input;
-    delete output;
-
-    if (dumpOutputName)
-        free(dumpOutputName);
-    fprintf(stderr, "decode done\n");
-    return 0;
+int main(int argc, char *argv[])
+{
+    DecodeTest decode;
+    if (!decode.init(argc, argv))
+        return 1;
+    decode.run();
+	return 0;
 }
