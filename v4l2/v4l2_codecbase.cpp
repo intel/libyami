@@ -29,6 +29,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <string.h>
 #include <unistd.h>
 #include <linux/videodev2.h>
@@ -245,7 +247,7 @@ static void* _workerThread(void *arg)
 }
 
 #if __ENABLE_DEBUG__
-const char* V4l2CodecBase::IoctlCommandString(int command)
+const char* V4l2CodecBase::IoctlCommandString(uint64_t command)
 {
     static const char* unknown = "Unkonwn command";
 #define IOCTL_COMMAND_STRING_MAP(cmd)   {cmd, #cmd}
@@ -279,12 +281,13 @@ const char* V4l2CodecBase::IoctlCommandString(int command)
 }
 #endif
 
-int32_t V4l2CodecBase::ioctl(int command, void* arg)
+int32_t V4l2CodecBase::ioctl(uint64_t command, void* arg)
 {
     int32_t ret = 0;
     bool boolRet = true;
     int port = -1;
 
+    DEBUG("command: %" PRId64 "\n", command);
     switch (command) {
         case VIDIOC_QUERYCAP: {
             // ::Initialize

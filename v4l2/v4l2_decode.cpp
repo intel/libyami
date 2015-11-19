@@ -27,6 +27,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdlib.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <sys/mman.h>
 #include <string.h>
 
@@ -252,12 +254,12 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 #define V4L2_PIX_FMT_VP9 YAMI_FOURCC('V', 'P', '9', '0')
 #endif
 
-int32_t V4l2Decoder::ioctl(int command, void* arg)
+int32_t V4l2Decoder::ioctl(uint64_t command, void* arg)
 {
     int32_t ret = 0;
     int port = -1;
 
-    DEBUG("fd: %d, ioctl command: %s", m_fd[0], IoctlCommandString(command));
+    DEBUG("fd: %d, ioctl command:(%" PRId64 ", %s)", m_fd[0], command, IoctlCommandString(command));
     switch (command) {
     case VIDIOC_STREAMON:
     case VIDIOC_STREAMOFF:
@@ -384,7 +386,6 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         ASSERT(format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
         ASSERT(m_decoder);
 
-        DEBUG();
         const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
         if (format && outFormat && outFormat->width && outFormat->height) {
             format->fmt.pix_mp.num_planes = m_bufferPlaneCount[OUTPUT];
@@ -443,7 +444,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     break;
     default:
         ret = -1;
-        ERROR("unknown ioctrl command: %d", command);
+        ERROR("unknown ioctrl command: %" PRId64 "\n", command);
     break;
     }
 

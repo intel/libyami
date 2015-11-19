@@ -39,7 +39,7 @@ class V4l2Decoder : public V4l2CodecBase
     V4l2Decoder();
      ~V4l2Decoder();
 
-    virtual int32_t ioctl(int request, void* arg);
+    virtual int32_t ioctl(uint64_t request, void* arg);
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset);
 #if __ENABLE_V4L2_GLX__

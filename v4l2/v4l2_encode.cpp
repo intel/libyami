@@ -26,6 +26,8 @@
 #include <linux/videodev2.h>
 #include <unistd.h>
 #include <errno.h>
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 
@@ -198,12 +200,12 @@ bool V4l2Encoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     return true;
 }
 
-int32_t V4l2Encoder::ioctl(int command, void* arg)
+int32_t V4l2Encoder::ioctl(uint64_t command, void* arg)
 {
     Encode_Status encodeStatus = ENCODE_SUCCESS;
     int32_t ret = 0;
 
-    DEBUG("fd: %d, ioctl command: %s", m_fd[0], IoctlCommandString(command));
+    DEBUG("fd: %d, ioctl command: (%" PRId64 ", %s)", m_fd[0], command, IoctlCommandString(command));
     switch (command) {
     case VIDIOC_QUERYCAP:
     case VIDIOC_STREAMON:
@@ -360,7 +362,7 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
     break;
     default:
         ret = -1;
-        ERROR("unknown ioctrl command: %d", command);
+        ERROR("unknown ioctrl command: %" PRId64 "\n", command);
     break;
     }
 

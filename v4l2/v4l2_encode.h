@@ -36,7 +36,7 @@ class V4l2Encoder : public V4l2CodecBase
     V4l2Encoder();
      ~V4l2Encoder() {};
 
-    virtual int32_t ioctl(int request, void* arg);
+    virtual int32_t ioctl(uint64_t request, void* arg);
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset);
 
