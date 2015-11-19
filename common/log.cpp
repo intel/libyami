@@ -24,6 +24,9 @@
  *  LIBYAMI_LOG_LEVEL=log_level: the record will be printed if the log_level larger than (Error, 0), (Warning, 1), (Info, 2)(Debug & Debug_, 3).
  *  LIBYAMI_LOG=log_file: the libyami log saved into log_file;
  */
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
   
 #include "log.h"
 #include <ctype.h>
@@ -76,4 +79,8 @@ void yamiTraceInit()
         }
         isInit = 1;
     }
+#ifndef __ENABLE_DEBUG__
+     if (yamiLogFlag > YAMI_LOG_ERROR)
+         fprintf(stderr, "yami log isn't enabled (--enable-debug)\n");
+ #endif
 }
