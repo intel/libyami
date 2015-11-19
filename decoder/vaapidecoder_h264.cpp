@@ -86,7 +86,7 @@ static VAProfile getH264VAProfile(H264PPS * pps)
         profile = VAProfileH264High;
         break;
     case 44:
-        ERROR("profile \'CAVLC\' is not supported");
+        ERROR("profile \'CAVLC 4:4:4\' is not supported");
 	break;
     case 88:
         ERROR("profile \'EXTENDED\' is not supported");
