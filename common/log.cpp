@@ -39,6 +39,7 @@ static YamiMediaCodec::Lock g_traceLock;
 
 void yamiTraceInit()
 {
+#ifdef __ENABLE_DEBUG__
     YamiMediaCodec::AutoLock locker(g_traceLock);
     if(!isInit){
         char* libyamiLogLevel = getenv("LIBYAMI_LOG_LEVEL");
@@ -76,4 +77,7 @@ void yamiTraceInit()
         }
         isInit = 1;
     }
+ #else
+     fprintf(stderr, "yami log isn't enabled (--enable-debug)\n");
+ #endif
 }
