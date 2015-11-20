@@ -395,7 +395,7 @@ const ProfileMapItem g_profileMap[] =
 
 VaapiProfile VaapiEncoderBase::profile() const
 {
-    for (int i = 0; i < N_ELEMENTS(g_profileMap); i++) {
+    for (uint32_t i = 0; i < N_ELEMENTS(g_profileMap); i++) {
         if (m_videoParamCommon.profile == g_profileMap[i].vaProfile)
             return g_profileMap[i].vaapiProfile;
     }

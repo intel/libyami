@@ -366,7 +366,7 @@ bool VaapiDecoderH265::DPB::checkLatency(const H265SPS* const sps)
 bool VaapiDecoderH265::DPB::checkDpbSize(const H265SPS* const sps)
 {
     uint8_t highestTid = sps->max_sub_layers_minus1;
-    return m_pictures.size() >= (sps->max_dec_pic_buffering_minus1[highestTid] + 1);
+    return m_pictures.size() >= (uint32_t)(sps->max_dec_pic_buffering_minus1[highestTid] + 1);
 }
 
 //C.5.2.2
@@ -509,7 +509,7 @@ Decode_Status VaapiDecoderH265::decodeCurrent()
 #define FILL_SCALING_LIST(mxm) \
 void fillScalingList##mxm(VAIQMatrixBufferHEVC* iqMatrix, const H265ScalingList* const scalingList) \
 { \
-    for (int i = 0; i < N_ELEMENTS(iqMatrix->ScalingList##mxm); i++) { \
+    for (uint32_t i = 0; i < N_ELEMENTS(iqMatrix->ScalingList##mxm); i++) { \
         h265_quant_matrix_##mxm##_get_raster_from_uprightdiagonal(iqMatrix->ScalingList##mxm[i], \
             scalingList->scaling_lists_##mxm[i]); \
     } \
@@ -523,7 +523,7 @@ FILL_SCALING_LIST(32x32)
 #define FILL_SCALING_LIST_DC(mxm) \
 void fillScalingListDc##mxm(VAIQMatrixBufferHEVC* iqMatrix, const H265ScalingList* const scalingList) \
 { \
-    for (int i = 0; i < N_ELEMENTS(iqMatrix->ScalingListDC##mxm); i++) { \
+    for (uint32_t i = 0; i < N_ELEMENTS(iqMatrix->ScalingListDC##mxm); i++) { \
         iqMatrix->ScalingListDC##mxm[i] = \
             scalingList->scaling_list_dc_coef_minus8_##mxm[i] + 8; \
     } \
@@ -565,7 +565,7 @@ void VaapiDecoderH265::fillReference(VAPictureHEVC* refs, int32_t& n,
     const RefSet& refset, uint32_t flags)
 {
   //ERROR("fill ref(%x):", flags);
-    for (int32_t i = 0; i < refset.size(); i++) {
+    for (uint32_t i = 0; i < refset.size(); i++) {
         VAPictureHEVC* r = refs + n;
         const VaapiDecPictureH265* pic = refset[i];
 
