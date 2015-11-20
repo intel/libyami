@@ -37,7 +37,7 @@ ImagePoolPtr VaapiImagePool::create(const DisplayPtr& display, uint32_t format, 
     ImagePoolPtr pool;
     std::vector<ImagePtr> images;
     images.reserve(count);
-    for (size_t i = 0; i < count; ++i) {
+    for (int32_t i = 0; i < count; ++i) {
         ImagePtr image = VaapiImage::create(display, format, width, height);
         if (!image)
             return pool;
@@ -112,7 +112,7 @@ ImagePtr VaapiImagePool::acquireWithWait()
 void VaapiImagePool::flush()
 {
     AutoLock lock(m_lock);
-    if ( m_freeIndex.size() != m_poolSize)
+    if ( m_freeIndex.size() != (uint32_t)m_poolSize)
         m_flushing = true;
 }
 
@@ -129,7 +129,7 @@ void VaapiImagePool::recycleID(VAImageID imageID)
     ASSERT(index >=0 && index < m_poolSize);
     m_freeIndex.push_back(index);
 
-    if (m_flushing && m_freeIndex.size() == m_poolSize)
+    if (m_flushing && m_freeIndex.size() == (uint32_t)m_poolSize)
         m_flushing = false;
 
     m_cond.signal();
