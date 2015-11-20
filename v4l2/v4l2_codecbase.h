@@ -55,7 +55,7 @@ class V4l2CodecBase {
     static V4l2CodecPtr createCodec(const char* name, int32_t flags);
     bool close ();
     virtual int32_t setFrameMemoryType(VideoDataMemoryType memory_type) {m_memoryType = memory_type; return 0;} ;
-    virtual int32_t ioctl(int request, void* arg);
+    virtual int32_t ioctl(uint64_t request, void* arg);
     int32_t poll(bool poll_device, bool* event_pending);
     int32_t setDeviceEvent(int index);
     int32_t clearDeviceEvent(int index);
@@ -141,7 +141,7 @@ class V4l2CodecBase {
 
 #ifdef __ENABLE_DEBUG__
   protected:
-    const char* IoctlCommandString(int command);
+    const char* IoctlCommandString(uint64_t command);
 
     uint32_t m_frameCount[2];
 #endif

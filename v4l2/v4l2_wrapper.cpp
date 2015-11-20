@@ -110,7 +110,7 @@ int32_t YamiV4L2_FrameMemoryType(int32_t fd, VideoDataMemoryType memory_type)
     return v4l2Codec->setFrameMemoryType(memory_type);
 }
 
-int32_t YamiV4L2_Ioctl(int32_t fd, int command, void* arg)
+int32_t YamiV4L2_Ioctl(int32_t fd, uint64_t command, void* arg)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
     ASSERT(v4l2Codec);
