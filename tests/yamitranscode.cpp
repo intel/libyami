@@ -140,7 +140,7 @@ public:
     {
 
         SharedPtr<VideoFrame> src;
-        int count = 0;
+        uint32_t count = 0;
         while (m_input->read(src)) {
             if(!m_output->output(src))
                 break;

@@ -93,7 +93,7 @@ bool EncodeInputCamera::initDevice(const char *cameraDevicePath)
     IOCTL_CHECK_RET(m_fd, VIDIOC_S_FMT, "VIDIOC_S_FMT", fmt, false);
     DEBUG("video resolution: %dx%d = %dx%d", m_width, m_height, fmt.fmt.pix.width, fmt.fmt.pix.height);
     IOCTL_CHECK_RET(m_fd, VIDIOC_G_FMT, "VIDIOC_G_FMT", fmt, false);
-    if (m_width != fmt.fmt.pix.width || m_height != fmt.fmt.pix.height) {
+    if ((uint32_t)m_width != fmt.fmt.pix.width || (uint32_t)m_height != fmt.fmt.pix.height) {
         ERROR("not supported resolution(%dx%d), use %dx%d from camera\n", m_width, m_height, fmt.fmt.pix.width, fmt.fmt.pix.height);
         m_width = fmt.fmt.pix.width;
         m_height = fmt.fmt.pix.height;
@@ -116,7 +116,7 @@ bool EncodeInputCamera::initDevice(const char *cameraDevicePath)
 bool EncodeInputCamera::initMmap(void)
 {
     struct v4l2_requestbuffers rqbufs;
-    int index;
+    uint32_t index;
 
     INFO();
     memset(&rqbufs, 0, sizeof(rqbufs));
@@ -274,7 +274,7 @@ int32_t EncodeInputCamera::dequeFrame(void)
 
 bool EncodeInputCamera::enqueFrame(int32_t index)
 {
-    assert(index >=0 && index < m_frameBufferCount);
+    assert(index >= 0 && (uint32_t)index < m_frameBufferCount);
     struct v4l2_buffer buf;
     memset(&buf, 0, sizeof(buf));
 
@@ -298,7 +298,7 @@ bool EncodeInputCamera::enqueFrame(int32_t index)
 bool EncodeInputCamera::getOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     int frameIndex = dequeFrame();
-    ASSERT(frameIndex>=0 && frameIndex<m_frameBufferCount);
+    ASSERT(frameIndex>=0 && (uint32_t)frameIndex<m_frameBufferCount);
 
     memset(&inputBuffer, 0, sizeof(inputBuffer));
     bool ret = fillFrameRawData(&inputBuffer, m_fourcc, m_width, m_height, m_frameBuffers[frameIndex]);
