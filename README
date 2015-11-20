@@ -43,11 +43,6 @@ Hardware requirements
   * Intel Baytrail, Braswell
 
 
-Usage
------
-the usage in chromeos, please refer to chromium OVDA
-
-
 Sources
 -------
 Git repository for work-in-progress changes is available at:
@@ -69,6 +64,28 @@ Docs
 http://01org.github.io/libyami_doxygen/index.html
 
 
+Testing
+-------
+
+Unit Tests
+
+  The gtest framework library <https://github.com/google/googletest> is required
+  in order to write and compile unit tests in libyami.  The gtest project does
+  not recommend using a pre-compiled gtest package, unfortunately.  So you will
+  need to compile the gtest library from source.  The latest release can be
+  downloaded from the release archive at:
+
+    <https://github.com/google/googletest/releases>
+
+  The gtest documentation can be found in their source tree under `docs` (online
+  or in the downloaded source archive).
+
+  To enable the unit tests, when configuring libyami you need to specify:
+
+    --enable-gtest=${GTEST_DIR}
+
+  where ${GTEST_DIR} is the path to where you compiled the gtest library.
+
 Contributing
 ------------
 Create pull request at https://github.com/01org/libyami/compare
@@ -81,7 +98,14 @@ https://github.com/01org/libyami/wiki/Coding-Style
 
 Review process
 --------------
-https://github.com/01org/libyami/wiki/Code-Review-Process
+  Create pull requests at <https://github.com/01org/libyami/compare>
+
+  We highly recommend that unit tests accompany your contributed patches.  See
+  "Testing" section above.  However, we do understand that not everything can
+  be tested by a unit test. So use your best judgement to determine if a unit
+  test is appropriate for your contribution.  The maintainer(s) reserve the
+  right to refuse submission's without unit tests, when reasonable, or if a
+  submission causes existing unit tests to regress.
 
 
 Mail list
