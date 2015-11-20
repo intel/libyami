@@ -30,7 +30,7 @@ libyami_v4l2_la_LIBADD = \
 
 libyami_v4l2_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
-	-lpthread             \
+	-pthread \
 	$(NULL)
 
 if !ENABLE_V4L2_GLX
