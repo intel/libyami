@@ -105,8 +105,17 @@ bool V4l2Decoder::start()
     nativeDisplay.handle = m_drmfd;
 #endif
     m_decoder->setNativeDisplay(&nativeDisplay);
-    status = m_decoder->start(&m_configBuffer);
+
+    // send codec_data if there is
+    VideoConfigBuffer configBuffer;
+    memset(&configBuffer, 0, sizeof(configBuffer));
+    if (m_codecData.size()) {
+        configBuffer.data = m_codecData.data();
+        configBuffer.size = m_codecData.size();
+    }
+    status = m_decoder->start(&configBuffer);
     ASSERT(status == DECODE_SUCCESS);
+
     m_started = true;
 
     return true;
@@ -333,8 +342,9 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             uint32_t size;
             memcpy(&size, format->fmt.raw_data, sizeof(uint32_t));
             if(size <= (sizeof(format->fmt.raw_data)-sizeof(uint32_t))) {
-                m_configBuffer.size = size;
-                m_configBuffer.data = (uint8_t*)(format->fmt.raw_data) + sizeof(uint32_t);
+                uint8_t *ptr = format->fmt.raw_data;
+                ptr += sizeof(uint32_t);
+                m_codecData.assign(ptr, ptr + size);
             } else {
                 ret = -1;
                 ERROR("unvalid codec size");
@@ -344,7 +354,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             // ::CreateInputBuffers
             ASSERT(format->fmt.pix_mp.num_planes == 1);
             ASSERT(format->fmt.pix_mp.plane_fmt[0].sizeimage);
-            memset(&m_configBuffer, 0, sizeof(m_configBuffer));
+            m_codecData.clear();
             m_decoder.reset(
                 createVideoDecoder(mimeFromV4l2PixelFormat(format->fmt.pix_mp.pixelformat)),
                 releaseVideoDecoder);
