@@ -247,8 +247,8 @@ bool DecodeInputVPX::init()
 
 bool DecodeInputVPX::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 {
-    if(m_ivfFrmHdrSize == fread (m_buffer, 1, m_ivfFrmHdrSize, m_fp)) {
-        int framesize = 0;
+    if((uint32_t)m_ivfFrmHdrSize == fread (m_buffer, 1, m_ivfFrmHdrSize, m_fp)) {
+        uint32_t framesize = 0;
         framesize = (uint32_t)(m_buffer[0]) + ((uint32_t)(m_buffer[1])<<8) + ((uint32_t)(m_buffer[2])<<16);
         assert (framesize < (uint32_t) m_maxFrameSize);
         assert (framesize <= (uint32_t) CacheBufferSize);
@@ -292,7 +292,7 @@ bool DecodeInputRaw::init()
 
 bool DecodeInputRaw::ensureBufferData()
 {
-    int readCount = 0;
+    size_t readCount = 0;
 
     if (m_readToEOS)
         return true;
@@ -309,7 +309,7 @@ bool DecodeInputRaw::ensureBufferData()
     }
 
     readCount = fread(m_buffer + m_availableData, 1, CacheBufferSize-m_availableData, m_fp);
-    if (readCount < CacheBufferSize-m_availableData)
+    if (readCount < (uint32_t)CacheBufferSize -m_availableData)
         m_readToEOS = true;
 
     m_availableData += readCount;

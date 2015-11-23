@@ -151,7 +151,7 @@ int main(int argc, char** argv)
     renderOutputFrames(output, frameCount, true);
 
     calcFpsGross.fps(output->renderFrameCount());
-    if (output->renderFrameCount() > skipFrameCount4NetFps)
+    if ((skipFrameCount4NetFps < 0) || (output->renderFrameCount() > (uint32_t)skipFrameCount4NetFps))
         calcFpsNet.fps(output->renderFrameCount()-skipFrameCount4NetFps);
 
     possibleWait(input->getMimeType());

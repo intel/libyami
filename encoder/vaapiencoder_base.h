@@ -178,7 +178,7 @@ private:
     OutputQueue m_output;
 
     bool updateMaxOutputBufferCount() {
-        if (m_maxOutputBuffer < m_videoParamCommon.leastInputCount + 3)
+        if ((m_videoParamCommon.leastInputCount + 3 >= 0) && (m_maxOutputBuffer < (uint32_t)(m_videoParamCommon.leastInputCount + 3)))
             m_maxOutputBuffer = m_videoParamCommon.leastInputCount + 3;
         return true;
     }

@@ -214,7 +214,7 @@ const VAImageFormat *
 VaapiDisplay::getVaFormat(uint32_t fourcc)
 {
     AutoLock locker(m_lock);
-    int i;
+    uint32_t i;
 
     if (m_vaImageFormats.empty()) {
         VAStatus vaStatus;
@@ -228,7 +228,7 @@ VaapiDisplay::getVaFormat(uint32_t fourcc)
 
         vaStatus = vaQueryImageFormats(m_vaDisplay, &m_vaImageFormats[0], &numImageFormats);
         checkVaapiStatus(vaStatus, "vaQueryImageFormats()");
-        for (i=0; i< m_vaImageFormats.size(); i++)
+        for (i = 0; i < m_vaImageFormats.size(); i++)
             DEBUG_FOURCC("supported image format: ", m_vaImageFormats[i].fourcc);
     }
 
