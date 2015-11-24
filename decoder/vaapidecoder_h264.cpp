@@ -67,7 +67,7 @@ static Decode_Status getStatus(H264ParserResult result)
 
 static VAProfile getH264VAProfile(H264PPS * pps)
 {
-    VAProfile profile = VAProfileH264High;
+    VAProfile profile = VAProfileNone;
     H264SPS *const sps = pps->sequence;
 
     switch (sps->profile_idc) {
@@ -82,16 +82,30 @@ static VAProfile getH264VAProfile(H264PPS * pps)
     case 77:
         profile = VAProfileH264Main;
         break;
-    case 88:
-        /* extend profile is not supported in driver */
-        profile = VAProfileNone;
-        break;
     case 100:
         profile = VAProfileH264High;
         break;
+    case 44:
+        ERROR("profile \'CAVLC 4:4:4\' is not supported");
+	break;
+    case 88:
+        ERROR("profile \'EXTENDED\' is not supported");
+	break;
+    case 110: 
+        ERROR("profile \'HIGH10\' is not supported");
+	break;
+    case 122:
+        ERROR("profile \'HIGH 4:2:2\' is not supported");
+	break;
+    case 244:
+        ERROR("profile \'HIGH 4:4:4\' is not supported");
+	break;
+    default:
+        ERROR("profile(profile_idc = %d) is not supported", sps->profile_idc);
     }
     return profile;
 }
+
 
 static VaapiChromaType getH264ChromaType(H264SPS * sps)
 {
