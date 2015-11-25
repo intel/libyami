@@ -48,7 +48,7 @@ static uint32_t vaapiChromaToVaChroma(VaapiChromaType chroma)
         {VAAPI_CHROMA_TYPE_YUV422, VA_RT_FORMAT_YUV422},
         {VAAPI_CHROMA_TYPE_YUV444, VA_RT_FORMAT_YUV444}
     };
-    for (int i = 0; i < N_ELEMENTS(chromaMap); i++) {
+    for (uint32_t i = 0; i < N_ELEMENTS(chromaMap); i++) {
         if (chromaMap[i].vaapiChroma == chroma)
             return chromaMap[i].vaChroma;
     }

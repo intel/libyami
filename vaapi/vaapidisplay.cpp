@@ -214,7 +214,7 @@ const VAImageFormat *
 VaapiDisplay::getVaFormat(uint32_t fourcc)
 {
     AutoLock locker(m_lock);
-    int i;
+    size_t i;
 
     if (m_vaImageFormats.empty()) {
         VAStatus vaStatus;
