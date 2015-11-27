@@ -33,7 +33,11 @@
 #include "vaapiencpicture.h"
 #include "vaapiencoder_factory.h"
 #include <algorithm>
+#ifdef ANDROID
+#include <functional>
+#else
 #include <tr1/functional>
+#endif
 namespace YamiMediaCodec{
 //shortcuts
 typedef VaapiEncoderH264::PicturePtr PicturePtr;
@@ -611,7 +615,11 @@ class VaapiEncPictureH264:public VaapiEncPicture
 {
     friend class VaapiEncoderH264;
     friend class VaapiEncoderH264Ref;
+#ifdef ANDROID
+    typedef std::function<Encode_Status ()> Function;
+#else
     typedef std::tr1::function<Encode_Status ()> Function;
+#endif
 
 public:
     virtual ~VaapiEncPictureH264() {}
@@ -625,10 +633,12 @@ public:
         out.flag = 0;
 
         std::vector<Function> functions;
+#ifndef ANDROID //not found std::bind in header file ANDROID std::functional, fix me?
         if (format == OUTPUT_CODEC_DATA || ((format == OUTPUT_EVERYTHING) && isIdr()))
             functions.push_back(std::tr1::bind(&VaapiEncStreamHeaderH264::getCodecConfig, m_headers,&out));
         if (format == OUTPUT_EVERYTHING || format == OUTPUT_FRAME_DATA)
             functions.push_back(std::tr1::bind(getOutputHelper, this, &out));
+#endif
         Encode_Status ret = getOutput(&out, functions);
         if (ret == ENCODE_SUCCESS) {
             outBuffer->dataSize = out.data - outBuffer->data;
