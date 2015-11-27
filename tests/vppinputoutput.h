@@ -28,7 +28,9 @@
 #include "videopool.h"
 #include <stdio.h>
 #include <va/va.h>
+#ifndef ANDROID
 #include <va/va_drm.h>
+#endif
 #include <vector>
 #include <limits.h>
 #include <fcntl.h>

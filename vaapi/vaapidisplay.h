@@ -30,7 +30,9 @@
 #ifdef HAVE_VA_X11
 #include <va/va_x11.h>
 #endif
+#ifndef ANDROID
 #include <va/va_drm.h>
+#endif
 #include <vector>
 #include "interface/VideoCommonDefs.h"
 #include "common/lock.h"

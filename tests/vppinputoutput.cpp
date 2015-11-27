@@ -39,6 +39,7 @@
 
 using namespace YamiMediaCodec;
 
+#ifndef ANDROID
 SharedPtr<VADisplay> createVADisplay()
 {
     SharedPtr<VADisplay> display;
@@ -58,6 +59,7 @@ SharedPtr<VADisplay> createVADisplay()
     display.reset(new VADisplay(vadisplay), VADisplayDeleter(fd));
     return display;
 }
+#endif
 
 SharedPtr<VppInput> VppInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
 {

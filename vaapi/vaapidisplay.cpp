@@ -308,7 +308,9 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
     case NATIVE_DISPLAY_DRM:
         nativeDisplayObj.reset (new NativeDisplayDrm());
         if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))
+#ifndef ANDROID
             vaDisplay = vaGetDisplayDRM(nativeDisplayObj->nativeHandle());
+#endif
         INFO("use vaapi drm backend");
         break;
     case NATIVE_DISPLAY_VA:
