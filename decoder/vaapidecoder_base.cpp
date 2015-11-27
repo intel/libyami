@@ -366,7 +366,7 @@ Decode_Status
         return DECODE_SUCCESS;
     }
 
-    if (m_display != NULL) {
+    if (m_display) {
         WARNING("VA is partially started.");
         return DECODE_FAIL;
     }
