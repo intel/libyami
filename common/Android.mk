@@ -1,27 +1,22 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-
 LOCAL_SRC_FILES := \
-        vaapiutils.cpp        \
-        vaapisurface.cpp      \
-        vaapiimage.cpp        \
-        vaapibuffer.cpp 
+        log.cpp \
+        utils.cpp \
+        nalreader.cpp
 
 LOCAL_C_INCLUDES:= \
+        $(LOCAL_PATH)/.. \
+        external/libcxx/include \
         $(TARGET_OUT_HEADERS)/libva \
-        $(TOP)/frameworks/base/include
 
-LOCAL_SHARED_LIBRARIES :=       \
-        libutils                \
-        liblog                  \
-        libcutils               \
-        libva                   \
-        libva-android           \
-        libva-tpi               \
+LOCAL_SHARED_LIBRARIES := \
+        liblog \
+        libva
+
+LOCAL_CFLAGS := \
+         -O2 -Wno-sign-compare
 
 LOCAL_MODULE := libyami_common
-LOCAL_MODULE_TAGS := optional
-
-include $(BUILD_SHARED_LIBRARY)
-
+include $(BUILD_STATIC_LIBRARY)

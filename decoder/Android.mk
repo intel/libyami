@@ -1,39 +1,44 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-
-APP_STL := stlport_shared
-
 LOCAL_SRC_FILES := \
-        vaapipicture.cpp         \
-        vaapisurfacebuf_pool.cpp \
-        vaapidecoder_host.cpp    \
-        vaapidecoder_base.cpp    \
+        vaapidecoder_base.cpp \
+        vaapidecoder_host.cpp \
+        vaapidecsurfacepool.cpp \
+        vaapidecpicture.cpp \
+
+LOCAL_SRC_FILES += \
+        vaapidecoder_h264.cpp \
         vaapidecoder_h264_dpb.cpp \
-        vaapidecoder_h264.cpp  
+
+#LOCAL_SRC_FILES += \
+        vaapidecoder_h265.cpp
+
+LOCAL_SRC_FILES += \
+        vaapidecoder_vp8.cpp
+
+LOCAL_SRC_FILES += \
+        vaapidecoder_vp9.cpp
+
+LOCAL_SRC_FILES += \
+        vaapidecoder_jpeg.cpp
+
+LOCAL_SRC_FILES += \
+        vaapidecoder_fake.cpp
 
 LOCAL_C_INCLUDES:= \
-        $(TARGET_OUT_HEADERS)/libva \
-        $(TOP)/frameworks/base/include \
         $(LOCAL_PATH)/.. \
+        $(LOCAL_PATH)/../common \
+        external/libcxx/include \
+        $(TARGET_OUT_HEADERS)/libva \
 
-LOCAL_SHARED_LIBRARIES :=       \
-        liblog                  \
-        libva                   \
-        libva-android           \
-        libva-tpi               \
-        libcodecparsers         \
-        libyami_common
+LOCAL_SHARED_LIBRARIES := \
+        liblog \
+        libc++
 
-LOCAL_C_INCLUDES += \
-        external/stlport/stlport \
-        bionic/ \
-        bionic/libstdc++/include
-
-LOCAL_SHARED_LIBRARIES += libstlport
+LOCAL_CFLAGS := \
+         -O2 -Wno-sign-compare
 
 LOCAL_MODULE := libyami_decoder
-LOCAL_MODULE_TAGS := optional
-
-include $(BUILD_SHARED_LIBRARY)
+include $(BUILD_STATIC_LIBRARY)
 
