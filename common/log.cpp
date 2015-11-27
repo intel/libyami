@@ -68,9 +68,9 @@ void yamiTraceInit()
 
             	if ((tmp = fopen(filename, "w"))){
                 	yamiLogFn = tmp;
-                	yamiMessage(stdout, "Libyami_Trace is on, save log into %s.\n", filename);
+                        ERROR("Libyami_Trace is on, save log into %s.\n", filename);
             	} else {
-                	yamiMessage(stderr, "Open file %s failed.\n", filename);
+                        ERROR("Open file %s failed.\n", filename);
             	}
             }
         }
