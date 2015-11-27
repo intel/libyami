@@ -55,7 +55,7 @@ namespace YamiMediaCodec{
  *    until all surface recycled.
  *</pre>
 */
-class VaapiDecSurfacePool : public std::tr1::enable_shared_from_this<VaapiDecSurfacePool>
+class VaapiDecSurfacePool : public EnableSharedFromThis <VaapiDecSurfacePool>
 {
 public:
     static DecSurfacePoolPtr create(const DisplayPtr&, VideoConfigBuffer* config);

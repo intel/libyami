@@ -1361,7 +1361,7 @@ void VaapiDecoderH264::updateFrameInfo()
 
 Decode_Status VaapiDecoderH264::outputPicture(PicturePtr& picture)
 {
-    VaapiDecoderBase::PicturePtr base = std::tr1::static_pointer_cast<VaapiDecPicture>(picture);
+    VaapiDecoderBase::PicturePtr base = StaticPointerCast<VaapiDecPicture>(picture);
     return VaapiDecoderBase::outputPicture(base);
 }
 

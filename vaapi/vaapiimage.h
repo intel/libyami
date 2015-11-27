@@ -40,8 +40,8 @@ namespace YamiMediaCodec{
 class VaapiImage
 {
   private:
-    typedef std::tr1::shared_ptr<VAImage> VAImagePtr;
-    typedef std::tr1::weak_ptr<VaapiImageRaw> ImageRawWeakPtr;
+    typedef SharedPtr<VAImage> VAImagePtr;
+    typedef WeakPtr<VaapiImageRaw> ImageRawWeakPtr;
     friend class VaapiImageRaw;
   public:
     static ImagePtr create(const DisplayPtr&,

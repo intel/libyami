@@ -68,7 +68,7 @@ class VaapiDecPictureH264 : public VaapiDecPicture
 {
   public:
     typedef SharedPtr<VaapiDecPictureH264> PicturePtr;
-    typedef std::tr1::weak_ptr<VaapiDecPictureH264> PictureWeakPtr;
+    typedef WeakPtr<VaapiDecPictureH264> PictureWeakPtr;
     typedef SharedPtr<H264SliceHdr> SliceHeaderPtr;
     friend class VaapiDPBManager;
     friend class VaapiDecoderH264;

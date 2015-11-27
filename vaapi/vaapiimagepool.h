@@ -46,7 +46,7 @@ namespace YamiMediaCodec{
 */
 
 
-class VaapiImagePool : public std::tr1::enable_shared_from_this<VaapiImagePool>
+class VaapiImagePool : public EnableSharedFromThis<VaapiImagePool>
 {
 public:
     static ImagePoolPtr create(const DisplayPtr&, uint32_t format, int32_t width, int32_t height, int32_t count);

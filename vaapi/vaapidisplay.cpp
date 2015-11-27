@@ -34,7 +34,6 @@
 #include "vaapi/vaapiutils.h"
 
 
-using std::tr1::weak_ptr;
 using std::list;
 /**
 1. client and yami shares the same display when it provides both native
@@ -168,7 +167,7 @@ bool VaapiDisplay::isCompatible(const NativeDisplay& other)
 
 VaapiDisplay::~VaapiDisplay()
 {
-    if (!std::tr1::dynamic_pointer_cast<NativeDisplayVADisplay>(m_nativeDisplay)) {
+    if (!DynamicPointerCast<NativeDisplayVADisplay>(m_nativeDisplay)) {
         vaTerminate(m_vaDisplay);
     }
 }
@@ -251,7 +250,7 @@ public:
 private:
     DisplayCache() {}
 
-    list<weak_ptr<VaapiDisplay> > m_cache;
+    list<WeakPtr<VaapiDisplay> > m_cache;
     YamiMediaCodec::Lock m_lock;
 };
 
@@ -265,7 +264,7 @@ SharedPtr<DisplayCache> DisplayCache::getInstance()
     return cache;
 }
 
-bool expired(const weak_ptr<VaapiDisplay>& weak)
+bool expired(const WeakPtr<VaapiDisplay>& weak)
 {
     return !weak.lock();
 }
@@ -280,7 +279,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
     m_cache.remove_if(expired);
 
     //lockup first
-    list<weak_ptr<VaapiDisplay> >::iterator it;
+    list<WeakPtr<VaapiDisplay> >::iterator it;
     for (it = m_cache.begin(); it != m_cache.end(); ++it) {
         vaapiDisplay = (*it).lock();
         if (vaapiDisplay->isCompatible(nativeDisplay)) {
@@ -332,7 +331,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
         vaapiDisplay = temp;
     }
     if (vaapiDisplay) {
-        weak_ptr<VaapiDisplay> weak(vaapiDisplay);
+        WeakPtr<VaapiDisplay> weak(vaapiDisplay);
         m_cache.push_back(weak);
     }
     return vaapiDisplay;

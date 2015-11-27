@@ -26,11 +26,26 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
+#ifdef ANDROID
+#include <memory>
+#else
 #include <tr1/memory>
+#endif
 namespace YamiMediaCodec{
-//use tr1's shared_ptr until we implemented ours.
-#define SharedPtr std::tr1::shared_ptr
-#define EnableSharedFromThis std::tr1::enable_shared_from_this
+#ifdef ANDROID
+    #define SharedPtr std::shared_ptr
+    #define WeakPtr std::weak_ptr
+    #define DynamicPointerCast std::dynamic_pointer_cast
+    #define StaticPointerCast std::static_pointer_cast
+    #define EnableSharedFromThis std::enable_shared_from_this
+#else
+    #define SharedPtr std::tr1::shared_ptr
+    #define WeakPtr std::tr1::weak_ptr
+    #define DynamicPointerCast std::tr1::dynamic_pointer_cast
+    #define StaticPointerCast std::tr1::static_pointer_cast
+    #define EnableSharedFromThis std::tr1::enable_shared_from_this
+#endif
+
 #define SharedFromThis shared_from_this
 
 

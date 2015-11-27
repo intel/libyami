@@ -43,7 +43,7 @@ namespace YamiMediaCodec{
 class NativeDisplayBase;
 class VaapiDisplay
 {
-    typedef std::tr1::shared_ptr<NativeDisplayBase> NativeDisplayPtr;
+    typedef SharedPtr<NativeDisplayBase> NativeDisplayPtr;
     friend class DisplayCache;
 
 public:

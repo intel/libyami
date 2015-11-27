@@ -190,7 +190,7 @@ bool VaapiEncoderBase::output(const SharedPtr<Pic>& pic)
     bool ret;
     PicturePtr picture;
     AutoLock l(m_lock);
-    picture = std::tr1::dynamic_pointer_cast<VaapiEncPicture>(pic);
+    picture = DynamicPointerCast<VaapiEncPicture>(pic);
     if (picture) {
         m_output.push_back(picture);
         ret = true;
