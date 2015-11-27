@@ -25,6 +25,8 @@
 #ifndef __CODEC_PARSER_DEF__
 #define __CODEC_PARSER_DEF__
 
+#include <assert.h>
+
 /*mixed-language compiling*/
 #ifdef __cplusplus
     #define G_BEGIN_DECLS extern "C" {

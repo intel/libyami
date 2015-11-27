@@ -64,7 +64,7 @@ static bool vaInit(VADisplay vaDisplay)
 class NativeDisplayBase {
   public:
     NativeDisplayBase() :m_handle(0) { };
-    ~NativeDisplayBase() {};
+    virtual ~NativeDisplayBase() {};
     virtual bool initialize(const NativeDisplay& display) = 0;
     virtual bool isCompatible (const NativeDisplay& display) = 0;
     intptr_t nativeHandle() {return m_handle;};

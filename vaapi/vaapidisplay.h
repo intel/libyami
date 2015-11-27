@@ -49,7 +49,7 @@ class VaapiDisplay
     friend class DisplayCache;
 
 public:
-    ~VaapiDisplay();
+    virtual ~VaapiDisplay();
     //FIXME: add more create functions.
     static DisplayPtr create(const NativeDisplay& display);
     virtual bool setRotation(int degree);
