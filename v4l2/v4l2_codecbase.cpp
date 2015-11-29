@@ -240,6 +240,7 @@ void V4l2CodecBase::workerThread()
 static void* _workerThread(void *arg)
 {
     V4l2CodecBase *v4l2Codec = static_cast<V4l2CodecBase*>(arg);
+    pthread_detach(pthread_self());
     v4l2Codec->workerThread();
     return NULL;
 }
