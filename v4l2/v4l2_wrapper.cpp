@@ -24,6 +24,9 @@
 #endif
 
 #include "v4l2_wrapper.h"
+#if __ENABLE_V4L2_OPS__
+#include "v4l2codec_device_ops.h"
+#endif
 #include "v4l2_codecbase.h"
 
 #include "common/log.h"
@@ -103,6 +106,7 @@ int32_t YamiV4L2_Close(int32_t fd)
     return ret ? 0 : -1;
 }
 
+// FIXME, if chromeos change to SetParameter as well, we can drop this func
 int32_t YamiV4L2_FrameMemoryType(int32_t fd, VideoDataMemoryType memory_type)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -206,3 +210,68 @@ int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd)
      return ret;
 }
 #endif
+
+#if __ENABLE_V4L2_OPS__
+extern "C" int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value);
+int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
+{
+    int ret = -1;
+
+    if (!key || !value) {
+        ERROR("invalue parameter\n");
+        return -1;
+    }
+
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+    ASSERT(v4l2Codec);
+
+    if (!strcmp(key, "frame-memory-type")) {
+        VideoDataMemoryType memoryType;
+        if (!strcmp(value, "raw-data")) {
+            memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;
+        } else if (!strcmp(value, "drm-name")) {
+            memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
+        } else if (!strcmp(value, "dma-buf")) {
+            memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
+        } else if (!strcmp(value, "surface-id")) {
+            memoryType = VIDEO_DATA_MEMORY_TYPE_SURFACE_ID;
+        } else if (!strcmp(value, "android-native-buffer")) {
+            memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER;
+        } else {
+            ERROR("unknow output frame memory type: %s\n", value);
+            return -1;
+        }
+        ret = v4l2Codec->setFrameMemoryType(memoryType);
+    } else {
+        ERROR("unsupported parameter key: %s\n", key);
+    }
+
+    return ret;
+}
+
+
+bool v4l2codecOperationInit(struct V4l2CodecOps *opFuncs)
+{
+    if (!opFuncs)
+        return false;
+
+    memset(opFuncs->mVendorString, 0, V4L2CODEC_VENDOR_STRING_SIZE);
+    strncpy(opFuncs->mVendorString, "yami", V4L2CODEC_VENDOR_STRING_SIZE-1);
+
+#define V4L2_DLSYM_OR_RETURN_ON_ERROR(name) opFuncs->m##name##Func = YamiV4L2_##name
+
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(Open);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(Close);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(Ioctl);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(Poll);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(SetDevicePollInterrupt);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(ClearDevicePollInterrupt);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(Mmap);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(Munmap);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(SetParameter);
+    V4L2_DLSYM_OR_RETURN_ON_ERROR(UseEglImage);
+#undef V4L2_DLSYM_OR_RETURN_ON_ERROR
+
+    return true;
+}
+#endif // __ENABLE_V4L2_OPS__

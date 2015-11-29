@@ -156,6 +156,18 @@ if test "$enable_baytrail" = "yes"; then
         [Defined to 1 if --enable-baytrail="yes"])
 fi
 
+AC_ARG_ENABLE(v4l2-ops,
+    [AC_HELP_STRING([--enable-v4l2-ops],
+        [support v4l2codec_device_ops.h interface in v4l2 wrapper @<:@default=no@:>@])],
+    [], [enable_v4l2_ops="no"])
+
+if test "$enable_v4l2_ops" = "yes"; then
+    AC_DEFINE([__ENABLE_V4L2_OPS__], [1],
+        [Defined to 1 if --enable-v4l2-ops="yes"])
+fi
+AM_CONDITIONAL(ENABLE_V4L2_OPS,
+    [test "x$enable_v4l2_ops" = "xyes"])
+
 AC_ARG_ENABLE(md5,
     [AC_HELP_STRING([--enable-md5], [enable generate md5 by per frame@<:@default=yes@:>@])],
     [], [enable_md5="yes"])

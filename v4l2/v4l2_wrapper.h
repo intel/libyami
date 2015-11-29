@@ -34,7 +34,10 @@
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
 #endif
+
+#ifdef __cplusplus
 extern "C" {
+#endif
 int32_t YamiV4L2_Open(const char* name, int32_t flags);
 int32_t YamiV4L2_Close(int32_t fd);
 int32_t YamiV4L2_FrameMemoryType(int32_t fd, VideoDataMemoryType memory_type);
@@ -56,6 +59,10 @@ int32_t YamiV4L2_Stop(int32_t fd);
 int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int buffer_index, void* egl_image);
 int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd);
 #endif
+
+#ifdef __cplusplus
 } // extern "C"
+#endif
+
 #endif
 
