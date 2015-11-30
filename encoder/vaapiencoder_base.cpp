@@ -259,7 +259,7 @@ Encode_Status VaapiEncoderBase::getMVBufferSize(uint32_t *Size)
 }
 #endif
 
-SurfacePtr VaapiEncoderBase::createSurface(uint32_t fourcc)
+SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
 {
     VASurfaceAttrib attrib;
     VaapiChromaType chroma;
@@ -286,9 +286,14 @@ SurfacePtr VaapiEncoderBase::createSurface(uint32_t fourcc)
 
 }
 
+SurfacePtr VaapiEncoderBase::createSurface(uint32_t fourcc)
+{
+    return createNewSurface(fourcc);
+}
+
 SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
 {
-    SurfacePtr surface = createSurface(frame->fourcc);
+    SurfacePtr surface = createNewSurface(frame->fourcc);
     SurfacePtr nil;
     if (!surface)
         return nil;
