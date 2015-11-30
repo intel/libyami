@@ -11,6 +11,7 @@ libyami_common_source_h_priv = \
 	utils.h \
 	common_def.h \
 	nalreader.h \
+	videopool.h \
 	$(NULL)
 
 libyami_common_ldflags = \

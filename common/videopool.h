@@ -20,27 +20,30 @@
  */
 #ifndef videopool_h
 #define videopool_h
-#include "VideoCommonDefs.h"
+#include "interface/VideoCommonDefs.h"
 #include "common/lock.h"
 #include <deque>
 
 namespace YamiMediaCodec{
 
 template <class T>
-class VideoPool : public EnableSharedFromThis<VideoPool<T> > {
+class VideoPool : public EnableSharedFromThis<VideoPool<T> >
+{
 public:
     static SharedPtr<VideoPool<T> >
-    create(std::deque<SharedPtr<T> >& buffers) {
+    create(std::deque<SharedPtr<T> >& buffers)
+    {
         SharedPtr<VideoPool<T> > ptr(new VideoPool<T>(buffers));
         return ptr;
     }
 
-    SharedPtr<T> alloc() {
+    SharedPtr<T> alloc()
+    {
         SharedPtr<T> ret;
         AutoLock _l(m_lock);
         if (!m_freed.empty()) {
             T* p = m_freed.front();
-	    m_freed.pop_front();
+            m_freed.pop_front();
             ret.reset(p, Recycler(this->shared_from_this()));
         }
         return ret;
@@ -48,24 +51,29 @@ public:
 
 private:
 
-    VideoPool(std::deque<SharedPtr<T> >& buffers){
+    VideoPool(std::deque<SharedPtr<T> >& buffers)
+    {
             m_holder.swap(buffers);
-            for (int i = 0; i < m_holder.size(); i++) {
+            for (size_t i = 0; i < m_holder.size(); i++) {
                 m_freed.push_back(m_holder[i].get());
             }
     }
 
-    void recycle(T* ptr) {
+    void recycle(T* ptr)
+    {
         AutoLock _l(m_lock);
         m_freed.push_back(ptr);
     }
 
-    class Recycler {
+    class Recycler
+    {
     public:
         Recycler(const SharedPtr<VideoPool<T> >& pool)
-            :m_pool(pool) {
+            :m_pool(pool)
+        {
         }
-        void operator()(T* ptr) const {
+        void operator()(T* ptr) const
+        {
             m_pool->recycle(ptr);
         }
     private:
