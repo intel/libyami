@@ -24,8 +24,9 @@
 
 #include "common/log.h"
 #include "common/utils.h"
+#include "common/videopool.h"
 #include "VideoCommonDefs.h"
-#include "videopool.h"
+
 #include <stdio.h>
 #include <va/va.h>
 #ifndef ANDROID
