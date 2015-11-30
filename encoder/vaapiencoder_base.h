@@ -91,6 +91,7 @@ public:
 
 protected:
     //utils functions for derived class
+    SurfacePtr createNewSurface(uint32_t fourcc);
     SurfacePtr createSurface(uint32_t fourcc = VA_FOURCC_NV12);
     SurfacePtr createSurface(VideoFrameRawData* frame);
     SurfacePtr createSurface(const SharedPtr<VideoFrame>& frame);
