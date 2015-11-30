@@ -9,6 +9,7 @@ libyami_vaapi_source_c = \
 	vaapidisplay.cpp \
 	vaapicontext.cpp \
 	vaapiimagepool.cpp \
+	vaapisurfaceallocator.cpp \
 	$(NULL)
 
 libyami_vaapi_source_h_priv = \
@@ -21,6 +22,7 @@ libyami_vaapi_source_h_priv = \
 	vaapidisplay.h \
 	vaapicontext.h \
 	vaapiimagepool.h \
+	vaapisurfaceallocator.h \
 	$(NULL)
 
 libyami_vaapi_ldflags = \
