@@ -30,7 +30,7 @@
 #include <deque>
 #include <utility>
 
-#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+template <class B, class C> class FactoryTest;
 
 namespace YamiMediaCodec{
 enum VaapiEncReorderState

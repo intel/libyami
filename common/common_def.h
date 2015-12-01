@@ -33,6 +33,15 @@
 #define CHAR_BIT    8
 #endif
 
+
+#ifndef MIN
+#define MIN(a, b)  (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef MAX
+#define MAX(a, b)  (((a) > (b)) ? (a) : (b))
+#endif
+
 #ifndef N_ELEMENTS
 #define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
 #endif

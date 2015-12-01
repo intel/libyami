@@ -19,6 +19,7 @@
 #define vaapidecoder_base_h
 
 #include "common/log.h"
+#include "common/common_def.h"
 #include "interface/VideoDecoderInterface.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapidecpicture.h"
@@ -31,6 +32,8 @@
 #else
 typedef unsigned int Display;
 #endif
+
+template <class B, class C> class FactoryTest;
 
 namespace YamiMediaCodec{
 
