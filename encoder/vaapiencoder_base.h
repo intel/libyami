@@ -28,6 +28,7 @@
 #include "interface/VideoEncoderInterface.h"
 #include "common/lock.h"
 #include "common/log.h"
+#include "common/surfacepool.h"
 #include "vaapiencpicture.h"
 #include "vaapi/vaapibuffer.h"
 #include "vaapi/vaapiptrs.h"
@@ -92,7 +93,7 @@ public:
 protected:
     //utils functions for derived class
     SurfacePtr createNewSurface(uint32_t fourcc);
-    SurfacePtr createSurface(uint32_t fourcc = VA_FOURCC_NV12);
+    SurfacePtr createSurface();
     SurfacePtr createSurface(VideoFrameRawData* frame);
     SurfacePtr createSurface(const SharedPtr<VideoFrame>& frame);
 
@@ -173,6 +174,9 @@ private:
     bool initVA();
     void cleanupVA();
     NativeDisplay m_externalDisplay;
+
+    SharedPtr<SurfacePool> m_pool;
+    SharedPtr<SurfaceAllocator> m_alloc;
 
     Lock m_lock;
     typedef std::deque<PicturePtr> OutputQueue;

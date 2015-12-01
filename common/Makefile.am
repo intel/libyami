@@ -4,6 +4,7 @@ libyami_common_source_c = \
 	log.cpp \
 	utils.cpp \
 	nalreader.cpp \
+	surfacepool.cpp \
 	$(NULL)
 
 libyami_common_source_h_priv = \
@@ -12,6 +13,7 @@ libyami_common_source_h_priv = \
 	common_def.h \
 	nalreader.h \
 	videopool.h \
+	surfacepool.h \
 	$(NULL)
 
 libyami_common_ldflags = \
