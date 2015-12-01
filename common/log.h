@@ -40,7 +40,7 @@
 
 extern int yamiLogFlag;
 extern FILE* yamiLogFn;
-extern int isIni;
+extern int isInit;
 
 #ifndef YAMIMESSAGE
 #define yamiMessage(stream, format, ...)  do {\
