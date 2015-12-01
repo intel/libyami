@@ -84,6 +84,4 @@ SurfacePtr SurfacePool::alloc()
     return m_pool->alloc();
 }
 
-
-
 } //YamiMediaCodec

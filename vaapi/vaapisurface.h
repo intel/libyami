@@ -60,6 +60,7 @@ class VaapiSurface
                              void *surfaceAttribArray,
                              uint32_t surfAttribNum);
     VaapiSurface(const DisplayPtr&, VASurfaceID);
+    VaapiSurface(intptr_t id, uint32_t width, uint32_t height);
 
     ~VaapiSurface();
 
