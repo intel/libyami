@@ -163,17 +163,11 @@ static const uint8_t* searchStartPos(const uint8_t* src, uint32_t size)
 // 7.3.1 NAL unit syntax
 bool NalUnit::parseNaluHeader(const uint8_t* data, size_t size)
 {
-    if (size < NALU_MIN_SIZE)
+    if (!data || !size)
         return false;
 
-    const uint8_t* pos;
-
-    pos = searchStartPos(data, size);
-    if (!pos)
-        return false;
-
-    m_data = pos + 3;
-    m_size = size - (m_data - data);
+    m_data = data;
+    m_size = size;
     if (m_size < NALU_HEAD_SIZE)
         return false;
 

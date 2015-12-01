@@ -50,7 +50,7 @@ namespace MPEG2 {
     };
 
     enum StartCodeSize {
-        kStartCodePrefixSize = 3,
+        kStartCodePrefixSize = 0,
         kStartCodeSize,
     };
 

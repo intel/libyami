@@ -160,7 +160,8 @@ public:
         NAL_UNIT_SEQUENCE_SIZE = 4
     };
 
-    bool parseNalUnit(const uint8_t* data, size_t size);
+    /* nal should be a complete nal unit buffer without start code or length bytes */
+    bool parseNalUnit(const uint8_t* nal, size_t size);
 
 public:
     const uint8_t* m_data;

@@ -475,7 +475,8 @@ namespace H265 {
             //48 ... 63 Unspecified
         };
 
-        bool parseNaluHeader(const uint8_t* data, size_t size);
+        /* nal should be a complete nal unit without start code or length bytes */
+        bool parseNaluHeader(const uint8_t* nal, size_t size);
 
     public:
         const uint8_t* m_data;

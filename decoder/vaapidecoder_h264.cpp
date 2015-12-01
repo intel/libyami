@@ -1122,10 +1122,74 @@ VaapiDecoderH264::VaapiDecoderH264()
 
 VaapiDecoderH264::~VaapiDecoderH264() { stop(); }
 
+bool VaapiDecoderH264::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
+{
+    if (buf == NULL || bufSize == 0) {
+        ERROR("invalid record data");
+        return false;
+    }
+
+    if (buf[0] != 1) {
+        VideoDecodeBuffer buffer;
+        memset(&buffer, 0, sizeof(buffer));
+        buffer.data = buf;
+        buffer.size = bufSize;
+        return (decode(&buffer) == YAMI_SUCCESS);
+    }
+
+    if (bufSize < 7) {
+        ERROR("invalid avcc record data");
+        return false;
+    }
+
+    const uint8_t spsNalLengthSize = 2;
+    const uint8_t ppsNalLengthSize = 2;
+    NalUnit nalu;
+    const uint8_t* nalBuf;
+    int32_t i = 0, numOfSps, numOfPps, nalBufSize;
+
+    numOfSps = buf[5] & 0x1f;
+    for (NalReader nr(&buf[6], bufSize - 6, spsNalLengthSize); i < numOfSps;
+            i++) {
+        if (!nr.read(nalBuf, nalBufSize))
+            return false;
+
+        if (!nalu.parseNalUnit(nalBuf, nalBufSize))
+            return false;
+
+        if (decodeSps(&nalu) != YAMI_SUCCESS)
+            return false;
+    }
+    nalBuf += nalBufSize;
+    numOfPps = nalBuf[0] & 0x1f;
+    i = 0;
+    for (NalReader nr(&nalBuf[1], bufSize - (nalBuf - buf + 1),
+                ppsNalLengthSize);
+            i < numOfPps; i++) {
+        if (!nr.read(nalBuf, nalBufSize))
+            return false;
+
+        if (!nalu.parseNalUnit(nalBuf, nalBufSize))
+            return false;
+
+        if (decodePps(&nalu) != YAMI_SUCCESS)
+            return false;
+    }
+
+    m_nalLengthSize = 1 + (buf[4] & 0x3);
+
+    return true;
+}
+
 YamiStatus VaapiDecoderH264::start(VideoConfigBuffer* buffer)
 {
-    if (buffer->data && buffer->size > 4)
-        m_nalLengthSize = 1 + (buffer->data[4] & 3);
+    if (buffer->data && buffer->size > 0) {
+        if (!decodeAvcRecordData(buffer->data, buffer->size)) {
+            ERROR("decode record data failed");
+            return DECODE_FAIL;
+        }
+    }
+
 
     return YAMI_SUCCESS;
 }
@@ -1655,9 +1719,7 @@ YamiStatus VaapiDecoderH264::decode(VideoDecodeBuffer* buffer)
     NalUnit nalu;
     YamiStatus status = YAMI_SUCCESS;
     const uint8_t* nal;
-    // h264 parser can't support avcc right now.
-    // bool is_avcc = (m_nalLengthSize || (buffer->flag & IS_AVCC));
-    NalReader nr(buffer->data, buffer->size);
+    NalReader nr(buffer->data, buffer->size, m_nalLengthSize);
 
     while (nr.read(nal, size)) {
         if (nalu.parseNalUnit(nal, size))

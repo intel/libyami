@@ -130,18 +130,11 @@ void NalUnit::parseMvcExtension(BitReader& br)
 
 bool NalUnit::parseNalUnit(const uint8_t* src, size_t size)
 {
-    //It is a invalid source data when the size less than 4 bytes
-    //because each nal uint start with the subsequence of 0x000001.
-    if (size < NAL_UNIT_SEQUENCE_SIZE)
+    if (!src || !size)
         return false;
 
-    int32_t pos;
-    pos = searchStartPos(src, size);
-    if (pos == -1) //no nal unit
-        return false;
-
-    m_data = src + pos + 3;
-    m_size = size - pos - 3;
+    m_data = src;
+    m_size = size;
     BitReader br(m_data, m_size);
 
     br.skip(1); // forbidden_zero_bit

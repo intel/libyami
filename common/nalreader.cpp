@@ -18,46 +18,71 @@
 
 namespace YamiMediaCodec{
 
-NalReader::NalReader(const uint8_t* buf, int32_t size, bool asWhole)
+NalReader::NalReader(const uint8_t* buf, int32_t size, uint32_t nalLengthSize, bool asWhole)
 {
     m_begin = buf;
     m_next  = buf;
     m_end   = buf + size;
     m_asWhole = asWhole;
-    if (!asWhole) {
-        m_begin = searchStartCode();
-    }
+
+    m_nalLengthSize = nalLengthSize;
+    m_size = 0;
+
+    searchNalStart();
 }
 
-bool NalReader::read(const uint8_t*& nal, int32_t& size)
+bool NalReader::read(const uint8_t*& nal, int32_t& nalSize)
 {
     if (m_next == m_end)
         return false;
+
+    nal = m_next;
     const uint8_t* nalEnd;
     if (m_asWhole) {
         nalEnd = m_end;
     } else {
-        nalEnd = searchStartCode();
+        nalEnd = searchNalStart();
     }
-    nal = m_begin;
-    size = nalEnd - m_begin;
-    m_begin = nalEnd;
+    nalSize = nalEnd - nal;
     return true;
 }
 
-const uint8_t START_CODE[] = {0, 0, 1};
-const int START_CODE_SIZE = 3;
-const uint8_t* START_CODE_END = START_CODE + START_CODE_SIZE;
+static const uint8_t START_CODE[] = { 0, 0, 1 };
+static const int START_CODE_SIZE = 3;
+static const uint8_t* START_CODE_END = START_CODE + START_CODE_SIZE;
 
 const uint8_t* NalReader::searchStartCode()
 {
-    const uint8_t* start = std::search(m_next, m_end, START_CODE,  START_CODE_END);
-    if (start != m_end) {
-        m_next = start + START_CODE_SIZE;
+    m_begin = std::search(m_next, m_end, START_CODE, START_CODE_END);
+
+    if (m_begin != m_end) {
+        m_next = m_begin + START_CODE_SIZE;
     } else {
         m_next = m_end;
     }
-    return start;
+    return m_begin;
 }
 
-}//namespace YamiMediaCodec
+const uint8_t* NalReader::searchNalStart()
+{
+    if (!m_nalLengthSize)
+        return searchStartCode();
+
+    if (m_end - m_begin > m_size + m_nalLengthSize) {
+        m_begin += m_size;
+    } else {
+        m_begin = m_next = m_end;
+        return m_begin;
+    }
+
+    uint32_t i, size;
+    m_next = m_begin + m_nalLengthSize;
+
+    for (i = 0, size = 0; i < m_nalLengthSize; i++)
+        size = (size << 8) | m_begin[i];
+
+    m_size = m_nalLengthSize + size;
+
+    return m_begin;
+}
+} //namespace YamiMediaCodec
