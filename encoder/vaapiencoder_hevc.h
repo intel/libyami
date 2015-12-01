@@ -73,6 +73,9 @@ protected:
     virtual Encode_Status getCodecConfig(VideoEncOutputBuffer *outBuffer);
 
 private:
+    friend class FactoryTest<IVideoEncoder, VaapiEncoderHEVC>;
+    friend class VaapiEncoderHEVCTest;
+
     //following code is a template for other encoder implementation
     Encode_Status encodePicture(const PicturePtr&);
     bool fill(VAEncSequenceParameterBufferHEVC*) const;

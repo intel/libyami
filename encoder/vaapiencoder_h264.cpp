@@ -18,7 +18,7 @@
 #endif
 #include "vaapiencoder_h264.h"
 #include <assert.h>
-#include "bitwriter.h"
+#include "bitWriter.h"
 #include "scopedlogger.h"
 #include "common/common_def.h"
 #include "common/Functional.h"
@@ -35,6 +35,7 @@ typedef VaapiEncoderH264::PicturePtr PicturePtr;
 typedef VaapiEncoderH264::ReferencePtr ReferencePtr;
 typedef VaapiEncoderH264::StreamHeaderPtr StreamHeaderPtr;
 
+using YamiParser::BitWriter;
 using std::list;
 using std::vector;
 
@@ -70,11 +71,11 @@ static uint8_t
 h264_get_slice_type (VaapiPictureType type)
 {
     switch (type) {
-    case VAAPI_PICTURE_TYPE_I:
+    case VAAPI_PICTURE_I:
         return 2;
-    case VAAPI_PICTURE_TYPE_P:
+    case VAAPI_PICTURE_P:
         return 0;
-    case VAAPI_PICTURE_TYPE_B:
+    case VAAPI_PICTURE_B:
         return 1;
     default:
         return -1;
@@ -150,9 +151,9 @@ bit_writer_put_ue(BitWriter *bitwriter, uint32_t value)
         tmp_value >>= 1;
     }
     if (size_in_bits > 1
-        && !bit_writer_put_bits_uint32(bitwriter, 0, size_in_bits-1))
+        && !bitwriter->writeBits(0, size_in_bits - 1))
         return FALSE;
-    if (!bit_writer_put_bits_uint32(bitwriter, value, size_in_bits))
+    if (!bitwriter->writeBits(value, size_in_bits))
         return FALSE;
     return TRUE;
 }
@@ -180,17 +181,17 @@ bit_writer_write_nal_header(
     uint32_t nal_unit_type
 )
 {
-    bit_writer_put_bits_uint32(bitwriter, 0, 1);
-    bit_writer_put_bits_uint32(bitwriter, nal_ref_idc, 2);
-    bit_writer_put_bits_uint32(bitwriter, nal_unit_type, 5);
+    bitwriter->writeBits(0, 1);
+    bitwriter->writeBits(nal_ref_idc, 2);
+    bitwriter->writeBits(nal_unit_type, 5);
     return TRUE;
 }
 
 static BOOL
 bit_writer_write_trailing_bits(BitWriter *bitwriter)
 {
-    bit_writer_put_bits_uint32(bitwriter, 1, 1);
-    bit_writer_align_bytes_unchecked(bitwriter, 0);
+    bitwriter->writeBits(1, 1);
+    bitwriter->writeToBytesAligned();
     return TRUE;
 }
 
@@ -221,19 +222,19 @@ bit_writer_write_sps(
     bit_writer_write_nal_header (bitwriter,
                          VAAPI_ENCODER_H264_NAL_REF_IDC_HIGH, VAAPI_ENCODER_H264_NAL_SPS);
     /* profile_idc */
-    bit_writer_put_bits_uint32(bitwriter, h264_get_profile_idc(profile), 8);
+    bitwriter->writeBits(h264_get_profile_idc(profile), 8);
     /* constraint_set0_flag */
-    bit_writer_put_bits_uint32(bitwriter, constraint_set0_flag, 1);
+    bitwriter->writeBits(constraint_set0_flag, 1);
     /* constraint_set1_flag */
-    bit_writer_put_bits_uint32(bitwriter, constraint_set1_flag, 1);
+    bitwriter->writeBits(constraint_set1_flag, 1);
     /* constraint_set2_flag */
-    bit_writer_put_bits_uint32(bitwriter, constraint_set2_flag, 1);
+    bitwriter->writeBits(constraint_set2_flag, 1);
     /* constraint_set3_flag */
-    bit_writer_put_bits_uint32(bitwriter, constraint_set3_flag, 1);
+    bitwriter->writeBits(constraint_set3_flag, 1);
     /* reserved_zero_4bits */
-    bit_writer_put_bits_uint32(bitwriter, 0, 4);
+    bitwriter->writeBits(0, 4);
     /* level_idc */
-    bit_writer_put_bits_uint32(bitwriter, seq->level_idc, 8);
+    bitwriter->writeBits(seq->level_idc, 8);
     /* seq_parameter_set_id */
     bit_writer_put_ue(bitwriter, seq->seq_parameter_set_id);
 
@@ -242,18 +243,17 @@ bit_writer_write_sps(
         /* chroma_format_idc  = 1, 4:2:0*/
         bit_writer_put_ue(bitwriter, seq->seq_fields.bits.chroma_format_idc);
         if (3 == seq->seq_fields.bits.chroma_format_idc) {
-          bit_writer_put_bits_uint32(bitwriter, residual_color_transform_flag, 1);
+            bitwriter->writeBits(residual_color_transform_flag, 1);
         }
         /* bit_depth_luma_minus8 */
         bit_writer_put_ue(bitwriter, seq->bit_depth_luma_minus8);
         /* bit_depth_chroma_minus8 */
         bit_writer_put_ue(bitwriter, seq->bit_depth_chroma_minus8);
         /* b_qpprime_y_zero_transform_bypass */
-        bit_writer_put_bits_uint32(bitwriter, b_qpprime_y_zero_transform_bypass, 1);
+        bitwriter->writeBits(b_qpprime_y_zero_transform_bypass, 1);
         assert(seq->seq_fields.bits.seq_scaling_matrix_present_flag == 0);
         /*seq_scaling_matrix_present_flag  */
-        bit_writer_put_bits_uint32(bitwriter,
-            seq->seq_fields.bits.seq_scaling_matrix_present_flag, 1);
+        bitwriter->writeBits(seq->seq_fields.bits.seq_scaling_matrix_present_flag, 1);
 
     #if 0
         if (seq->seq_fields.bits.seq_scaling_matrix_present_flag) {
@@ -280,8 +280,7 @@ bit_writer_write_sps(
             seq->seq_fields.bits.log2_max_pic_order_cnt_lsb_minus4);
     } else if (seq->seq_fields.bits.pic_order_cnt_type == 1) {
         assert(0);
-        bit_writer_put_bits_uint32(bitwriter,
-            seq->seq_fields.bits.delta_pic_order_always_zero_flag, 1);
+        bitwriter->writeBits(seq->seq_fields.bits.delta_pic_order_always_zero_flag, 1);
         bit_writer_put_se(bitwriter, seq->offset_for_non_ref_pic);
         bit_writer_put_se(bitwriter, seq->offset_for_top_to_bottom_field);
         bit_writer_put_ue(bitwriter,
@@ -294,26 +293,24 @@ bit_writer_write_sps(
     /* num_ref_frames */
     bit_writer_put_ue(bitwriter, seq->max_num_ref_frames);
     /* gaps_in_frame_num_value_allowed_flag */
-    bit_writer_put_bits_uint32(bitwriter,
-        gaps_in_frame_num_value_allowed_flag, 1);
+    bitwriter->writeBits(gaps_in_frame_num_value_allowed_flag, 1);
 
     /* pic_width_in_mbs_minus1 */
     bit_writer_put_ue(bitwriter, seq->picture_width_in_mbs - 1);
     /* pic_height_in_map_units_minus1 */
     bit_writer_put_ue(bitwriter, pic_height_in_map_units - 1);
     /* frame_mbs_only_flag */
-    bit_writer_put_bits_uint32(bitwriter,
-        seq->seq_fields.bits.frame_mbs_only_flag, 1);
+    bitwriter->writeBits(seq->seq_fields.bits.frame_mbs_only_flag, 1);
 
     if (!seq->seq_fields.bits.frame_mbs_only_flag) { //ONLY mbs
         assert(0);
-        bit_writer_put_bits_uint32(bitwriter, mb_adaptive_frame_field, 1);
+        bitwriter->writeBits(mb_adaptive_frame_field, 1);
     }
 
     /* direct_8x8_inference_flag */
-    bit_writer_put_bits_uint32(bitwriter, 0, 1);
+    bitwriter->writeBits(0, 1);
     /* frame_cropping_flag */
-    bit_writer_put_bits_uint32(bitwriter, seq->frame_cropping_flag, 1);
+    bitwriter->writeBits(seq->frame_cropping_flag, 1);
 
     if (seq->frame_cropping_flag) {
         /* frame_crop_left_offset */
@@ -327,45 +324,43 @@ bit_writer_write_sps(
     }
 
     /* vui_parameters_present_flag */
-    bit_writer_put_bits_uint32(bitwriter, seq->vui_parameters_present_flag, 1);
+    bitwriter->writeBits(seq->vui_parameters_present_flag, 1);
     if (seq->vui_parameters_present_flag) {
         /* aspect_ratio_info_present_flag */
-        bit_writer_put_bits_uint32(bitwriter,
-                                  seq->vui_fields.bits.aspect_ratio_info_present_flag,
-                                  1);
+        bitwriter->writeBits(seq->vui_fields.bits.aspect_ratio_info_present_flag,
+                             1);
         if (seq->vui_fields.bits.aspect_ratio_info_present_flag) {
-            bit_writer_put_bits_uint32(bitwriter, seq->aspect_ratio_idc, 8);
+            bitwriter->writeBits(seq->aspect_ratio_idc, 8);
             if (seq->aspect_ratio_idc == 0xFF) {
-                bit_writer_put_bits_uint32(bitwriter, seq->sar_width, 16);
-                bit_writer_put_bits_uint32(bitwriter, seq->sar_height, 16);
+                bitwriter->writeBits(seq->sar_width, 16);
+                bitwriter->writeBits(seq->sar_height, 16);
             }
         }
 
         /* overscan_info_present_flag */
-        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+        bitwriter->writeBits(0, 1);
         /* video_signal_type_present_flag */
-        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+        bitwriter->writeBits(0, 1);
         /* chroma_loc_info_present_flag */
-        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+        bitwriter->writeBits(0, 1);
 
         /* timing_info_present_flag */
-        bit_writer_put_bits_uint32(bitwriter,
-            seq->vui_fields.bits.timing_info_present_flag, 1);
+        bitwriter->writeBits(seq->vui_fields.bits.timing_info_present_flag, 1);
         if (seq->vui_fields.bits.timing_info_present_flag) {
-            bit_writer_put_bits_uint32(bitwriter, seq->num_units_in_tick, 32);
-            bit_writer_put_bits_uint32(bitwriter, seq->time_scale, 32);
-            bit_writer_put_bits_uint32(bitwriter, 1, 1); /* fixed_frame_rate_flag */
+            bitwriter->writeBits(seq->num_units_in_tick, 32);
+            bitwriter->writeBits(seq->time_scale, 32);
+            bitwriter->writeBits(1, 1); /* fixed_frame_rate_flag */
         }
 
         nal_hrd_parameters_present_flag = (seq->bits_per_second > 0 ? TRUE : FALSE);
         /* nal_hrd_parameters_present_flag */
-        bit_writer_put_bits_uint32(bitwriter, nal_hrd_parameters_present_flag, 1);
+        bitwriter->writeBits(nal_hrd_parameters_present_flag, 1);
         if (nal_hrd_parameters_present_flag) {
             /* hrd_parameters */
             /* cpb_cnt_minus1 */
             bit_writer_put_ue(bitwriter, 0);
-            bit_writer_put_bits_uint32(bitwriter, 4, 4); /* bit_rate_scale */
-            bit_writer_put_bits_uint32(bitwriter, 6, 4); /* cpb_size_scale */
+            bitwriter->writeBits(4, 4); /* bit_rate_scale */
+            bitwriter->writeBits(6, 4); /* cpb_size_scale */
 
             for (i = 0; i < 1; ++i) {
                 /* bit_rate_value_minus1[0] */
@@ -373,27 +368,27 @@ bit_writer_write_sps(
                 /* cpb_size_value_minus1[0] */
                 bit_writer_put_ue(bitwriter, seq->bits_per_second/1024*8 - 1);
                 /* cbr_flag[0] */
-                bit_writer_put_bits_uint32(bitwriter, 1, 1);
+                bitwriter->writeBits(1, 1);
             }
             /* initial_cpb_removal_delay_length_minus1 */
-            bit_writer_put_bits_uint32(bitwriter, 23, 5);
+            bitwriter->writeBits(23, 5);
             /* cpb_removal_delay_length_minus1 */
-            bit_writer_put_bits_uint32(bitwriter, 23, 5);
+            bitwriter->writeBits(23, 5);
             /* dpb_output_delay_length_minus1 */
-            bit_writer_put_bits_uint32(bitwriter, 23, 5);
+            bitwriter->writeBits(23, 5);
             /* time_offset_length  */
-            bit_writer_put_bits_uint32(bitwriter, 23, 5);
+            bitwriter->writeBits(23, 5);
         }
         /* vcl_hrd_parameters_present_flag */
-        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+        bitwriter->writeBits(0, 1);
         if (nal_hrd_parameters_present_flag || 0/*vcl_hrd_parameters_present_flag*/) {
             /* low_delay_hrd_flag */
-            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+            bitwriter->writeBits(0, 1);
         }
         /* pic_struct_present_flag */
-        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+        bitwriter->writeBits(0, 1);
         /* bitwriter_restriction_flag */
-        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+        bitwriter->writeBits(0, 1);
     }
 
     /* rbsp_trailing_bits */
@@ -418,11 +413,9 @@ bit_writer_write_pps(
     /* seq_parameter_set_id */
     bit_writer_put_ue(bitwriter, pic->seq_parameter_set_id);
     /* entropy_coding_mode_flag */
-    bit_writer_put_bits_uint32(bitwriter,
-        pic->pic_fields.bits.entropy_coding_mode_flag, 1);
+    bitwriter->writeBits(pic->pic_fields.bits.entropy_coding_mode_flag, 1);
     /* pic_order_present_flag */
-    bit_writer_put_bits_uint32(bitwriter,
-        pic->pic_fields.bits.pic_order_present_flag, 1);
+    bitwriter->writeBits(pic->pic_fields.bits.pic_order_present_flag, 1);
     /*slice_groups-1*/
     bit_writer_put_ue(bitwriter, num_slice_groups_minus1);
 
@@ -432,10 +425,8 @@ bit_writer_write_pps(
     }
     bit_writer_put_ue(bitwriter, pic->num_ref_idx_l0_active_minus1);
     bit_writer_put_ue(bitwriter, pic->num_ref_idx_l1_active_minus1);
-    bit_writer_put_bits_uint32(bitwriter,
-        pic->pic_fields.bits.weighted_pred_flag, 1);
-    bit_writer_put_bits_uint32(bitwriter,
-        pic->pic_fields.bits.weighted_bipred_idc, 2);
+    bitwriter->writeBits(pic->pic_fields.bits.weighted_pred_flag, 1);
+    bitwriter->writeBits(pic->pic_fields.bits.weighted_bipred_idc, 2);
     /* pic_init_qp_minus26 */
     bit_writer_put_se(bitwriter, pic->pic_init_qp-26);
     /* pic_init_qs_minus26 */
@@ -443,17 +434,13 @@ bit_writer_write_pps(
     /*chroma_qp_index_offset*/
     bit_writer_put_se(bitwriter, pic->chroma_qp_index_offset);
 
-    bit_writer_put_bits_uint32(bitwriter,
-        pic->pic_fields.bits.deblocking_filter_control_present_flag, 1);
-    bit_writer_put_bits_uint32(bitwriter,
-        pic->pic_fields.bits.constrained_intra_pred_flag, 1);
-    bit_writer_put_bits_uint32(bitwriter, redundant_pic_cnt_present_flag, 1);
+    bitwriter->writeBits(pic->pic_fields.bits.deblocking_filter_control_present_flag, 1);
+    bitwriter->writeBits(pic->pic_fields.bits.constrained_intra_pred_flag, 1);
+    bitwriter->writeBits(redundant_pic_cnt_present_flag, 1);
 
     /*more_rbsp_data*/
-    bit_writer_put_bits_uint32(bitwriter,
-        pic->pic_fields.bits.transform_8x8_mode_flag, 1);
-    bit_writer_put_bits_uint32(bitwriter,
-        pic->pic_fields.bits.pic_scaling_matrix_present_flag, 1);
+    bitwriter->writeBits(pic->pic_fields.bits.transform_8x8_mode_flag, 1);
+    bitwriter->writeBits(pic->pic_fields.bits.pic_scaling_matrix_present_flag, 1);
     if (pic->pic_fields.bits.pic_scaling_matrix_present_flag) {
         assert(0);
         /* FIXME */
@@ -480,20 +467,16 @@ public:
     {
         ASSERT(m_sps.empty());
         BitWriter bs;
-        bit_writer_init (&bs, 128 * 8);
         bit_writer_write_sps (&bs, sequence, profile);
         bsToHeader(m_sps, bs);
-        bit_writer_clear (&bs, TRUE);
     }
 
     void addPPS(const VAEncPictureParameterBufferH264* const picParam)
     {
         ASSERT(m_sps.size() && m_pps.empty());
         BitWriter bs;
-        bit_writer_init (&bs, 128 * 8);
         bit_writer_write_pps (&bs, picParam);
         bsToHeader(m_pps, bs);
-        bit_writer_clear (&bs, TRUE);
     }
 
     void generateCodecConfig(bool isAVCc)
@@ -520,8 +503,14 @@ public:
 private:
     static void bsToHeader(Header& param, BitWriter& bs)
     {
-        ASSERT(BIT_WRITER_BIT_SIZE (&bs) % 8 == 0);
-        param.insert(param.end(), BIT_WRITER_DATA (&bs),  BIT_WRITER_DATA (&bs) + BIT_WRITER_BIT_SIZE (&bs)/8);
+        uint64_t codedBits = bs.getCodedBitsCount();
+        uint64_t codedBytes = codedBits / 8;
+        ASSERT(codedBytes && codedBits % 8 == 0);
+
+        uint8_t* codedData = bs.getBitWriterData();
+        ASSERT(codedData);
+
+        param.insert(param.end(), codedData, codedData + codedBytes);
     }
 
     void appendHeaderWithEmulation(Header& h)
@@ -572,27 +561,25 @@ private:
         profileComp = sps[2];
         levelIdc = sps[3];
         /* Header */
-        bit_writer_init (&bs, (sps.size() + pps.size() + 64) * 8);
-        bit_writer_put_bits_uint32 (&bs, configurationVersion, 8);
-        bit_writer_put_bits_uint32 (&bs, profileIdc, 8);
-        bit_writer_put_bits_uint32 (&bs, profileComp, 8);
-        bit_writer_put_bits_uint32 (&bs, levelIdc, 8);
-        bit_writer_put_bits_uint32 (&bs, 0x3f, 6);  /* 111111 */
-        bit_writer_put_bits_uint32 (&bs, nalLengthSize - 1, 2);
-        bit_writer_put_bits_uint32 (&bs, 0x07, 3);  /* 111 */
+        bs.writeBits(configurationVersion, 8);
+        bs.writeBits(profileIdc, 8);
+        bs.writeBits(profileComp, 8);
+        bs.writeBits(levelIdc, 8);
+        bs.writeBits(0x3f, 6); /* 111111 */
+        bs.writeBits(nalLengthSize - 1, 2);
+        bs.writeBits(0x07, 3); /* 111 */
 
         /* Write SPS */
-        bit_writer_put_bits_uint32 (&bs, 1, 5);     /* SPS count = 1 */
-        assert (BIT_WRITER_BIT_SIZE (&bs) % 8 == 0);
-        bit_writer_put_bits_uint32 (&bs, sps.size(), 16);
-        bit_writer_put_bytes (&bs, &sps[0], sps.size());
+        bs.writeBits(1, 5); /* SPS count = 1 */
+        assert(bs.getCodedBitsCount() % 8 == 0);
+        bs.writeBits(sps.size(), 16);
+        bs.writeBytes(&sps[0], sps.size());
         /* Write PPS */
-        bit_writer_put_bits_uint32 (&bs, 1, 8);     /* PPS count = 1 */
-        bit_writer_put_bits_uint32 (&bs, pps.size(), 16);
-        bit_writer_put_bytes (&bs, &pps[0], pps.size());
+        bs.writeBits(1, 8); /* PPS count = 1 */
+        bs.writeBits(pps.size(), 16);
+        bs.writeBytes(&pps[0], pps.size());
 
         bsToHeader(m_headers, bs);
-        bit_writer_clear (&bs, TRUE);
     }
 
 
@@ -644,7 +631,7 @@ private:
     }
 
     bool isIdr() const {
-        return m_type == VAAPI_PICTURE_TYPE_I && !m_frameNum;
+        return m_type == VAAPI_PICTURE_I && !m_frameNum;
     }
 
     //getOutput is a virutal function, we need this to help bind
@@ -919,8 +906,8 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
         // If the last frame before IDR is B frame, set it to P frame.
         if (m_reorderFrameList.size()) {
             PicturePtr lastPic = m_reorderFrameList.back();
-            if (lastPic->m_type == VAAPI_PICTURE_TYPE_B) {
-                lastPic->m_type = VAAPI_PICTURE_TYPE_P;
+            if (lastPic->m_type == VAAPI_PICTURE_B) {
+                lastPic->m_type = VAAPI_PICTURE_P;
                 m_reorderFrameList.pop_back();
                 m_reorderFrameList.push_front(lastPic);
             }
@@ -1015,21 +1002,21 @@ void VaapiEncoderH264::resetGopStart ()
 /* Marks the supplied picture as a B-frame */
 void VaapiEncoderH264::setBFrame (const PicturePtr& pic)
 {
-    pic->m_type = VAAPI_PICTURE_TYPE_B;
+    pic->m_type = VAAPI_PICTURE_B;
     pic->m_frameNum = (m_curFrameNum % m_maxFrameNum);
 }
 
 /* Marks the supplied picture as a P-frame */
 void VaapiEncoderH264::setPFrame (const PicturePtr& pic)
 {
-    pic->m_type = VAAPI_PICTURE_TYPE_P;
+    pic->m_type = VAAPI_PICTURE_P;
     pic->m_frameNum = (m_curFrameNum % m_maxFrameNum);
 }
 
 /* Marks the supplied picture as an I-frame */
 void VaapiEncoderH264::setIFrame (const PicturePtr& pic)
 {
-    pic->m_type = VAAPI_PICTURE_TYPE_I;
+    pic->m_type = VAAPI_PICTURE_I;
     pic->m_frameNum = (m_curFrameNum % m_maxFrameNum);
 }
 
@@ -1037,7 +1024,7 @@ void VaapiEncoderH264::setIFrame (const PicturePtr& pic)
 void VaapiEncoderH264::setIdrFrame (const PicturePtr& pic)
 {
     resetGopStart();
-    pic->m_type = VAAPI_PICTURE_TYPE_I;
+    pic->m_type = VAAPI_PICTURE_I;
     pic->m_frameNum = 0;
     pic->m_poc = 0;
 }
@@ -1045,7 +1032,7 @@ void VaapiEncoderH264::setIdrFrame (const PicturePtr& pic)
 bool VaapiEncoderH264::
 referenceListUpdate (const PicturePtr& picture, const SurfacePtr& surface)
 {
-    if (VAAPI_PICTURE_TYPE_B == picture->m_type) {
+    if (VAAPI_PICTURE_B == picture->m_type) {
         return true;
     }
     if (picture->isIdr()) {
@@ -1068,7 +1055,7 @@ bool  VaapiEncoderH264::pictureReferenceListSet (
     m_refList0.clear();
     m_refList1.clear();
 
-    if (picture->m_type == VAAPI_PICTURE_TYPE_I)
+    if (picture->m_type == VAAPI_PICTURE_I)
         return true;
 
     for (i = 0; i < m_refList.size(); i++) {
@@ -1084,7 +1071,7 @@ bool  VaapiEncoderH264::pictureReferenceListSet (
     if (m_refList1.size() > m_maxRefList1Count)
         m_refList1.resize(m_maxRefList1Count);
 
-    if (picture->m_type == VAAPI_PICTURE_TYPE_P)
+    if (picture->m_type == VAAPI_PICTURE_P)
         assert(m_refList1.empty());
 
     assert (m_refList0.size() + m_refList1.size() <= m_maxRefFrames);
@@ -1172,7 +1159,7 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
     picParam->CurrPic.picture_id = surface->getID();
     picParam->CurrPic.TopFieldOrderCnt = picture->m_poc;
 
-    if (picture->m_type != VAAPI_PICTURE_TYPE_I) {
+    if (picture->m_type != VAAPI_PICTURE_I) {
         for (i = 0; i < m_refList.size(); i++) {
             picParam->ReferenceFrames[i].picture_id = m_refList[i]->m_pic->getID();
             picParam->ReferenceFrames[i].TopFieldOrderCnt = m_refList[i]->m_poc;
@@ -1199,7 +1186,7 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
 
     /* set picture fields */
     picParam->pic_fields.bits.idr_pic_flag = picture->isIdr();
-    picParam->pic_fields.bits.reference_pic_flag = (picture->m_type != VAAPI_PICTURE_TYPE_B);
+    picParam->pic_fields.bits.reference_pic_flag = (picture->m_type != VAAPI_PICTURE_B);
     picParam->pic_fields.bits.entropy_coding_mode_flag = m_useCabac;
     picParam->pic_fields.bits.transform_8x8_mode_flag = m_useDct8x8;
     /* enable debloking */
@@ -1256,7 +1243,7 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
 
     assert (picture);
 
-    if (picture->m_type != VAAPI_PICTURE_TYPE_I) {
+    if (picture->m_type != VAAPI_PICTURE_I) {
         /* have one reference frame at least */
         assert(m_refList0.size() > 0);
     }
@@ -1285,9 +1272,9 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
         sliceParam->pic_order_cnt_lsb = picture->m_poc;
 
         sliceParam->num_ref_idx_active_override_flag = 1;
-        if (picture->m_type != VAAPI_PICTURE_TYPE_I && m_refList0.size() > 0)
+        if (picture->m_type != VAAPI_PICTURE_I && m_refList0.size() > 0)
             sliceParam->num_ref_idx_l0_active_minus1 = m_refList0.size() - 1;
-        if (picture->m_type == VAAPI_PICTURE_TYPE_B && m_refList1.size() > 0)
+        if (picture->m_type == VAAPI_PICTURE_B && m_refList1.size() > 0)
             sliceParam->num_ref_idx_l1_active_minus1 = m_refList1.size() - 1;
 
         fillReferenceList(sliceParam);
