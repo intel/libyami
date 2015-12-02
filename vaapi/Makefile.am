@@ -46,6 +46,7 @@ noinst_PROGRAMS = unittest
 
 unittest_SOURCES = \
 	$(top_builddir)/common/unittest_main.cpp \
+	vaapidisplay_unittest.cpp \
 	$(NULL)
 
 unittest_LDFLAGS = \
@@ -54,8 +55,13 @@ unittest_LDFLAGS = \
 
 unittest_LDADD = \
 	libyami_vaapi.la \
+	$(top_builddir)/common/libyami_common.la \
 	$(GTEST_LIBS) \
 	$(NULL)
+
+if ENABLE_X11
+unittest_LDADD += $(X11_LIBS)
+endif
 
 unittest_CPPFLAGS = \
 	$(GTEST_CPPFLAGS) \
@@ -63,6 +69,7 @@ unittest_CPPFLAGS = \
 
 unittest_CXXFLAGS = \
 	$(GTEST_CXXFLAGS) \
+	-std=c++11 \
 	$(NULL)
 
 check-local: unittest

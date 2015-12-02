@@ -40,6 +40,7 @@ class VaapiDisplay
 {
     typedef SharedPtr<NativeDisplayBase> NativeDisplayPtr;
     friend class DisplayCache;
+    friend class VaapiDisplayTest;
 
 public:
     virtual ~VaapiDisplay();
