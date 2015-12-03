@@ -171,16 +171,16 @@ private:
 int main(int argc, char** argv)
 {
 
-    TranscodeTest vpp;
-    if (!vpp.init(argc, argv)) {
-        ERROR("init vpp with command line parameters failed");
+    TranscodeTest trans;
+    if (!trans.init(argc, argv)) {
+        ERROR("init transcode with command line parameters failed");
         return -1;
     }
-    if (!vpp.run()){
-        ERROR("run vpp failed");
+    if (!trans.run()){
+        ERROR("run transcode failed");
         return -1;
     }
-    printf("vpp done\n");
+    printf("transcode done\n");
     return  0;
 
 }
