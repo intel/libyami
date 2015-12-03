@@ -6,7 +6,6 @@ includedir=@includedir@
 Name: libyami decoder part
 Description: Intel Open source decoder based on libva
 Version: 1.0.0
-Requires:@AX_LIBVA_PKG_REQ@@AX_LIBVA_DRM_PKG_REQ@
-Requires.private:@AX_LIBVA_PKG_REQ_PRIV@@AX_LIBVA_DRM_PKG_REQ_PRIV@
+Requires: @LIBVA_PKG_REQ@ @LIBVA_DRM_PKG_REQ@
 Libs: -L${libdir} -lyami_common
 Cflags: -I${includedir}/libyami_common
