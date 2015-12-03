@@ -35,7 +35,6 @@
 
 #include "common/log.h"
 #include "common/utils.h"
-#include "v4l2/v4l2_wrapper.h"
 #include "decodeinput.h"
 #include "decodehelp.h"
 #if __ENABLE_V4L2_GLX__
@@ -48,6 +47,49 @@
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
 #endif
+
+#if __ENABLE_V4L2_OPS__
+#include "v4l2/v4l2codec_device_ops.h"
+#include <dlfcn.h>
+#include <fcntl.h>
+#else
+#include "v4l2/v4l2_wrapper.h"
+#endif
+
+#if __ENABLE_V4L2_OPS__
+static struct V4l2CodecOps s_v4l2CodecOps;
+static int32_t s_v4l2Fd = 0;
+
+static bool loadV4l2CodecDevice(const char* libName )
+{
+    memset(&s_v4l2CodecOps, 0, sizeof(s_v4l2CodecOps));
+    s_v4l2Fd = 0;
+
+    if (!dlopen(libName, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE)) {
+      ERROR("Failed to load %s\n", libName);
+      return false;
+    }
+
+    V4l2codecOperationInitFunc initFunc = NULL;
+    initFunc = (V4l2codecOperationInitFunc)dlsym(RTLD_DEFAULT, "v4l2codecOperationInit");
+
+    if (!initFunc) {
+        ERROR("fail to dlsym v4l2codecOperationInit\n");
+        return false;
+    }
+
+    if (!initFunc(&s_v4l2CodecOps)) {
+        ERROR("fail to init v4l2 device operation func pointers\n");
+        return false;
+    }
+
+    return true;
+}
+#define SIMULATE_V4L2_OP(OP)  s_v4l2CodecOps.m##OP##Func
+#else
+#define SIMULATE_V4L2_OP(OP)  YamiV4L2_##OP
+#endif
+
 
 struct RawFrameData {
     uint32_t width;
@@ -69,7 +111,17 @@ uint32_t inputQueueCapacity = 0;
 uint32_t outputQueueCapacity = 0;
 static std::vector<uint8_t*> inputFrames;
 static std::vector<struct RawFrameData> rawOutputFrames;
-VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
+
+static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
+static const char* typeStrDrmName = "drm-name";
+static const char* typeStrDmaBuf = "dma-buf";
+static const char* typeStrRawData = "raw-data";
+// static const char* typeStrAndroidNativeBuffer = "android-native-buffer";
+static const char* memoryTypeStr = typeStrDrmName;
+#define IS_DRM_NAME()   (!strcmp(memoryTypeStr, typeStrDrmName))
+#define IS_DMA_BUF()   (!strcmp(memoryTypeStr, typeStrDmaBuf))
+#define IS_RAW_DATA()   (!strcmp(memoryTypeStr, typeStrRawData))
+// #define IS_ANDROID_NATIVE_BUFFER()   (!strcmp(memoryTypeStr, typeStrAndroidNativeBuffer))
 
 static FILE* outfp = NULL;
 static Display * x11Display = NULL;
@@ -103,7 +155,7 @@ bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index i
     buf.length = k_inputPlaneCount;
 
     if (index == -1) {
-        ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_DQBUF, &buf);
+        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_DQBUF, &buf);
         if (ioctlRet == -1)
             return true;
         stagingBufferInDevice --;
@@ -126,7 +178,7 @@ bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index i
         buf.flags = inputBuffer.flag;
     }
 
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
 
     stagingBufferInDevice ++;
@@ -182,7 +234,7 @@ bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
     DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
 
     GLenum target = GL_TEXTURE_2D;
-    if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
+    if (IS_DMA_BUF())
         target = GL_TEXTURE_EXTERNAL_OES;
     int ret = drawTextures(eglContext, target, &textureIds[index], 1);
 
@@ -206,7 +258,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
     buf.length = outputPlaneCount;
 
     if (index == -1) {
-        ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_DQBUF, &buf);
+        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_DQBUF, &buf);
         if (ioctlRet == -1)
             return false;
 
@@ -214,7 +266,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
 #if __ENABLE_V4L2_GLX__
         ret = displayOneVideoFrameGLX(fd, buf.index);
 #else
-        if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF || memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
+        if (IS_DMA_BUF() || IS_DRM_NAME())
             ret = displayOneVideoFrameEGL(fd, buf.index);
         else
             ret = dumpOneVideoFrame(buf.index);
@@ -224,7 +276,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
         buf.index = index;
     }
 
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
     INFO("renderFrameCount: %d", renderFrameCount);
     return true;
@@ -237,7 +289,7 @@ bool handleResolutionChange(int32_t fd)
     struct v4l2_event ev;
     memset(&ev, 0, sizeof(ev));
 
-    while (YamiV4L2_Ioctl(fd, VIDIOC_DQEVENT, &ev) == 0) {
+    while (SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_DQEVENT, &ev) == 0) {
         if (ev.type == V4L2_EVENT_RESOLUTION_CHANGE) {
             resolutionChanged = true;
             break;
@@ -250,7 +302,7 @@ bool handleResolutionChange(int32_t fd)
     struct v4l2_format format;
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    if (YamiV4L2_Ioctl(fd, VIDIOC_G_FMT, &format) == -1) {
+    if (SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_FMT, &format) == -1) {
         return false;
     }
 
@@ -279,6 +331,15 @@ int main(int argc, char** argv)
 #if __ENABLE_V4L2_GLX__
     XInitThreads();
 #endif
+
+#if __ENABLE_V4L2_OPS__
+    // FIXME, use libv4l2codec_hw.so instead
+    if (!loadV4l2CodecDevice("libyami_v4l2.so")) {
+        ERROR("fail to init v4l2codec device with __ENABLE_V4L2_OPS__\n");
+        return -1;
+    }
+#endif
+
     if (!process_cmdline(argc, argv))
         return -1;
 
@@ -295,12 +356,15 @@ int main(int argc, char** argv)
     switch (renderMode) {
     case 0:
         memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;
+        memoryTypeStr = typeStrRawData;
     break;
     case 3:
         memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
+        memoryTypeStr = typeStrDrmName;
     break;
     case 4:
         memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
+        memoryTypeStr = typeStrDmaBuf;
     break;
     default:
         ASSERT(0 && "unsupported render mode, -m [0,3,4] are supported");
@@ -317,22 +381,26 @@ int main(int argc, char** argv)
     renderFrameCount = 0;
     calcFps.setAnchor();
     // open device
-    fd = YamiV4L2_Open("decoder", 0);
+    fd = SIMULATE_V4L2_OP(Open)("decoder", 0);
     ASSERT(fd!=-1);
 
 #if __ENABLE_V4L2_GLX__
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
-    ioctlRet = YamiV4L2_SetXDisplay(fd, x11Display);
+    ioctlRet = SIMULATE_V4L2_OP(SetXDisplay)(fd, x11Display);
 #endif
     // set output frame memory type
-    YamiV4L2_FrameMemoryType(fd, memoryType);
+#if __ENABLE_V4L2_OPS__
+    SIMULATE_V4L2_OP(SetParameter)(fd, "frame-memory-type", memoryTypeStr);
+#else
+    SIMULATE_V4L2_OP(FrameMemoryType)(fd, memoryType);
+#endif
 
     // query hw capability
     struct v4l2_capability caps;
     memset(&caps, 0, sizeof(caps));
     caps.capabilities = V4L2_CAP_VIDEO_CAPTURE_MPLANE | V4L2_CAP_VIDEO_OUTPUT_MPLANE | V4L2_CAP_STREAMING;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QUERYCAP, &caps);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QUERYCAP, &caps);
     ASSERT(ioctlRet != -1);
 
     // set input/output data format
@@ -348,7 +416,7 @@ int main(int argc, char** argv)
     format.fmt.pix_mp.pixelformat = codecFormat;
     format.fmt.pix_mp.num_planes = 1;
     format.fmt.pix_mp.plane_fmt[0].sizeimage = k_maxInputBufferSize;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_FMT, &format);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
 
     // set preferred output format
@@ -365,17 +433,17 @@ int main(int argc, char** argv)
         ERROR("No enough space to store codec data");
         return -1;
     }
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_FMT, &format);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
 
     // start input port
     __u32 type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMON, &type);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
     ASSERT(ioctlRet != -1);
 
     // start output port
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMON, &type);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
     ASSERT(ioctlRet != -1);
 
     // setup input buffers
@@ -384,7 +452,7 @@ int main(int argc, char** argv)
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     reqbufs.memory = V4L2_MEMORY_MMAP;
     reqbufs.count = 2;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
     ASSERT(reqbufs.count>0);
     inputQueueCapacity = reqbufs.count;
@@ -400,11 +468,11 @@ int main(int argc, char** argv)
         buffer.memory = V4L2_MEMORY_MMAP;
         buffer.m.planes = planes;
         buffer.length = k_inputPlaneCount;
-        ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QUERYBUF, &buffer);
+        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QUERYBUF, &buffer);
         ASSERT(ioctlRet != -1);
 
         // length and mem_offset should be filled by VIDIOC_QUERYBUF above
-        void* address = YamiV4L2_Mmap(NULL,
+        void* address = SIMULATE_V4L2_OP(Mmap)(NULL,
                                       buffer.m.planes[0].length,
                                       PROT_READ | PROT_WRITE,
                                       MAP_SHARED, fd,
@@ -425,7 +493,7 @@ int main(int argc, char** argv)
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     while (1) {
-        if (YamiV4L2_Ioctl(fd, VIDIOC_G_FMT, &format) != 0) {
+        if (SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_FMT, &format) != 0) {
             if (errno != EINVAL) {
                 // EINVAL means we haven't seen sufficient stream to decode the format.
                 INFO("ioctl() failed: VIDIOC_G_FMT, haven't get video resolution during start yet, waiting");
@@ -446,7 +514,7 @@ int main(int argc, char** argv)
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     reqbufs.memory = V4L2_MEMORY_MMAP;
     reqbufs.count = outputPlaneCount;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
     ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
@@ -470,11 +538,11 @@ int main(int argc, char** argv)
         int ret = createPixmapForTexture(glxContext, textureIds[i], videoWidth, videoHeight, &pixmaps[i], &glxPixmaps[i]);
         DEBUG("textureIds[%d]: 0x%x, pixmaps[%d]=0x%lx, glxPixmaps[%d]: 0x%lx", i, textureIds[i], i, pixmaps[i], i, glxPixmaps[i]);
         ASSERT(ret == 0);
-        ret = YamiV4L2_UsePixmap(fd, i, pixmaps[i]);
+        ret = SIMULATE_V4L2_OP(UsePixmap)(fd, i, pixmaps[i]);
         ASSERT(ret == 0);
     }
 #else
-    if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
+    if (IS_RAW_DATA()) {
         rawOutputFrames.resize(outputQueueCapacity);
         for (i=0; i<outputQueueCapacity; i++) {
             struct v4l2_plane planes[k_maxOutputPlaneCount];
@@ -486,7 +554,7 @@ int main(int argc, char** argv)
             buffer.memory = V4L2_MEMORY_MMAP;
             buffer.m.planes = planes;
             buffer.length = outputPlaneCount;
-            ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QUERYBUF, &buffer);
+            ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QUERYBUF, &buffer);
             ASSERT(ioctlRet != -1);
 
             rawOutputFrames[i].width = format.fmt.pix_mp.width;
@@ -495,7 +563,7 @@ int main(int argc, char** argv)
 
             for (int j=0; j<outputPlaneCount; j++) {
                 // length and mem_offset are filled by VIDIOC_QUERYBUF above
-                void* address = YamiV4L2_Mmap(NULL,
+                void* address = SIMULATE_V4L2_OP(Mmap)(NULL,
                                               buffer.m.planes[j].length,
                                               PROT_READ | PROT_WRITE,
                                               MAP_SHARED, fd,
@@ -511,22 +579,22 @@ int main(int argc, char** argv)
                 rawOutputFrames[i].pitch[j] = format.fmt.pix_mp.plane_fmt[j].bytesperline;
             }
         }
-    } else if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF || memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME) {
+    } else if (IS_DMA_BUF() || IS_DRM_NAME()) {
         // setup all textures and eglImages
         eglImages.resize(outputQueueCapacity);
         textureIds.resize(outputQueueCapacity);
 
         if (!eglContext)
-            eglContext = eglInit(x11Display, x11Window, 0 /*VA_FOURCC_RGBA*/, memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
+            eglContext = eglInit(x11Display, x11Window, 0 /*VA_FOURCC_RGBA*/, IS_DMA_BUF());
 
         glGenTextures(outputQueueCapacity, &textureIds[0] );
         for (i=0; i<outputQueueCapacity; i++) {
              int ret = 0;
-             ret = YamiV4L2_UseEglImage(fd, eglContext->eglContext.display, eglContext->eglContext.context, i, &eglImages[i]);
+             ret = SIMULATE_V4L2_OP(UseEglImage)(fd, eglContext->eglContext.display, eglContext->eglContext.context, i, &eglImages[i]);
              ASSERT(ret == 0);
 
              GLenum target = GL_TEXTURE_2D;
-             if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
+             if (IS_DMA_BUF())
                  target = GL_TEXTURE_EXTERNAL_OES;
              glBindTexture(target, textureIds[i]);
              imageTargetTexture2D(target, eglImages[i]);
@@ -560,7 +628,7 @@ int main(int argc, char** argv)
         }
         if (dqCountAfterEOS == inputQueueCapacity)  // input drain
             break;
-    } while (YamiV4L2_Poll(fd, true, &event_pending) == 0);
+    } while (SIMULATE_V4L2_OP(Poll)(fd, true, &event_pending) == 0);
 
     // drain output buffer
     int retry = 3;
@@ -569,7 +637,7 @@ int main(int argc, char** argv)
     }
 
     calcFps.fps(renderFrameCount);
-    // YamiV4L2_Munmap(void* addr, size_t length)
+    // SIMULATE_V4L2_OP(Munmap)(void* addr, size_t length)
     possibleWait(input->getMimeType());
 
     // release queued input/output buffer
@@ -577,24 +645,24 @@ int main(int argc, char** argv)
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     reqbufs.memory = V4L2_MEMORY_MMAP;
     reqbufs.count = 0;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
 
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     reqbufs.memory = V4L2_MEMORY_MMAP;
     reqbufs.count = 0;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
 
     // stop input port
     type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMOFF, &type);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
 
     // stop output port
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_STREAMOFF, &type);
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
 
     if(textureIds.size())
@@ -624,7 +692,7 @@ int main(int argc, char** argv)
 #endif
 
     // close device
-    ioctlRet = YamiV4L2_Close(fd);
+    ioctlRet = SIMULATE_V4L2_OP(Close)(fd);
     ASSERT(ioctlRet != -1);
 
     if(input)

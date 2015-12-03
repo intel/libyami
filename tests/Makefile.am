@@ -162,6 +162,7 @@ if ENABLE_V4L2_GLX
 v4l2decode_SOURCES += ./glx/glx_help.c
 else
 v4l2decode_SOURCES += ./egl/gles2_help.c
+v4l2decode_LDADD += -ldl
 endif
 
 v4l2encode_LDADD   = $(V4L2_ENCODE_LIBS)
