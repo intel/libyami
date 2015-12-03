@@ -111,6 +111,9 @@ public:
         for (int i = 0;  i < m_surfaces.size(); i++) {
             SharedPtr<VideoFrame> f(new VideoFrame);
             memset(f.get(), 0, sizeof(VideoFrame));
+            //we need fill dest crop to work around libva's bug.
+            f->crop.width = width;
+            f->crop.height = height;
             f->surface = (intptr_t)m_surfaces[i];
             buffers.push_back(f);
         }
