@@ -319,58 +319,60 @@ AC_SUBST(pkgconfigdir)
 
 # Check for libva (vaapi version)
 VA_API_VERSION=va_api_version
-AX_PKG_CHECK_MODULES([LIBVA], [libva >= $VA_API_VERSION], [], [], [],
-    [AX_LIBVA_PKG_REQ], [AX_LIBVA_PKG_REQ_PRIV])
+LIBVA_PKG_REQ="libva >= $VA_API_VERSION"
+PKG_CHECK_MODULES([LIBVA], [$LIBVA_PKG_REQ])
 AC_SUBST(LIBVA_VERSION)
+AC_SUBST(LIBVA_PKG_REQ)
 
-AX_PKG_CHECK_MODULES([LIBVA_DRM], [libva-drm], [], [], [],
-    [AX_LIBVA_DRM_PKG_REQ], [AX_LIBVA_DRM_PKG_REQ_PRIV])
+LIBVA_DRM_PKG_REQ="libva-drm"
+PKG_CHECK_MODULES([LIBVA_DRM], [$LIBVA_DRM_PKG_REQ])
+AC_SUBST(LIBVA_DRM_PKG_REQ)
+
+LIBVA_X11_PKG_REQ=""
+X11_PKG_REQ=""
 if test "$enable_x11" = "yes" -o "$enable_v4l2_glx" = "yes"; then
-    AX_PKG_CHECK_MODULES([LIBVA_X11], [libva-x11], [],
+    LIBVA_X11_PKG_REQ="libva-x11"
+    PKG_CHECK_MODULES([LIBVA_X11], [$LIBVA_X11_PKG_REQ],
         [AC_DEFINE([HAVE_VA_X11], [1],
-            [Defined to 1 if VA/X11 API is enabled])],
-        [], [AX_LIBVA_X11_PKG_REQ], [AX_LIBVA_X11_PKG_REQ_PRIV])
-    AX_PKG_CHECK_MODULES([X11], [x11], [], [], [],
-        [AX_X11_PKG_REQ], [AX_X11_PKG_REQ_PRIV])
+            [Defined to 1 if VA/X11 API is enabled])])
+    X11_PKG_REQ="x11"
+    PKG_CHECK_MODULES([X11], [$X11_PKG_REQ])
 fi
+AC_SUBST(LIBVA_X11_PKG_REQ)
+AC_SUBST(X11_PKG_REQ)
 
 if test "$enable_v4l2" = "yes"; then
-    AX_PKG_CHECK_MODULES([LIBV4L2], [libv4l2], [], [], [],
-        [AX_LIBV4L2_PKG_REQ], [AX_LIBV4L2_PKG_REQ_PRIV])
+    PKG_CHECK_MODULES([LIBV4L2], [libv4l2])
 fi
 
 if test ["$enable_v4l2" = "yes" -a "$enable_v4l2_glx" = "no"] -o "$enable_tests_gles" = "yes"; then
-    AX_PKG_CHECK_MODULES([LIBEGL], [egl], [], [], [],
-        [AX_LIBEGL_PKG_REQ], [AX_LIBEGL_PKG_REQ_PRIV])
+    PKG_CHECK_MODULES([LIBEGL], [egl])
 fi
 
 if test ["$enable_v4l2" = "yes" -a "$enable_v4l2_glx" = "no"  -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
-    AX_PKG_CHECK_MODULES([LIBGLES2], [glesv2], [], [], [],
-        [AX_LIBGLES2_PKG_REQ], [AX_LIBGLES2_PKG_REQ_PRIV])
+    PKG_CHECK_MODULES([LIBGLES2], [glesv2])
 fi
 
 # drm_fourcc.h for dma_buf support
 if test "$enable_dmabuf" = "yes"; then
-    AX_PKG_CHECK_MODULES([LIBDRM], [libdrm], [], [], [],
-        [AX_LIBDRM_PKG_REQ], [AX_LIBDRM_PKG_REQ_PRIV])
+    PKG_CHECK_MODULES([LIBDRM], [libdrm])
 fi
 
 if test "$enable_v4l2_glx" = "yes"; then
-    AX_PKG_CHECK_MODULES([LIBGL], [gl], [], [], [],
-        [AX_LIBGL_PKG_REQ], [AX_LIBGL_PKG_REQ_PRIV])
+    PKG_CHECK_MODULES([LIBGL], [gl])
 fi
 
 if test "$enable_avformat" = "yes"; then
-    AX_PKG_CHECK_MODULES(LIBAVFORMAT,  [libavformat libavcodec libavutil],
-        [], [], [], [AX_LIBAVFORMAT_PKG_REQ], [AX_LIBAVFORMAT_PKG_REQ_PRIV])
+    PKG_CHECK_MODULES(LIBAVFORMAT, [libavformat libavcodec libavutil])
 fi
 
 #check openssl
+
 if test "$enable_md5" = "yes"; then
-    AX_PKG_CHECK_MODULES([OPENSSL], [openssl], [],
+    PKG_CHECK_MODULES([OPENSSL], [openssl],
         [AC_DEFINE([__ENABLE_MD5__], [1],
             [Defined to 1 if MD5 API and --enable-md5[default] are enabled])],
-        [enable_md5="no"], [AX_OPENSSL_PKG_REQ], [AX_OPENSSL_PKG_REQ_PRIV])
+        [enable_md5="no"])
 fi
 AM_CONDITIONAL(ENABLE_MD5, test "x$enable_md5" = "xyes")
 

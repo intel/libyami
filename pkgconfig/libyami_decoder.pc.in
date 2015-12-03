@@ -7,14 +7,10 @@ Name: libyami decoder part
 Description: Intel Open source decoder based on libva
 Version: 1.0.0
 Requires: libyami_common libyami_codecparser libyami_vaapi \
-          @AX_LIBVA_PKG_REQ@ \
-          @AX_LIBVA_DRM_PKG_REQ@ \
-          @AX_LIBVA_X11_PKG_REQ@ \
-          @AX_X11_PKG_REQ@
-Requires.private: @AX_LIBVA_PKG_REQ_PRIV@ \
-                  @AX_LIBVA_DRM_PKG_REQ_PRIV@ \
-                  @AX_LIBVA_X11_PKG_REQ_PRIV@ \
-                  @AX_X11_PKG_REQ_PRIV@
+          @LIBVA_PKG_REQ@ \
+          @LIBVA_DRM_PKG_REQ@ \
+          @LIBVA_X11_PKG_REQ@ \
+          @X11_PKG_REQ@
 Libs: -L${libdir} -lyami_decoder
 Libs.private: -Wl,--whole-archive -lyami_decoder -Wl,--no-whole-archive
 Cflags: -I${includedir}/libyami_decoder
