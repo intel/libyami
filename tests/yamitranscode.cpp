@@ -28,6 +28,7 @@
 #include "vppinputoutput.h"
 #include "vppoutputencode.h"
 #include "encodeinput.h"
+#include "tests/vppinputasync.h"
 #include "common/log.h"
 #include "common/utils.h"
 #include "VideoEncoderInterface.h"
@@ -66,7 +67,7 @@ SharedPtr<VppInput> createInput(YamiEncodeParam& para, const SharedPtr<VADisplay
         }
         return input;
     }
-    return input;
+    return VppInputAsync::create(input, 3);
 }
 
 SharedPtr<VppOutput> createOutput(YamiEncodeParam& para, const SharedPtr<VADisplay>& display)
@@ -140,15 +141,33 @@ public:
     {
 
         SharedPtr<VideoFrame> src;
+        FpsCalc fps;
         int count = 0;
         while (m_input->read(src)) {
-            if(!m_output->output(src))
+            SharedPtr<VideoFrame> dest = m_allocator->alloc();
+            if (!dest) {
+                ERROR("failed to get output frame");
+                break;
+            }
+//disable scale for performance measure
+//#define DISABLE_SCALE 1
+#ifdef DISABLE_SCALE
+            YamiStatus status = m_vpp->process(src, dest);
+            if (status != YAMI_SUCCESS) {
+                ERROR("failed to scale yami return %d", status);
+                break;
+            }
+#else
+            dest = src;
+#endif
+            if(!m_output->output(dest))
                 break;
             count++;
             if(count >= m_cmdParam.frameCount)
                 break;
+            fps.addFrame();
         }
-        printf("%d frame processed\n", count);
+        fps.log();
         return true;
     }
 private:
