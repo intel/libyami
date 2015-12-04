@@ -1,6 +1,6 @@
 LOCAL_PATH := $(call my-dir)
-
 include $(CLEAR_VARS)
+
 LOCAL_SRC_FILES := \
         vaapipicture.cpp \
         vaapibuffer.cpp \
@@ -19,7 +19,8 @@ LOCAL_C_INCLUDES:= \
 LOCAL_SHARED_LIBRARIES := \
         liblog \
         libva \
-        libc++
+        libva-android \
+        libc++ \
 
 LOCAL_CFLAGS := \
         -O2 --rtti

@@ -39,6 +39,9 @@
 #include "decodehelp.h"
 #if __ENABLE_V4L2_GLX__
 #include "./glx/glx_help.h"
+#elif ANDROID
+#include <gui/SurfaceComposerClient.h>
+#include <va/va_android.h>
 #else
 #include "./egl/gles2_help.h"
 #endif
@@ -56,6 +59,58 @@
 #include "v4l2/v4l2_wrapper.h"
 #endif
 
+#ifdef ANDROID
+
+#ifndef CHECK_EQ
+#define CHECK_EQ(a, b) assert((a) == (b))
+#endif
+
+sp<SurfaceComposerClient> mClient;
+sp<SurfaceControl> mSurfaceCtl;
+sp<Surface> mSurface;
+sp<ANativeWindow> mNativeWindow;
+
+std::vector <ANativeWindowBuffer*> mWindBuff;
+
+bool createNativeWindow(__u32 pixelformat)
+{
+    mClient = new SurfaceComposerClient();
+    mSurfaceCtl = mClient->createSurface(String8("testsurface"),
+                                      800, 600, pixelformat, 0);
+
+    // configure surface
+    SurfaceComposerClient::openGlobalTransaction();
+    mSurfaceCtl->setLayer(100000);
+    mSurfaceCtl->setPosition(100, 100);
+    mSurfaceCtl->setSize(800, 600);
+    SurfaceComposerClient::closeGlobalTransaction();
+
+    mSurface = mSurfaceCtl->getSurface();
+    mNativeWindow = mSurface;
+
+    int bufWidth = 640;
+    int bufHeight = 480;
+    CHECK_EQ(0,
+             native_window_set_usage(
+             mNativeWindow.get(),
+             GRALLOC_USAGE_SW_READ_NEVER | GRALLOC_USAGE_SW_WRITE_OFTEN
+             | GRALLOC_USAGE_HW_TEXTURE | GRALLOC_USAGE_EXTERNAL_DISP));
+
+    CHECK_EQ(0,
+             native_window_set_scaling_mode(
+             mNativeWindow.get(),
+             NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW));
+
+    CHECK_EQ(0, native_window_set_buffers_geometry(
+                mNativeWindow.get(),
+                bufWidth,
+                bufHeight,
+                pixelformat));
+
+    return true;
+}
+#endif
+
 #if __ENABLE_V4L2_OPS__
 static struct V4l2CodecOps s_v4l2CodecOps;
 static int32_t s_v4l2Fd = 0;
@@ -65,7 +120,11 @@ static bool loadV4l2CodecDevice(const char* libName )
     memset(&s_v4l2CodecOps, 0, sizeof(s_v4l2CodecOps));
     s_v4l2Fd = 0;
 
+#ifndef ANDROID
     if (!dlopen(libName, RTLD_NOW | RTLD_GLOBAL | RTLD_NODELETE)) {
+#else
+    if (!dlopen(libName, RTLD_NOW | RTLD_GLOBAL)) {
+#endif
       ERROR("Failed to load %s\n", libName);
       return false;
     }
@@ -139,9 +198,12 @@ static const char* memoryTypeStr = typeStrDrmName;
 #endif
 
 static FILE* outfp = NULL;
+#ifndef ANDROID
 static Display * x11Display = NULL;
 static Window x11Window = 0;
-#if __ENABLE_V4L2_GLX__
+#endif
+#ifdef ANDROID
+#elif __ENABLE_V4L2_GLX__
 static GLXContextType *glxContext;
 std::vector <Pixmap> pixmaps;
 std::vector <GLXPixmap> glxPixmaps;
@@ -149,7 +211,9 @@ std::vector <GLXPixmap> glxPixmaps;
 static EGLContextType *eglContext = NULL;
 static std::vector<EGLImageKHR> eglImages;
 #endif
+#ifndef ANDROID
 static std::vector<GLuint> textureIds;
+#endif
 static bool isReadEOS=false;
 static int32_t stagingBufferInDevice = 0;
 static uint32_t renderFrameCount = 0;
@@ -231,7 +295,43 @@ bool dumpOneVideoFrame(int32_t index)
     return true;
 }
 
-#if __ENABLE_V4L2_GLX__
+#ifdef ANDROID
+static bool displayOneVideoFrameAndroid(int32_t fd, int32_t index)
+{
+    int32_t ioctlRet = -1;
+    struct v4l2_buffer buffer;
+    memset(&buffer, 0, sizeof(buffer));
+
+    if (mNativeWindow->queueBuffer(mNativeWindow.get(), mWindBuff[index], -1) != 0) {
+        fprintf(stderr, "queue buffer to native window failed\n");
+        return false;
+    }
+
+    ANativeWindowBuffer* pbuf = NULL;
+    status_t err = native_window_dequeue_buffer_and_wait(mNativeWindow.get(), &pbuf);
+    if (err != 0) {
+        fprintf(stderr, "dequeueBuffer failed: %s (%d)\n", strerror(-err), -err);
+        return false;
+    }
+
+    buffer.m.userptr = (unsigned long)pbuf;
+    buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    uint32_t i;
+    for (i = 0; i < mWindBuff.size(); i++) {
+        if (pbuf == mWindBuff[i]) {
+            buffer.index = i;
+            break;
+        }
+    }
+    if (i == mWindBuff.size())
+        return false;
+
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buffer);
+    ASSERT(ioctlRet != -1);
+
+    return true;
+}
+#elif __ENABLE_V4L2_GLX__
 static bool displayOneVideoFrameGLX(int32_t fd, int32_t index)
 {
     ASSERT(glxContext && textureIds.size());
@@ -278,7 +378,9 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
             return false;
 
         renderFrameCount++;
-#if __ENABLE_V4L2_GLX__
+#ifdef ANDROID
+        ret = displayOneVideoFrameAndroid(fd, buf.index);
+#elif __ENABLE_V4L2_GLX__
         ret = displayOneVideoFrameGLX(fd, buf.index);
 #else
         if (IS_DMA_BUF() || IS_DRM_NAME())
@@ -291,8 +393,10 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
         buf.index = index;
     }
 
+#ifndef ANDROID
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buf);
     ASSERT(ioctlRet != -1);
+#endif
     INFO("renderFrameCount: %d", renderFrameCount);
     return true;
 }
@@ -399,7 +503,8 @@ int main(int argc, char** argv)
     fd = SIMULATE_V4L2_OP(Open)("decoder", 0);
     ASSERT(fd!=-1);
 
-#if __ENABLE_V4L2_GLX__
+#ifdef ANDROID
+#elif __ENABLE_V4L2_GLX__
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
     ioctlRet = SIMULATE_V4L2_OP(SetXDisplay)(fd, x11Display);
@@ -519,13 +624,32 @@ int main(int argc, char** argv)
     videoHeight = format.fmt.pix_mp.height;
     ASSERT(videoWidth && videoHeight);
 
+#ifdef ANDROID
+    __u32 pixelformat = format.fmt.pix_mp.pixelformat;
+    if (!createNativeWindow(pixelformat)) {
+        fprintf(stderr, "create native window error\n");
+        return -1;
+    }
+
+    int minUndequeuedBuffs = 0;
+    status_t err = mNativeWindow->query(mNativeWindow.get(), NATIVE_WINDOW_MIN_UNDEQUEUED_BUFFERS, &minUndequeuedBuffs);
+    if (err != 0) {
+        fprintf(stderr, "query native window min undequeued buffers error\n");
+        return err;
+    }
+#endif
+
     // setup output buffers
     // Number of output buffers we need.
     struct v4l2_control ctrl;
     memset(&ctrl, 0, sizeof(ctrl));
     ctrl.id = V4L2_CID_MIN_BUFFERS_FOR_CAPTURE;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_CTRL, &ctrl);
+#ifndef ANDROID
     uint32_t minOutputFrameCount = ctrl.value + k_extraOutputFrameCount;
+#else
+    uint32_t minOutputFrameCount = ctrl.value + k_extraOutputFrameCount + minUndequeuedBuffs;
+#endif
 
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
@@ -536,7 +660,8 @@ int main(int argc, char** argv)
     ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
 
-#if __ENABLE_V4L2_GLX__
+#ifdef ANDROID
+#elif __ENABLE_V4L2_GLX__
     x11Window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
         , 0, 0, videoWidth, videoHeight, 0, 0
         , WhitePixel(x11Display, 0));
@@ -623,12 +748,56 @@ int main(int argc, char** argv)
     }
 #endif
 
+#ifndef ANDROID
     // feed output frames first
     for (i=0; i<outputQueueCapacity; i++) {
         if (!takeOneOutputFrame(fd, i)) {
             ASSERT(0);
         }
     }
+#else
+    struct v4l2_buffer buffer;
+
+    err = native_window_set_buffer_count(mNativeWindow.get(), outputQueueCapacity);
+    if (err != 0) {
+        fprintf(stderr, "native_window_set_buffer_count failed: %s (%d)", strerror(-err), -err);
+        return -1;
+    }
+
+    //queue buffs
+    for (uint32_t i = 0; i < outputQueueCapacity; i++) {
+        ANativeWindowBuffer* pbuf = NULL;
+        memset(&buffer, 0, sizeof(buffer));
+
+        err = native_window_dequeue_buffer_and_wait(mNativeWindow.get(), &pbuf);
+        if (err != 0) {
+            fprintf(stderr, "dequeueBuffer failed: %s (%d)\n", strerror(-err), -err);
+            return -1;
+        }
+
+        buffer.m.userptr = (unsigned long)pbuf;
+        buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+        buffer.index = i;
+
+        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QBUF, &buffer);
+        ASSERT(ioctlRet != -1);
+        mWindBuff.push_back(pbuf);
+    }
+
+    for (uint32_t i = 0; i < minUndequeuedBuffs; i++) {
+        memset(&buffer, 0, sizeof(buffer));
+        buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+
+        ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_DQBUF, &buffer);
+        ASSERT(ioctlRet != -1);
+
+        err = mNativeWindow->cancelBuffer(mNativeWindow.get(), mWindBuff[buffer.index], -1);
+        if (err) {
+            fprintf(stderr, "queue empty window buffer error\n");
+            return -1;
+        }
+    }
+#endif
 
     // output port starts as late as possible to adopt user provide output buffer
     type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
@@ -687,11 +856,15 @@ int main(int argc, char** argv)
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMOFF, &type);
     ASSERT(ioctlRet != -1);
 
+#ifndef ANDROID
     if(textureIds.size())
         glDeleteTextures(textureIds.size(), &textureIds[0]);
     ASSERT(glGetError() == GL_NO_ERROR);
+#endif
 
-#if __ENABLE_V4L2_GLX__
+#ifdef ANDROID
+    //TODO, some resources need to destroy?
+#elif __ENABLE_V4L2_GLX__
     glxRelease(glxContext, &pixmaps[0], &glxPixmaps[0], pixmaps.size());
 #else
     for (i=0; i<eglImages.size(); i++) {
