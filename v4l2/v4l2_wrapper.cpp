@@ -250,10 +250,18 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
 }
 
 
-bool v4l2codecOperationInit(struct V4l2CodecOps *opFuncs)
+bool v4l2codecOperationInit(V4l2CodecOps *opFuncs)
 {
     if (!opFuncs)
         return false;
+
+    int isVersionMatch = 0;
+    IS_V4L2CODEC_OPS_VERSION_MATCH(opFuncs->mVersion, isVersionMatch);
+    if (!isVersionMatch) {
+        ERROR("V4l2CodecOps interface version doesn't match\n");
+        return false;
+    }
+    ASSERT(opFuncs->mSize == sizeof(V4l2CodecOps));
 
     memset(opFuncs->mVendorString, 0, V4L2CODEC_VENDOR_STRING_SIZE);
     strncpy(opFuncs->mVendorString, "yami", V4L2CODEC_VENDOR_STRING_SIZE-1);
