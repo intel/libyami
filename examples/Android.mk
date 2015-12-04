@@ -16,21 +16,12 @@ LOCAL_C_INCLUDES:= \
 
 LOCAL_SHARED_LIBRARIES := \
         libutils \
-        libbinder \
         liblog \
         libc++ \
         libva \
         libva-android \
-        libui \
         libgui \
-        libstagefright_foundation
-
-LOCAL_WHOLE_STATIC_LIBRARIES := \
-        libyami_common \
-        libcodecparser \
-        libyami_vaapi \
-        libyami_decoder \
-        libyami_vpp
+        libyami \
 
 LOCAL_CFLAGS := \
          -O2

@@ -26,7 +26,10 @@
 #include <deque>
 #include <list>
 #include "common/condition.h"
-#if __ENABLE_V4L2_GLX__
+#if ANDROID
+#include "VideoPostProcessHost.h"
+#include "interface/VideoDecoderInterface.h"
+#elif __ENABLE_V4L2_GLX__
 #include <X11/Xlib.h>
 #else
 #include <EGL/egl.h>
@@ -46,10 +49,11 @@
     #define OUTPUT 1
 #endif
 
+using namespace YamiMediaCodec;
 class V4l2CodecBase {
   public:
     V4l2CodecBase();
-     ~V4l2CodecBase();
+     virtual ~V4l2CodecBase();
 
     typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
     static V4l2CodecPtr createCodec(const char* name, int32_t flags);
@@ -63,7 +67,10 @@ class V4l2CodecBase {
                          int prot, int flags, unsigned int offset) {return NULL;};
     // virtual int32_t munmap(void* addr, size_t length) {return 0;};
     virtual bool stop() = 0;
-#if __ENABLE_V4L2_GLX__
+#if ANDROID
+    inline bool setVaDisplay();
+    inline bool createVpp();
+#elif __ENABLE_V4L2_GLX__
     bool setXDisplay(Display *x11Display) { m_x11Display = x11Display; return true; };
     virtual int32_t usePixmap(int bufferIndex, Pixmap pixmap) {return 0;};
 #else
@@ -96,7 +103,10 @@ class V4l2CodecBase {
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
-#if __ENABLE_V4L2_GLX__
+#if ANDROID
+    VADisplay m_vaDisplay;
+    SharedPtr<IVideoPostProcess> m_vpp;
+#elif __ENABLE_V4L2_GLX__
     Display *m_x11Display;
 #else
     int m_drmfd;

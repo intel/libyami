@@ -22,7 +22,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#if __ENABLE_V4L2_GLX__
+#if ANDROID
+#elif __ENABLE_V4L2_GLX__
 #include <X11/Xlib.h>
 #else
 #include <EGL/egl.h>
@@ -48,7 +49,8 @@ int32_t YamiV4L2_ClearDevicePollInterrupt(int32_t fd);
 void* YamiV4L2_Mmap(void* addr, size_t length,
                      int prot, int flags, int fd, unsigned int offset);
 int32_t YamiV4L2_Munmap(void* addr, size_t length);
-#if __ENABLE_V4L2_GLX__
+#if ANDROID
+#elif __ENABLE_V4L2_GLX__
 /// it should be called before driver initialization (immediate after _Open()).
 int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display);
 /// pixmap=0 means the previous set rendering target becomes invalid, stop rendering to it.

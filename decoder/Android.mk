@@ -1,6 +1,6 @@
 LOCAL_PATH := $(call my-dir)
-
 include $(CLEAR_VARS)
+
 LOCAL_SRC_FILES := \
         vaapidecoder_base.cpp \
         vaapidecoder_host.cpp \
@@ -36,9 +36,10 @@ LOCAL_SHARED_LIBRARIES := \
         liblog \
         libc++
 
+LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
+
 LOCAL_CFLAGS := \
          -O2 -Wno-sign-compare
 
 LOCAL_MODULE := libyami_decoder
 include $(BUILD_STATIC_LIBRARY)
-
