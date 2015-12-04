@@ -55,7 +55,7 @@ static uint32_t roundLog2(uint32_t value)
 {
     uint32_t ret = 0;
     uint32_t valueSquare = value * value;
-    while ((1 << (ret + 1)) <= valueSquare)
+    while ((uint32_t)(1 << (ret + 1)) <= valueSquare)
         ++ret;
 
     ret = (ret + 1) >> 1;
@@ -331,7 +331,7 @@ void VaapiDPBManager::drainDPB()
 
 void VaapiDPBManager::debugDPBStatus()
 {
-    int i;
+    uint32_t i;
     VaapiFrameStore::Ptr frameStore;
 
     for (i = 0; i < DPBLayer->DPBCount; i++) {
@@ -443,7 +443,7 @@ void VaapiDPBManager::resetDPB(H264SPS * sps)
 */
 bool VaapiDPBManager::outputImmediateBFrame()
 {
-    int i;
+    uint32_t i;
     int ret = true;
 
     if (m_prevFrameStore.get()) {
@@ -959,7 +959,7 @@ void VaapiDPBManager::execPictureRefsModification1(const PicturePtr& picture,
 
     //FIXME: without this we will crash in MR3_TANDBERG_B.264
     //shold review this after we fix it
-    for (int j = refListCount; j < numRefs; j++)
+    for (uint32_t j = refListCount; j < numRefs; j++)
         refList[j] = NULL;
     //end
 
@@ -1074,9 +1074,10 @@ bool VaapiDPBManager::execRefPicMarkingAdaptive1(const PicturePtr& picture,
                                                  H264RefPicMarking *refPicMarking,
                                                  uint32_t MMCO)
 {
-    uint32_t picNumX, longTermFrameIdxPlus1, i;
+    uint32_t longTermFrameIdxPlus1, i;
     VaapiDecPictureH264 *refPicture;
     int32_t foundIdx = 0;
+    int32_t picNumX;
 
     switch (MMCO) {
     case 1:
@@ -1247,7 +1248,7 @@ bool VaapiDPBManager::execRefPicMarkingSlidingWindow(const PicturePtr& picture)
     return true;
 }
 
-int32_t VaapiDPBManager::findShortTermReference(uint32_t picNum)
+int32_t VaapiDPBManager::findShortTermReference(int32_t picNum)
 {
     uint32_t i;
 
@@ -1260,7 +1261,7 @@ int32_t VaapiDPBManager::findShortTermReference(uint32_t picNum)
     return -1;
 }
 
-int32_t VaapiDPBManager::findLongTermReference(uint32_t longTermPicNum)
+int32_t VaapiDPBManager::findLongTermReference(int32_t longTermPicNum)
 {
     uint32_t i;
 
@@ -1277,7 +1278,7 @@ void VaapiDPBManager::removeShortReference(const PicturePtr& picture)
 {
     VaapiDecPictureH264 *refPicture;
     uint32_t i;
-    uint32_t frameNum = picture->m_frameNum;
+    int32_t frameNum = picture->m_frameNum;
 
     PicturePtr strong = picture->m_otherField.lock();
     VaapiDecPictureH264* other = strong.get();

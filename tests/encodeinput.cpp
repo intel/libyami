@@ -214,7 +214,7 @@ bool EncodeOutput::init(const char* outputFileName, int width , int height)
 
 bool EncodeOutput::write(void* data, int size)
 {
-    return fwrite(data, 1, size, m_fp) == size;
+    return fwrite(data, 1, size, m_fp) == (size_t)size;
 }
 
 const char* EncodeOutputH264::getMimeType()

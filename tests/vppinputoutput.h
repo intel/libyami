@@ -108,7 +108,7 @@ public:
             return false;
         }
         std::deque<SharedPtr<VideoFrame> > buffers;
-        for (int i = 0;  i < m_surfaces.size(); i++) {
+        for (size_t i = 0;  i < m_surfaces.size(); i++) {
             SharedPtr<VideoFrame> f(new VideoFrame);
             memset(f.get(), 0, sizeof(VideoFrame));
             f->surface = (intptr_t)m_surfaces[i];
@@ -169,10 +169,10 @@ public:
             return false;
         }
         bool ret = true;
-        for (int i = 0; i < planes; i++) {
+        for (uint32_t i = 0; i < planes; i++) {
             char* ptr = buf + image.offsets[i];
             int w = byteWidth[i];
-            for (int j = 0; j < byteHeight[i]; j++) {
+            for (uint32_t j = 0; j < byteHeight[i]; j++) {
                 ret = m_io(ptr, w, fp);
                 if (!ret)
                     goto out;
@@ -206,7 +206,7 @@ private:
     SharedPtr<VaapiFrameIO> m_frameio;
     static bool readFromFile(char* ptr, int size, FILE* fp)
     {
-        return fread(ptr, 1, size, fp) == size;
+        return fread(ptr, 1, size, fp) == (size_t)size;
     }
 };
 
@@ -225,7 +225,7 @@ private:
     SharedPtr<VaapiFrameIO> m_frameio;
     static bool writeToFile(char* ptr, int size, FILE* fp)
     {
-        return fwrite(ptr, 1, size, fp) == size;
+        return fwrite(ptr, 1, size, fp) == (size_t)size;
     }
 };
 //vaapi related operation end
