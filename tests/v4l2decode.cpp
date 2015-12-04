@@ -78,8 +78,20 @@ static bool loadV4l2CodecDevice(const char* libName )
         return false;
     }
 
+    INIT_V4L2CODEC_OPS_SIZE_VERSION(&s_v4l2CodecOps);
     if (!initFunc(&s_v4l2CodecOps)) {
         ERROR("fail to init v4l2 device operation func pointers\n");
+        return false;
+    }
+
+    int isVersionMatch = 0;
+    IS_V4L2CODEC_OPS_VERSION_MATCH(s_v4l2CodecOps.mVersion, isVersionMatch);
+    if (!isVersionMatch) {
+        ERROR("V4l2CodecOps interface version doesn't match\n");
+        return false;
+    }
+    if(s_v4l2CodecOps.mSize != sizeof(V4l2CodecOps)) {
+        ERROR("V4l2CodecOps interface data structure size doesn't match\n");
         return false;
     }
 
