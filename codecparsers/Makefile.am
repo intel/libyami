@@ -1,11 +1,15 @@
 INCLUDES = -I$(top_srcdir)
 
 libyami_codecparser_source_c = \
+	bitReader.cpp \
+	nalReader.cpp \
 	vp9quant.c \
 	dboolhuff.c \
 	$(NULL)
 
 libyami_codecparser_source_h_priv = \
+	bitReader.h \
+	nalReader.h \
 	vp9quant.h \
 	$(NULL)
 
