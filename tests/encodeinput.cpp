@@ -1,6 +1,6 @@
 /*
  *  encodeinput.cpp - encode test input
- *
+ * 
  *  Copyright (C) 2011-2014 Intel Corporation
  *    Author: Cong Zhong<congx.zhong@intel.com>
  *
