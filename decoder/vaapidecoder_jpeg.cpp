@@ -307,8 +307,8 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
 
     if (!m_hasContext
         || m_configBuffer.profile != profile
-        || (uint32_t)(m_configBuffer.width) != m_width
-        || (uint32_t)(m_configBuffer.height) != m_height) {
+        || m_configBuffer.width != m_width
+        || m_configBuffer.height != m_height) {
         m_configBuffer.surfaceNumber = 2;
         m_configBuffer.profile = profile;
         m_configBuffer.width = m_width;
