@@ -121,6 +121,7 @@ int videoHeight = 0;
 
 uint32_t inputQueueCapacity = 0;
 uint32_t outputQueueCapacity = 0;
+uint32_t k_extraOutputFrameCount = 2;
 static std::vector<uint8_t*> inputFrames;
 static std::vector<struct RawFrameData> rawOutputFrames;
 
@@ -522,10 +523,17 @@ int main(int argc, char** argv)
     ASSERT(videoWidth && videoHeight);
 
     // setup output buffers
+    // Number of output buffers we need.
+    struct v4l2_control ctrl;
+    memset(&ctrl, 0, sizeof(ctrl));
+    ctrl.id = V4L2_CID_MIN_BUFFERS_FOR_CAPTURE;
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_G_CTRL, &ctrl);
+    uint32_t minOutputFrameCount = ctrl.value + k_extraOutputFrameCount;
+
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     reqbufs.memory = V4L2_MEMORY_MMAP;
-    reqbufs.count = outputPlaneCount;
+    reqbufs.count = minOutputFrameCount;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
     ASSERT(reqbufs.count>0);
