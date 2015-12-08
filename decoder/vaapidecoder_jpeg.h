@@ -58,8 +58,8 @@ class VaapiDecoderJpeg:public VaapiDecoderBase {
 
   private:
     VaapiProfile m_profile;
-    uint32_t m_width;
-    uint32_t m_height;
+    int32_t m_width;
+    int32_t m_height;
     PicturePtr m_picture;
     JpegFrameHdr m_frameHdr;
     JpegHuffmanTables m_hufTables;

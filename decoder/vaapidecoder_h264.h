@@ -267,8 +267,8 @@ class VaapiDPBManager {
 
     bool execRefPicMarkingSlidingWindow(const PicturePtr& picture);
 
-    int32_t findShortTermReference(uint32_t picNum);
-    int32_t findLongTermReference(uint32_t longTermPicNum);
+    int32_t findShortTermReference(int32_t picNum);
+    int32_t findLongTermReference(int32_t longTermPicNum);
     void removeShortReference(const PicturePtr& picture);
     void removeDPBIndex(uint32_t idx);
     void debugDPBStatus();

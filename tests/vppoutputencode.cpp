@@ -44,7 +44,7 @@ const char* guessMime(const char* filename)
     if(ext==NULL)
         return NULL;
     ext++;
-    for (int i = 0; i < N_ELEMENTS(MimeEntrys); i++) {
+    for (uint32_t i = 0; i < N_ELEMENTS(MimeEntrys); i++) {
         const MimeEntry* entry = MimeEntrys + i;
         if (strcasecmp(entry->ext, ext) == 0) {
             return entry->mime;

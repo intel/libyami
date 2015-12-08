@@ -124,7 +124,7 @@ private:
         uint32_t height, uint32_t pitch)
     {
         data += offset;
-        for (int h = 0; h < height; h++) {
+        for (uint32_t h = 0; h < height; h++) {
             v.insert(v.end(), data, data + width);
             data += pitch;
         }
@@ -134,7 +134,7 @@ private:
         uint32_t height, uint32_t pitch)
     {
         data += offset;
-        for (int h = 0; h < height; h++) {
+        for (uint32_t h = 0; h < height; h++) {
             uint8_t* start = data;
             uint8_t* end = data + width;
             while (start < end) {
@@ -247,10 +247,10 @@ bool DecodeOutputFileDump::render(VideoFrameRawData* frame)
     //ASSERT(m_width == frame->width && m_height == frame->height);
     if (!getPlaneResolution(frame->fourcc, frame->width, frame->height, width, height, planes))
         return false;
-    for (int i = 0; i < planes; i++) {
+    for (uint32_t i = 0; i < planes; i++) {
         uint8_t* data = reinterpret_cast<uint8_t*>(frame->handle);
         data += frame->offset[i];
-        for (int h = 0; h < height[i]; h++) {
+        for (uint32_t h = 0; h < height[i]; h++) {
             fwrite(data, 1, width[i], m_fp);
             data += frame->pitch[i];
         }
@@ -578,7 +578,7 @@ Decode_Status DecodeOutputDmabuf::renderOneFrame(bool drain)
     Decode_Status status = m_decoder->getOutput(&m_frame, drain);
     if (status == RENDER_SUCCESS) {
        EGLImageKHR eglImage = EGL_NO_IMAGE_KHR;
-        ASSERT(m_width == m_frame.width && m_height == m_frame.height);
+        ASSERT((uint32_t)m_width == m_frame.width && (uint32_t)m_height == m_frame.height);
         eglImage = createEglImageFromHandle(m_eglContext->eglContext.display, m_eglContext->eglContext.context, m_frame.memoryType, m_frame.handle,
                 m_frame.width, m_frame.height, m_frame.pitch[0]);
         if (eglImage != EGL_NO_IMAGE_KHR) {
