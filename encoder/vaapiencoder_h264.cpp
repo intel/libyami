@@ -545,9 +545,9 @@ private:
             m_headers.insert(m_headers.end(), s, e);
             if (e == h.end())
                 break;
-            
-            s = e + N_ELEMENTS(zeros); 
-            
+
+            s = e + N_ELEMENTS(zeros);
+
             /* only when bitstream contains 0x000000/0x000001/0x000002/0x000003
                need to insert emulation prevention byte 0x03 */
             if (*s <= 3)
@@ -1073,6 +1073,9 @@ bool  VaapiEncoderH264::pictureReferenceListSet (
     m_refList0.clear();
     m_refList1.clear();
 
+    if (picture->m_type == VAAPI_PICTURE_TYPE_I)
+        return true;
+
     for (i = 0; i < m_refList.size(); i++) {
         assert(picture->m_poc != m_refList[i]->m_poc);
         if (picture->m_poc > m_refList[i]->m_poc)
@@ -1085,6 +1088,9 @@ bool  VaapiEncoderH264::pictureReferenceListSet (
         m_refList0.resize(m_maxRefList0Count);
     if (m_refList1.size() > m_maxRefList1Count)
         m_refList1.resize(m_maxRefList1Count);
+
+    if (picture->m_type == VAAPI_PICTURE_TYPE_P)
+        assert(m_refList1.empty());
 
     assert (m_refList0.size() + m_refList1.size() <= m_maxRefFrames);
 
@@ -1325,8 +1331,7 @@ bool VaapiEncoderH264::ensurePicture (const PicturePtr& picture, const SurfacePt
 {
     VAEncPictureParameterBufferH264 *picParam;
 
-    if (picture->m_type != VAAPI_PICTURE_TYPE_I &&
-            !pictureReferenceListSet(picture)) {
+    if (!pictureReferenceListSet(picture)) {
         ERROR ("reference list reorder failed");
         return false;
     }
