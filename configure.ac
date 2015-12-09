@@ -283,8 +283,8 @@ AM_CONDITIONAL(BUILD_GET_MV,
 # dnl Doxygen
 AC_ARG_ENABLE(docs,
     [AC_HELP_STRING([--enable-docs],
-        [build Doxygen docs @<:@default=yes@:>@])],
-    [], [enable_docs="yes"])
+        [build Doxygen docs @<:@default=no@:>@])],
+    [], [enable_docs="no"])
 
 if test "$enable_docs" = "yes"; then
     AC_CHECK_TOOL([DOXYGEN], [doxygen], [no])
