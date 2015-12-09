@@ -31,11 +31,18 @@
  */
 #ifndef v4l2codec_device_ops_h
 #define v4l2codec_device_ops_h
+#include <linux/videodev2.h>
 #include <EGL/egl.h>
 #include <stdint.h>
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
+#endif
+#ifndef V4L2_MEMORY_DMABUF
+    #define V4L2_MEMORY_DMABUF      4
+#endif
+#ifndef V4L2_MEMORY_ANDROID_NATIVE_BUFFER
+    #define V4L2_MEMORY_ANDROID_NATIVE_BUFFER   (V4L2_MEMORY_DMABUF+1)
 #endif
 
 #ifdef __cplusplus

@@ -449,13 +449,8 @@ int main(int argc, char** argv)
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
 
-    // start input port
+    // input port starts as early as possible to decide output frame format
     __u32 type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
-    ASSERT(ioctlRet != -1);
-
-    // start output port
-    type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
     ASSERT(ioctlRet != -1);
 
@@ -632,6 +627,11 @@ int main(int argc, char** argv)
             ASSERT(0);
         }
     }
+
+    // output port starts as late as possible to adopt user provide output buffer
+    type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
+    ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_STREAMON, &type);
+    ASSERT(ioctlRet != -1);
 
     bool event_pending=true; // try to get video resolution.
     int dqCountAfterEOS = 0;
