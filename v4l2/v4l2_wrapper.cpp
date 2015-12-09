@@ -225,6 +225,8 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
     ASSERT(v4l2Codec);
 
+    // FIXME, usually, it can be detected by v4l2_requestbuffers.memory
+    // however, chrome always set it to MMAP even for egl/texture usage
     if (!strcmp(key, "frame-memory-type")) {
         VideoDataMemoryType memoryType;
         if (!strcmp(value, "raw-data")) {
