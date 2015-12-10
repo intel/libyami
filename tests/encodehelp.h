@@ -144,6 +144,7 @@ static bool process_cmdline(int argc, char *argv[])
                     break;
                 case 2:
                     rcMode = string_to_rc_mode(optarg);
+                    break;
                 case 3:
                     ipbMode= atoi(optarg);
                     break;
