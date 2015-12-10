@@ -531,7 +531,86 @@ private:
         bit_writer_put_bits_uint32(bitwriter, seq->seq_fields.bits.strong_intra_smoothing_enabled_flag, 1);
 
         /* vui_parameters_present_flag */
-        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+        bit_writer_put_bits_uint32(bitwriter, seq->vui_parameters_present_flag, 1);
+        if (seq->vui_parameters_present_flag) {
+            /* aspect_ratio_info_present_flag */
+            bit_writer_put_bits_uint32(bitwriter,
+                                      seq->vui_fields.bits.aspect_ratio_info_present_flag,
+                                      1);
+            if (seq->vui_fields.bits.aspect_ratio_info_present_flag) {
+                bit_writer_put_bits_uint32(bitwriter, seq->aspect_ratio_idc, 8);
+                if (seq->aspect_ratio_idc == 0xFF) {
+                    bit_writer_put_bits_uint32(bitwriter, seq->sar_width, 16);
+                    bit_writer_put_bits_uint32(bitwriter, seq->sar_height, 16);
+                }
+            }
+
+            /* overscan_info_present_flag */
+            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+            /* video_signal_type_present_flag */
+            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+            /* chroma_loc_info_present_flag */
+            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+            /* neutral_chroma_indication_flag */
+            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+            /* field_seq_flag */
+            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+            /* frame_field_info_present_flag */
+            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+            /* default_display_window_flag */
+            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+
+            /* vui_timing_info_present_flag */
+            bit_writer_put_bits_uint32(bitwriter,
+                seq->vui_fields.bits.vui_timing_info_present_flag, 1);
+            if (seq->vui_fields.bits.vui_timing_info_present_flag) {
+                bit_writer_put_bits_uint32(bitwriter, seq->vui_num_units_in_tick, 32);
+                bit_writer_put_bits_uint32(bitwriter, seq->vui_time_scale / 2, 32);
+                /* vui_poc_proportional_to_timing_flag */
+                bit_writer_put_bits_uint32(bitwriter, 0, 1);
+                /* set hrd_parameters */
+                BOOL vui_hrd_parameters_present_flag = (seq->bits_per_second > 0 ? TRUE : FALSE);
+                /* vui_hrd_parameters_present_flag */
+                bit_writer_put_bits_uint32(bitwriter, vui_hrd_parameters_present_flag, 1);
+                if (vui_hrd_parameters_present_flag) {
+                    /* nal_hrd_parameters_present_flag */
+                    bit_writer_put_bits_uint32(bitwriter, 1, 1);
+                    /* vcl_hrd_parameters_present_flag */
+                    bit_writer_put_bits_uint32(bitwriter, 0, 1);
+                    /* sub_pic_hrd_params_present_flag */
+                    bit_writer_put_bits_uint32(bitwriter, 0, 1);
+
+                    bit_writer_put_bits_uint32(bitwriter, 4, 4); /* bit_rate_scale */
+                    bit_writer_put_bits_uint32(bitwriter, 6, 4); /* cpb_size_scale */
+
+                    /* initial_cpb_removal_delay_length_minus1 */
+                    bit_writer_put_bits_uint32(bitwriter, 23, 5);
+                    /* au_cpb_removal_delay_length_minus1 */
+                    bit_writer_put_bits_uint32(bitwriter, 23, 5);
+                    /* dpb_output_delay_length_minus1 */
+                    bit_writer_put_bits_uint32(bitwriter, 23, 5);
+
+                    for (i = 0; i < 1; ++i) {
+                        /* fixed_pic_rate_general_flag[0] */
+                        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+                        /* fixed_pic_rate_within_cvs_flag[0] */
+                        bit_writer_put_bits_uint32(bitwriter, 0, 1);
+                        /* low_delay_hrd_flag[0]  */
+                        bit_writer_put_bits_uint32(bitwriter, 1, 1);
+
+                        /* bit_rate_value_minus1[0] */
+                        bit_writer_put_ue(bitwriter, seq->bits_per_second/1024- 1);
+                        /* cpb_size_value_minus1[0] */
+                        bit_writer_put_ue(bitwriter, seq->bits_per_second/(1024*8) - 1);
+                        /* cbr_flag[0] */
+                        bit_writer_put_bits_uint32(bitwriter, 1, 1);
+                    }
+                }
+            }
+
+            /* bitwriter_restriction_flag */
+            bit_writer_put_bits_uint32(bitwriter, 0, 1);
+        }
 
         /* sps_extension_present_flag */
         bit_writer_put_bits_uint32(bitwriter, 0, 1);
@@ -1286,6 +1365,12 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     seqParam->log2_min_pcm_luma_coding_block_size_minus3 = 0;
     seqParam->log2_max_pcm_luma_coding_block_size_minus3 = 0;
 
+    /* VUI parameters are always set for timing_info (framerate/bitrate) */
+    seqParam->vui_parameters_present_flag = TRUE;
+    seqParam->vui_fields.bits.vui_timing_info_present_flag = TRUE;
+    seqParam->vui_num_units_in_tick = frameRateDenom();
+    seqParam->vui_time_scale = frameRateNum() * 2;
+
     return true;
 }
 
@@ -1351,7 +1436,8 @@ bool VaapiEncoderHEVC::fill(VAEncPictureParameterBufferHEVC* picParam, const Pic
     picParam->pic_fields.bits.sign_data_hiding_enabled_flag = 0;
     picParam->pic_fields.bits.constrained_intra_pred_flag = 0;
     picParam->pic_fields.bits.transform_skip_enabled_flag = 0;
-    picParam->pic_fields.bits.cu_qp_delta_enabled_flag = 0;
+    /* cu_qp_delta_enabled_flag should be true to bitrate control */
+    picParam->pic_fields.bits.cu_qp_delta_enabled_flag = 1;
     picParam->pic_fields.bits.weighted_pred_flag = 0;
     picParam->pic_fields.bits.weighted_bipred_flag = 0;
     picParam->pic_fields.bits.transquant_bypass_enabled_flag = 0;
