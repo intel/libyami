@@ -74,6 +74,12 @@ fi
 AM_CONDITIONAL(ENABLE_TESTS_GLES,
     [test "x$enable_tests_gles" = "xyes"])
 
+HAVE_GTEST="no"
+ifdef([GTEST_LIB_CHECK],
+    [GTEST_LIB_CHECK([1.7.0], [:], [:])])
+AM_CONDITIONAL([ENABLE_UNITTESTS],
+    [test "x$HAVE_GTEST" = "xyes"])
+
 AC_ARG_ENABLE(dmabuf,
     [AC_HELP_STRING([--enable-dmabuf],
         [support dma_buf buffer sharing @<:@default=no@:>@])],
