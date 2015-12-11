@@ -1028,7 +1028,7 @@ Encode_Status VaapiEncoderHEVC::doEncode(const SurfacePtr& surface, uint64_t tim
         CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
         if (!codedBuffer)
             return ENCODE_NO_MEMORY;
-        DEBUG("m_reorderFrameList size: %d\n", m_reorderFrameList.size());
+        DEBUG("m_reorderFrameList size: %zu\n", m_reorderFrameList.size());
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
         picture->m_codedBuffer = codedBuffer;
@@ -1182,7 +1182,7 @@ void VaapiEncoderHEVC::shortRfsUpdate(const PicturePtr& picture)
             m_shortRFS.num_positive_pics      = 1;
             m_shortRFS.delta_poc_s1_minus1[0]  = m_refList1[0]->m_poc - picture->m_poc - 1;
             m_shortRFS.used_by_curr_pic_s1_flag[0]            = 1;
-            DEBUG("m_refList1_size is %d\n", m_refList1.size());
+            DEBUG("m_refList1_size is %zu\n", m_refList1.size());
         }
     }
 
