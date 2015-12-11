@@ -49,7 +49,7 @@ namespace YamiMediaCodec{
 class VaapiImagePool : public std::tr1::enable_shared_from_this<VaapiImagePool>
 {
 public:
-    static ImagePoolPtr create(const DisplayPtr&, uint32_t format, int32_t width, int32_t height, int32_t count);
+    static ImagePoolPtr create(const DisplayPtr&, uint32_t format, int32_t width, int32_t height, size_t count);
     /// get a free image,
     ImagePtr acquireWithWait();
 
@@ -66,7 +66,7 @@ private:
     void recycleID(VAImageID imageID);    // usually recycle from client after rendering
 
     std::vector<ImagePtr> m_images;
-    int32_t m_poolSize;
+    size_t m_poolSize;
     std::deque<int32_t> m_freeIndex;
     typedef std::map<VAImageID, int32_t> MapImageIDIndex; // map between VAImageID and index (of m_images)
     MapImageIDIndex m_indexMap;

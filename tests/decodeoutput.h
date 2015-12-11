@@ -52,8 +52,8 @@ public:
 protected:
     DecodeOutput(IVideoDecoder* decoder);
     IVideoDecoder* m_decoder;
-    int m_width;
-    int m_height;
+    uint32_t m_width;
+    uint32_t m_height;
     uint32_t m_renderFrames;
     VideoFrameRawData m_frame;
 };

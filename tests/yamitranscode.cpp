@@ -142,7 +142,7 @@ public:
 
         SharedPtr<VideoFrame> src;
         FpsCalc fps;
-        int count = 0;
+        uint32_t count = 0;
         while (m_input->read(src)) {
             SharedPtr<VideoFrame> dest = m_allocator->alloc();
             if (!dest) {

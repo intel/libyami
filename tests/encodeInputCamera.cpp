@@ -116,7 +116,7 @@ bool EncodeInputCamera::initDevice(const char *cameraDevicePath)
 bool EncodeInputCamera::initMmap(void)
 {
     struct v4l2_requestbuffers rqbufs;
-    int index;
+    uint32_t index;
 
     INFO();
     memset(&rqbufs, 0, sizeof(rqbufs));
@@ -274,7 +274,7 @@ int32_t EncodeInputCamera::dequeFrame(void)
 
 bool EncodeInputCamera::enqueFrame(int32_t index)
 {
-    assert(index >=0 && index < m_frameBufferCount);
+    assert(index >=0 && (uint32_t)index < m_frameBufferCount);
     struct v4l2_buffer buf;
     memset(&buf, 0, sizeof(buf));
 
@@ -298,7 +298,7 @@ bool EncodeInputCamera::enqueFrame(int32_t index)
 bool EncodeInputCamera::getOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     int frameIndex = dequeFrame();
-    ASSERT(frameIndex>=0 && frameIndex<m_frameBufferCount);
+    ASSERT((frameIndex >= 0) && ((uint32_t)frameIndex < m_frameBufferCount));
 
     memset(&inputBuffer, 0, sizeof(inputBuffer));
     bool ret = fillFrameRawData(&inputBuffer, m_fourcc, m_width, m_height, m_frameBuffers[frameIndex]);
