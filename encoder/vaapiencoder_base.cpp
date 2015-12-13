@@ -456,7 +456,7 @@ bool VaapiEncoderBase::initVA()
 
     int32_t width = m_videoParamCommon.resolution.width;
     int32_t height = m_videoParamCommon.resolution.height;
-    m_pool = SurfacePool::create(m_alloc, YAMI_FOURCC_NV12, (uint32_t)width, (uint32_t)height,m_maxOutputBuffer);
+    m_pool = SurfacePool::create(m_display, m_alloc, YAMI_FOURCC_NV12, (uint32_t)width, (uint32_t)height,m_maxOutputBuffer);
     if (!m_pool)
         return false;
 

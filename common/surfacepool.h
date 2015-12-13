@@ -43,7 +43,7 @@ class SurfacePool
 {
 public:
     static SharedPtr<SurfacePool>
-    create(const SharedPtr<SurfaceAllocator>& alloc,
+    create(const DisplayPtr& display, const SharedPtr<SurfaceAllocator>& alloc,
            uint32_t fourcc, uint32_t width, uint32_t height, uint32_t size);
 
     /**
@@ -60,7 +60,7 @@ public:
 private:
     SurfacePool();
 
-    YamiStatus init(const SharedPtr<SurfaceAllocator>& alloc,
+    YamiStatus init(const DisplayPtr& display, const SharedPtr<SurfaceAllocator>& alloc,
            uint32_t fourcc, uint32_t width, uint32_t height, uint32_t size);
 
     SharedPtr<SurfaceAllocator>         m_alloc;

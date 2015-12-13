@@ -140,6 +140,11 @@ typedef struct {
     uint32_t height;
 
     //in, out, number of surfaces
+    //for decoder, this min surfaces size need for decoder
+    //you should alloc extra size for perfomance or display queue
+    //you have two chance to get this size
+    // 1. from VideoFormatInfo.surfaceNumber, after you got DECODE_FORMAT_CHANGE
+    // 2. in SurfaceAllocator::alloc
     uint32_t size;
 
     //out
