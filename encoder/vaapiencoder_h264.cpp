@@ -705,7 +705,8 @@ VaapiEncoderH264::VaapiEncoderH264():
     m_useCabac(true),
     m_useDct8x8(false),
     m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
-    m_streamFormat(AVC_STREAM_FORMAT_ANNEXB)
+    m_streamFormat(AVC_STREAM_FORMAT_ANNEXB),
+    m_frameIndex(0)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;
