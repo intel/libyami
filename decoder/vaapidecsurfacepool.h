@@ -58,7 +58,8 @@ namespace YamiMediaCodec{
 class VaapiDecSurfacePool : public EnableSharedFromThis <VaapiDecSurfacePool>
 {
 public:
-    static DecSurfacePoolPtr create(const DisplayPtr&, VideoConfigBuffer* config);
+    static DecSurfacePoolPtr create(const DisplayPtr&, VideoConfigBuffer* config,
+        const SharedPtr<SurfaceAllocator>& allocator);
     void getSurfaceIDs(std::vector<VASurfaceID>& ids);
     /// get a free surface,
     /// it always return null buffer if it's flushed.
@@ -81,6 +82,7 @@ public:
     /// decode thread may be blocked at acquireWithWait, wake it up and escape if required. it doesn't release internal surfaces.
     /// it can be used for drain or unclear termination (in v4l2 wrapper, STREAMOFF can be used for either flush or drain).
     void setWaitable(bool waitable);
+    ~VaapiDecSurfacePool();
 
 
 private:
@@ -93,7 +95,10 @@ private:
         SURFACE_RENDERING = 0x00000004
     };
 
-    VaapiDecSurfacePool(const DisplayPtr&, std::vector<SurfacePtr>);
+    VaapiDecSurfacePool();
+    bool init(const DisplayPtr& display,
+              VideoConfigBuffer* config,
+              const SharedPtr<SurfaceAllocator>& allocator);
 
     void recycleLocked(VASurfaceID, SurfaceState);
     void recycle(VASurfaceID, SurfaceState);
@@ -119,6 +124,10 @@ private:
     Lock m_lock;
     Condition m_cond;
     bool m_flushing;
+
+    //for external allocator
+    SharedPtr<SurfaceAllocator> m_allocator;
+    SurfaceAllocParams m_allocParams;
 
     struct SurfaceRecycler;
     struct SurfaceRecyclerRender;

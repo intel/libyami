@@ -76,6 +76,8 @@ class VaapiDecoderBase:public IVideoDecoder {
     Decode_Status flagNativeBuffer(void *pBuffer);
     void releaseLock(bool lockable=false);
 
+    void  setAllocator(SurfaceAllocator* allocator);
+
     //do not use this, we will remove this in near future
     virtual VADisplay getDisplayID();
   protected:
@@ -98,7 +100,8 @@ class VaapiDecoderBase:public IVideoDecoder {
      * empty surface, recycle used surface.
      */
     DecSurfacePoolPtr m_surfacePool;
-
+    SharedPtr<SurfaceAllocator> m_allocator;
+    SharedPtr<SurfaceAllocator> m_externalAllocator;
     /* the current render target for decoder */
     // XXX, not useful. decoding bases on VaapiPicture, rendering bases on IVideoDecoder->getOutput()
     VideoSurfaceBuffer *m_renderTarget;

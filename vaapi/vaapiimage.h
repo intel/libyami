@@ -47,6 +47,7 @@ class VaapiImage
     static ImagePtr create(const DisplayPtr&,
                uint32_t format, uint32_t width, uint32_t height);
     static ImagePtr derive(const SurfacePtr&);
+    static ImagePtr derive(const DisplayPtr&, const SurfacePtr&);
     ~VaapiImage();
 
     uint32_t getFormat();

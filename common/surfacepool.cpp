@@ -31,11 +31,11 @@
 namespace YamiMediaCodec{
 
 SharedPtr<SurfacePool>
-SurfacePool::create(const SharedPtr<SurfaceAllocator>& alloc,
+SurfacePool::create(const DisplayPtr& display, const SharedPtr<SurfaceAllocator>& alloc,
            uint32_t fourcc, uint32_t width, uint32_t height, uint32_t size)
 {
     SharedPtr<SurfacePool> pool(new SurfacePool);
-    if (YAMI_SUCCESS != pool->init(alloc, fourcc, width, height, size))
+    if (YAMI_SUCCESS != pool->init(display, alloc, fourcc, width, height, size))
         pool.reset();
     return pool;
 }
@@ -45,7 +45,7 @@ SurfacePool::SurfacePool()
     memset(&m_params, 0, sizeof(m_params));
 }
 
-YamiStatus SurfacePool::init(const SharedPtr<SurfaceAllocator>& alloc,
+YamiStatus SurfacePool::init(const DisplayPtr& display, const SharedPtr<SurfaceAllocator>& alloc,
            uint32_t fourcc, uint32_t width, uint32_t height, uint32_t size)
 {
     m_params.fourcc = fourcc;
@@ -59,7 +59,7 @@ YamiStatus SurfacePool::init(const SharedPtr<SurfaceAllocator>& alloc,
     //prepare surfaces for pool
     std::deque<SurfacePtr> surfaces;
     for (uint32_t i = 0; i < m_params.size; i++) {
-        SurfacePtr s(new VaapiSurface(m_params.surfaces[i], width, height));
+        SurfacePtr s(new VaapiSurface(display, m_params.surfaces[i], width, height));
         surfaces.push_back(s);
     }
     m_pool = VideoPool<VaapiSurface>::create(surfaces);

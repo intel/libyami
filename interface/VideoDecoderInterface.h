@@ -124,6 +124,7 @@ public:
 
     /// set native display
     virtual void  setNativeDisplay( NativeDisplay * display = NULL) = 0;
+    virtual void  setAllocator(SurfaceAllocator* allocator) = 0;
 
     /// lockable is set to false when seek begins and reset to true after seek is done
     /// EOS also set lockable to false

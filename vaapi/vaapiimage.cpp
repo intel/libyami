@@ -226,11 +226,18 @@ ImagePtr VaapiImage::create(const DisplayPtr& display,
 
 ImagePtr VaapiImage::derive(const SurfacePtr& surface)
 {
+	ImagePtr image;
+	if (!surface)
+		return image;
+	return derive(surface->getDisplay(), surface);
+}
+
+ImagePtr VaapiImage::derive(const DisplayPtr& display, const SurfacePtr& surface)
+{
     ImagePtr image;
-    if (!surface)
+    if (!surface || !display)
         return image;
 
-    DisplayPtr display = surface->getDisplay();
     VAImagePtr vaImage(new VAImage);
 
     VAStatus status = vaDeriveImage(display->getID(), surface->getID(), vaImage.get());

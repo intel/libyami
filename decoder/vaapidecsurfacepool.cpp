@@ -35,46 +35,61 @@
 namespace YamiMediaCodec{
 const uint32_t IMAGE_POOL_SIZE = 8;
 
-DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoConfigBuffer* config)
+DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoConfigBuffer* config,
+    const SharedPtr<SurfaceAllocator>& allocator )
 {
-    DecSurfacePoolPtr pool;
-    std::vector<SurfacePtr> surfaces;
-    size_t size = config->surfaceNumber;
-    surfaces.reserve(size);
-    assert(!(config->flag & WANT_SURFACE_PROTECTION));
-    assert(!(config->flag & USE_NATIVE_GRAPHIC_BUFFER));
-    assert(!(config->flag & WANT_RAW_OUTPUT));
-    for (size_t i = 0; i < size; ++i) {
-        SurfacePtr s = VaapiSurface::create(display, VAAPI_CHROMA_TYPE_YUV420,
-                                   config->surfaceWidth,config->surfaceHeight,NULL,0);
-        if (!s)
-            return pool;
-        s->resize(config->width, config->height);
-        surfaces.push_back(s);
-    }
-    DecSurfacePoolPtr temp(new VaapiDecSurfacePool(display, surfaces));
-    pool = temp;
+    DecSurfacePoolPtr pool(new VaapiDecSurfacePool);
+    if (!pool->init(display, config, allocator))
+        pool.reset();
     return pool;
 }
 
-VaapiDecSurfacePool::VaapiDecSurfacePool(const DisplayPtr& display, std::vector<SurfacePtr> surfaces):
-    m_display(display),
-    m_cond(m_lock),
-    m_flushing(false)
+bool VaapiDecSurfacePool::init(const DisplayPtr& display, VideoConfigBuffer* config,
+    const SharedPtr<SurfaceAllocator>& allocator)
 {
-    size_t size = surfaces.size();
-    m_surfaces.swap(surfaces);
+    m_display = display;
+    m_allocator = allocator;
+    m_allocParams.width = config->surfaceWidth;
+    m_allocParams.height = config->surfaceHeight;
+    m_allocParams.fourcc = YAMI_FOURCC_NV12;
+    m_allocParams.size = config->surfaceNumber;
+    if (m_allocator->alloc(m_allocator.get(), &m_allocParams) != YAMI_SUCCESS) {
+        ERROR("allocate surface failed (%dx%d), size = %d",
+            m_allocParams.width, m_allocParams.height , m_allocParams.size);
+        return false;
+    }
+    uint32_t size = m_allocParams.size;
+    uint32_t width = m_allocParams.width;
+    uint32_t height = m_allocParams.height;
+
     m_renderBuffers.resize(size);
-    for (size_t i = 0; i < size; ++i) {
-        const SurfacePtr& s = m_surfaces[i];
-        VASurfaceID id = m_surfaces[i]->getID();
-        m_renderBuffers[i].display = display->getID();
+    for (uint32_t i = 0; i < size; i++) {
+        SurfacePtr s(new VaapiSurface(display, m_allocParams.surfaces[i], width, height));
+        VASurfaceID id = s->getID();
+
+        m_renderBuffers[i].display = m_display->getID();
         m_renderBuffers[i].surface = id;
         m_renderBuffers[i].timeStamp = 0;
 
         m_renderMap[id] = &m_renderBuffers[i];
         m_surfaceMap[id] = s.get();
         m_freed.push_back(id);
+        m_surfaces.push_back(s);
+    }
+    return true;
+}
+
+VaapiDecSurfacePool::VaapiDecSurfacePool()
+    :m_cond(m_lock),
+    m_flushing(false)
+{
+    memset(&m_allocParams, 0, sizeof(m_allocParams));
+}
+
+VaapiDecSurfacePool::~VaapiDecSurfacePool()
+{
+    if (m_allocator && m_allocParams.surfaces) {
+        m_allocator->free(m_allocator.get(), &m_allocParams);
     }
 }
 
@@ -231,7 +246,7 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
         frame->width = surface->getWidth();
         frame->height = surface->getHeight();
         frame->internalID = surface->getID();
-        frame->fourcc = 0; // XXX improve VaapiSurface to retireve real fourcc 
+        frame->fourcc = 0; // XXX improve VaapiSurface to retireve real fourcc
         frame->timeStamp = buffer->timeStamp;
         {
             AutoLock lock(m_exportFramesLock);
@@ -242,7 +257,7 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
         return true;
     }
 
-    ImagePtr image = VaapiImage::derive(surface);
+    ImagePtr image = VaapiImage::derive(m_display, surface);
     if (!image)
         return false;
 

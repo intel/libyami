@@ -28,6 +28,7 @@
 #endif
 #include "vaapidecoder_base.h"
 #include "common/log.h"
+#include "vaapi/vaapisurfaceallocator.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapiutils.h"
@@ -44,6 +45,11 @@
 
 namespace YamiMediaCodec{
 typedef VaapiDecoderBase::PicturePtr PicturePtr;
+
+inline void unrefAllocator(SurfaceAllocator* allocator)
+{
+    allocator->unref(allocator);
+}
 
 VaapiDecoderBase::VaapiDecoderBase():
 m_renderTarget(NULL),
@@ -102,6 +108,7 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
         m_videoFormatInfo.surfaceWidth = buffer->surfaceWidth;
         m_videoFormatInfo.surfaceHeight = buffer->surfaceHeight;
     }
+    m_videoFormatInfo.surfaceNumber = buffer->surfaceNumber;
     m_lowDelay = buffer->flag & WANT_LOW_DELAY;
     m_rawOutput = buffer->flag & WANT_RAW_OUTPUT;
 
@@ -292,8 +299,13 @@ Decode_Status VaapiDecoderBase::getOutput(VideoFrameRawData* frame, bool drainin
     if (draining)
         flushOutport();
 
+    bool haveSize = frame->width && frame->height;
     if (!m_surfacePool->getOutput(frame))
         return RENDER_NO_AVAILABLE_FRAME;
+    if (!haveSize) {
+        frame->width = m_videoFormatInfo.width;
+        frame->height  = m_videoFormatInfo.height;
+    }
 
 #ifdef __ENABLE_DEBUG__
     renderPictureCount++;
@@ -389,8 +401,15 @@ Decode_Status
         return DECODE_FAIL;
     }
 
+    if (!m_externalAllocator) {
+        //use internal allocator
+        m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID()), unrefAllocator);
+    } else {
+        m_allocator = m_externalAllocator;
+    }
+
     m_configBuffer.surfaceNumber = numSurface;
-    m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_configBuffer);
+    m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_configBuffer, m_allocator);
     DEBUG("surface pool is created");
     if (!m_surfacePool)
         return DECODE_FAIL;
@@ -427,6 +446,7 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
 {
     INFO("base: terminate VA");
     m_surfacePool.reset();
+    m_allocator.reset();
     DEBUG("surface pool is reset");
     m_context.reset();
     m_display.reset();
@@ -466,6 +486,11 @@ void VaapiDecoderBase::releaseLock(bool lockable)
         return;
 
     m_surfacePool->setWaitable(lockable);
+}
+
+void VaapiDecoderBase::setAllocator(SurfaceAllocator* allocator)
+{
+    m_externalAllocator.reset(allocator,unrefAllocator);
 }
 
 SurfacePtr VaapiDecoderBase::createSurface()
