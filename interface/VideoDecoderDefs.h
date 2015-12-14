@@ -103,7 +103,7 @@ typedef enum {
 
 typedef struct {
     uint8_t *data;
-    int32_t size;
+    size_t size;
     int64_t timeStamp;
     uint32_t flag;
     VideoExtensionBuffer *ext;
@@ -157,8 +157,8 @@ typedef struct SurfaceBuffer{
 typedef struct {
     bool valid;                 // indicates whether format info is valid. MimeType is always valid.
     char *mimeType;
-    int32_t width;
-    int32_t height;
+    uint32_t width;
+    uint32_t height;
     int32_t surfaceWidth;
     int32_t surfaceHeight;
     int32_t surfaceNumber;

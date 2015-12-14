@@ -78,8 +78,8 @@ class V4l2CodecBase {
     virtual bool start() = 0;
     virtual bool acceptInputBuffer(struct v4l2_buffer *qbuf) = 0;
     virtual bool giveOutputBuffer(struct v4l2_buffer *dqbuf) = 0;
-    virtual bool inputPulse(int32_t index) = 0;
-    virtual bool outputPulse(int32_t &index) = 0; // index of decode output is decided by libyami, not FIFO of m_framesTodo[OUTPUT]
+    virtual bool inputPulse(uint32_t index) = 0;
+    virtual bool outputPulse(uint32_t &index) = 0; // index of decode output is decided by libyami, not FIFO of m_framesTodo[OUTPUT]
     virtual bool recycleOutputBuffer(int32_t index) {return true;};
     virtual bool hasCodecEvent() {return m_hasEvent;}
     virtual void setCodecEvent();
@@ -88,7 +88,7 @@ class V4l2CodecBase {
     virtual void flush() {}
 
     VideoDataMemoryType m_memoryType;
-    int m_maxBufferCount[2];
+    uint32_t m_maxBufferCount[2];
     uint32_t m_bufferPlaneCount[2];
     uint32_t m_memoryMode[2];
     uint32_t m_pixelFormat[2]; // (it should be a set)
@@ -141,7 +141,7 @@ class V4l2CodecBase {
 
 #ifdef __ENABLE_DEBUG__
   protected:
-    const char* IoctlCommandString(int command);
+    const char* IoctlCommandString(long unsigned int command);
 
     uint32_t m_frameCount[2];
 #endif

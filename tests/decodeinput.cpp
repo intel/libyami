@@ -359,7 +359,7 @@ bool DecodeInputRaw::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     if (!m_parseToEOS)
        inputBuffer.size += StartCodeSize; // one inputBuffer is start and end with start code
 
-    DEBUG("offset=%d, NALU data=%p, size=%d\n", offset, inputBuffer.data, inputBuffer.size);
+    DEBUG("offset=%d, NALU data=%p, size=%lu\n", offset, inputBuffer.data, inputBuffer.size);
     m_lastReadOffset += offset + StartCodeSize;
     return true;
 }

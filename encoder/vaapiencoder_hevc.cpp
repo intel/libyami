@@ -128,7 +128,8 @@ static uint32_t log2 (uint32_t num)
     uint32_t ret = 0;
     assert(num);
 
-    while (num > (1 << ret))
+    uint32_t one = 1;
+    while (num > (one << ret))
         ++ret;
 
     return ret;
@@ -349,7 +350,7 @@ public:
         headers.push_back(&m_sps);
         headers.push_back(&m_pps);
         uint8_t sync[] = {0, 0, 0, 1};
-        for (int i = 0; i < headers.size(); i++) {
+        for (size_t i = 0; i < headers.size(); i++) {
             m_headers.insert(m_headers.end(), sync, sync + N_ELEMENTS(sync));
             appendHeaderWithEmulation(*headers[i]);
         }
@@ -753,7 +754,7 @@ private:
         outBuffer->dataSize = 0;
 
         Encode_Status ret;
-        for (int i = 0; i < functions.size(); i++) {
+        for (size_t i = 0; i < functions.size(); i++) {
             ret = functions[i]();
             if (ret != ENCODE_SUCCESS)
                 return ret;
@@ -1028,7 +1029,7 @@ Encode_Status VaapiEncoderHEVC::doEncode(const SurfacePtr& surface, uint64_t tim
         CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
         if (!codedBuffer)
             return ENCODE_NO_MEMORY;
-        DEBUG("m_reorderFrameList size: %d\n", m_reorderFrameList.size());
+        DEBUG("m_reorderFrameList size: %lu\n", m_reorderFrameList.size());
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
         picture->m_codedBuffer = codedBuffer;
@@ -1182,7 +1183,7 @@ void VaapiEncoderHEVC::shortRfsUpdate(const PicturePtr& picture)
             m_shortRFS.num_positive_pics      = 1;
             m_shortRFS.delta_poc_s1_minus1[0]  = m_refList1[0]->m_poc - picture->m_poc - 1;
             m_shortRFS.used_by_curr_pic_s1_flag[0]            = 1;
-            DEBUG("m_refList1_size is %d\n", m_refList1.size());
+            DEBUG("m_refList1_size is %lu\n", m_refList1.size());
         }
     }
 
@@ -1509,7 +1510,7 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
     sliceOfCtus = numCtus / m_numSlices;
     sliceModCtus = numCtus % m_numSlices;
     lastCtuIndex = 0;
-    for (int i = 0; i < m_numSlices; ++i) {
+    for (uint32_t i = 0; i < m_numSlices; ++i) {
         curSliceCtus = sliceOfCtus;
         if (sliceModCtus) {
             ++curSliceCtus;

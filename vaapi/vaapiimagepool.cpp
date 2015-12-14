@@ -54,11 +54,11 @@ VaapiImagePool::VaapiImagePool(std::vector<ImagePtr> images):
 {
     m_poolSize = images.size();
     m_images.swap(images);
-    DEBUG("m_poolSize: %d", m_poolSize);
+    DEBUG("m_poolSize: %lu", m_poolSize);
     for (size_t i = 0; i < m_poolSize; ++i) {
         m_freeIndex.push_back(i);
         m_indexMap[m_images[i]->getID()] = i;
-        DEBUG("image pool index: %d, image ID: 0x%x", i, m_images[i]->getID());
+        DEBUG("image pool index: %lu, image ID: 0x%x", i, m_images[i]->getID());
     }
 }
 
