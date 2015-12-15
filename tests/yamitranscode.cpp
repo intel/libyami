@@ -151,7 +151,7 @@ public:
             }
 //disable scale for performance measure
 //#define DISABLE_SCALE 1
-#ifdef DISABLE_SCALE
+#ifndef DISABLE_SCALE
             YamiStatus status = m_vpp->process(src, dest);
             if (status != YAMI_SUCCESS) {
                 ERROR("failed to scale yami return %d", status);
