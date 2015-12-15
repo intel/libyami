@@ -417,6 +417,9 @@ AC_OUTPUT([
          pkgconfig/libyami_vpp.pc
 ])
 
+dnl Hack to workaround Ubuntu libtool bug
+sed -i "s/link_all_deplibs=no/link_all_deplibs=yes/g" libtool
+
 # Print a configuration summary
 DECODERS=""
 AS_IF([test x$enable_h265dec = xyes], [DECODERS="$DECODERS h265"])
