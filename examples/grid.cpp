@@ -186,7 +186,7 @@ DrmFrame::~DrmFrame()
     if (id != VA_INVALID_ID) {
         checkVaapiStatus(vaDestroySurfaces(m_display, &id, 1), "vaDestroySurfaces");
     }
-    if (m_handle != -1) {
+    if (m_handle != (uint32_t)-1) {
         ret = drmModeRmFB(m_fd, m_handle);
         checkDrmRet(ret, "drmModeRmFB");
     }
@@ -304,7 +304,7 @@ DrmRenderer::Flipper::~Flipper()
         m_quit = true;
         m_cond.signal();
     }
-    if (m_thread != -1)
+    if (m_thread != (uint32_t)-1)
         pthread_join(m_thread, NULL);
 }
 
@@ -593,7 +593,7 @@ class Grid
         }
         ~Arg()
         {
-            for (int i = 0; i < m_argv.size(); i++)
+            for (size_t i = 0; i < m_argv.size(); i++)
                 free(m_argv[i]);
         }
         void init (const string& args)
@@ -645,7 +645,7 @@ public:
 
     ~Grid()
     {
-        if (m_vppThread != -1)
+        if (m_vppThread != (unsigned long)-1)
             pthread_join(m_vppThread, NULL);
         m_renderer.reset();
         m_vpp.reset();
@@ -813,7 +813,7 @@ public:
             fprintf(stderr, "init display failed");
             return false;
         }
-        for (int i = 0; i < m_args.size(); i++) {
+        for (size_t i = 0; i < m_args.size(); i++) {
             string& arg = m_args[i];
             SharedPtr<Grid> grid(new Grid(m_fd, m_nativeDisplay));
             if (!grid->init(arg)) {
@@ -825,10 +825,10 @@ public:
     }
     bool run()
     {
-        for (int i = 0; i < m_grids.size(); i++) {
+        for (size_t i = 0; i < m_grids.size(); i++) {
             SharedPtr<Grid>& grid = m_grids[i];
             if (!grid->run()) {
-                ERROR("run grid %d failed", i);
+                ERROR("run grid %lu failed", i);
                 return false;
             }
         }
