@@ -20,11 +20,6 @@ for file in `git diff --cached  --name-only`; do
         # remove the 'x' bit for files
         echo "remove 'x' for ${file}"
         chmod -x ${file}
-        if test "$dir_name" = "codecparsers"; then
-            ./gst_style.sh ${file}
-        else
-            ./kr_style.sh ${file}
-        fi
     fi
 done
 
