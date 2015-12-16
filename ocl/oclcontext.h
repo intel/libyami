@@ -37,6 +37,7 @@ class OclContext
 public:
     static SharedPtr<OclContext> create();
     bool createKernel(const char* name, cl_kernel& kernel);
+    YamiStatus createImageFromFdIntel(const cl_import_image_info_intel* info, cl_mem* mem);
     ~OclContext();
 
     cl_context m_context;

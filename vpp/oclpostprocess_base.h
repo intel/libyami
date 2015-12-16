@@ -45,7 +45,27 @@ public:
                                const SharedPtr<VideoFrame>& dest) = 0;
     OclPostProcessBase();
     virtual ~OclPostProcessBase();
+
 protected:
+    struct OclImage {
+        friend class OclPostProcessBase;
+        OclImage(VADisplay d);
+        ~OclImage();
+
+        cl_mem m_mem[3];
+        unsigned int m_numPlanes;
+        unsigned int m_format;
+
+    private:
+        VADisplay m_display;
+        VAImageID m_imageId;
+        VABufferID m_bufId;
+    };
+
+    SharedPtr<OclImage> createCLImage(const SharedPtr<VideoFrame>& frame,
+                                      const cl_image_format& fmt);
+    uint32_t getPixelSize(const cl_image_format& fmt);
+
     VADisplay m_display;
     cl_kernel m_kernel;
     SharedPtr<OclContext> m_context;

@@ -41,8 +41,11 @@ class OclDevice {
 public:
     static SharedPtr<OclDevice> getInstance();
     bool createKernel(cl_context context, const char* name, cl_kernel& kernel);
+    YamiStatus createImageFromFdIntel(cl_context context, const cl_import_image_info_intel* info, cl_mem* mem);
 
 private:
+    typedef cl_mem (*OclCreateImageFromFdIntel)(cl_context, const cl_import_image_info_intel*, cl_int*);
+
     OclDevice();
     bool init();
     bool loadKernel_l(cl_context context, const char* name, cl_kernel& kernel);
@@ -54,6 +57,7 @@ private:
     //all operations need procted by m_lock
     cl_platform_id m_platform;
     cl_device_id m_device;
+    OclCreateImageFromFdIntel m_oclCreateImageFromFdIntel;
     friend OclContext;
 
     DISALLOW_COPY_AND_ASSIGN(OclDevice)
@@ -105,8 +109,14 @@ bool OclContext::createKernel(const char* name, cl_kernel& kernel)
     return m_device->createKernel(m_context, name, kernel);
 }
 
+YamiStatus
+OclContext::createImageFromFdIntel(const cl_import_image_info_intel* info, cl_mem* mem)
+{
+    return m_device->createImageFromFdIntel(m_context, info, mem);
+}
+
 OclDevice::OclDevice()
-    :m_platform(0), m_device(0)
+    :m_platform(0), m_device(0), m_oclCreateImageFromFdIntel(0)
 {
 }
 
@@ -133,6 +143,18 @@ bool OclDevice::init()
     status = clGetDeviceIDs(m_platform, CL_DEVICE_TYPE_GPU, 1, &m_device, NULL);
     if (!checkOclStatus(status, "clGetDeviceIDs"))
         return false;
+
+#ifdef CL_VERSION_1_2
+    m_oclCreateImageFromFdIntel = (OclCreateImageFromFdIntel)
+        clGetExtensionFunctionAddressForPlatform(m_platform, "clCreateImageFromFdINTEL");
+#else
+    m_oclCreateImageFromFdIntel = (OclCreateImageFromFdIntel)
+        clGetExtensionFunctionAddress("clCreateImageFromFdINTEL");
+#endif
+    if (!m_oclCreateImageFromFdIntel) {
+        ERROR("failed to get extension function createImageFromFdIntel");
+        return false;
+    }
     return true;
 }
 
@@ -194,6 +216,18 @@ bool OclDevice::createKernel(cl_context context, const char* name, cl_kernel& ke
 {
       AutoLock lock(m_lock);
       return loadKernel_l(context, name, kernel);
+}
+
+
+YamiStatus OclDevice::createImageFromFdIntel(cl_context context, const cl_import_image_info_intel* info, cl_mem* mem)
+{
+    cl_int status;
+    *mem = m_oclCreateImageFromFdIntel(context, info, &status);
+    if (checkOclStatus(status, "clCreateImageFromFdINTEL")) {
+        return YAMI_SUCCESS;
+    } else {
+        return YAMI_FAIL;
+    }
 }
 
 bool checkOclStatus(cl_int status, const char* msg)

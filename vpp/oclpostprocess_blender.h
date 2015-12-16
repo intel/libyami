@@ -39,6 +39,9 @@ public:
 
 private:
     static const bool s_registered; // VaapiPostProcessFactory registration result
+
+    YamiStatus blend(const SharedPtr<VideoFrame>& src,
+                     const SharedPtr<VideoFrame>& dst);
 };
 
 }

@@ -40,6 +40,13 @@
 #include <va/va.h>
 #include <va/va_x11.h>
 
+struct timespec start, end;
+#define PERF_START(block) clock_gettime(CLOCK_REALTIME, &start);
+#define PERF_STOP(block) clock_gettime(CLOCK_REALTIME, &end);      \
+                         INFO(#block " used %f ms\n",            \
+                             (end.tv_sec - start.tv_sec) * 1000    \
+                           + (end.tv_nsec - start.tv_nsec) / 1E6);
+
 using namespace YamiMediaCodec;
 using namespace std;
 
@@ -103,6 +110,7 @@ public:
             memset(&m_dest->crop, 0, sizeof(VideoRect));
             m_scaler->process(frame, m_dest);
 
+            PERF_START(blend);
             //blend it
             for (int i = 0; i < m_blendSurfaces.size(); i++) {
                 m_bumpBoxes[i]->getPos(m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
@@ -111,6 +119,7 @@ public:
                 SharedPtr<VideoFrame>& src = m_blendSurfaces[i];
                 m_blender->process(src, m_dest);
             }
+            PERF_STOP(blend);
 
             //display it on screen
             memcpy(&m_dest->crop, &frame->crop, sizeof(VideoRect));
@@ -121,7 +130,6 @@ public:
                 ERROR("vaPutSurface return %d", status);
                 break;
             }
-
         }
         return true;
     }
@@ -244,7 +252,8 @@ private:
 
     bool createDestSurface(uint32_t targetWidth, uint32_t targetHeight)
     {
-        m_dest = createSurface(VA_RT_FORMAT_YUV420, VA_FOURCC_NV12, targetWidth, targetHeight   );
+        m_dest = createSurface(VA_RT_FORMAT_YUV420, VA_FOURCC_NV12, targetWidth, targetHeight);
+        m_dest->fourcc = YAMI_FOURCC_NV12; 
         return m_dest;
     }
 
