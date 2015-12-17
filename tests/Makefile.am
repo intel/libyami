@@ -177,3 +177,16 @@ yamivpp_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  vp
 yamitranscode_LDADD    = $(YAMI_VPP_LIBS)
 yamitranscode_LDFLAGS  = -pthread $(YAMI_VPP_LDFLAGS)
 yamitranscode_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.cpp  yamitranscode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputasync.cpp 
+
+bin_PROGRAMS += yamiinfo
+yamiinfo_SOURCES = yamiinfo.cpp
+yamiinfo_LDADD = \
+	$(top_builddir)/decoder/libyami_decoder.la \
+	$(top_builddir)/encoder/libyami_encoder.la \
+	$(top_builddir)/vpp/libyami_vpp.la \
+	$(NULL)
+yamiinfo_LDFLAGS = -Wl,--no-as-needed \
+	$(YAMI_DECODE_LDFLAGS) \
+	$(YAMI_ENCODE_LDFLAGS) \
+	$(YAMI_VPP_LDFLAGS) \
+	$(NULL)
