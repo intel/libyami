@@ -29,8 +29,7 @@ AM_CPPFLAGS = $(AM_CFLAGS)
 
 YAMI_COMMON_LIBS = \
 	$(LIBVA_LIBS) \
-	$(top_builddir)/common/libyami_common.la \
-	$(top_builddir)/vaapi/libyami_vaapi.la \
+	$(top_builddir)/libyami.la \
 	$(NULL)
 
 if ENABLE_X11
@@ -39,7 +38,6 @@ endif
 
 YAMI_DECODE_LIBS = \
 	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/decoder/libyami_decoder.la \
 	$(NULL)
 
 if BUILD_STATIC
@@ -63,7 +61,6 @@ endif
 
 YAMI_ENCODE_LIBS = \
 	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/encoder/libyami_encoder.la \
 	$(YAMI_DECODE_LIBS) \
 	$(NULL)
 
@@ -106,17 +103,14 @@ endif
 
 CAPI_DECODE_LIBS = \
 	$(YAMI_DECODE_LIBS) \
-	$(top_builddir)/capi/libyami_capi.la \
 	$(NULL)
 
 CAPI_ENCODE_LIBS = \
 	$(YAMI_ENCODE_LIBS) \
-	$(top_builddir)/capi/libyami_capi.la \
 	$(NULL)
 
 YAMI_VPP_LIBS = \
 	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/vpp/libyami_vpp.la \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(LIBVA_LIBS) \
 	$(LIBVA_DRM_LIBS) \
