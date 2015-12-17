@@ -23,6 +23,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 template < class T >
 class Factory {
@@ -30,6 +31,7 @@ public:
     typedef T* Type;
     typedef Type (*Creator) (void);
     typedef std::string KeyType;
+    typedef std::vector<KeyType> Keys;
     typedef std::map<KeyType, Creator> Creators;
     typedef typename Creators::iterator iterator;
     typedef typename Creators::const_iterator const_iterator;
@@ -60,6 +62,16 @@ public:
         if (creator != creators.end())
             return creator->second();
         return NULL;
+    }
+
+    static Keys keys()
+    {
+        Keys result;
+        const Creators& creators = getCreators();
+        const const_iterator endIt(creators.end());
+        for (const_iterator it(creators.begin()); it != endIt; ++it)
+            result.push_back(it->first);
+        return result;
     }
 
 private:
