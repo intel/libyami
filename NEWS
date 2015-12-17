@@ -1,7 +1,20 @@
-libyami NEWS -- summary of changes.  2015-09-16
+libyami NEWS -- summary of changes.  2015-12-17
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2015 Intel Corporation
+
+libyami 0.3.1 release, work with libva 2015Q4 release
+=====================
++b frame for h264 encoder
++CBR for h265 encoder
++yamitransocde application, it will do zero copy transcode, much faster than yamiencode
++fix static library link issue
++fix various issue in vaapidisplay, vp8dec, h264enc, h265enc, factory
+-transocde application will use default configuration, it did not use user set one.
+-if you use latest ffmpeg, vp9 decoder will failed for some clips.mentioned in #347.
+    it's not core library's issue. It's a yamidecode's issue.
+    You can use ffmpeg 2.6 as workaround.
+
 
 libyami 0.3.0 release, work with libva 2015Q3 release
 =====================
