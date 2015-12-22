@@ -1,0 +1,16 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libyami capi C wrapper
+Description: Intel Open source encoder based on libva
+Version: 1.0.0
+Requires: libyami_common libyami_codecparser libyami_vaapi libyami_encoder libyami_decoder \
+          @LIBVA_PKG_REQ@ \
+          @LIBVA_DRM_PKG_REQ@ \
+          @LIBVA_X11_PKG_REQ@ \
+          @X11_PKG_REQ@
+Libs: -L${libdir} -lyami_capi
+Libs.private: -Wl,--whole-archive -lyami_capi -Wl,--no-whole-archive
+Cflags: -I${includedir}/libyami_capi
