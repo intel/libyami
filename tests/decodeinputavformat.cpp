@@ -38,13 +38,24 @@ DecodeInputAvFormat::DecodeInputAvFormat()
 
 bool DecodeInputAvFormat::initInput(const char* fileName)
 {
+    uint16_t width = 0, height = 0;
     int ret = avformat_open_input(&m_format, fileName, NULL, NULL);
     if (ret)
         goto error;
+    int i;
+    for (i = 0; i < m_format->nb_streams; ++i) {
+        AVCodecContext* ctx = m_format->streams[i]->codec;
+        //VP9: width and height of the IVF header,VP8: width and height is zero
+        if (AVMEDIA_TYPE_VIDEO == ctx->codec_type) {
+            width = ctx->width;
+            height = ctx->height;
+            break;
+        }
+    }
+
     ret = avformat_find_stream_info(m_format, NULL);
     if (ret < 0)
         goto error;
-    int i;
     for (i = 0; i < m_format->nb_streams; i++)
     {
         AVCodecContext* ctx = m_format->streams[i]->codec;
@@ -53,7 +64,12 @@ bool DecodeInputAvFormat::initInput(const char* fileName)
             if (ctx->extradata && ctx->extradata_size)
                 m_codecData.append((char*)ctx->extradata, ctx->extradata_size);
             m_videoId = i;
-            setResolution(ctx->coded_width, ctx->coded_height);
+            //VP9: display_width and display_height of the first frame
+            if (ctx->coded_width > width)
+                width = ctx->coded_width;
+            if (ctx->coded_height > height)
+                height = ctx->coded_height;
+            setResolution(width, height);
             break;
         }
     }
