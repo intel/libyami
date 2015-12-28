@@ -1,0 +1,16 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libyami
+Description: Intel Open source encoder based on libva. \
+	Including encoder, decoder, capi, vpp(Video post process) and codeparser.
+Version: @LIBYAMI_LT_VERSION@
+Requires: @LIBVA_PKG_REQ@ \
+          @LIBVA_DRM_PKG_REQ@ \
+          @LIBVA_X11_PKG_REQ@ \
+          @X11_PKG_REQ@
+Libs: -L${libdir} -lyami
+Libs.private: -Wl,--whole-archive -lyami -Wl,--no-whole-archive
+Cflags: -I${includedir}/libyami

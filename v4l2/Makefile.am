@@ -24,8 +24,7 @@ libyami_v4l2_source_h_priv = \
 	$(NULL)
 
 libyami_v4l2_la_LIBADD = \
-	$(top_builddir)/decoder/libyami_decoder.la \
-	$(top_builddir)/encoder/libyami_encoder.la \
+	$(top_builddir)/libyami.la \
 	$(NULL)
 
 libyami_v4l2_ldflags = \

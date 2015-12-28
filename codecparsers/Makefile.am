@@ -57,11 +57,7 @@ libyami_codecparser_cppflags = \
 	-Dvp8dx_bool_decoder_fill=libyami_vp8dx_bool_decoder_fill \
 	$(NULL)
 
-libyami_codecparser_la_LIBADD = \
-	$(top_builddir)/common/libyami_common.la \
-	$(NULL)
-
-lib_LTLIBRARIES                    = libyami_codecparser.la
+noinst_LTLIBRARIES                 = libyami_codecparser.la
 libyami_codecparserincludedir      = ${includedir}/libyami_codecparser
 libyami_codecparserinclude_HEADERS = $(libyami_codecparser_source_h)
 noinst_HEADERS                     = $(libyami_codecparser_source_h_priv)

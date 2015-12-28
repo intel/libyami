@@ -5,6 +5,7 @@ pkg_config_files = \
 	libyami_encoder.pc \
 	libyami_vaapi.pc \
 	libyami_vpp.pc \
+	libyami.pc \
 	$(NULL)
 
 pkgconfigdir = @pkgconfigdir@
