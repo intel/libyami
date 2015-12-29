@@ -1,28 +1,25 @@
+libyami
+Yet Another Media Infrastructure.
+It is YUMMY to your video experience on Linux like platform.
 
-  libyami
-  Yet Another Media Infrastructure.
-  It is YUMMY to your video experience on Linux like platform.
+Yami is core building block for media solution. it parses video stream
+and decodes them leverage hardware acceleration.
+one usage is to encapsulate yami into openMAX component,
+to be used on Chromeos, Android or Linux (by gst-omx).
 
-  Yami is core building block for media solution. it parses video stream
-  and decodes them leverage hardware acceleration.
-  one usage is to encapsulate yami into openMAX component,
-  to be used on Chromeos, Android or Linux (by gst-omx).
-
-  Copyright (C) 2010-2011 Splitted-Desktop Systems
-  Copyright (C) 2011 Collabora Ltd.
-  Copyright (C) 2011-2014 Intel Corporation
+Copyright (C) 2010-2011 Splitted-Desktop Systems
+Copyright (C) 2011 Collabora Ltd.
+Copyright (C) 2011-2014 Intel Corporation
 
 
 License
 -------
-
 libyami libraries are available under the terms of the
 GNU Lesser General Public License v2.1+
 
 
 Overview
 --------
-
 libyami consists of several libraries:
     * 'codecparsers': it is bit stream parser,
         most files are reused from gst-plugins-bad <http://cgit.freedesktop.org/gstreamer/gst-plugins-bad>
@@ -33,9 +30,9 @@ libyami consists of several libraries:
        gstreamer-vaapi: <http://gitorious.org/vaapi/gstreamer-vaapi>
     * 'vpp': video post process implementation
 
+
 Features
 --------
-
   * H.264, H.265, VP8, VP9, JPEG ad-hoc decoder
   * H.264, H.265, VP8, JPEG ad-hoc encoder
   * CSC and scaling
@@ -43,7 +40,6 @@ Features
 
 Requirements
 ------------
-
 Hardware requirements
 
   * Intel Sandybridge, Ivybridge, Haswell and Broadwell (HD Graphics)
@@ -52,36 +48,56 @@ Hardware requirements
 
 Usage
 -----
+the usage in chromeos, please refer to chromium OVDA
 
-  * the usage in chromeos, please refer to chromium OVDA
 
 Sources
 -------
+Git repository for work-in-progress changes is available at:
+<https://github.com/01org/libyami>
 
-  Git repository for work-in-progress changes is available at:
-  <https://github.com/01org/libyami>
+
+Simple api demo application
+---------------------------
+https://github.com/01org/libyami/blob/master/examples/simpleplayer.cpp
+
+
+Build instructions
+------------------
+https://github.com/01org/libyami/wiki/Build
 
 
 Docs
--------
-
-  http://01org.github.io/libyami_doxygen/index.html
+----
+http://01org.github.io/libyami_doxygen/index.html
 
 
 Contributing
 ------------
+Create pull request at https://github.com/01org/libyami/compare
 
-  Create pull request at https://github.com/01org/libyami/compare
+
+Code style
+----------
+https://github.com/01org/libyami/wiki/Coding-Style
+
+
+Review process
+--------------
+https://github.com/01org/libyami/wiki/Code-Review-Process
 
 
 Mail list
 ---------
-
-  libyami@lists.01.org
+libyami@lists.01.org
 
 
 Reporting Bugs
 --------------
-
-  Bugs can be reported in the github system at:
+Bugs can be reported in the github system at:
   <https://github.com/01org/libyami/issues/new>
+
+
+FAQ
+---
+https://github.com/01org/libyami/wiki/FAQ
