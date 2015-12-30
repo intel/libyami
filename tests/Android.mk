@@ -1,6 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
         decodeinput.cpp \
@@ -22,11 +23,11 @@ ifeq ($(ENABLE-V4L2-OPS),true)
 LOCAL_SHARED_LIBRARIES += libdl
 endif
 
-LOCAL_CFLAGS := \
-         -O2 -fpermissive
+LOCAL_CPPFLAGS += \
+         -fpermissive
 
 ifeq ($(ENABLE-V4L2-OPS),true)
-LOCAL_CFLAGS += -D__ENABLE_V4L2_OPS__
+LOCAL_CPPFLAGS += -D__ENABLE_V4L2_OPS__
 endif
 
 LOCAL_MODULE := v4l2decoder

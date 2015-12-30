@@ -1,11 +1,12 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
-	$(TEST_PATH)/../tests/decodeinput.cpp \
-	$(TEST_PATH)/../tests/vppinputoutput.cpp \
-        androidplayer.cpp
+    ../tests/decodeinput.cpp \
+    ../tests/vppinputoutput.cpp \
+    androidplayer.cpp
 
 LOCAL_C_INCLUDES:= \
         $(LOCAL_PATH)/.. \
@@ -22,9 +23,6 @@ LOCAL_SHARED_LIBRARIES := \
         libva-android \
         libgui \
         libyami \
-
-LOCAL_CFLAGS := \
-         -O2
 
 LOCAL_MODULE := androidplayer
 include $(BUILD_EXECUTABLE)

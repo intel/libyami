@@ -1,7 +1,8 @@
 LOCAL_PATH := $(call my-dir)
-include $(CLEAR_VARS)
-
 LIBYAMICODEC_PATH := $(LOCAL_PATH)
+include $(CLEAR_VARS)
+include $(LIBYAMICODEC_PATH)/common.mk
+
 include $(LIBYAMICODEC_PATH)/common/Android.mk
 include $(LIBYAMICODEC_PATH)/codecparsers/Android.mk
 include $(LIBYAMICODEC_PATH)/vaapi/Android.mk
@@ -11,6 +12,7 @@ include $(LIBYAMICODEC_PATH)/vpp/Android.mk
 include $(LIBYAMICODEC_PATH)/v4l2/Android.mk
 
 include $(CLEAR_VARS)
+include $(LIBYAMICODEC_PATH)/common.mk
 
 LOCAL_SHARED_LIBRARIES := \
         liblog \
@@ -31,5 +33,6 @@ LOCAL_MODULE := libyami
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
+include $(LIBYAMICODEC_PATH)/common.mk
 include $(LIBYAMICODEC_PATH)/examples/Android.mk
 include $(LIBYAMICODEC_PATH)/tests/Android.mk

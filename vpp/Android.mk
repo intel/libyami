@@ -18,8 +18,8 @@ LOCAL_SHARED_LIBRARIES := \
         libva \
         libc++
 
-LOCAL_CFLAGS := \
-        -O2 --rtti
+LOCAL_CPPFLAGS += \
+        --rtti
 
 LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
 
