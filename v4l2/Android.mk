@@ -1,5 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
         v4l2_codecbase.cpp \
@@ -26,9 +27,6 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
         libyami_vpp \
         libyami_decoder \
         libyami_encoder
-
-LOCAL_CFLAGS := \
-         -O2 -Wno-sign-compare
 
 ifeq ($(ENABLE-V4L2-OPS),true)
 LOCAL_CFLAGS += -D__ENABLE_V4L2_OPS__

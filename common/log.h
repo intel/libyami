@@ -21,7 +21,7 @@
 #ifndef __LOG_H__
 #define __LOG_H__
 
-#ifdef ANDROID
+#if (defined(ANDROID) && defined(__USE_LOGCAT__))
 #include <utils/Log.h>
 #define ERROR(...)
 #define INFO(...)

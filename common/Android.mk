@@ -1,8 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
-
-LOCAL_CPPFLAGS := \
-         -O2 -Wno-sign-compare
+include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
         log.cpp \
