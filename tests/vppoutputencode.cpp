@@ -25,39 +25,8 @@
 #include "common/common_def.h"
 #include "vppoutputencode.h"
 
-struct MimeEntry
-{
-    const char* ext;
-    const char* mime;
-};
-
-static const MimeEntry MimeEntrys[] = {
-    "vp8", YAMI_MIME_VP8,
-    "264", YAMI_MIME_H264
-};
-
-const char* guessMime(const char* filename)
-{
-    if(filename==NULL)
-        return NULL;
-    const char *ext = strrchr(filename,'.');
-    if(ext==NULL)
-        return NULL;
-    ext++;
-    for (int i = 0; i < N_ELEMENTS(MimeEntrys); i++) {
-        const MimeEntry* entry = MimeEntrys + i;
-        if (strcasecmp(entry->ext, ext) == 0) {
-            return entry->mime;
-        }
-    }
-    return NULL;
-}
-
 bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/, int width, int height)
 {
-    m_mime = guessMime(outputFileName);
-    if (!m_mime)
-        return false;
 
     if(!width || !height)
         if (!guessResolution(outputFileName, width, height))
@@ -100,7 +69,7 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder, int width, i
 
 bool VppOutputEncode::config(NativeDisplay& nativeDisplay)
 {
-    m_encoder.reset(createVideoEncoder(m_mime), releaseVideoEncoder);
+    m_encoder.reset(createVideoEncoder(m_output->getMimeType()), releaseVideoEncoder);
     if (!m_encoder)
         return false;
     m_encoder->setNativeDisplay(&nativeDisplay);
