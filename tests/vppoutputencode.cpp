@@ -53,7 +53,7 @@ const char* guessMime(const char* filename)
     return NULL;
 }
 
-bool VppOutputEncode::init(const char* outputFileName, uint32_t fourcc, int width, int height)
+bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/, int width, int height)
 {
     m_mime = guessMime(outputFileName);
     if (!m_mime)
@@ -63,12 +63,7 @@ bool VppOutputEncode::init(const char* outputFileName, uint32_t fourcc, int widt
         if (!guessResolution(outputFileName, width, height))
             return false;
 
-    if (!fourcc)
-        fourcc = guessFourcc(outputFileName);
-    if (!fourcc)
-        fourcc = VA_FOURCC('I', '4', '2', '0');
-
-    m_fourcc = fourcc;
+    m_fourcc = VA_FOURCC('N', 'V', '1', '2');
     m_width = width;
     m_height = height;
     m_output.reset(EncodeOutput::create(outputFileName, m_width, m_height));
