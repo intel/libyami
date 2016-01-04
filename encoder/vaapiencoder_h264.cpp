@@ -713,6 +713,7 @@ VaapiEncoderH264::VaapiEncoderH264():
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
 
+    memset(&m_videoParamAVC, 0, sizeof(m_videoParamAVC));
     m_videoParamAVC.idrInterval = 30;
 }
 

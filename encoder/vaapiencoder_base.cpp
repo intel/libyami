@@ -48,6 +48,7 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_externalDisplay.handle = 0,
     m_externalDisplay.type = NATIVE_DISPLAY_AUTO,
 
+    memset(&m_videoParamCommon, 0, sizeof(m_videoParamCommon));
     m_videoParamCommon.size = sizeof(m_videoParamCommon);
     m_videoParamCommon.rawFormat = RAW_FORMAT_NV12;
     m_videoParamCommon.frameRate.frameRateNum = 30;
@@ -58,7 +59,7 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
     m_videoParamCommon.rcParams.maxQP = 51;
-    m_videoParamCommon.rcParams.bitRate= 0;	
+    m_videoParamCommon.rcParams.bitRate= 0;
     m_videoParamCommon.rcParams.targetPercentage= 70;
     m_videoParamCommon.rcParams.windowSize = 500;
     m_videoParamCommon.rcParams.disableBitsStuffing = 1;
@@ -199,7 +200,7 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PT
         if (common->size == sizeof(VideoParamsCommon)) {
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
             if(m_videoParamCommon.rcParams.bitRate > 0)
-	         m_videoParamCommon.rcMode = RATE_CONTROL_CBR;			
+	         m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
 	     // Only support CQP and CBR mode now
             if (m_videoParamCommon.rcMode != RATE_CONTROL_CBR)
                 m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
