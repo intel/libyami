@@ -79,6 +79,8 @@ extern "C" {
          ((uint32_t)(uint8_t)(ch2) << 16)  | ((uint32_t)(uint8_t)(ch3) << 24))
 
 #define YAMI_FOURCC_NV12 YAMI_FOURCC('N','V','1','2')
+#define YAMI_FOURCC_RGBX YAMI_FOURCC('R','G','B','X')
+#define YAMI_FOURCC_RGBA YAMI_FOURCC('R','G','B','A')
 
 typedef enum {
     NATIVE_DISPLAY_AUTO,    // decided by yami
@@ -192,6 +194,11 @@ typedef struct VideoFrame {
      * VIDEO_FRAME_FLAGS_XXX
      */
     uint32_t    flags;
+
+    /* android's csc need this to set VAProcColorStandardType
+     * see vaapipostprocess_scaler.cpp for details
+     */
+    uint32_t    fourcc;
 
 #ifdef __ENABLE_CAPI__
     /**
