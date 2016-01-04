@@ -874,6 +874,7 @@ VaapiEncoderHEVC::VaapiEncoderHEVC():
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
 
+    memset(&m_videoParamAVC, 0, sizeof(m_videoParamAVC));
     m_videoParamAVC.idrInterval = 30;
 }
 
@@ -1247,7 +1248,7 @@ void VaapiEncoderHEVC::referenceListFree()
 void VaapiEncoderHEVC::shortRfsUpdate(const PicturePtr& picture)
 {
     int i;
- 
+
     memset(&m_shortRFS, 0, sizeof(m_shortRFS));
 
     m_shortRFS.num_short_term_ref_pic_sets = 0;
@@ -1275,14 +1276,14 @@ void VaapiEncoderHEVC::shortRfsUpdate(const PicturePtr& picture)
         m_shortRFS.delta_poc_s1_minus1[i]                 = 0;
         m_shortRFS.used_by_curr_pic_s1_flag[i]            = 1;
     }
- 
+
 }
 
 
 void VaapiEncoderHEVC::setShortRfs()
 {
     int i;
- 
+
     memset(&m_shortRFS, 0, sizeof(m_shortRFS));
 
     if (intraPeriod() > 1) {
@@ -1308,7 +1309,7 @@ void VaapiEncoderHEVC::setShortRfs()
         m_shortRFS.delta_poc_s1_minus1[i]                 = 0;
         m_shortRFS.used_by_curr_pic_s1_flag[i]            = 1;
     }
- 
+
 }
 
 bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
@@ -1508,7 +1509,7 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
     /* no_output_of_prior_pics_flag */
     if (nalUnitType >=  BLA_W_LP && nalUnitType <= RSV_IRAP_VCL23 )
         bit_writer_put_bits_uint32(&bs, 1, 1);
-        
+
     /* slice_pic_parameter_set_id */
     bit_writer_put_ue(&bs, 0);
 
@@ -1550,22 +1551,22 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
                 /*  slice_temporal_mvp_enabled_flag and weighted_pred_flag are set to 0*/
                 ASSERT(!sliceParam->slice_fields.bits.slice_temporal_mvp_enabled_flag &&
                              !m_picParam->pic_fields.bits.weighted_bipred_flag);
-                
+
                 ASSERT(sliceParam->max_num_merge_cand <= 5);
                 bit_writer_put_ue(&bs, 5 - sliceParam->max_num_merge_cand);
             }
         }
-        
+
         bit_writer_put_ue(&bs, sliceParam->slice_qp_delta);
         /* pps_slice_chroma_qp_offsets_present_flag is set to 1 */
         bit_writer_put_ue(&bs, sliceParam->slice_cb_qp_offset);
         bit_writer_put_ue(&bs, sliceParam->slice_cr_qp_offset);
-        /* deblocking_filter_override_enabled_flag and 
+        /* deblocking_filter_override_enabled_flag and
           * pps_loop_filter_across_slices_enabled_flag are set to 0 */
     }
-    
+
     bit_writer_write_trailing_bits(&bs);
-     
+
     if(!picture->addPackedHeader(VAEncPackedHeaderSlice, bs.data, bs.bit_size)) {
         ret = false;
     }
@@ -1639,7 +1640,7 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
         addPackedSliceHeader(picture, sliceParam, i);
     }
     assert (lastCtuIndex == numCtus);
-    
+
     return true;
 }
 
