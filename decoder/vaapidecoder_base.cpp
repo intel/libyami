@@ -209,6 +209,7 @@ SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
     VideoRenderBuffer *buffer = pool->getOutput();
     if (buffer) {
         frame.reset(new VideoFrame, BufferRecycler(pool, buffer));
+        memset(frame.get(), 0, sizeof(VideoFrame));
         frame->surface = (intptr_t)buffer->surface;
         frame->timeStamp = buffer->timeStamp;
         frame->crop.x = 0;
