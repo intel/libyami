@@ -117,6 +117,7 @@ public:
             //we need fill dest crop to work around libva's bug.
             f->crop.width = width;
             f->crop.height = height;
+            f->fourcc = fourcc;
             f->surface = (intptr_t)m_surfaces[i];
             buffers.push_back(f);
         }

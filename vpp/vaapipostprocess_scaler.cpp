@@ -46,6 +46,23 @@ static void copyVideoFrameMeta(const SharedPtr<VideoFrame>& src, const SharedPtr
     dest->flags = src->flags;
 }
 
+//android csc need us set color standard
+VAProcColorStandardType fourccToColorStandard(uint32_t fourcc)
+{
+    if (fourcc == YAMI_FOURCC_RGBX || fourcc == YAMI_FOURCC_RGBA) {
+        //we should return VAProcColorStandardSRGB here
+        //but it only exist on libva staging. so we return None
+        //side effect is android libva will print error info when we convert it to RGB
+        //we will change this after staing merged to master
+        //return VAProcColorStandardSRGB;
+        return VAProcColorStandardNone;
+    }
+    if (fourcc == YAMI_FOURCC_NV12)
+        return VAProcColorStandardBT601;
+    ERROR("invalid fourcc, set color stand to bt601");
+    return VAProcColorStandardBT601;
+}
+
 YamiStatus
 VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
                                 const SharedPtr<VideoFrame>& dest)
@@ -67,12 +84,12 @@ VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
     if (fillRect(srcCrop, src->crop))
         vppParam->surface_region = &srcCrop;
     vppParam->surface = (VASurfaceID)src->surface;
-    vppParam->surface_color_standard = VAProcColorStandardNone;
+    vppParam->surface_color_standard = fourccToColorStandard(src->fourcc);
 
     if (fillRect(destCrop, dest->crop))
         vppParam->output_region = &destCrop;
     vppParam->output_background_color = 0xff000000;
-    vppParam->output_color_standard = VAProcColorStandardNone;
+    vppParam->output_color_standard = fourccToColorStandard(dest->fourcc);
     return picture.process() ? YAMI_SUCCESS : YAMI_FAIL;
 }
 
