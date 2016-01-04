@@ -23,17 +23,48 @@
 #define vppoutputencode_h
 #include "VideoEncoderHost.h"
 #include "encodeinput.h"
+#include <string>
 #include <vector>
 
 #include "vppinputoutput.h"
+using std::string;
+//#include "yamitranscodehelp.h"
 
+class EncodeParams
+{
+public:
+    EncodeParams();
+
+    VideoRateControl rcMode;
+    int32_t initQp;
+    int32_t bitRate;
+    int32_t fps;
+    int32_t ipPeriod;
+    int32_t ipbMode;
+    int32_t kIPeriod;
+    string codec;
+};
+
+class TranscodeParams
+{
+public:
+    TranscodeParams();
+
+    EncodeParams m_encParams;
+    uint32_t frameCount;
+    int32_t oWidth; /*output video width*/
+    int32_t oHeight; /*output vide height*/
+    uint32_t fourcc;
+    string inputFileName;
+    string outputFileName;
+};
 
 class VppOutputEncode : public VppOutput
 {
 public:
     virtual bool output(const SharedPtr<VideoFrame>& frame);
     virtual ~VppOutputEncode(){}
-    bool config(NativeDisplay& nativeDisplay);
+    bool config(NativeDisplay& nativeDisplay, const EncodeParams* encParam = NULL);
 protected:
     virtual bool init(const char* outputFileName, uint32_t fourcc, int width, int height);
 private:

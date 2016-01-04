@@ -822,7 +822,6 @@ Encode_Status VaapiEncoderH264::getMVBufferSize(uint32_t *Size)
 
 Encode_Status VaapiEncoderH264::start()
 {
-    printf("start");
     FUNC_ENTER();
     resetParams();
     return VaapiEncoderBase::start();

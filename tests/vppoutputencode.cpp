@@ -25,6 +25,29 @@
 #include "common/common_def.h"
 #include "vppoutputencode.h"
 
+EncodeParams::EncodeParams()
+    : rcMode(RATE_CONTROL_CQP)
+    , initQp(26)
+    , bitRate(0)
+    , fps(30)
+    , ipPeriod(1)
+    , ipbMode(1)
+    , kIPeriod(30)
+    , codec("AVC")
+{
+    /*nothing to do*/
+}
+
+TranscodeParams::TranscodeParams()
+    : m_encParams()
+    , frameCount(UINT_MAX)
+    , oWidth(0)
+    , oHeight(0)
+    , fourcc(VA_FOURCC_NV12)
+{
+    /*nothing to do*/
+}
+
 bool VppOutputEncode::init(const char* outputFileName, uint32_t /*fourcc*/, int width, int height)
 {
 
@@ -50,7 +73,8 @@ void VppOutputEncode::initOuputBuffer()
 
 }
 
-static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder, int width, int height)
+static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
+                           int width, int height, const EncodeParams* encParam)
 {
        //configure encoding parameters
     VideoParamsCommon encVideoParams;
@@ -58,6 +82,18 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder, int width, i
     encoder->getParameters(VideoParamsTypeCommon, &encVideoParams);
     encVideoParams.resolution.width = width;
     encVideoParams.resolution.height = height;
+
+    //frame rate parameters.
+    encVideoParams.frameRate.frameRateDenom = 1;
+    encVideoParams.frameRate.frameRateNum = encParam->fps;
+
+    //picture type and bitrate
+    encVideoParams.intraPeriod = encParam->kIPeriod;
+    encVideoParams.ipPeriod = encParam->ipPeriod;
+    encVideoParams.rcParams.bitRate = encParam->bitRate;
+    encVideoParams.rcParams.initQP = encParam->initQp;
+    encVideoParams.rcMode = encParam->rcMode;
+
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
 
@@ -67,13 +103,13 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder, int width, i
     encoder->setParameters(VideoConfigTypeAVCStreamFormat, &streamFormat);
 }
 
-bool VppOutputEncode::config(NativeDisplay& nativeDisplay)
+bool VppOutputEncode::config(NativeDisplay& nativeDisplay, const EncodeParams* encParam)
 {
     m_encoder.reset(createVideoEncoder(m_output->getMimeType()), releaseVideoEncoder);
     if (!m_encoder)
         return false;
     m_encoder->setNativeDisplay(&nativeDisplay);
-    setEncodeParam(m_encoder, m_width, m_height);
+    setEncodeParam(m_encoder, m_width, m_height, encParam);
 
     Encode_Status status = m_encoder->start();
     assert(status == ENCODE_SUCCESS);
