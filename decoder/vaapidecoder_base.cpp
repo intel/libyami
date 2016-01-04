@@ -215,6 +215,8 @@ SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
         frame->crop.y = 0;
         frame->crop.width = m_videoFormatInfo.width;
         frame->crop.height = m_videoFormatInfo.height;
+        //TODO: get fourcc directly from surface allocator
+        frame->fourcc = YAMI_FOURCC_NV12;
     }
     return frame;
 }

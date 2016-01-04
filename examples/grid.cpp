@@ -98,6 +98,7 @@ DrmFrame::DrmFrame(VADisplay display, int fd, uint32_t width, uint32_t height)
     //dirty but handy
     VideoFrame* frame = static_cast<VideoFrame*>(this);
     memset(frame, 0, sizeof(VideoFrame));
+    frame->fourcc = YAMI_FOURCC_RGBX;
     frame->surface = static_cast<intptr_t>(VA_INVALID_ID);
 }
 
