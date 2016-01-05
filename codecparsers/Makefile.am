@@ -7,6 +7,12 @@ libyami_codecparser_source_c = \
 	dboolhuff.c \
 	$(NULL)
 
+if BUILD_JPEG_DECODER
+libyami_codecparser_source_c += \
+	jpegParser.cpp \
+	$(NULL)
+endif
+
 if BUILD_VP8_DECODER
 libyami_codecparser_source_c += \
 	vp8_bool_decoder.cpp \
@@ -19,6 +25,12 @@ libyami_codecparser_source_h_priv = \
 	nalReader.h \
 	vp9quant.h \
 	$(NULL)
+
+if BUILD_JPEG_DECODER
+libyami_codecparser_source_h_priv += \
+	jpegParser.h \
+	$(NULL)
+endif
 
 if BUILD_VP8_DECODER
 libyami_codecparser_source_h_priv += \
@@ -61,6 +73,12 @@ unittest_SOURCES = \
 if BUILD_VP8_DECODER
 unittest_SOURCES += \
         vp8_bool_decoder_unittest.cpp \
+        $(NULL)
+endif
+
+if BUILD_JPEG_DECODER
+unittest_SOURCES += \
+        jpegParser_unittest.cpp \
         $(NULL)
 endif
 
