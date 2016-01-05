@@ -18,6 +18,7 @@ LOCAL_SHARED_LIBRARIES := \
         liblog \
         libc++ \
         libva \
+        libhardware \
         libva-android
 
 LOCAL_WHOLE_STATIC_LIBRARIES := \

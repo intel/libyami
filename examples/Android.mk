@@ -22,6 +22,7 @@ LOCAL_SHARED_LIBRARIES := \
         libva \
         libva-android \
         libgui \
+        libhardware \
         libyami \
 
 LOCAL_MODULE := androidplayer
