@@ -155,7 +155,8 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length)
     return 0;
 }
 
-#if __ENABLE_V4L2_GLX__
+#if ANDROID
+#elif __ENABLE_V4L2_GLX__
 int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -279,7 +280,9 @@ bool v4l2codecOperationInit(V4l2CodecOps *opFuncs)
     V4L2_DLSYM_OR_RETURN_ON_ERROR(Mmap);
     V4L2_DLSYM_OR_RETURN_ON_ERROR(Munmap);
     V4L2_DLSYM_OR_RETURN_ON_ERROR(SetParameter);
+#ifndef ANDROID
     V4L2_DLSYM_OR_RETURN_ON_ERROR(UseEglImage);
+#endif
 #undef V4L2_DLSYM_OR_RETURN_ON_ERROR
 
     return true;

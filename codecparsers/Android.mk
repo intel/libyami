@@ -1,6 +1,7 @@
 LOCAL_PATH := $(call my-dir)
-
 include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
+
 LOCAL_SRC_FILES := \
         bitreader.c \
         bytereader.c \
@@ -27,9 +28,6 @@ LOCAL_C_INCLUDES := \
 LOCAL_SHARED_LIBRARIES := \
         libcutils \
         liblog
-
-LOCAL_CFLAGS := \
-         -O2 -Wno-sign-compare
 
 LOCAL_MODULE := libcodecparser
 include $(BUILD_STATIC_LIBRARY)

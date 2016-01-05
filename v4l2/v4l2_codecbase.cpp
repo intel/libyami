@@ -39,6 +39,14 @@
 #include "common/common_def.h"
 #include <algorithm>
 
+#if ANDROID
+#if !defined(EFD_SEMAPHORE)
+#define EFD_SEMAPHORE (1 << 0)
+#endif
+
+#define ANDROID_DISPLAY 0x18C34078
+#endif
+
 typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
 #define THREAD_NAME(thread) (thread == INPUT ? "INPUT" : "OUTPUT")
 
@@ -73,7 +81,8 @@ typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
 V4l2CodecBase::V4l2CodecBase()
     : m_memoryType(VIDEO_DATA_MEMORY_TYPE_RAW_COPY)
     , m_started(false)
-#if __ENABLE_V4L2_GLX__
+#if ANDROID
+#elif __ENABLE_V4L2_GLX__
     , m_x11Display(NULL)
 #else
     , m_drmfd(0)
@@ -299,6 +308,17 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
                 // XXX, setup X display
                 DEBUG("start decoding");
+#ifdef ANDROID
+                if (!setVaDisplay()) {
+                    fprintf(stderr, "fail to set up VADisplay\n");
+                    ret = -1;
+                }
+
+                if (!createVpp()) {
+                    fprintf(stderr, "fail to set up VPP\n");
+                    ret = -1;
+                }
+#endif
                 boolRet = start();
                 ASSERT(boolRet);
                 port = INPUT;
@@ -411,6 +431,13 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 port = INPUT;
             } else if (dqbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
                 port = OUTPUT;
+#ifdef ANDROID
+                if (m_streamOn[port] == false) {
+                    dqbuf->index = m_framesTodo[port].front();
+                    m_framesTodo[port].pop_front();
+                    break;
+                }
+#endif
             } else {
                 ret = -1;
                 ERROR("unknown buffer type: %d in command VIDIOC_DQBUF", dqbuf->type);
@@ -572,3 +599,30 @@ const char* mimeFromV4l2PixelFormat(uint32_t pixelFormat)
     }
     return mime;
 }
+
+#if ANDROID
+inline bool V4l2CodecBase::setVaDisplay()
+{
+    unsigned int display = ANDROID_DISPLAY;
+    m_vaDisplay = vaGetDisplay(&display);
+
+    int major, minor;
+    VAStatus status;
+    status = vaInitialize(m_vaDisplay, &major, &minor);
+    if (status != VA_STATUS_SUCCESS) {
+        fprintf(stderr, "init vaDisplay failed\n");
+        return false;
+    }
+
+    return true;
+}
+
+inline bool V4l2CodecBase::createVpp()
+{
+    NativeDisplay nativeDisplay;
+    nativeDisplay.type = NATIVE_DISPLAY_VA;
+    nativeDisplay.handle = (intptr_t)m_vaDisplay;
+    m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
+    return m_vpp->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
+}
+#endif

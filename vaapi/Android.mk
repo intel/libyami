@@ -1,6 +1,7 @@
 LOCAL_PATH := $(call my-dir)
-
 include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
+
 LOCAL_SRC_FILES := \
         vaapipicture.cpp \
         vaapibuffer.cpp \
@@ -19,10 +20,11 @@ LOCAL_C_INCLUDES:= \
 LOCAL_SHARED_LIBRARIES := \
         liblog \
         libva \
-        libc++
+        libva-android \
+        libc++ \
 
-LOCAL_CFLAGS := \
-        -O2 --rtti
+LOCAL_CPPFLAGS += \
+        --rtti
 
 LOCAL_MODULE := libyami_vaapi
 include $(BUILD_STATIC_LIBRARY)
