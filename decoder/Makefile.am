@@ -20,6 +20,10 @@ if BUILD_VP9_DECODER
 libyami_decoder_source_c += vaapidecoder_vp9.cpp
 endif
 
+if BUILD_JPEG_DECODER
+libyami_decoder_source_c += vaapiDecoderJPEG.cpp
+endif
+
 if BUILD_FAKE_DECODER
 libyami_decoder_source_c += vaapidecoder_fake.cpp
 endif
@@ -47,6 +51,10 @@ endif
 
 if BUILD_VP9_DECODER
 libyami_decoder_source_h_priv += vaapidecoder_vp9.h
+endif
+
+if BUILD_JPEG_DECODER
+libyami_decoder_source_h_priv += vaapiDecoderJPEG.h
 endif
 
 if BUILD_FAKE_DECODER
@@ -90,6 +98,10 @@ unittest_SOURCES = \
 
 if BUILD_VP8_DECODER
 unittest_SOURCES += vaapidecoder_vp8_unittest.cpp
+endif
+
+if BUILD_JPEG_DECODER
+unittest_SOURCES += vaapiDecoderJPEG_unittest.cpp
 endif
 
 unittest_LDFLAGS = \
