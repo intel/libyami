@@ -34,6 +34,7 @@
 #include <gui/ISurfaceComposer.h>
 #include <ui/DisplayInfo.h>
 #include <android/native_window.h>
+#include <ufo/gralloc.h>
 #include <system/window.h>
 #include <ui/GraphicBufferMapper.h>
 #include <ufo/graphics.h>
@@ -128,7 +129,10 @@ public:
         return true;
     }
 
-    AndroidPlayer():m_width(0), m_height(0) {}
+    AndroidPlayer() : m_width(0), m_height(0)
+    {
+        hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (hw_module_t const**)&m_pGralloc);
+    }
 
     ~AndroidPlayer()
     {
@@ -225,6 +229,19 @@ private:
     {
         SharedPtr<VideoFrame> frame;
 
+        intel_ufo_buffer_details_t info;
+        memset(&info, 0, sizeof(info));
+        *reinterpret_cast<uint32_t*>(&info) = sizeof(info);
+
+        int err = 0;
+        if (m_pGralloc)
+            err = m_pGralloc->perform(m_pGralloc, INTEL_UFO_GRALLOC_MODULE_PERFORM_GET_BO_INFO, (buffer_handle_t)buf->handle, &info);
+
+        if (0 != err || !m_pGralloc) {
+            fprintf(stderr, "create vaSurface failed\n");
+            return frame;
+        }
+
         VASurfaceAttrib attrib;
         memset(&attrib, 0, sizeof(attrib));
 
@@ -234,7 +251,7 @@ private:
         external.pixel_format = VA_FOURCC_NV12;
         external.width = buf->width;
         external.height = buf->height;
-        external.pitches[0] = buf->width; //?
+        external.pitches[0] = info.pitch;
         external.num_planes = 2;
         external.num_buffers = 1;
         uint8_t* handle = (uint8_t*)buf->handle;
@@ -300,6 +317,7 @@ private:
     int m_width, m_height;
 
     sp<Surface> m_surface;
+    gralloc_module_t* m_pGralloc;
     std::map< ANativeWindowBuffer*, SharedPtr<VideoFrame> > m_buff;
     SharedPtr<IVideoPostProcess> m_vpp;
 };
