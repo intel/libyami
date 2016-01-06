@@ -1311,10 +1311,6 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
 
 bool VaapiEncoderH264::ensureSequence(const PicturePtr& picture)
 {
-    if (picture->m_type != VAAPI_PICTURE_TYPE_I) {
-        return true;
-    }
-
     VAEncSequenceParameterBufferH264* seqParam;
 
     if (!picture->editSequence(seqParam) || !fill(seqParam)) {
@@ -1322,7 +1318,7 @@ bool VaapiEncoderH264::ensureSequence(const PicturePtr& picture)
         return false;
     }
 
-    if (!ensureSequenceHeader(picture, seqParam)) {
+    if (picture->isIdr() && !ensureSequenceHeader(picture, seqParam)) {
         ERROR ("failed to create packed sequence header buffer");
         return false;
     }
