@@ -1183,6 +1183,7 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
         for (i = 0; i < m_refList.size(); i++) {
             picParam->ReferenceFrames[i].picture_id = m_refList[i]->m_pic->getID();
             picParam->ReferenceFrames[i].TopFieldOrderCnt = m_refList[i]->m_poc;
+            picParam->ReferenceFrames[i].flags |= VA_PICTURE_H264_SHORT_TERM_REFERENCE;
         }
     }
 
@@ -1236,6 +1237,7 @@ bool VaapiEncoderH264::fillReferenceList(VAEncSliceParameterBufferH264* slice) c
         assert(m_refList0[i] && m_refList0[i]->m_pic && (m_refList0[i]->m_pic->getID() != VA_INVALID_ID));
         slice->RefPicList0[i].picture_id = m_refList0[i]->m_pic->getID();
         slice->RefPicList0[i].TopFieldOrderCnt= m_refList0[i]->m_poc;
+        slice->RefPicList0[i].flags |= VA_PICTURE_H264_SHORT_TERM_REFERENCE;
     }
     for (; i < N_ELEMENTS(slice->RefPicList0); i++)
         slice->RefPicList0[i].picture_id = VA_INVALID_SURFACE;
@@ -1244,6 +1246,7 @@ bool VaapiEncoderH264::fillReferenceList(VAEncSliceParameterBufferH264* slice) c
         assert(m_refList1[i] && m_refList1[i]->m_pic && (m_refList1[i]->m_pic->getID() != VA_INVALID_ID));
         slice->RefPicList1[i].picture_id = m_refList1[i]->m_pic->getID();
         slice->RefPicList1[i].TopFieldOrderCnt= m_refList1[i]->m_poc;
+        slice->RefPicList1[i].flags |= VA_PICTURE_H264_SHORT_TERM_REFERENCE;
     }
     for (; i < N_ELEMENTS(slice->RefPicList1); i++)
         slice->RefPicList1[i].picture_id = VA_INVALID_SURFACE;
