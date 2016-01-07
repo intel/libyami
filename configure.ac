@@ -30,6 +30,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([aux])
 AM_INIT_AUTOMAKE([foreign])
+AM_SILENT_RULES([yes])
 
 LIBYAMI_LT_VERSION="libyami_major_version:libyami_minor_version:libyami_micro_version"
 LIBYAMI_LT_LDFLAGS="-version-number $LIBYAMI_LT_VERSION"
