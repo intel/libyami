@@ -455,9 +455,9 @@ bool VaapiEncoderBase::initVA()
 
     m_alloc.reset(new VaapiSurfaceAllocator(m_display->getID()), unrefAllocator);
 
-    int32_t width = m_videoParamCommon.resolution.width;
-    int32_t height = m_videoParamCommon.resolution.height;
-    m_pool = SurfacePool::create(m_display, m_alloc, YAMI_FOURCC_NV12, (uint32_t)width, (uint32_t)height,m_maxOutputBuffer);
+    int32_t surfaceWidth = ALIGN16(m_videoParamCommon.resolution.width);
+    int32_t surfaceHeight = ALIGN16(m_videoParamCommon.resolution.height);
+    m_pool = SurfacePool::create(m_display, m_alloc, YAMI_FOURCC_NV12, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight,m_maxOutputBuffer);
     if (!m_pool)
         return false;
 
@@ -465,8 +465,8 @@ bool VaapiEncoderBase::initVA()
     m_pool->peekSurfaces(surfaces);
 
     m_context = VaapiContext::create(config,
-                             width,
-                             height,
+                             surfaceWidth,
+                             surfaceHeight,
                              VA_PROGRESSIVE, &surfaces[0], surfaces.size());
     if (!m_context) {
         ERROR("failed to create context");
