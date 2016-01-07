@@ -38,6 +38,10 @@
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+#define GETTID()    syscall(__NR_gettid)
+
 extern int yamiLogFlag;
 extern FILE* yamiLogFn;
 extern int isIni;
@@ -53,7 +57,7 @@ extern int isIni;
         if (yamiLogFlag >= YAMI_LOG_##LEVEL) { \
             const char* name = strrchr(__FILE__, '/'); \
             name = (name ? (name + 1) : __FILE__); \
-            yamiMessage(yamiLogFn, "libyami %s(%s, %d): " format "\n", #prefix, name, __LINE__, ##__VA_ARGS__); \
+            yamiMessage(yamiLogFn, "libyami %s %ld (%s, %d): " format "\n", #prefix, (long int)GETTID(), name, __LINE__, ##__VA_ARGS__); \
         } \
     } while (0)
 

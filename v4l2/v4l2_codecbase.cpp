@@ -32,6 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <linux/videodev2.h>
+#include <sys/prctl.h>
 
 #include "v4l2_encode.h"
 #include "v4l2_decode.h"
@@ -48,7 +49,7 @@
 #endif
 
 typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
-#define THREAD_NAME(thread) (thread == INPUT ? "INPUT" : "OUTPUT")
+#define THREAD_NAME(thread) (thread == INPUT ? "V4L2-INPUT" : "V4L2-OUTPUT")
 
 #define DEBUG_FRAME_LIST(list, listType, maxSize)  do {         \
     std::listType<int>::iterator it = list.begin();             \
@@ -172,6 +173,7 @@ void V4l2CodecBase::workerThread()
             return;
         }
         INFO("create work thread for %s", THREAD_NAME(thread));
+        prctl(PR_SET_NAME, THREAD_NAME(thread)) ;
         m_threadOn[thread] = true;
     }
 
