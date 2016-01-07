@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+// primary header
 #include "factory.h"
+
+// library headers
+#include "common/unittest.h"
 
 #define FACTORY_TEST(name) \
     TEST(FactoryTest, name)

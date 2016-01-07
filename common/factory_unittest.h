@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
-#include <vector>
+// primary header
 #include "common/factory.h"
+
+// library headers
+#include "common/unittest.h"
+
+// system headers
+#include <vector>
 
 template <class Base, class Derived>
 class FactoryTest

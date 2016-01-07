@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
-#include <va/va.h>
+// primary header
+#include "utils.h"
+
+// library headers
+#include "common/unittest.h"
+
+// system headers
 #include <limits>
 #include <sstream>
-#include "utils.h"
+#include <va/va.h>
 
 #define UTILS_TEST(name) \
     TEST(UtilsTest, name)

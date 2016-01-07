@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
-#include <tr1/array>
+// primary header
 #include "nalreader.h"
+
+// library headers
+#include "common/unittest.h"
+
+// system headers
+#include <tr1/array>
 
 namespace YamiMediaCodec {
 

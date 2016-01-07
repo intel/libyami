@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
+// library headers
+#include "common/unittest.h"
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);

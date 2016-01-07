@@ -18,12 +18,23 @@
 #include "config.h"
 #endif
 
-#include <gtest/gtest.h>
-#include <unistd.h>
+// The unittest header must be included before vaapidisplay.h.
+// In vaapidisplay.h we include va_x11.h which includes Xlib.h and X.h.
+// The X headers define 'Bool' and 'None' preprocessor types.  Gtest
+// uses the same names to define some struct placeholders.  Thus, this
+// creates a compile conflict if X defines them before gtest.  Hence, the
+// include order requirement here is the only fix for this right now.
+// See bug filed on gtest at https://github.com/google/googletest/issues/371
+// for more details.
+#include "common/unittest.h"
+
+// primary header
+#include "vaapidisplay.h"
+
+// system headers
 #include <fcntl.h>
 #include <set>
-
-#include "vaapidisplay.h"
+#include <unistd.h>
 
 namespace YamiMediaCodec {
 

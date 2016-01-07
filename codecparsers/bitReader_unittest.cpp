@@ -17,8 +17,10 @@
 // primary header
 #include "bitReader.h"
 
+// library headers
+#include "common/unittest.h"
+
 // system libraries
-#include <gtest/gtest.h>
 #include <limits>
 #include <vector>
 
