@@ -439,6 +439,9 @@ Decode_Status VaapiDecoderJpeg::decode(VideoDecodeBuffer * buffer)
         case JPEG_MARKER_EOI:
             /* Get out of the loop, trailing data is not needed */
             status = decodePictureEnd();
+            if (ofs < bufSize)
+                WARNING("%d bytes of trailing data skipped", bufSize - ofs);
+            return status;
             break;
         case JPEG_MARKER_DHT:
             status = parseHuffmanTable(buf + seg.offset, seg.size);
