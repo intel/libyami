@@ -52,6 +52,7 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.frameRate.frameRateDenom = 1;
     m_videoParamCommon.intraPeriod = 15;
     m_videoParamCommon.ipPeriod = 1;
+    m_videoParamCommon.numRefFrames = 1;
     m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;

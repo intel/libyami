@@ -337,8 +337,9 @@ typedef struct VideoParamsCommon {
     VideoRawFormat rawFormat;
     VideoResolution resolution;
     VideoFrameRate frameRate;
-    int32_t intraPeriod;
-    int32_t ipPeriod;
+    uint32_t intraPeriod;
+    uint32_t ipPeriod;
+    uint32_t numRefFrames;
     VideoRateControl rcMode;
     VideoRateControlParams rcParams;
     VideoIntraRefreshType refreshType;

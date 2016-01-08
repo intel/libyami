@@ -788,11 +788,15 @@ void VaapiEncoderH264::resetParams ()
     m_log2MaxPicOrderCnt = m_log2MaxFrameNum + 1;
     m_maxPicOrderCnt = (1 << m_log2MaxPicOrderCnt);
 
-    m_maxRefList0Count = 1;
-    m_maxRefList1Count = m_numBFrames > 0;
+    m_maxRefList1Count = m_numBFrames > 0;//m_maxRefList1Count <=1, because of currenent order mechanism
+    m_maxRefList0Count = numRefFrames();
+    if (m_maxRefList0Count >= m_maxOutputBuffer -1)
+        m_maxRefList0Count = m_maxOutputBuffer -1;
+
     m_maxRefFrames =
         m_maxRefList0Count + m_maxRefList1Count;
 
+    assert(m_maxRefFrames <= m_maxOutputBuffer);
     INFO("m_maxRefFrames: %d", m_maxRefFrames);
 
 
