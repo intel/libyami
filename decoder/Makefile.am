@@ -91,6 +91,7 @@ unittest_LDADD = \
 
 unittest_CPPFLAGS = \
 	$(GTEST_CPPFLAGS) \
+	$(LIBVA_CFLAGS) \
 	$(NULL)
 
 unittest_CXXFLAGS = \

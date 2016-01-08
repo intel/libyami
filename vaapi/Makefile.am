@@ -65,6 +65,7 @@ endif
 
 unittest_CPPFLAGS = \
 	$(GTEST_CPPFLAGS) \
+	$(LIBVA_CFLAGS) \
 	$(NULL)
 
 unittest_CXXFLAGS = \
