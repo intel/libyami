@@ -279,8 +279,8 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
         if (parms->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
             AutoLock locker(m_videoParamsLock);
             // ::RequestEncodingParametersChangeTask
-            m_videoParams.frameRate.frameRateNum = parms->parm.output.timeperframe.denominator;
-            m_videoParams.frameRate.frameRateDenom = parms->parm.output.timeperframe.numerator;
+            m_videoParams.frameRate.frameRateNum = parms->parm.output.timeperframe.numerator;
+            m_videoParams.frameRate.frameRateDenom = parms->parm.output.timeperframe.denominator;
             int framerate = m_videoParams.frameRate.frameRateNum/m_videoParams.frameRate.frameRateDenom;
             if (framerate * 2 < m_videoParams.intraPeriod) {
                 m_videoParams.intraPeriod = framerate * 2;
