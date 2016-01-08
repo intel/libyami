@@ -260,8 +260,8 @@ int main(int argc, char** argv)
     struct v4l2_streamparm parms;
     memset(&parms, 0, sizeof(parms));
     parms.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    parms.parm.output.timeperframe.denominator = fps;
-    parms.parm.output.timeperframe.numerator = 1;
+    parms.parm.output.timeperframe.denominator = 1;
+    parms.parm.output.timeperframe.numerator = fps;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_PARM, &parms);
     ASSERT(ioctlRet != -1);
 
