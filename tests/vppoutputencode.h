@@ -42,6 +42,7 @@ public:
     int32_t ipPeriod;
     int32_t ipbMode;
     int32_t kIPeriod;
+    int32_t numRefFrames;
     string codec;
 };
 

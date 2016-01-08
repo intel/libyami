@@ -127,6 +127,11 @@ protected:
     uint32_t ipPeriod() const {
         return m_videoParamCommon.ipPeriod;
     }
+
+    uint32_t numRefFrames() const {
+        return m_videoParamCommon.numRefFrames;
+    }
+
     uint32_t frameRateDenom() const {
         return m_videoParamCommon.frameRate.frameRateDenom;
     }

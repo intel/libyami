@@ -37,6 +37,8 @@ static int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 30;
 static int initQp=26;
 static VideoRateControl rcMode = RATE_CONTROL_CQP;
 static int frameCount = 0;
+static int numRefFrames = 1;
+
 #ifdef __BUILD_GET_MV__
 static FILE *MVFp;
 #endif
@@ -70,6 +72,7 @@ static void print_help(const char* app)
     printf("   --rcmode <CBR|CQP> optional\n");
     printf("   --ipbmode <0(I frame only ) | 1 (I and P frames) | 2 (I,P,B frames)> optional\n");
     printf("   --keyperiod <key frame period(default 30)> optional\n");
+    printf("   --refnum <number of referece frames(default 1)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -96,6 +99,7 @@ static bool process_cmdline(int argc, char *argv[])
         {"rcmode", required_argument, NULL, 0 },
         {"ipbmode", required_argument, NULL, 0 },
         {"keyperiod", required_argument, NULL, 0 },
+        {"refnum", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -152,6 +156,9 @@ static bool process_cmdline(int argc, char *argv[])
                     break;
                 case 4:
                     kIPeriod = atoi(optarg);
+                    break;
+                case 5:
+                    numRefFrames= atoi(optarg);
                     break;
             }
         }
@@ -210,6 +217,7 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
     encVideoParams->rcParams.bitRate = bitRate;
     encVideoParams->rcParams.initQP = initQp;
     encVideoParams->rcMode = rcMode;
+    encVideoParams->numRefFrames = numRefFrames;
     //encVideoParams->rcParams.minQP = 1;
 
     //encVideoParams->profile = VAProfileH264Main;

@@ -33,6 +33,7 @@ EncodeParams::EncodeParams()
     , ipPeriod(1)
     , ipbMode(1)
     , kIPeriod(30)
+    , numRefFrames(1)
     , codec("AVC")
 {
     /*nothing to do*/
@@ -93,6 +94,7 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.rcParams.bitRate = encParam->bitRate;
     encVideoParams.rcParams.initQP = encParam->initQp;
     encVideoParams.rcMode = encParam->rcMode;
+    encVideoParams.numRefFrames = encParam->numRefFrames;
 
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);

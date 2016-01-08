@@ -42,7 +42,7 @@ using namespace YamiMediaCodec;
 static void print_help(const char* app)
 {
     printf("%s <options>\n", app);
-    printf("   -i <source yuv filename> load YUV from a file or container\n");
+    printf("   -i <source filename> load a raw yuv file or a compressed video file\n");
     printf("   -W <width> -H <height>\n");
     printf("   -o <coded file> optional\n");
     printf("   -b <bitrate: kbps> optional\n");
@@ -52,6 +52,7 @@ static void print_help(const char* app)
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
+    printf("   --refnum <number of referece frames(default 1)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -76,6 +77,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"help", no_argument, NULL, 'h' },
         {"qp", required_argument, NULL, 0 },
         {"rcmode", required_argument, NULL, 0 },
+        {"refnum", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -126,6 +128,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 2:
                     para.m_encParams.rcMode = string_to_rc_mode(optarg);
+                    break;
+                case 3:
+                    para.m_encParams.numRefFrames= atoi(optarg);
                     break;
             }
         }
