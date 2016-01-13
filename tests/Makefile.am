@@ -151,9 +151,9 @@ if ENABLE_TESTS_GLES
 yamidecode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
-yamiencode_LDADD    = $(YAMI_ENCODE_LIBS)
+yamiencode_LDADD    = $(YAMI_ENCODE_LIBS) $(LIBVA_DRM_LIBS)
 yamiencode_LDFLAGS  = $(YAMI_ENCODE_LDFLAGS)
-yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
+yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputoutput.cpp vppoutputencode.cpp vppinputdecode.cpp
 
 v4l2decode_LDADD   = $(V4L2_DECODE_LIBS)
 v4l2decode_LDFLAGS = $(V4L2_DECODE_LDFLAGS)
