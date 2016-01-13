@@ -36,6 +36,9 @@
 #include "vppinputoutput.h"
 #include "vppoutputencode.h"
 #include "vppinputdecode.h"
+#ifdef __ENABLE_CAPI__
+#include "vppoutputencodecapi.h"
+#endif
 
 using namespace YamiMediaCodec;
 
@@ -168,9 +171,15 @@ SharedPtr<VppOutput> VppOutput::create(const char* outputFileName, uint32_t four
         ERROR("invalid output file name");
         return output;
     }
+#ifdef __ENABLE_CAPI__
+    output.reset(new VppOutputEncodeCapi);
+    if (output->init(outputFileName, fourcc, width, height))
+        return output;
+#else
     output.reset(new VppOutputEncode);
     if (output->init(outputFileName, fourcc, width, height))
         return output;
+#endif
     output.reset(new VppOutputFile);
     if (output->init(outputFileName, fourcc, width, height))
         return output;

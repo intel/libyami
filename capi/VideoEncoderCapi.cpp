@@ -53,11 +53,13 @@ void encodeStop(EncodeHandler p)
         ((IVideoEncoder*)p)->stop();
 }
 
-Encode_Status encode(EncodeHandler p, VideoFrameRawData * inBuffer)
+Encode_Status encode(EncodeHandler p, VideoFrame * frame)
 {
-    if(p)
-        return ((IVideoEncoder*)p)->encode(inBuffer);
-    else
+    if(p) {
+		SharedPtr<VideoFrame> f;
+		f.reset(frame, frame->free);
+		return ((IVideoEncoder*)p)->encode(f);
+    } else
         return ENCODE_FAIL;
 }
 

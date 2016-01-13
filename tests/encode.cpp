@@ -27,6 +27,10 @@
 #include "encodehelp.h"
 #include "common/utils.h"
 
+#ifdef __ENABLE_CAPI__
+#include "vppoutputencodecapi.h"
+#endif
+
 #include <cstdio>
 
 using namespace YamiMediaCodec;
@@ -50,7 +54,11 @@ SharedPtr<VppInput> createInput(const TranscodeParams& param, const SharedPtr<VA
 SharedPtr<VppOutput> createOutput(const TranscodeParams& param, const SharedPtr<VADisplay>& display)
 {
     SharedPtr<VppOutput> output = VppOutput::create(param.outputFileName.c_str());
-    SharedPtr<VppOutputEncode> outputEncode = std::tr1::dynamic_pointer_cast<VppOutputEncode>(output);
+#ifdef __ENABLE_CAPI__
+    SharedPtr<VppOutputEncodeCapi> outputEncode = std::tr1::dynamic_pointer_cast<VppOutputEncodeCapi>(output);
+#else
+     SharedPtr<VppOutputEncode> outputEncode = std::tr1::dynamic_pointer_cast<VppOutputEncode>(output);
+#endif
     if (outputEncode) {
 		NativeDisplay nativeDisplay;
 		nativeDisplay.type = NATIVE_DISPLAY_VA;
