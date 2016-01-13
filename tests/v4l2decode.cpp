@@ -462,15 +462,6 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
-    if (!inputFileName) {
-        ERROR("no input media file specified\n");
-        return -1;
-    }
-    INFO("input file: %s, renderMode: %d", inputFileName, renderMode);
-
-    if (!dumpOutputName)
-        dumpOutputName = strdup ("./");
-
 #if !__ENABLE_V4L2_GLX__
     switch (renderMode) {
     case 0:
