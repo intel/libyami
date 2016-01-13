@@ -82,6 +82,8 @@ public:
     /// decode thread may be blocked at acquireWithWait, wake it up and escape if required. it doesn't release internal surfaces.
     /// it can be used for drain or unclear termination (in v4l2 wrapper, STREAMOFF can be used for either flush or drain).
     void setWaitable(bool waitable);
+    /// get resolution of surface
+    bool getSurfaceResolution(uint32_t& width, uint32_t& height, VASurfaceID surfaceID);
     ~VaapiDecSurfacePool();
 
 
