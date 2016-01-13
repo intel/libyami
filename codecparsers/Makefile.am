@@ -42,6 +42,7 @@ noinst_PROGRAMS = unittest
 
 unittest_SOURCES = \
 	$(top_builddir)/common/unittest_main.cpp \
+	bitReader_unittest.cpp \
 	$(NULL)
 
 unittest_LDFLAGS = \
