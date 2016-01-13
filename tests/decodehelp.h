@@ -103,6 +103,7 @@ static bool process_cmdline(int argc, char *argv[])
                     dumpFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
                 } else {
                     fprintf(stderr, "invalid fourcc: %s\n", optarg);
+                    return false;
                 }
             }
             break;
@@ -117,7 +118,7 @@ static bool process_cmdline(int argc, char *argv[])
     }
     if (!inputFileName) {
         fprintf(stderr, "no input media file specified\n");
-        return -1;
+        return false;
     }
     fprintf(stderr, "input file: %s, renderMode: %d\n", inputFileName, renderMode);
 
