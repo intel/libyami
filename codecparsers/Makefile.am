@@ -62,7 +62,7 @@ libyami_codecparser_la_LIBADD = \
 	$(NULL)
 
 lib_LTLIBRARIES                    = libyami_codecparser.la
-libyami_codecparserincludedir      = ${includedir}/libyami_codecparser
+libyami_codecparserincludedir      = ${includedir}/libyami
 libyami_codecparserinclude_HEADERS = $(libyami_codecparser_source_h)
 noinst_HEADERS                     = $(libyami_codecparser_source_h_priv)
 libyami_codecparser_la_SOURCES     = $(libyami_codecparser_source_c)
