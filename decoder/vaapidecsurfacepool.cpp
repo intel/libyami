@@ -281,7 +281,7 @@ bool VaapiDecSurfacePool::getOutput(VideoFrameRawData* frame)
 
 bool VaapiDecSurfacePool::populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount)
 {
-    int i;
+    uint32_t i;
     if (!frameCount) { // output frame count negotiation
         ASSERT(frames);
         if (frames[0].fourcc && frames[0].fourcc != VA_FOURCC_NV12)

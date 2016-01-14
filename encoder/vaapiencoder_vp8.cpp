@@ -208,7 +208,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
 
 bool VaapiEncoderVP8::fill(VAQMatrixBufferVP8* qMatrix) const
 {
-    int i;
+    size_t i;
 
     for (i = 0; i < N_ELEMENTS(qMatrix->quantization_index); i++) {
         qMatrix->quantization_index[i] = m_qIndex;

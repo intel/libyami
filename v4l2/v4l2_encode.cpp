@@ -105,7 +105,7 @@ bool V4l2Encoder::UpdateVideoParameters(bool isInputThread)
 
     return status == ENCODE_SUCCESS;
 }
-bool V4l2Encoder::inputPulse(int32_t index)
+bool V4l2Encoder::inputPulse(uint32_t index)
 {
     Encode_Status status = ENCODE_SUCCESS;
 
@@ -121,7 +121,7 @@ bool V4l2Encoder::inputPulse(int32_t index)
     return true;
 }
 
-bool V4l2Encoder::outputPulse(int32_t &index)
+bool V4l2Encoder::outputPulse(uint32_t &index)
 {
     Encode_Status status = ENCODE_SUCCESS;
 
@@ -153,7 +153,7 @@ bool V4l2Encoder::outputPulse(int32_t &index)
 
 bool V4l2Encoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
 {
-    int i;
+    uint32_t i;
     VideoEncRawBuffer *inputBuffer = &(m_inputFrames[qbuf->index]);
     // XXX todo: add multiple planes support for yami
     inputBuffer->data = reinterpret_cast<uint8_t*>(qbuf->m.planes[0].m.userptr);
@@ -226,7 +226,7 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
     }
     break;
     case VIDIOC_S_EXT_CTRLS: {
-        int i;
+        uint32_t i;
         struct v4l2_ext_controls *control = static_cast<struct v4l2_ext_controls *>(arg);
         DEBUG("V4L2_CTRL_CLASS_MPEG: %d, control->ctrl_class: %d", V4L2_CTRL_CLASS_MPEG, control->ctrl_class);
         if (control->ctrl_class == V4L2_CTRL_CLASS_MPEG) {
@@ -281,7 +281,7 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
             // ::RequestEncodingParametersChangeTask
             m_videoParams.frameRate.frameRateNum = parms->parm.output.timeperframe.numerator;
             m_videoParams.frameRate.frameRateDenom = parms->parm.output.timeperframe.denominator;
-            int framerate = m_videoParams.frameRate.frameRateNum/m_videoParams.frameRate.frameRateDenom;
+            uint32_t framerate = m_videoParams.frameRate.frameRateNum/m_videoParams.frameRate.frameRateDenom;
             if (framerate * 2 < m_videoParams.intraPeriod) {
                 m_videoParams.intraPeriod = framerate * 2;
             }
@@ -376,7 +376,7 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
 void* V4l2Encoder::mmap (void* addr, size_t length,
                       int prot, int flags, unsigned int offset)
 {
-    int i;
+    uint32_t i;
     ASSERT((prot == PROT_READ) | PROT_WRITE);
     ASSERT(flags == MAP_SHARED);
 
