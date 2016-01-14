@@ -45,7 +45,6 @@ Decode_Status VaapiDecoderFake::start(VideoConfigBuffer * buffer)
 {
     DEBUG("VP9: start() buffer size: %d x %d", buffer->width,
           buffer->height);
-    Decode_Status status;
 
     VideoConfigBuffer config;
     config = *buffer;

@@ -128,11 +128,11 @@ class VaapiDecPictureH264 : public VaapiDecPicture
     uint32_t m_structure;
     uint32_t m_picStructure; // XXX, seems duplicate with m_structure. since the macro in vaapipicture.h uses it, add it back temporarily
     int32_t m_fieldPoc[2];
-    int32_t m_frameNum;
+    uint32_t m_frameNum;
     int32_t m_frameNumWrap;
     uint32_t m_longTermFrameIdx;
-    int32_t m_picNum;
-    int32_t m_longTermPicNum;
+    uint32_t m_picNum;
+    uint32_t m_longTermPicNum;
     uint32_t m_outputFlag;
     uint32_t m_outputNeeded;
     PictureWeakPtr m_otherField;
@@ -248,7 +248,7 @@ class VaapiDPBManager {
                                 uint32_t refListCount);
 
     void initPictureRefsPicNum(const PicturePtr& pic,
-                               const SliceHeaderPtr& sliceHdr, int32_t frameNum);
+                               const SliceHeaderPtr& sliceHdr, uint32_t frameNum);
 
     void execPictureRefsModification(const PicturePtr& picture,
                                      const SliceHeaderPtr& sliceHdr);

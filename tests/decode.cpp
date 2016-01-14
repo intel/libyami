@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     const VideoFormatInfo *formatInfo = NULL;
     Decode_Status status;
     class CalcFps calcFpsGross, calcFpsNet;
-    int skipFrameCount4NetFps = 0;
+    uint32_t skipFrameCount4NetFps = 0;
 #ifdef __ENABLE_X11__
     // XInitThreads();
 #endif

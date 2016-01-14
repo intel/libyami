@@ -144,7 +144,7 @@ bool V4l2CodecBase::close()
         timeOut--;
     }
 
-    for (int i=0; i<m_maxBufferCount[OUTPUT]; i++)
+    for (uint32_t i=0; i<m_maxBufferCount[OUTPUT]; i++)
         recycleOutputBuffer(i);
 
     ASSERT(!m_threadOn[INPUT]);
@@ -187,7 +187,7 @@ void V4l2CodecBase::workerThread()
             }
         }
 
-        int index = m_framesTodo[thread].front();
+        uint32_t index = (uint32_t)(m_framesTodo[thread].front());
 
         // for decode, outputPulse may update index
         ret = thread == INPUT ? inputPulse(index) : outputPulse(index);
@@ -257,7 +257,7 @@ static void* _workerThread(void *arg)
 }
 
 #if __ENABLE_DEBUG__
-const char* V4l2CodecBase::IoctlCommandString(int command)
+const char* V4l2CodecBase::IoctlCommandString(long unsigned int command)
 {
     static const char* unknown = "Unkonwn command";
 #define IOCTL_COMMAND_STRING_MAP(cmd)   {cmd, #cmd}
@@ -282,7 +282,7 @@ const char* V4l2CodecBase::IoctlCommandString(int command)
             IOCTL_COMMAND_STRING_MAP(VIDIOC_G_CTRL)
         };
 
-    int i;
+    size_t i;
     for (i=0; i<sizeof(ioctlCommandMap)/sizeof(IoctlCommanMap); i++)
         if (ioctlCommandMap[i].command == command)
             return ioctlCommandMap[i].cmdStr;
@@ -579,7 +579,7 @@ static const FormatEntry FormatEntrys[] = {
 uint32_t v4l2PixelFormatFromMime(const char* mime)
 {
     uint32_t format = 0;
-    for (int i = 0; i < N_ELEMENTS(FormatEntrys); i++) {
+    for (uint32_t i = 0; i < N_ELEMENTS(FormatEntrys); i++) {
         const FormatEntry* entry = FormatEntrys + i;
         if (strcmp(mime, entry->mime) == 0) {
             format = entry->format;
@@ -592,7 +592,7 @@ uint32_t v4l2PixelFormatFromMime(const char* mime)
 const char* mimeFromV4l2PixelFormat(uint32_t pixelFormat)
 {
     const char* mime = NULL;
-    for (int i = 0; i < N_ELEMENTS(FormatEntrys); i++) {
+    for (size_t i = 0; i < N_ELEMENTS(FormatEntrys); i++) {
         const FormatEntry* entry = FormatEntrys + i;
         if (entry->format == pixelFormat) {
             mime = entry->mime;

@@ -121,7 +121,7 @@ bool VaapiImageRaw::copyFrom(const uint8_t* src, uint32_t size)
     uint32_t off = 0;
     uint32_t planes;
     getPlaneResolution(width, height, planes);
-    for (int i = 0; i < planes; i++) {
+    for (uint32_t i = 0; i < planes; i++) {
         offset[i] = off;
         off += width[i] * height[i];
     }
@@ -146,7 +146,7 @@ bool VaapiImageRaw::copy(uint8_t* destBase,
               const uint32_t srcOffsets[3], const uint32_t srcPitches[3],
               const uint32_t width[3], const uint32_t height[3], uint32_t planes)
 {
-    for (int i = 0; i < planes; i++) {
+    for (uint32_t i = 0; i < planes; i++) {
         uint32_t w = width[i];
         uint32_t h = height[i];
         if (w > destPitches[i] || w > srcPitches[i]) {
@@ -158,7 +158,7 @@ bool VaapiImageRaw::copy(uint8_t* destBase,
         uint8_t* dest = destBase + destOffsets[i];
 
 
-        for (int j = 0; j < h; j++) {
+        for (uint32_t j = 0; j < h; j++) {
             memcpy(dest, src, w);
             src += srcPitches[i];
             dest += destPitches[i];

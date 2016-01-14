@@ -123,7 +123,7 @@ bool getVaFormat(VADisplay display, VAImageFormat& format)
         return false;
     }
     vaFormats.resize(num);
-    for (int i = 0; i < vaFormats.size(); i++)
+    for (size_t i = 0; i < vaFormats.size(); i++)
     {
         const VAImageFormat& fmt = vaFormats[i];
         if (fmt.fourcc == VA_FOURCC_BGRX) {
