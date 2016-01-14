@@ -55,7 +55,8 @@ static uint32_t roundLog2(uint32_t value)
 {
     uint32_t ret = 0;
     uint32_t valueSquare = value * value;
-    while ((1 << (ret + 1)) <= valueSquare)
+    uint32_t one = 1;
+    while ((one << (ret + 1)) <= valueSquare)
         ++ret;
 
     ret = (ret + 1) >> 1;
@@ -331,7 +332,7 @@ void VaapiDPBManager::drainDPB()
 
 void VaapiDPBManager::debugDPBStatus()
 {
-    int i;
+    uint32_t i;
     VaapiFrameStore::Ptr frameStore;
 
     for (i = 0; i < DPBLayer->DPBCount; i++) {
@@ -443,7 +444,7 @@ void VaapiDPBManager::resetDPB(H264SPS * sps)
 */
 bool VaapiDPBManager::outputImmediateBFrame()
 {
-    int i;
+    uint32_t i;
     int ret = true;
 
     if (m_prevFrameStore.get()) {
@@ -871,11 +872,11 @@ initPictureRefsFields1(uint32_t pictureStructure,
 
 void VaapiDPBManager::initPictureRefsPicNum(const PicturePtr& picture,
                                             const SliceHeaderPtr& sliceHdr,
-                                            int32_t frameNum)
+                                            uint32_t frameNum)
 {
     H264PPS *const pps = sliceHdr->pps;
     H264SPS *const sps = pps->sequence;
-    const int32_t maxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
+    const uint32_t maxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
     uint32_t i;
 
     for (i = 0; i < DPBLayer->shortRefCount; i++) {
@@ -959,7 +960,7 @@ void VaapiDPBManager::execPictureRefsModification1(const PicturePtr& picture,
 
     //FIXME: without this we will crash in MR3_TANDBERG_B.264
     //shold review this after we fix it
-    for (int j = refListCount; j < numRefs; j++)
+    for (uint32_t j = refListCount; j < numRefs; j++)
         refList[j] = NULL;
     //end
 

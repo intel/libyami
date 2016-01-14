@@ -124,7 +124,7 @@ private:
         uint32_t height, uint32_t pitch)
     {
         data += offset;
-        for (int h = 0; h < height; h++) {
+        for (uint32_t h = 0; h < height; h++) {
             v.insert(v.end(), data, data + width);
             data += pitch;
         }
@@ -134,7 +134,7 @@ private:
         uint32_t height, uint32_t pitch)
     {
         data += offset;
-        for (int h = 0; h < height; h++) {
+        for (uint32_t h = 0; h < height; h++) {
             uint8_t* start = data;
             uint8_t* end = data + width;
             while (start < end) {
@@ -247,10 +247,10 @@ bool DecodeOutputFileDump::render(VideoFrameRawData* frame)
     //ASSERT(m_width == frame->width && m_height == frame->height);
     if (!getPlaneResolution(frame->fourcc, frame->width, frame->height, width, height, planes))
         return false;
-    for (int i = 0; i < planes; i++) {
+    for (uint32_t i = 0; i < planes; i++) {
         uint8_t* data = reinterpret_cast<uint8_t*>(frame->handle);
         data += frame->offset[i];
-        for (int h = 0; h < height[i]; h++) {
+        for (uint32_t h = 0; h < height[i]; h++) {
             fwrite(data, 1, width[i], m_fp);
             data += frame->pitch[i];
         }

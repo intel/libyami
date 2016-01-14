@@ -46,7 +46,7 @@ uint32_t guessFourcc(const char* fileName)
     const char* extension = strrchr(fileName, '.');
     if (extension) {
         extension++;
-        for (int i = 0; i < N_ELEMENTS(possibleFourcc); i++) {
+        for (size_t i = 0; i < N_ELEMENTS(possibleFourcc); i++) {
             const char* fourcc = possibleFourcc[i];
             if (!strcasecmp(fourcc, extension)) {
                 uint32_t ret = VA_FOURCC(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);
@@ -244,7 +244,7 @@ bool fillFrameRawData(VideoFrameRawData* frame, uint32_t fourcc, uint32_t width,
     frame->memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
 
     uint32_t offset = 0;
-    for (int i = 0; i < planes; i++) {
+    for (uint32_t i = 0; i < planes; i++) {
         frame->pitch[i] = w[i];
         frame->offset[i] = offset;
         offset += w[i] * h[i];
