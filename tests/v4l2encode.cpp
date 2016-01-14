@@ -36,6 +36,7 @@
 #include "v4l2/v4l2_wrapper.h"
 #include "encodehelp.h"
 #include "encodeinput.h"
+#include "vppoutputencode.h"
 
 uint32_t inputFramePlaneCount = 3; // I420(default) format has 3 planes
 uint32_t inputFrameSize = 0;
@@ -50,6 +51,8 @@ bool isEncodeEOS = false;
 bool isOutputEOS = false;
 
 static EncodeInput* streamInput;
+TranscodeParams inputParams;
+
 
 bool readOneFrameData(int index)
 {
@@ -63,7 +66,7 @@ bool readOneFrameData(int index)
     ASSERT(index>=0 && index<inputQueueCapacity);
 
     bool ret = streamInput->getOneFrameInput(inputFrames[index]);
-    if (!ret || (frameCount && encodeFrameCount++>=frameCount)) {
+    if (!ret || (inputParams.frameCount && encodeFrameCount++>=inputParams.frameCount)) {
         isReadEOS = true;
         return false;
     }
@@ -141,9 +144,9 @@ bool writeOneOutputFrame(uint8_t* data, uint32_t dataSize)
     static FILE* fp = NULL;
 
     if(!fp) {
-        fp = fopen(outputFileName, "w+");
+        fp = fopen(inputParams.outputFileName.c_str(), "w+");
         if (!fp) {
-            fprintf(stderr, "fail to open file: %s\n", outputFileName);
+            fprintf(stderr, "fail to open file: %s\n", inputParams.outputFileName.c_str());
             return false;
         }
     }
@@ -209,10 +212,10 @@ int main(int argc, char** argv)
     yamiTraceInit();
 
     // parse command line parameters
-    if (!process_cmdline(argc, argv))
+    if (!processCmdLine(argc, argv, inputParams))
         return -1;
 
-    streamInput = EncodeInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
+    streamInput = EncodeInput::create(inputParams.inputFileName.c_str(), inputParams.fourcc, inputParams.oWidth, inputParams.oHeight);
     ASSERT(streamInput);
 
     // open device
@@ -236,23 +239,23 @@ int main(int argc, char** argv)
 
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    switch (inputFourcc) {
+    switch (inputParams.fourcc) {
     case VA_FOURCC('I', '4', '2', '0'):
         format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUV420M;
         inputFramePlaneCount = 3;
-        inputFrameSize = videoWidth*videoHeight*3/2;
+        inputFrameSize = inputParams.oWidth*inputParams.oHeight*3/2;
         break;
     case VA_FOURCC_YUY2:
         format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUYV;
         inputFramePlaneCount = 1;
-        inputFrameSize = videoWidth*videoHeight*2;
+        inputFrameSize = inputParams.oWidth*inputParams.oHeight*2;
         break;
     default:
         ASSERT(0);
         break;
     }
-    format.fmt.pix_mp.width = videoWidth;
-    format.fmt.pix_mp.height = videoHeight;
+    format.fmt.pix_mp.width = inputParams.oWidth;
+    format.fmt.pix_mp.height = inputParams.oHeight;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
 
@@ -261,7 +264,7 @@ int main(int argc, char** argv)
     memset(&parms, 0, sizeof(parms));
     parms.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     parms.parm.output.timeperframe.denominator = 1;
-    parms.parm.output.timeperframe.numerator = fps;
+    parms.parm.output.timeperframe.numerator = inputParams.m_encParams.fps;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_PARM, &parms);
     ASSERT(ioctlRet != -1);
 
@@ -271,7 +274,7 @@ int main(int argc, char** argv)
     memset(&ctrls, 0, sizeof(ctrls));
     memset(&control, 0, sizeof(control));
     ctrls[0].id = V4L2_CID_MPEG_VIDEO_BITRATE;
-    ctrls[0].value = bitRate;
+    ctrls[0].value = inputParams.m_encParams.bitRate;
     control.ctrl_class = V4L2_CTRL_CLASS_MPEG;
     control.count = 1;
     control.controls = ctrls;

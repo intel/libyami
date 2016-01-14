@@ -167,7 +167,7 @@ endif
 
 v4l2encode_LDADD   = $(V4L2_ENCODE_LIBS)
 v4l2encode_LDFLAGS = $(V4L2_ENCODE_LDFLAGS)
-v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
+v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppoutputencode.cpp
 endif
 
 yamivpp_LDADD    = $(YAMI_VPP_LIBS)

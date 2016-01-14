@@ -127,6 +127,7 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
             para.m_encParams.codec = optarg;
             break;
         case 's':
+            para.fourcc = atoi(optarg);
             break;
         case 'N':
             para.frameCount = atoi(optarg);
@@ -171,8 +172,13 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
     }
 
     uint32_t fourcc = guessFourcc(para.inputFileName.c_str());
-    if (fourcc != para.fourcc)
-        fprintf(stderr, "the file must be NV12 type.\n");
+    if (fourcc != para.fourcc) {
+        fprintf(stderr, "Note: inconsistency between the fourcc type and the file type, use the fourcc of file.\n");
+        para.fourcc = fourcc;
+    }
+
+    if (!para.oWidth || !para.oHeight)
+        guessResolution(para.inputFileName.c_str(), para.oWidth, para.oHeight);
 
     if (para.outputFileName.empty())
         para.outputFileName = "./";
