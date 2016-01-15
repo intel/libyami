@@ -128,7 +128,7 @@ bool EncodeInputFile::getOneFrameInput(VideoFrameRawData &inputBuffer)
     if (inputBuffer.handle)
         buffer = reinterpret_cast<uint8_t*>(inputBuffer.handle);
 
-    int ret = fread(buffer, sizeof(uint8_t), m_frameSize, m_fp);
+    size_t ret = fread(buffer, sizeof(uint8_t), m_frameSize, m_fp);
 
     if (ret <= 0) {
         m_readToEOS = true;
@@ -214,7 +214,7 @@ bool EncodeOutput::init(const char* outputFileName, int width , int height)
 
 bool EncodeOutput::write(void* data, int size)
 {
-    return fwrite(data, 1, size, m_fp) == size;
+    return fwrite(data, 1, size, m_fp) == (size_t)size;
 }
 
 const char* EncodeOutputH264::getMimeType()

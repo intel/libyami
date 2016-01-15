@@ -266,7 +266,7 @@ bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index i
 
 bool dumpOneVideoFrame(int32_t index)
 {
-    int row;
+    uint32_t row;
 
     if (!outfp) {
         char outFileName[256];
@@ -332,10 +332,10 @@ static bool displayOneVideoFrameAndroid(int32_t fd, int32_t index)
     return true;
 }
 #elif __ENABLE_V4L2_GLX__
-static bool displayOneVideoFrameGLX(int32_t fd, int32_t index)
+static bool displayOneVideoFrameGLX(int32_t fd, uint32_t index)
 {
     ASSERT(glxContext && textureIds.size());
-    ASSERT(index>=0 && index<textureIds.size());
+    ASSERT(index<textureIds.size());
     DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
 
     int ret = drawTexture(glxContext, textureIds[index]);
@@ -440,7 +440,7 @@ int main(int argc, char** argv)
 {
     DecodeInput *input;
     int32_t fd = -1;
-    int32_t i = 0;
+    uint32_t i = 0;
     int32_t ioctlRet = -1;
     YamiMediaCodec::CalcFps calcFps;
 
@@ -796,7 +796,7 @@ int main(int argc, char** argv)
     ASSERT(ioctlRet != -1);
 
     bool event_pending=true; // try to get video resolution.
-    int dqCountAfterEOS = 0;
+    uint32_t dqCountAfterEOS = 0;
     do {
         if (event_pending) {
             handleResolutionChange(fd);

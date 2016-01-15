@@ -47,7 +47,7 @@ V4l2Decoder::V4l2Decoder()
     , m_reqBuffCnt(0)
 #endif
 {
-    int i;
+    uint32_t i;
     m_memoryMode[INPUT] = V4L2_MEMORY_MMAP; // dma_buf hasn't been supported yet
     m_pixelFormat[INPUT] = V4L2_PIX_FMT_H264;
     m_bufferPlaneCount[INPUT] = 1; // decided by m_pixelFormat[INPUT]
@@ -143,7 +143,7 @@ bool V4l2Decoder::stop()
     return true;
 }
 
-bool V4l2Decoder::inputPulse(int32_t index)
+bool V4l2Decoder::inputPulse(uint32_t index)
 {
     Decode_Status status = DECODE_SUCCESS;
 
@@ -171,7 +171,7 @@ bool V4l2Decoder::inputPulse(int32_t index)
 }
 
 #if ANDROID
-bool V4l2Decoder::outputPulse(int32_t &index)
+bool V4l2Decoder::outputPulse(uint32_t &index)
 {
     SharedPtr<VideoFrame> output = m_decoder->getOutput();
 
@@ -188,7 +188,7 @@ bool V4l2Decoder::outputPulse(int32_t &index)
     return true;
 }
 #else
-bool V4l2Decoder::outputPulse(int32_t &index)
+bool V4l2Decoder::outputPulse(uint32_t &index)
 {
     Decode_Status status = DECODE_SUCCESS;
 
@@ -339,7 +339,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                 const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
                 ASSERT(outFormat && outFormat->width && outFormat->height);
                 ASSERT(m_eglVaapiImages.empty());
-                for (int i = 0; i < reqbufs->count; i++) {
+                for (uint32_t i = 0; i < reqbufs->count; i++) {
                     SharedPtr<EglVaapiImage> image(
                                                    new EglVaapiImage(m_decoder->getDisplayID(), outFormat->width, outFormat->height));
                     if (!image->init()) {
@@ -529,7 +529,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
 void* V4l2Decoder::mmap (void* addr, size_t length,
                       int prot, int flags, unsigned int offset)
 {
-    int i;
+    uint32_t i;
     ASSERT((prot == PROT_READ) | PROT_WRITE);
     ASSERT(flags == MAP_SHARED);
 
@@ -642,14 +642,14 @@ bool V4l2Decoder::mapVideoFrames()
     return true;
 }
 #elif __ENABLE_V4L2_GLX__
-int32_t V4l2Decoder::usePixmap(int bufferIndex, Pixmap pixmap)
+int32_t V4l2Decoder::usePixmap(uint32_t bufferIndex, Pixmap pixmap)
 {
     if (m_pixmaps.empty()) {
         m_pixmaps.resize(m_maxBufferCount[OUTPUT]);
         memset(&m_pixmaps[0], 0, sizeof(Pixmap)*m_pixmaps.size());
     }
 
-    ASSERT(bufferIndex>=-1 && bufferIndex<m_maxBufferCount[OUTPUT]);
+    ASSERT(bufferIndex<m_maxBufferCount[OUTPUT]);
     m_pixmaps[bufferIndex] = pixmap;
 
     return 0;

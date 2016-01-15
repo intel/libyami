@@ -563,7 +563,7 @@ private:
         headers.push_back(&m_sps);
         headers.push_back(&m_pps);
         uint8_t sync[] = {0, 0, 0, 1};
-        for (int i = 0; i < headers.size(); i++) {
+        for (size_t i = 0; i < headers.size(); i++) {
             m_headers.insert(m_headers.end(), sync, sync + N_ELEMENTS(sync));
             appendHeaderWithEmulation(*headers[i]);
         }
@@ -672,7 +672,7 @@ private:
         outBuffer->dataSize = 0;
 
         Encode_Status ret;
-        for (int i = 0; i < functions.size(); i++) {
+        for (size_t i = 0; i < functions.size(); i++) {
             ret = functions[i]();
             if (ret != ENCODE_SUCCESS)
                 return ret;
@@ -1278,7 +1278,7 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
     sliceOfMbs = mbSize / m_numSlices;
     sliceModMbs = mbSize % m_numSlices;
     lastMbIndex = 0;
-    for (int i = 0; i < m_numSlices; ++i) {
+    for (uint32_t i = 0; i < m_numSlices; ++i) {
         curSliceMbs = sliceOfMbs;
         if (sliceModMbs) {
             ++curSliceMbs;

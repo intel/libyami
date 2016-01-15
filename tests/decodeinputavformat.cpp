@@ -42,7 +42,7 @@ bool DecodeInputAvFormat::initInput(const char* fileName)
     int ret = avformat_open_input(&m_format, fileName, NULL, NULL);
     if (ret)
         goto error;
-    int i;
+    uint32_t i;
     for (i = 0; i < m_format->nb_streams; ++i) {
         AVCodecContext* ctx = m_format->streams[i]->codec;
         //VP9: width and height of the IVF header,VP8: width and height is zero
@@ -105,7 +105,7 @@ static const MimeEntry MimeEntrys[] = {
 
 const char * DecodeInputAvFormat::getMimeType()
 {
-    for (int i = 0; i < N_ELEMENTS(MimeEntrys); i++) {
+    for (size_t i = 0; i < N_ELEMENTS(MimeEntrys); i++) {
         if (MimeEntrys[i].id == m_codecId)
             return MimeEntrys[i].mime;
     }

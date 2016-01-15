@@ -152,7 +152,7 @@ bool VaapiDecoderVP9::fillReference(VADecPictureParameterBufferVP9* param, const
         FILL_REFERENCE(golden_ref_frame, VP9_GOLDEN_FRAME);
         FILL_REFERENCE(alt_ref_frame, VP9_ALTREF_FRAME);
     }
-    for (int i = 0; i < m_reference.size(); i++) {
+    for (size_t i = 0; i < m_reference.size(); i++) {
         SurfacePtr& surface = m_reference[i];
         param->reference_frames[i] = surface.get() ? surface->getID():VA_INVALID_SURFACE;
     }
@@ -293,7 +293,7 @@ Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* dat
     return DECODE_SUCCESS;
 }
 
-static bool parse_super_frame(std::vector<uint32_t>& frameSize, const uint8_t* data, const int32_t size)
+static bool parse_super_frame(std::vector<uint32_t>& frameSize, const uint8_t* data, const size_t size)
 {
     if (!data || !size)
         return false;
@@ -312,9 +312,9 @@ static bool parse_super_frame(std::vector<uint32_t>& frameSize, const uint8_t* d
     const uint8_t marker2 = *data++;
     if (marker != marker2)
         return false;
-    for (int i = 0; i < frames; i++) {
+    for (uint32_t i = 0; i < frames; i++) {
         uint32_t sz = 0;
-        for (int j = 0; j < mag; j++) {
+        for (uint32_t j = 0; j < mag; j++) {
             sz |= (*data++) << (j * 8);
         }
         frameSize.push_back(sz);
@@ -328,12 +328,12 @@ Decode_Status VaapiDecoderVP9::decode(VideoDecodeBuffer * buffer)
     if (!buffer)
         return DECODE_INVALID_DATA;
     uint8_t* data = buffer->data;
-    int32_t  size = buffer->size;
+    size_t  size = buffer->size;
     uint8_t* end = data + size;
     std::vector<uint32_t> frameSize;
     if (!parse_super_frame(frameSize, data, size))
         return DECODE_INVALID_DATA;
-    for (int i = 0; i < frameSize.size(); i++) {
+    for (size_t i = 0; i < frameSize.size(); i++) {
         uint32_t sz = frameSize[i];
         if (data + sz > end)
             return DECODE_INVALID_DATA;
