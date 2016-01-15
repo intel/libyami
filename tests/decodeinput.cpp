@@ -37,8 +37,8 @@ using namespace YamiMediaCodec;
 
 class MyDecodeInput : public DecodeInput{
 public:
-    static const int MaxNaluSize = 1024*1024*4; // assume max nalu size is 4M
-    static const int CacheBufferSize = 8 * MaxNaluSize;
+    static const size_t MaxNaluSize = 1024*1024*4; // assume max nalu size is 4M
+    static const size_t CacheBufferSize = 8 * MaxNaluSize;
     MyDecodeInput();
     virtual ~MyDecodeInput();
     bool initInput(const char* fileName);
@@ -63,8 +63,8 @@ public:
     bool init();
     virtual bool getNextDecodeUnit(VideoDecodeBuffer &inputBuffer);
 private:
-    const int m_ivfFrmHdrSize;
-    const int m_maxFrameSize;
+    const size_t m_ivfFrmHdrSize;
+    const size_t m_maxFrameSize;
     const char* m_mimeType;
 };
 
@@ -248,10 +248,10 @@ bool DecodeInputVPX::init()
 bool DecodeInputVPX::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
 {
     if(m_ivfFrmHdrSize == fread (m_buffer, 1, m_ivfFrmHdrSize, m_fp)) {
-        int framesize = 0;
+        size_t framesize = 0;
         framesize = (uint32_t)(m_buffer[0]) + ((uint32_t)(m_buffer[1])<<8) + ((uint32_t)(m_buffer[2])<<16);
-        assert (framesize < (uint32_t) m_maxFrameSize);
-        assert (framesize <= (uint32_t) CacheBufferSize);
+        assert (framesize < m_maxFrameSize);
+        assert (framesize <= CacheBufferSize);
 
         if (framesize != fread (m_buffer, 1, framesize, m_fp)) {
             fprintf (stderr, "fail to read frame data, quit\n");
@@ -292,7 +292,7 @@ bool DecodeInputRaw::init()
 
 bool DecodeInputRaw::ensureBufferData()
 {
-    int readCount = 0;
+    size_t readCount = 0;
 
     if (m_readToEOS)
         return true;
@@ -359,7 +359,7 @@ bool DecodeInputRaw::getNextDecodeUnit(VideoDecodeBuffer &inputBuffer)
     if (!m_parseToEOS)
        inputBuffer.size += StartCodeSize; // one inputBuffer is start and end with start code
 
-    DEBUG("offset=%d, NALU data=%p, size=%d\n", offset, inputBuffer.data, inputBuffer.size);
+    DEBUG("offset=%d, NALU data=%p, size=%lu\n", offset, inputBuffer.data, inputBuffer.size);
     m_lastReadOffset += offset + StartCodeSize;
     return true;
 }

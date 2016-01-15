@@ -50,7 +50,7 @@ class V4l2Decoder : public V4l2CodecBase
     SharedPtr<VideoFrame> createVaSurface(const ANativeWindowBuffer* buf);
     bool mapVideoFrames();
 #elif __ENABLE_V4L2_GLX__
-    virtual int32_t usePixmap(int buffer_index, Pixmap pixmap);
+    virtual int32_t usePixmap(uint32_t buffer_index, Pixmap pixmap);
 #else
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image);
 #endif
@@ -60,8 +60,8 @@ class V4l2Decoder : public V4l2CodecBase
     virtual bool stop();
     virtual bool acceptInputBuffer(struct v4l2_buffer *qbuf);
     virtual bool giveOutputBuffer(struct v4l2_buffer *dqbuf);
-    virtual bool inputPulse(int32_t index);
-    virtual bool outputPulse(int32_t &index);
+    virtual bool inputPulse(uint32_t index);
+    virtual bool outputPulse(uint32_t &index);
     virtual bool recycleOutputBuffer(int32_t index);
     virtual void releaseCodecLock(bool lockable);
     virtual void flush();

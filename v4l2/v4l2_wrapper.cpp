@@ -168,7 +168,7 @@ int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
      return ret;
 }
 
-int32_t YamiV4L2_UsePixmap(int fd, int bufferIndex, Pixmap pixmap)
+int32_t YamiV4L2_UsePixmap(int fd, uint32_t bufferIndex, Pixmap pixmap)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
      bool ret = true;

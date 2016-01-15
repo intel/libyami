@@ -51,7 +51,7 @@ bool isOutputEOS = false;
 
 static EncodeInput* streamInput;
 
-bool readOneFrameData(int index)
+bool readOneFrameData(uint32_t index)
 {
     static int encodeFrameCount = 0;
 
@@ -60,7 +60,7 @@ bool readOneFrameData(int index)
     if (isReadEOS)
         return false;
 
-    ASSERT(index>=0 && index<inputQueueCapacity);
+    ASSERT(index<inputQueueCapacity);
 
     bool ret = streamInput->getOneFrameInput(inputFrames[index]);
     if (!ret || (frameCount && encodeFrameCount++>=frameCount)) {
@@ -81,7 +81,7 @@ void fillV4L2Buffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
     ret = getPlaneResolution(frame.fourcc, frame.width, frame.height, width, height,  planes);
     ASSERT(ret && "get planes resolution failed");
     unsigned long data = (unsigned long)frame.handle;
-    for (int i = 0; i < planes; i++) {
+    for (uint32_t i = 0; i < planes; i++) {
         buf.m.planes[i].bytesused = width[i] * height[i];
         buf.m.planes[i].m.userptr = data + frame.offset[i];
     }
@@ -92,7 +92,7 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
     struct v4l2_buffer buf;
     struct v4l2_plane planes[VIDEO_MAX_PLANES];
     int ioctlRet = -1;
-    static int32_t dqCountAfterEOS = 0;
+    static uint32_t dqCountAfterEOS = 0;
 
     memset(&buf, 0, sizeof(buf));
     memset(&planes, 0, sizeof(planes));
@@ -203,7 +203,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
 int main(int argc, char** argv)
 {
     int32_t fd = -1;
-    int32_t i = 0;
+    uint32_t i = 0;
     int32_t ioctlRet = -1;
 
     yamiTraceInit();

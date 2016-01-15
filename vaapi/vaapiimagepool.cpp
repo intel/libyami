@@ -32,7 +32,7 @@
 
 namespace YamiMediaCodec{
 
-ImagePoolPtr VaapiImagePool::create(const DisplayPtr& display, uint32_t format, int32_t width, int32_t height, int32_t count)
+ImagePoolPtr VaapiImagePool::create(const DisplayPtr& display, uint32_t format, int32_t width, int32_t height, size_t count)
 {
     ImagePoolPtr pool;
     std::vector<ImagePtr> images;
@@ -54,11 +54,11 @@ VaapiImagePool::VaapiImagePool(std::vector<ImagePtr> images):
 {
     m_poolSize = images.size();
     m_images.swap(images);
-    DEBUG("m_poolSize: %d", m_poolSize);
-    for (int32_t i = 0; i < m_poolSize; ++i) {
+    DEBUG("m_poolSize: %lu", m_poolSize);
+    for (size_t i = 0; i < m_poolSize; ++i) {
         m_freeIndex.push_back(i);
         m_indexMap[m_images[i]->getID()] = i;
-        DEBUG("image pool index: %d, image ID: 0x%x", i, m_images[i]->getID());
+        DEBUG("image pool index: %lu, image ID: 0x%x", i, m_images[i]->getID());
     }
 }
 
@@ -102,7 +102,7 @@ ImagePtr VaapiImagePool::acquireWithWait()
     ASSERT(!m_freeIndex.empty());
 
     int32_t index = m_freeIndex.front();
-    ASSERT(index >=0 && index < m_poolSize);
+    ASSERT(index >= 0 && (size_t)index < m_poolSize);
     m_freeIndex.pop_front();
 
     image.reset(m_images[index].get(), ImageRecycler(shared_from_this()));
@@ -126,7 +126,7 @@ void VaapiImagePool::recycleID(VAImageID imageID)
         return;
 
     index = it->second;
-    ASSERT(index >=0 && index < m_poolSize);
+    ASSERT(index >= 0 && (size_t)index < m_poolSize);
     m_freeIndex.push_back(index);
 
     if (m_flushing && m_freeIndex.size() == m_poolSize)

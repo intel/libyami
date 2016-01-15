@@ -59,7 +59,7 @@ YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
     if (!checkVaapiStatus(status, "vaCreateSurfaces"))
         return YAMI_OUT_MEMORY;
     params->surfaces = new intptr_t[size];
-    for (int i = 0; i < size; i++) {
+    for (uint32_t i = 0; i < size; i++) {
         params->surfaces[i] = (intptr_t)v[i];
     }
     params->size = size;
@@ -72,7 +72,7 @@ YamiStatus VaapiSurfaceAllocator::doFree(SurfaceAllocParams* params)
         return YAMI_INVALID_PARAM;
     uint32_t size = params->size;
     std::vector<VASurfaceID> v(size);
-    for (int i = 0; i < size; i++) {
+    for (uint32_t i = 0; i < size; i++) {
         v[i] = (VASurfaceID)params->surfaces[i];
     }
     checkVaapiStatus(vaDestroySurfaces(m_display, &v[0], size), "vaDestroySurfaces");

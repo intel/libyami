@@ -50,9 +50,9 @@ public:
 
 protected:
     uint32_t m_fourcc;
-    int m_width;
-    int m_height;
-    int m_frameSize;
+    uint32_t m_width;
+    uint32_t m_height;
+    size_t m_frameSize;
 };
 
 class EncodeInputFile : public EncodeInput {

@@ -347,7 +347,7 @@ typedef struct VideoParamsCommon {
     AirParams airParams;
     uint32_t disableDeblocking;
     bool syncEncMode;
-    int32_t leastInputCount;
+    uint32_t leastInputCount;
 }VideoParamsCommon;
 
 typedef struct VideoParamsAVC {
