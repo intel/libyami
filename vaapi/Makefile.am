@@ -70,7 +70,6 @@ unittest_CPPFLAGS = \
 
 unittest_CXXFLAGS = \
 	$(GTEST_CXXFLAGS) \
-	-std=c++11 \
 	$(NULL)
 
 check-local: unittest

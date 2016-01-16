@@ -116,7 +116,8 @@ VAAPI_DISPLAY_TEST(CreateInvalidHandleDRM) {
     // DRM handle is invalidated once it's closed.
     closeDrmHandle(handle);
 
-    native = {handle, NATIVE_DISPLAY_DRM};
+    native.handle = handle;
+    native.type = NATIVE_DISPLAY_DRM;
     display = VaapiDisplay::create(native);
 
     EXPECT_FALSE(display.get());
@@ -128,7 +129,8 @@ VAAPI_DISPLAY_TEST(CreateInvalidHandleVA) {
 
     EXPECT_FALSE(display.get());
 
-    native = {-1, NATIVE_DISPLAY_VA};
+    native.handle = -1;
+    native.type = NATIVE_DISPLAY_VA;
     display = VaapiDisplay::create(native);
 
     EXPECT_FALSE(display.get());
@@ -152,7 +154,8 @@ VAAPI_DISPLAY_TEST(CreateX11) {
 
     // DRM native type returns cached X11 display
     // TODO: Is this really supposed to be allowed?
-    native = {0, NATIVE_DISPLAY_DRM};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_DRM;
     display2 = VaapiDisplay::create(native);
     ASSERT_TRUE(display2.get());
     EXPECT_TRUE(display.get() == display2.get());
@@ -161,7 +164,8 @@ VAAPI_DISPLAY_TEST(CreateX11) {
     // FIXME: If client created the DRM handle, it seems
     // that we should not get the cached X11 display, but we do.
     intptr_t handle = openDrmHandle();
-    native = {handle, NATIVE_DISPLAY_DRM};
+    native.handle = handle;
+    native.type = NATIVE_DISPLAY_DRM;
     display2 = VaapiDisplay::create(native);
     ASSERT_NE(handle, -1);
     ASSERT_TRUE(display2.get());
@@ -169,7 +173,8 @@ VAAPI_DISPLAY_TEST(CreateX11) {
     EXPECT_NE(display->getID(), display2->getID());
 
     // Let client create the native display
-    native = {openX11Handle(), NATIVE_DISPLAY_X11};
+    native.handle = openX11Handle();
+    native.type = NATIVE_DISPLAY_X11;
     display = VaapiDisplay::create(native);
 
     ASSERT_NE(m_x11_handle, -1);
@@ -199,7 +204,8 @@ VAAPI_DISPLAY_TEST(CreateDRM) {
 
     // Let client create the native display
     intptr_t handle = openDrmHandle();
-    native = {handle, NATIVE_DISPLAY_DRM};
+    native.handle = handle;
+    native.type = NATIVE_DISPLAY_DRM;
     display = VaapiDisplay::create(native);
 
     ASSERT_NE(handle, -1);
@@ -236,26 +242,32 @@ VAAPI_DISPLAY_TEST(CompatibleX11) {
 
     EXPECT_TRUE(isCompatible(display, native));
 
-    native = {m_x11_handle + 1, NATIVE_DISPLAY_X11};
+    native.handle = m_x11_handle + 1;
+    native.type = NATIVE_DISPLAY_X11;
     EXPECT_FALSE(isCompatible(display, native));
 
-    native = {0, NATIVE_DISPLAY_X11};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_X11;
     EXPECT_TRUE(isCompatible(display, native));
 
-    native = {0, NATIVE_DISPLAY_VA};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_VA;
     EXPECT_FALSE(isCompatible(display, native));
 
-    native = {0, NATIVE_DISPLAY_DRM};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_DRM;
     EXPECT_TRUE(isCompatible(display, native));
 
     // FIXME: If client created the DRM handle, it seems
     // that we should not get the cached X11 display
     intptr_t handle = openDrmHandle();
-    native = {handle, NATIVE_DISPLAY_DRM};
+    native.handle = handle;
+    native.type = NATIVE_DISPLAY_DRM;
     ASSERT_NE(handle, -1);
     ASSERT_FALSE(isCompatible(display, native));
 
-    native = {0, NATIVE_DISPLAY_AUTO};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_AUTO;
     EXPECT_TRUE(isCompatible(display, native));
 }
 #endif
@@ -273,19 +285,24 @@ VAAPI_DISPLAY_TEST(CompatibleDRM) {
 
     EXPECT_TRUE(isCompatible(display, native));
 
-    native = {handle2, NATIVE_DISPLAY_DRM};
+    native.handle = handle2;
+    native.type = NATIVE_DISPLAY_DRM;
     EXPECT_FALSE(isCompatible(display, native));
 
-    native = {0, NATIVE_DISPLAY_DRM};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_DRM;
     EXPECT_TRUE(isCompatible(display, native));
 
-    native = {-1, NATIVE_DISPLAY_DRM};
+    native.handle = -1;
+    native.type = NATIVE_DISPLAY_DRM;
     EXPECT_TRUE(isCompatible(display, native));
 
-    native = {0, NATIVE_DISPLAY_VA};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_VA;
     EXPECT_FALSE(isCompatible(display, native));
 
-    native = {0, NATIVE_DISPLAY_X11};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_X11;
     EXPECT_FALSE(isCompatible(display, native));
 }
 
@@ -297,19 +314,24 @@ VAAPI_DISPLAY_TEST(CompatibleVA) {
 
     EXPECT_TRUE(isCompatible(display, native));
 
-    native = {2, NATIVE_DISPLAY_VA};
+    native.handle = 2;
+    native.type = NATIVE_DISPLAY_VA;
     EXPECT_FALSE(isCompatible(display, native));
 
-    native = {0, NATIVE_DISPLAY_VA};
+    native.handle = 0;
+    native.type = NATIVE_DISPLAY_VA;
     EXPECT_FALSE(isCompatible(display, native));
 
-    native = {-1, NATIVE_DISPLAY_VA};
+    native.handle = -1;
+    native.type = NATIVE_DISPLAY_VA;
     EXPECT_FALSE(isCompatible(display, native));
 
-    native = {1, NATIVE_DISPLAY_DRM};
+    native.handle = 1;
+    native.type = NATIVE_DISPLAY_DRM;
     EXPECT_FALSE(isCompatible(display, native));
 
-    native = {1, NATIVE_DISPLAY_X11};
+    native.handle = 1;
+    native.type = NATIVE_DISPLAY_X11;
     EXPECT_FALSE(isCompatible(display, native));
 }
 
