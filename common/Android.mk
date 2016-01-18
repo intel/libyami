@@ -5,7 +5,8 @@ include $(LOCAL_PATH)/../common.mk
 LOCAL_SRC_FILES := \
         log.cpp \
         utils.cpp \
-        nalreader.cpp
+        nalreader.cpp \
+        surfacepool.cpp
 
 LOCAL_C_INCLUDES:= \
         $(LOCAL_PATH)/.. \

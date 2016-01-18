@@ -11,6 +11,7 @@ LOCAL_SRC_FILES := \
         vaapidisplay.cpp \
         vaapicontext.cpp \
         vaapiimagepool.cpp \
+        vaapisurfaceallocator.cpp \
 
 LOCAL_C_INCLUDES:= \
         $(LOCAL_PATH)/.. \
