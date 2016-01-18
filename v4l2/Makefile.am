@@ -51,7 +51,7 @@ libyami_v4l2_cppflags += $(LIBEGL_CFLAGS)
 endif
 
 lib_LTLIBRARIES             = libyami_v4l2.la
-libyami_v4l2includedir      = $(includedir)/libyami_v4l2
+libyami_v4l2includedir      = $(includedir)/libyami
 libyami_v4l2include_HEADERS = $(libyami_v4l2_source_h)
 noinst_HEADERS              = $(libyami_v4l2_source_h_priv)
 libyami_v4l2_la_SOURCES     = $(libyami_v4l2_source_c)

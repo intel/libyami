@@ -63,7 +63,7 @@ libyami_vpp_ldflags += -lOpenCL
 endif
 
 lib_LTLIBRARIES             = libyami_vpp.la
-libyami_vppincludedir       = $(includedir)/libyami_vpp
+libyami_vppincludedir       = $(includedir)/libyami
 libyami_vppinclude_HEADERS  = $(libyami_vpp_source_h)
 noinst_HEADERS              = $(libyami_vpp_source_h_priv)
 libyami_vpp_la_SOURCES      = $(libyami_vpp_source_c)

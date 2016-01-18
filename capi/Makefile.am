@@ -29,7 +29,7 @@ libyami_capi_cppflags = \
 	$(NULL)
 
 lib_LTLIBRARIES             = libyami_capi.la
-libyami_capiincludedir      = $(includedir)/libyami_capi
+libyami_capiincludedir      = $(includedir)/libyami
 libyami_capiinclude_HEADERS = $(libyami_capi_source_h)
 noinst_HEADERS              = $(libyami_capi_source_h_priv)
 libyami_capi_la_SOURCES     = $(libyami_capi_source_c)

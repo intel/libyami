@@ -2,11 +2,13 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.68])
 
-## it is interface version for libtool, only change it if you are sure to do so
-m4_define([libyami_lt_current], 0)
-m4_define([libyami_lt_revision], 3)
-m4_define([libyami_lt_age], 0)
-m4_define([libyami_lt_version], [libyami_lt_current.libyami_lt_revision.libyami_lt_age])
+# YAMI_API version
+# YAMI_API version for api headers, only change it when the api interface is changed.
+m4_define([yami_api_major_version], 0)
+m4_define([yami_api_minor_version], 1)
+m4_define([yami_api_micro_version], 0)
+m4_define([yami_api_version],
+    [yami_api_major_version.yami_api_minor_version.yami_api_micro_version])
 
 # package version (lib name suffix), usually sync with git tag
 m4_define([libyami_major_version], 0)
@@ -37,6 +39,15 @@ LIBYAMI_LT_LDFLAGS="-version-number $LIBYAMI_LT_VERSION"
 # "-release" option should be avoid, that create lib name like libyami-1.s0.xxx
 AC_SUBST(LIBYAMI_LT_VERSION)
 AC_SUBST(LIBYAMI_LT_LDFLAGS)
+
+YAMI_API_MAJOR_VERSION=yami_api_major_version
+YAMI_API_MINOR_VERSION=yami_api_minor_version
+YAMI_API_MICRO_VERSION=yami_api_micro_version
+YAMI_API_VERSION=yami_api_version
+AC_SUBST(YAMI_API_MAJOR_VERSION)
+AC_SUBST(YAMI_API_MINOR_VERSION)
+AC_SUBST(YAMI_API_MICRO_VERSION)
+AC_SUBST(YAMI_API_VERSION)
 
 AM_CONDITIONAL(BUILD_STATIC,
     [test "x$enable_static" = "xyes"])
@@ -176,47 +187,37 @@ AC_ARG_ENABLE(md5,
 dnl vp8 decoder
 AC_ARG_ENABLE(vp8dec,
     [AC_HELP_STRING([--enable-vp8dec],
-        [build with vp8 decoder support @<:@default=yes@:>@])],
-    [], [enable_vp8dec="yes"])
+        [build with vp8 decoder support])],
+    [], [enable_vp8dec="checking"])
 
-AM_CONDITIONAL(BUILD_VP8_DECODER,
-    [test "x$enable_vp8dec" = "xyes"])
 
 dnl vp9 decoder
 AC_ARG_ENABLE(vp9dec,
     [AC_HELP_STRING([--enable-vp9dec],
-        [build with vp9 decoder support @<:@default=no@:>@])],
-    [], [enable_vp9dec="no"])
+        [build with vp9 decoder support])],
+    [], [enable_vp9dec="checking"])
 
-AM_CONDITIONAL(BUILD_VP9_DECODER,
-    [test "x$enable_vp9dec" = "xyes"])
 
 dnl jpeg decoder
 AC_ARG_ENABLE(jpegdec,
     [AC_HELP_STRING([--enable-jpegdec],
-        [build with jpeg decoder support @<:@default=yes@:>@])],
-    [], [enable_jpegdec="yes"])
+        [build with jpeg decoder support])],
+    [], [enable_jpegdec="checking"])
 
-AM_CONDITIONAL(BUILD_JPEG_DECODER,
-    [test "x$enable_jpegdec" = "xyes"])
 
 dnl h264 decoder
 AC_ARG_ENABLE(h264dec,
     [AC_HELP_STRING([--enable-h264dec],
-        [build with h264 decoder support @<:@default=yes@:>@])],
-    [], [enable_h264dec="yes"])
+        [build with h264 decoder support])],
+    [], [enable_h264dec="checking"])
 
-AM_CONDITIONAL(BUILD_H264_DECODER,
-    [test "x$enable_h264dec" = "xyes"])
 
 dnl h265 decoder
 AC_ARG_ENABLE(h265dec,
     [AC_HELP_STRING([--enable-h265dec],
-        [build with h265 decoder support @<:@default=yes@:>@])],
-    [], [enable_h265dec="yes"])
+        [build with h265 decoder support])],
+    [], [enable_h265dec="checking"])
 
-AM_CONDITIONAL(BUILD_H265_DECODER,
-    [test "x$enable_h265dec" = "xyes"])
 
 dnl fake decoder
 AC_ARG_ENABLE(fakedec,
@@ -234,38 +235,30 @@ AM_CONDITIONAL(BUILD_FAKE_DECODER,
 dnl h264 encoder
 AC_ARG_ENABLE(h264enc,
     [AC_HELP_STRING([--enable-h264enc],
-        [build with h264 encoder support @<:@default=yes@:>@])],
-    [], [enable_h264enc="yes"])
+        [build with h264 encoder support])],
+    [], [enable_h264enc="checking"])
 
-AM_CONDITIONAL(BUILD_H264_ENCODER,
-    [test "x$enable_h264enc" = "xyes"])
 
 dnl jpeg encoder
 AC_ARG_ENABLE(jpegenc,
     [AC_HELP_STRING([--enable-jpegenc],
-        [build with jpeg encoder support @<:@default=no@:>@])],
-    [], [enable_jpegenc="no"])
+        [build with jpeg encoder support])],
+    [], [enable_jpegenc="checking"])
 
-AM_CONDITIONAL(BUILD_JPEG_ENCODER,
-    [test "x$enable_jpegenc" = "xyes"])
 
 dnl vp8 encoder
 AC_ARG_ENABLE(vp8enc,
     [AC_HELP_STRING([--enable-vp8enc],
-        [build with vp8 encoder support @<:@default=no@:>@])],
-    [], [enable_vp8enc="no"])
+        [build with vp8 encoder support])],
+    [], [enable_vp8enc="checking"])
 
-AM_CONDITIONAL(BUILD_VP8_ENCODER,
-    [test "x$enable_vp8enc" = "xyes"])
 
 dnl h265 encoder
 AC_ARG_ENABLE(h265enc,
     [AC_HELP_STRING([--enable-h265enc],
-        [build with h265 encoder support @<:@default=no@:>@])],
-    [], [enable_h265enc="no"])
+        [build with h265 encoder support])],
+    [], [enable_h265enc="checking"])
 
-AM_CONDITIONAL(BUILD_H265_ENCODER,
-    [test "x$enable_h265enc" = "xyes"])
 
 dnl encoder getmv
 AC_ARG_ENABLE(getmv,
@@ -363,6 +356,72 @@ fi
 AC_SUBST(LIBVA_X11_PKG_REQ)
 AC_SUBST(X11_PKG_REQ)
 
+# directory of headers of libva
+LIBVA_HEADERS_DIR=`echo ${LIBVA_CFLAGS#*I}`"/va/"
+
+if test "$enable_jpegdec" = "checking"; then
+    JPEG_DEC=${LIBVA_HEADERS_DIR}"va_dec_jpeg.h"
+    AC_CHECK_FILE([$JPEG_DEC], [enable_jpegdec="yes"], [enable_jpegdec="no"])
+fi
+AM_CONDITIONAL(BUILD_JPEG_DECODER,
+    [test "x$enable_jpegdec" = "xyes"])
+
+if test "$enable_vp8dec" = "checking"; then
+    VP8_DEC=${LIBVA_HEADERS_DIR}"va_dec_vp8.h"
+    AC_CHECK_FILE([$VP8_DEC], [enable_vp8dec="yes"], [enable_vp8dec="no"])
+fi
+AM_CONDITIONAL(BUILD_VP8_DECODER,
+    [test "x$enable_vp8dec" = "xyes"])
+
+if test "$enable_vp9dec" = "checking"; then
+    VP9_DEC=${LIBVA_HEADERS_DIR}"va_dec_vp9.h"
+    AC_CHECK_FILE([$VP9_DEC], [enable_vp9dec="yes"], [enable_vp9dec="no"])
+fi
+AM_CONDITIONAL(BUILD_VP9_DECODER,
+    [test "x$enable_vp9dec" = "xyes"])
+
+if test "$enable_h264dec" = "checking"; then
+    H264_DEC=${LIBVA_HEADERS_DIR}"va.h"
+    AC_CHECK_FILE([$H264_DEC], [enable_h264dec="yes"], [enable_h264dec="no"])
+fi
+AM_CONDITIONAL(BUILD_H264_DECODER,
+    [test "x$enable_h264dec" = "xyes"])
+
+if test "$enable_h265dec" = "checking"; then
+    H265_DEC=${LIBVA_HEADERS_DIR}"va_dec_hevc.h"
+    AC_CHECK_FILE([$H265_DEC], [enable_h265dec="yes"], [enable_h265dec="no"])
+fi
+AM_CONDITIONAL(BUILD_H265_DECODER,
+    [test "x$enable_h265dec" = "xyes"])
+
+if test "$enable_jpegenc" = "checking"; then
+    JPEG_ENC=${LIBVA_HEADERS_DIR}"va_enc_jpeg.h"
+    AC_CHECK_FILE([$JPEG_ENC], [enable_jpegenc="yes"], [enable_jpegenc="no"])
+fi
+AM_CONDITIONAL(BUILD_JPEG_ENCODER,
+    [test "x$enable_jpegenc" = "xyes"])
+
+if test "$enable_vp8enc" = "checking"; then
+    VP8_ENC=${LIBVA_HEADERS_DIR}"va_enc_vp8.h"
+    AC_CHECK_FILE([$VP8_ENC], [enable_vp8enc="yes"], [enable_vp8enc="no"])
+fi
+AM_CONDITIONAL(BUILD_VP8_ENCODER,
+    [test "x$enable_vp8enc" = "xyes"])
+
+if test "$enable_h264enc" = "checking"; then
+    H264_ENC=${LIBVA_HEADERS_DIR}"va_enc_h264.h"
+    AC_CHECK_FILE([$H264_ENC], [enable_h264enc="yes"], [enable_h264enc="no"])
+fi
+AM_CONDITIONAL(BUILD_H264_ENCODER,
+    [test "x$enable_h264enc" = "xyes"])
+
+if test "$enable_h265enc" = "checking"; then
+    H265_ENC=${LIBVA_HEADERS_DIR}"va_enc_hevc.h"
+    AC_CHECK_FILE([$H265_ENC], [enable_h265enc="yes"], [enable_h265enc="no"])
+fi
+AM_CONDITIONAL(BUILD_H265_ENCODER,
+    [test "x$enable_h265enc" = "xyes"])
+
 if test "$enable_v4l2" = "yes"; then
     PKG_CHECK_MODULES([LIBV4L2], [libv4l2])
 fi
@@ -426,6 +485,7 @@ AC_OUTPUT([
          pkgconfig/libyami_vaapi.pc
          pkgconfig/libyami_vpp.pc
          pkgconfig/libyami_capi.pc
+         common/YamiVersion.h
 ])
 
 # Print a configuration summary
@@ -447,7 +507,7 @@ VPPS=" scaler"
 AS_IF([test x$enable_oclblender = xyes], [VPPS="$VPPS oclblender"])
 
 AC_MSG_RESULT([
-    libyami - libyami_version
+    libyami - libyami_version (YAMI_API yami_api_version)
 
     Build decoders ................... :$DECODERS
     Build encoders ....................:$ENCODERS
