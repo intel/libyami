@@ -57,12 +57,6 @@ if BUILD_H265_ENCODER
 libyami_encoder_source_h_priv += vaapiencoder_hevc.h
 endif
 
-libyami_encoder_la_LIBADD = \
-	$(top_builddir)/common/libyami_common.la \
-	$(top_builddir)/vaapi/libyami_vaapi.la \
-	$(top_builddir)/codecparsers/libyami_codecparser.la \
-	$(NULL)
-
 libyami_encoder_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(LIBVA_LIBS) \
@@ -83,7 +77,7 @@ if ENABLE_X11
 libyami_encoder_cppflags += $(LIBVA_X11_CFLAGS)
 endif
 
-lib_LTLIBRARIES                = libyami_encoder.la
+noinst_LTLIBRARIES             = libyami_encoder.la
 libyami_encoderincludedir      = $(includedir)/libyami_encoder
 libyami_encoderinclude_HEADERS = $(libyami_encoder_source_h)
 noinst_HEADERS                 = $(libyami_encoder_source_h_priv)
