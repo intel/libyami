@@ -28,7 +28,7 @@
 #include "v4l2codec_device_ops.h"
 #endif
 #include "v4l2_codecbase.h"
-
+#include <stdlib.h>
 #include "common/log.h"
 #include "common/lock.h"
 
@@ -156,18 +156,21 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length)
 }
 
 #if ANDROID
-#elif __ENABLE_V4L2_GLX__
+#else
+#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
 int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
      bool ret = true;
 
      ASSERT(v4l2Codec);
+     DEBUG("x11display: %p", x11Display);
      ret &= v4l2Codec->setXDisplay(x11Display);
 
      return ret;
 }
-
+#endif
+#if __ENABLE_V4L2_GLX__
 int32_t YamiV4L2_UsePixmap(int fd, uint32_t bufferIndex, Pixmap pixmap)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -211,7 +214,7 @@ int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd)
      return ret;
 }
 #endif
-
+#endif
 #if __ENABLE_V4L2_OPS__
 extern "C" int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value);
 int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
@@ -245,6 +248,13 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
             return -1;
         }
         ret = v4l2Codec->setFrameMemoryType(memoryType);
+    #if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+    } else if (!strcmp(key, "x11-display")) {
+        uintptr_t ptr = (uintptr_t)atoll(value);
+        Display* x11Display = (Display*)ptr;
+        DEBUG("x11Display: %p", x11Display);
+        ret = v4l2Codec->setXDisplay(x11Display);
+    #endif
     } else {
         ERROR("unsupported parameter key: %s\n", key);
     }

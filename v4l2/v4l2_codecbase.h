@@ -29,12 +29,15 @@
 #if ANDROID
 #include "VideoPostProcessHost.h"
 #include "interface/VideoDecoderInterface.h"
-#elif __ENABLE_V4L2_GLX__
-#include <X11/Xlib.h>
 #else
-#include <EGL/egl.h>
-#define EGL_EGLEXT_PROTOTYPES
-#include "EGL/eglext.h"
+    #if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+    #include <X11/Xlib.h>
+    #endif
+    #if !__ENABLE_V4L2_GLX__
+    #include <EGL/egl.h>
+    #define EGL_EGLEXT_PROTOTYPES
+    #include "EGL/eglext.h"
+    #endif
 #endif
 #include "interface/VideoCommonDefs.h"
 
@@ -70,12 +73,15 @@ class V4l2CodecBase {
 #if ANDROID
     inline bool setVaDisplay();
     inline bool createVpp();
-#elif __ENABLE_V4L2_GLX__
+#else
+    #if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
     bool setXDisplay(Display *x11Display) { m_x11Display = x11Display; return true; };
     virtual int32_t usePixmap(uint32_t bufferIndex, Pixmap pixmap) {return 0;};
-#else
+    #endif
+    #if !__ENABLE_V4L2_GLX__
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
     bool setDrmFd(int drm_fd) {m_drmfd = drm_fd; return true;};
+    #endif
 
 #endif
     void workerThread();
@@ -106,10 +112,13 @@ class V4l2CodecBase {
 #if ANDROID
     VADisplay m_vaDisplay;
     SharedPtr<IVideoPostProcess> m_vpp;
-#elif __ENABLE_V4L2_GLX__
-    Display *m_x11Display;
 #else
+    #if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+    Display *m_x11Display;
+    #endif
+    #if !__ENABLE_V4L2_GLX__
     int m_drmfd;
+    #endif
 #endif
 
     enum EosState{
