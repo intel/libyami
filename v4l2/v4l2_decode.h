@@ -69,6 +69,7 @@ class V4l2Decoder : public V4l2CodecBase
   private:
     DecoderPtr m_decoder;
     std::vector<uint8_t> m_codecData;
+    bool m_bindEglImage;
     // VideoFormatInfo m_videoFormatInfo;
     // chrome requires m_maxBufferCount[OUTPUT] to be big enough (dpb size + some extra ones), it is correct when we export YUV buffer direcly
     // however, we convert YUV frame to temporary RGBX frame; so the RGBX frame pool is not necessary to be that big.

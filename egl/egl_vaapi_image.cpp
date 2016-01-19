@@ -39,7 +39,7 @@ namespace YamiMediaCodec {
 
 EglVaapiImage::EglVaapiImage(VADisplay display, int width, int height)
     : m_display(display), m_width(width), m_height(height), m_inited(false)
-    , m_eglImage(EGL_NO_IMAGE_KHR)
+    , m_acquired(false), m_eglImage(EGL_NO_IMAGE_KHR)
 {
 
 }
@@ -62,6 +62,13 @@ bool EglVaapiImage::init()
 
 bool EglVaapiImage::acquireBufferHandle(VideoDataMemoryType memoryType)
 {
+    uint32_t i;
+    if (m_acquired) {
+        ASSERT(memoryType = m_frameInfo.memoryType);
+        return true;
+    }
+
+    // FIXME, more type can be supported
     if (memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
         m_bufferInfo.mem_type = VA_SURFACE_ATTRIB_MEM_TYPE_KERNEL_DRM;
     else if (memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
@@ -69,7 +76,29 @@ bool EglVaapiImage::acquireBufferHandle(VideoDataMemoryType memoryType)
     else
         ASSERT(0);
     VAStatus vaStatus = vaAcquireBufferHandle(m_display, m_image.buf, &m_bufferInfo);
+    m_frameInfo.memoryType = memoryType;
+    m_frameInfo.width = m_width;
+    m_frameInfo.height = m_height;
+    for (i=0; i<m_image.num_planes; i++) {
+        m_frameInfo.pitch[i] = m_image.pitches[i];
+        m_frameInfo.offset[i] = m_image.offsets[i];
+    }
+    m_frameInfo.fourcc = m_image.format.fourcc;
+    m_frameInfo.size = m_image.data_size; // not interest for bufferhandle
+    m_frameInfo.handle = m_bufferInfo.handle;
+
+    m_acquired = true;
+
     return checkVaapiStatus(vaStatus, "vaAcquireBufferHandle");
+}
+
+bool EglVaapiImage::exportFrame(VideoDataMemoryType memoryType, VideoFrameRawData &frame)
+{
+    if (!acquireBufferHandle(memoryType))
+        return false;
+
+    frame = m_frameInfo;
+    return true;
 }
 
 EGLImageKHR EglVaapiImage::createEglImage(EGLDisplay eglDisplay, EGLContext eglContext, VideoDataMemoryType memoryType)
@@ -84,7 +113,7 @@ EGLImageKHR EglVaapiImage::createEglImage(EGLDisplay eglDisplay, EGLContext eglC
     if (m_eglImage == EGL_NO_IMAGE_KHR) {
         ERROR("createEglImageFromHandle failed");
     }
-    vaReleaseBufferHandle(m_display, m_image.buf);
+
     return m_eglImage;
 }
 
@@ -94,17 +123,22 @@ bool EglVaapiImage::blt(const VideoFrameRawData& src)
         ERROR("call init before blt!");
         return false;
     }
-    if (m_eglImage == EGL_NO_IMAGE_KHR) {
-        ERROR("no egl image");
-        return false;
-    }
+    if (m_acquired)
+        vaReleaseBufferHandle(m_display, m_image.buf);
+
     VAStatus vaStatus = vaGetImage(m_display, src.internalID, 0, 0, src.width, src.height, m_image.image_id);
+
+    // incomplete data yet
+    m_frameInfo.timeStamp = src.timeStamp;
+    m_frameInfo.flags = src.flags;
     return checkVaapiStatus(vaStatus, "vaGetImage");
 }
 
 EglVaapiImage::~EglVaapiImage()
 {
     if (m_inited) {
+        if (m_acquired)
+            vaReleaseBufferHandle(m_display, m_image.buf);
         vaDestroyImage(m_display, m_image.image_id);
     }
 }
