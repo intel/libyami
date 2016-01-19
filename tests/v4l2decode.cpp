@@ -32,6 +32,8 @@
 #include <errno.h>
 #include  <sys/mman.h>
 #include <vector>
+#include <stdint.h>
+#include <inttypes.h>
 
 #include "common/log.h"
 #include "common/utils.h"
@@ -502,10 +504,14 @@ int main(int argc, char** argv)
 #if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
-#endif
-#if __ENABLE_V4L2_GLX__
-    // FIXME, setXDisplay for GLX only
+    DEBUG("x11display: %p", x11Display);
+    #if __ENABLE_V4L2_OPS__
+    char displayStr[32];
+    sprintf(displayStr, "%" PRIu64 "", (uint64_t)x11Display);
+    ioctlRet = SIMULATE_V4L2_OP(SetParameter)(fd, "x11-display", displayStr);
+    #else
     ioctlRet = SIMULATE_V4L2_OP(SetXDisplay)(fd, x11Display);
+    #endif
 #endif
     // set output frame memory type
 #if __ENABLE_V4L2_OPS__

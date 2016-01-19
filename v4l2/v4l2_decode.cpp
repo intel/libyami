@@ -109,10 +109,18 @@ bool V4l2Decoder::start()
 #if ANDROID
     nativeDisplay.type = NATIVE_DISPLAY_VA;
     nativeDisplay.handle = (intptr_t)m_vaDisplay;
-#elif __ENABLE_V4L2_GLX__
+#elif __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+    DEBUG("m_x11Display: %p", m_x11Display);
+    #if __ENABLE_V4L2_GLX__
     ASSERT(m_x11Display);
-    nativeDisplay.type = NATIVE_DISPLAY_X11;
-    nativeDisplay.handle = (intptr_t)m_x11Display;
+    #endif
+    if (m_x11Display) {
+        nativeDisplay.type = NATIVE_DISPLAY_X11;
+        nativeDisplay.handle = (intptr_t)m_x11Display;
+    } else {
+        nativeDisplay.type = NATIVE_DISPLAY_DRM;
+        nativeDisplay.handle = m_drmfd;
+    }
 #else
     nativeDisplay.type = NATIVE_DISPLAY_DRM;
     nativeDisplay.handle = m_drmfd;
