@@ -4,9 +4,8 @@ libdir=@libdir@
 includedir=@includedir@
 
 Name: libyami
-Description: Intel Open source encoder based on libva. \
-	Including encoder, decoder, capi, vpp(Video post process) and codeparser.
-Version: @LIBYAMI_LT_VERSION@
+Description: Intel open source media infrastructure base on libva.
+Version: @YAMI_API_VERSION@
 Requires: @LIBVA_PKG_REQ@ \
           @LIBVA_DRM_PKG_REQ@ \
           @LIBVA_X11_PKG_REQ@ \

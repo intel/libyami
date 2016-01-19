@@ -22,6 +22,7 @@
 #endif
 
 #include <iostream>
+#include "common/YamiVersion.h"
 #include "decoder/vaapidecoder_factory.h"
 #include "encoder/vaapiencoder_factory.h"
 #include "vpp/vaapipostprocess_factory.h"
@@ -38,9 +39,26 @@ void printFactoryInfo(const char* name)
     }
 }
 
+void printApiVersion()
+{
+   uint32_t api;
+   yamiGetApiVersion(&api);
+
+   //uint32 just for print format
+   uint32_t major = api >> 24;
+   uint32_t minor = (api >> 16) & 0xff;
+   uint32_t micro = (api >> 8) & 0xff;
+
+   std::cout << "API: " << major << "." << minor << "." << micro << std::endl;
+}
+
 int main(int argc, const char** argv)
 {
+
     std::cout << PACKAGE_STRING << " - " << PACKAGE_URL << std::endl;
+
+    std::cout<<std::endl;
+    printApiVersion();
 
     printFactoryInfo<VaapiDecoderFactory>("decoders");
     printFactoryInfo<VaapiEncoderFactory>("encoders");
