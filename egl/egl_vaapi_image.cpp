@@ -78,6 +78,7 @@ EGLImageKHR EglVaapiImage::createEglImage(EGLDisplay eglDisplay, EGLContext eglC
         return m_eglImage;
     if (!acquireBufferHandle(memoryType))
         return EGL_NO_IMAGE_KHR;
+    //FIXME, it doesn't support planar video frame yet
     m_eglImage = createEglImageFromHandle(eglDisplay, eglContext, memoryType, m_bufferInfo.handle,
         m_width, m_height, m_image.pitches[0]);
     if (m_eglImage == EGL_NO_IMAGE_KHR) {
