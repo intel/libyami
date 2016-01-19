@@ -1,5 +1,6 @@
 pkg_config_files = \
 	libyami.pc \
+	libyami_v4l2.pc \
 	$(NULL)
 
 pkgconfigdir = @pkgconfigdir@
