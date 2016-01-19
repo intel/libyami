@@ -2,11 +2,13 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.68])
 
-## it is interface version for libtool, only change it if you are sure to do so
-m4_define([libyami_lt_current], 0)
-m4_define([libyami_lt_revision], 3)
-m4_define([libyami_lt_age], 0)
-m4_define([libyami_lt_version], [libyami_lt_current.libyami_lt_revision.libyami_lt_age])
+# YAMI-API version
+# YAMI-API version for api headers, only change it when the api interface is changed.
+m4_define([yami_api_major_version], 0)
+m4_define([yami_api_minor_version], 1)
+m4_define([yami_api_micro_version], 0)
+m4_define([yami_api_version],
+    [yami_api_major_version.yami_api_minor_version.yami_api_micro_version])
 
 # package version (lib name suffix), usually sync with git tag
 m4_define([libyami_major_version], 0)
@@ -37,6 +39,15 @@ LIBYAMI_LT_LDFLAGS="-version-number $LIBYAMI_LT_VERSION"
 # "-release" option should be avoid, that create lib name like libyami-1.s0.xxx
 AC_SUBST(LIBYAMI_LT_VERSION)
 AC_SUBST(LIBYAMI_LT_LDFLAGS)
+
+YAMI_API_MAJOR_VERSION=yami_api_major_version
+YAMI_API_MINOR_VERSION=yami_api_minor_version
+YAMI_API_MICRO_VERSION=yami_api_micro_version
+YAMI_API_VERSION=yami_api_version
+AC_SUBST(YAMI_API_MAJOR_VERSION)
+AC_SUBST(YAMI_API_MINOR_VERSION)
+AC_SUBST(YAMI_API_MICRO_VERSION)
+AC_SUBST(YAMI_API_VERSION)
 
 AM_CONDITIONAL(BUILD_STATIC,
     [test "x$enable_static" = "xyes"])
@@ -421,6 +432,7 @@ AC_CONFIG_FILES([Makefile
 AC_OUTPUT([
          pkgconfig/libyami.pc
          pkgconfig/libyami_v4l2.pc
+         common/YamiVersion.h
 ])
 
 # Print a configuration summary
@@ -442,7 +454,7 @@ VPPS=" scaler"
 AS_IF([test x$enable_oclblender = xyes], [VPPS="$VPPS oclblender"])
 
 AC_MSG_RESULT([
-    libyami - libyami_version
+    libyami - libyami_version (YAMI_API yami_api_version)
 
     Build decoders ................... :$DECODERS
     Build encoders ....................:$ENCODERS
