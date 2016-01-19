@@ -41,7 +41,8 @@
 #endif
 
 V4l2Decoder::V4l2Decoder()
-    : m_videoWidth(0)
+    : m_bindEglImage(false)
+    , m_videoWidth(0)
     , m_videoHeight(0)
 #ifdef ANDROID
     , m_reqBuffCnt(0)
@@ -251,6 +252,8 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
         // FIXME, it introduce one GPU copy; which is not necessary in major case and should be avoided in most case
         m_eglVaapiImages[index]->blt(*frame);
         m_decoder->renderDone(frame);
+        if (!m_bindEglImage)
+            m_eglVaapiImages[index]->exportFrame(m_memoryType, m_outputRawFrames[index]);
     }
 #endif
 
@@ -286,10 +289,23 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
 
 bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 {
+    int i;
     ASSERT(dqbuf);
     // for the buffers within range of [m_actualOutBufferCount, m_maxBufferCount[OUTPUT]]
     // there are not used in reality, but still be returned back to client during flush (seek/eos)
     ASSERT(dqbuf->index >= 0 && dqbuf->index < m_maxBufferCount[OUTPUT]);
+
+    dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
+    if (!m_bindEglImage) {
+        // FIXME: m_bufferPlaneCount[OUTPUT] doesn't match current RGBX output, it is a bug
+        for (i=0; i< 1; i++) {
+            // FIXME, a better field to hold drm/dma handle
+            dqbuf->m.planes[i].reserved[0] = m_outputRawFrames[dqbuf->index].handle;
+            dqbuf->m.planes[i].reserved[1] = m_outputRawFrames[dqbuf->index].pitch[i];
+            dqbuf->m.planes[i].data_offset = m_outputRawFrames[dqbuf->index].offset[i];
+        }
+    }
+
     // simple set size data to satify chrome even in texture mode
     dqbuf->m.planes[0].bytesused = m_videoWidth * m_videoHeight;
     dqbuf->m.planes[1].bytesused = m_videoWidth * m_videoHeight/2;
@@ -666,6 +682,7 @@ int32_t V4l2Decoder::usePixmap(uint32_t bufferIndex, Pixmap pixmap)
 #else
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
 {
+    m_bindEglImage = true;
     ASSERT(m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
     ASSERT(bufferIndex<m_eglVaapiImages.size());
     bufferIndex = std::min(bufferIndex, m_actualOutBufferCount-1);

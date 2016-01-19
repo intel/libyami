@@ -39,6 +39,7 @@ public:
     bool init();
     EGLImageKHR createEglImage(EGLDisplay, EGLContext, VideoDataMemoryType);
     bool blt(const VideoFrameRawData& src);
+    bool exportFrame(VideoDataMemoryType memoryType, VideoFrameRawData &frame);
     ~EglVaapiImage();
 private:
     bool acquireBufferHandle(VideoDataMemoryType);
@@ -50,6 +51,8 @@ private:
     int             m_width;
     int             m_height;
     bool            m_inited;
+    bool            m_acquired; // acquired buffer handle
+    VideoFrameRawData   m_frameInfo;
 
     EGLImageKHR     m_eglImage;
 };
