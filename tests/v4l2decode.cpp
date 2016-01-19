@@ -184,7 +184,9 @@ uint32_t k_extraOutputFrameCount = 2;
 static std::vector<uint8_t*> inputFrames;
 static std::vector<struct RawFrameData> rawOutputFrames;
 
-#if !__ENABLE_V4L2_GLX__
+#if __ENABLE_V4L2_GLX__
+#define IS_RAW_DATA()   0
+#else
 static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 static const char* typeStrDrmName = "drm-name";
 static const char* typeStrDmaBuf = "dma-buf";
@@ -345,7 +347,7 @@ static bool displayOneVideoFrameGLX(int32_t fd, uint32_t index)
 bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
 {
     ASSERT(eglContext && textureIds.size());
-    ASSERT(index>=0 && index<textureIds.size());
+    ASSERT(index>=0 && (uint32_t)index<textureIds.size());
     DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
 
     GLenum target = GL_TEXTURE_2D;
@@ -388,7 +390,10 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
         else
             ret = dumpOneVideoFrame(buf.index);
 #endif
-        ASSERT(ret);
+        // ASSERT(ret);
+        if (ret) {
+            ERROR("display frame failed");
+        }
     } else {
         buf.index = index;
     }
@@ -447,7 +452,7 @@ int main(int argc, char** argv)
     renderMode = 3; // set default render mode to 3
 
     yamiTraceInit();
-#if __ENABLE_V4L2_GLX__
+#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
     XInitThreads();
 #endif
 
@@ -494,10 +499,12 @@ int main(int argc, char** argv)
     fd = SIMULATE_V4L2_OP(Open)("decoder", 0);
     ASSERT(fd!=-1);
 
-#ifdef ANDROID
-#elif __ENABLE_V4L2_GLX__
+#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
+#endif
+#if __ENABLE_V4L2_GLX__
+    // FIXME, setXDisplay for GLX only
     ioctlRet = SIMULATE_V4L2_OP(SetXDisplay)(fd, x11Display);
 #endif
     // set output frame memory type
@@ -651,16 +658,20 @@ int main(int argc, char** argv)
     ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
 
+#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+    if (!IS_RAW_DATA()) {
+        x11Window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
+            , 0, 0, videoWidth, videoHeight, 0, 0
+            , WhitePixel(x11Display, 0));
+        XMapWindow(x11Display, x11Window);
+        textureIds.resize(outputQueueCapacity);
+    }
+#endif
+
 #ifdef ANDROID
 #elif __ENABLE_V4L2_GLX__
-    x11Window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
-        , 0, 0, videoWidth, videoHeight, 0, 0
-        , WhitePixel(x11Display, 0));
-    XMapWindow(x11Display, x11Window);
     pixmaps.resize(outputQueueCapacity);
     glxPixmaps.resize(outputQueueCapacity);
-    textureIds.resize(outputQueueCapacity);
-
     if (!glxContext) {
         glxContext = glxInit(x11Display, x11Window);
     }
@@ -715,7 +726,6 @@ int main(int argc, char** argv)
     } else if (IS_DMA_BUF() || IS_DRM_NAME()) {
         // setup all textures and eglImages
         eglImages.resize(outputQueueCapacity);
-        textureIds.resize(outputQueueCapacity);
 
         if (!eglContext)
             eglContext = eglInit(x11Display, x11Window, 0 /*VA_FOURCC_RGBA*/, IS_DMA_BUF());
@@ -890,7 +900,7 @@ int main(int argc, char** argv)
     if (dumpOutputName)
         free(dumpOutputName);
 
-#if __ENABLE_V4L2_GLX__
+#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
     if (x11Display && x11Window)
         XDestroyWindow(x11Display, x11Window);
     if (x11Display)

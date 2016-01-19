@@ -109,7 +109,7 @@ bool VaapiPicture::render(std::vector<O>& objects)
 {
     bool ret = true;
 
-    for (int i = 0; i < objects.size(); i++)
+    for (uint32_t i = 0; i < objects.size(); i++)
         ret &= render(objects[i]);
 
     objects.clear(); // slient work around for psb drv to delete VABuffer

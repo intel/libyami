@@ -167,7 +167,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
     int ioctlRet = -1;
 
     memset(&buf, 0, sizeof(buf));
-    memset(&planes, 0, sizeof(planes));
+    memset(planes, 0, sizeof(planes));
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE; //it indicates output buffer type
     buf.memory = V4L2_MEMORY_MMAP; // chromeos v4l2vea uses this mode only
     buf.m.planes = planes;

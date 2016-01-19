@@ -240,6 +240,7 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
     m_outputRawFrames[index].timeStamp = timeStamp;
 #else
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
+        // FIXME, it introduce one GPU copy; which is not necessary in major case and should be avoided in most case
         m_eglVaapiImages[index]->blt(*frame);
         m_decoder->renderDone(frame);
     }
