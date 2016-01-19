@@ -426,6 +426,7 @@ AC_OUTPUT([
          pkgconfig/libyami_vaapi.pc
          pkgconfig/libyami_vpp.pc
          pkgconfig/libyami_capi.pc
+         pkgconfig/libyami.pc
 ])
 
 # Print a configuration summary
