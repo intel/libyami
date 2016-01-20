@@ -23,6 +23,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+#include <inttypes.h>
 #include <linux/videodev2.h>
 #include <unistd.h>
 #include <errno.h>
@@ -39,6 +40,15 @@
 #if !__ENABLE_V4L2_GLX__
 #include "egl/egl_vaapi_image.h"
 #endif
+
+#define INT64_TO_TIMEVAL(i64, time_val) do {            \
+        time_val.tv_sec = (int32_t)(i64 >> 32);         \
+        time_val.tv_usec = (int32_t)(i64 & 0xffffffff); \
+    } while (0)
+#define TIMEVAL_TO_INT64(i64, time_val) do {            \
+        i64 = time_val.tv_sec;                          \
+        i64 = (i64 << 32) + time_val.tv_usec;           \
+    } while(0)
 
 V4l2Decoder::V4l2Decoder()
     : m_bindEglImage(false)
@@ -193,7 +203,9 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
     }
 
     m_vpp->process(output, m_videoFrames[index]);
-
+    m_videoFrames[index]->timeStamp = output->timeStamp;
+    m_videoFrames[index]->flags = output->flags;
+    DEBUG("buffer index: %d, timeStamp: %" PRId64 "\n", index, output->timeStamp);
     return true;
 }
 #else
@@ -279,7 +291,8 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
         inputBuffer->data = NULL;
     else
         inputBuffer->data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*qbuf->index;
-    inputBuffer->timeStamp = qbuf->timestamp.tv_sec;
+
+    TIMEVAL_TO_INT64(inputBuffer->timeStamp, qbuf->timestamp);
     inputBuffer->flag = qbuf->flags;
     // set buffer unit-mode if possible, nal, frame?
     DEBUG("qbuf->index: %d, inputBuffer: %p, timestamp: %ld", qbuf->index, inputBuffer->data, inputBuffer->timeStamp);
@@ -309,7 +322,15 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     // simple set size data to satify chrome even in texture mode
     dqbuf->m.planes[0].bytesused = m_videoWidth * m_videoHeight;
     dqbuf->m.planes[1].bytesused = m_videoWidth * m_videoHeight/2;
-    dqbuf->timestamp.tv_sec = m_outputRawFrames[dqbuf->index].timeStamp;
+#if ANDROID
+    INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
+    dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
+#else
+    INT64_TO_TIMEVAL(m_outputRawFrames[dqbuf->index].timeStamp, dqbuf->timestamp);
+    dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
+#endif
+    DEBUG("deque buffer index: %d, timeStamp: (%ld, %ld)\n",
+        dqbuf->index,  dqbuf->timestamp.tv_sec, dqbuf->timestamp.tv_usec);
 
     return true;
 }
