@@ -40,7 +40,7 @@ libyami_vaapi_cppflags = \
 	$(NULL)
 
 noinst_LTLIBRARIES           = libyami_vaapi.la
-libyami_vaapiincludedir      = ${includedir}/libyami_vaapi
+libyami_vaapiincludedir      = ${includedir}/libyami
 libyami_vaapiinclude_HEADERS = $(libyami_vaapi_source_h)
 libyami_vaapi_la_SOURCES     = $(libyami_vaapi_source_c)
 libyami_vaapi_la_LDFLAGS     = $(libyami_vaapi_ldflags)
