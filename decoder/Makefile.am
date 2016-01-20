@@ -95,7 +95,7 @@ libyami_decoder_cppflags += $(LIBVA_X11_CFLAGS)
 endif
 
 noinst_LTLIBRARIES             = libyami_decoder.la
-libyami_decoderincludedir      = $(includedir)/libyami_decoder
+libyami_decoderincludedir      = $(includedir)/libyami
 libyami_decoderinclude_HEADERS = $(libyami_decoder_source_h)
 noinst_HEADERS                 = $(libyami_decoder_source_h_priv)
 libyami_decoder_la_SOURCES     = $(libyami_decoder_source_c)

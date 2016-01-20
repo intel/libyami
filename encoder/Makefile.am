@@ -78,7 +78,7 @@ libyami_encoder_cppflags += $(LIBVA_X11_CFLAGS)
 endif
 
 noinst_LTLIBRARIES             = libyami_encoder.la
-libyami_encoderincludedir      = $(includedir)/libyami_encoder
+libyami_encoderincludedir      = $(includedir)/libyami
 libyami_encoderinclude_HEADERS = $(libyami_encoder_source_h)
 noinst_HEADERS                 = $(libyami_encoder_source_h_priv)
 libyami_encoder_la_SOURCES     = $(libyami_encoder_source_c)

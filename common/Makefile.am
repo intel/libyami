@@ -32,7 +32,7 @@ libyami_common_cppflags = \
 	$(NULL)
 
 noinst_LTLIBRARIES            = libyami_common.la
-libyami_commonincludedir      = ${includedir}/libyami_common
+libyami_commonincludedir      = ${includedir}/libyami
 libyami_commoninclude_HEADERS = $(libyami_common_source_h)
 libyami_common_la_SOURCES     = $(libyami_common_source_c)
 libyami_common_la_LDFLAGS     = $(libyami_common_ldflags)
