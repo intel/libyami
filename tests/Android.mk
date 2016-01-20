@@ -5,6 +5,7 @@ include $(CLEAR_VARS)
 include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
+        decodehelp.cpp \
         decodeinput.cpp \
         vppinputoutput.cpp \
         v4l2decode.cpp

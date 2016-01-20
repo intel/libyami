@@ -199,12 +199,6 @@ bool VppOutputFile::init(const char* outputFileName, uint32_t fourcc, int width,
         ERROR("output file name is null");
         return false;
     }
-    if(!fourcc || !width || !height) {
-        if (!guessFormat(outputFileName, fourcc, width, height)) {
-            ERROR("guess format from %s failed", outputFileName);
-            return false;
-        }
-    }
     m_fourcc = fourcc;
     m_width = width;
     m_height = height;
