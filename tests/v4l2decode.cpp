@@ -370,7 +370,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
             ret = dumpOneVideoFrame(buf.index);
 #endif
         // ASSERT(ret);
-        if (ret) {
+        if (!ret) {
             ERROR("display frame failed");
         }
     } else {
