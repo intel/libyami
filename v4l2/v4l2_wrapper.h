@@ -24,12 +24,10 @@
 #include <stddef.h>
 #if ANDROID
 #else
-    #if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+    #if __ENABLE_X11__
     #include <X11/Xlib.h>
     #endif
-    #if !__ENABLE_V4L2_GLX__
     #include <EGL/egl.h>
-    #endif
 #endif
 #include "VideoCommonDefs.h"
 
@@ -54,19 +52,12 @@ void* YamiV4L2_Mmap(void* addr, size_t length,
 int32_t YamiV4L2_Munmap(void* addr, size_t length);
 #if ANDROID
 #else
-    #if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+    #if __ENABLE_X11__
     /// it should be called before driver initialization (immediate after _Open()).
     int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display);
     #endif
-    #if __ENABLE_V4L2_GLX__
-    /// pixmap=0 means the previous set rendering target becomes invalid, stop rendering to it.
-    int32_t YamiV4L2_UsePixmap(int fd, uint32_t bufferIndex, Pixmap pixmap);
-    /// terminate vaapi before XFreePixmap work around a strange X11 exception; otherwise there is "BadDrawable" exception though the Pixmap is valid.
-    int32_t YamiV4L2_Stop(int32_t fd);
-    #else
     int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int buffer_index, void* egl_image);
     int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd);
-    #endif
 #endif
 #ifdef __cplusplus
 } // extern "C"

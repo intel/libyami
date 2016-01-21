@@ -39,9 +39,7 @@
 #include "common/utils.h"
 #include "decodeinput.h"
 #include "decodehelp.h"
-#if __ENABLE_V4L2_GLX__
-#include "./glx/glx_help.h"
-#elif ANDROID
+#if ANDROID
 #include <gui/SurfaceComposerClient.h>
 #include <va/va_android.h>
 #else
@@ -186,9 +184,6 @@ uint32_t k_extraOutputFrameCount = 2;
 static std::vector<uint8_t*> inputFrames;
 static std::vector<struct RawFrameData> rawOutputFrames;
 
-#if __ENABLE_V4L2_GLX__
-#define IS_RAW_DATA()   0
-#else
 static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 static const char* typeStrDrmName = "drm-name";
 static const char* typeStrDmaBuf = "dma-buf";
@@ -199,19 +194,13 @@ static const char* memoryTypeStr = typeStrDrmName;
 #define IS_DMA_BUF()   (!strcmp(memoryTypeStr, typeStrDmaBuf))
 #define IS_RAW_DATA()   (!strcmp(memoryTypeStr, typeStrRawData))
 // #define IS_ANDROID_NATIVE_BUFFER()   (!strcmp(memoryTypeStr, typeStrAndroidNativeBuffer))
-#endif
 
 static FILE* outfp = NULL;
 #ifndef ANDROID
 static Display * x11Display = NULL;
 static Window x11Window = 0;
 #endif
-#ifdef ANDROID
-#elif __ENABLE_V4L2_GLX__
-static GLXContextType *glxContext;
-std::vector <Pixmap> pixmaps;
-std::vector <GLXPixmap> glxPixmaps;
-#else
+#ifndef ANDROID
 static EGLContextType *eglContext = NULL;
 static std::vector<EGLImageKHR> eglImages;
 #endif
@@ -335,16 +324,6 @@ static bool displayOneVideoFrameAndroid(int32_t fd, int32_t index)
 
     return true;
 }
-#elif __ENABLE_V4L2_GLX__
-static bool displayOneVideoFrameGLX(int32_t fd, uint32_t index)
-{
-    ASSERT(glxContext && textureIds.size());
-    ASSERT(index<textureIds.size());
-    DEBUG("textureIds[%d] = 0x%x", index, textureIds[index]);
-
-    int ret = drawTexture(glxContext, textureIds[index]);
-    return ret == 0;
-}
 #else
 bool displayOneVideoFrameEGL(int32_t fd, int32_t index)
 {
@@ -384,8 +363,6 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
         renderFrameCount++;
 #ifdef ANDROID
         ret = displayOneVideoFrameAndroid(fd, buf.index);
-#elif __ENABLE_V4L2_GLX__
-        ret = displayOneVideoFrameGLX(fd, buf.index);
 #else
         if (IS_DMA_BUF() || IS_DRM_NAME())
             ret = displayOneVideoFrameEGL(fd, buf.index);
@@ -454,7 +431,7 @@ int main(int argc, char** argv)
     renderMode = 3; // set default render mode to 3
 
     yamiTraceInit();
-#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+#if __ENABLE_X11__
     XInitThreads();
 #endif
 
@@ -469,7 +446,6 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
-#if !__ENABLE_V4L2_GLX__
     switch (renderMode) {
     case 0:
         memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;
@@ -487,7 +463,6 @@ int main(int argc, char** argv)
         ASSERT(0 && "unsupported render mode, -m [0,3,4] are supported");
     break;
     }
-#endif
 
     input = DecodeInput::create(inputFileName);
     if (input==NULL) {
@@ -501,7 +476,7 @@ int main(int argc, char** argv)
     fd = SIMULATE_V4L2_OP(Open)("decoder", 0);
     ASSERT(fd!=-1);
 
-#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+#if __ENABLE_X11__
     x11Display = XOpenDisplay(NULL);
     ASSERT(x11Display);
     DEBUG("x11display: %p", x11Display);
@@ -516,7 +491,7 @@ int main(int argc, char** argv)
     // set output frame memory type
 #if __ENABLE_V4L2_OPS__
     SIMULATE_V4L2_OP(SetParameter)(fd, "frame-memory-type", memoryTypeStr);
-#elif !__ENABLE_V4L2_GLX__
+#else
     SIMULATE_V4L2_OP(FrameMemoryType)(fd, memoryType);
 #endif
 
@@ -664,7 +639,7 @@ int main(int argc, char** argv)
     ASSERT(reqbufs.count>0);
     outputQueueCapacity = reqbufs.count;
 
-#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+#if __ENABLE_X11__
     if (!IS_RAW_DATA()) {
         x11Window = XCreateSimpleWindow(x11Display, DefaultRootWindow(x11Display)
             , 0, 0, videoWidth, videoHeight, 0, 0
@@ -674,24 +649,7 @@ int main(int argc, char** argv)
     }
 #endif
 
-#ifdef ANDROID
-#elif __ENABLE_V4L2_GLX__
-    pixmaps.resize(outputQueueCapacity);
-    glxPixmaps.resize(outputQueueCapacity);
-    if (!glxContext) {
-        glxContext = glxInit(x11Display, x11Window);
-    }
-    ASSERT(glxContext);
-
-    glGenTextures(outputQueueCapacity, &textureIds[0] );
-    for (i=0; i<outputQueueCapacity; i++) {
-        int ret = createPixmapForTexture(glxContext, textureIds[i], videoWidth, videoHeight, &pixmaps[i], &glxPixmaps[i]);
-        DEBUG("textureIds[%d]: 0x%x, pixmaps[%d]=0x%lx, glxPixmaps[%d]: 0x%lx", i, textureIds[i], i, pixmaps[i], i, glxPixmaps[i]);
-        ASSERT(ret == 0);
-        ret = SIMULATE_V4L2_OP(UsePixmap)(fd, i, pixmaps[i]);
-        ASSERT(ret == 0);
-    }
-#else
+#ifndef ANDROID
     if (IS_RAW_DATA()) {
         rawOutputFrames.resize(outputQueueCapacity);
         for (i=0; i<outputQueueCapacity; i++) {
@@ -871,8 +829,6 @@ int main(int argc, char** argv)
 
 #ifdef ANDROID
     //TODO, some resources need to destroy?
-#elif __ENABLE_V4L2_GLX__
-    glxRelease(glxContext, &pixmaps[0], &glxPixmaps[0], pixmaps.size());
 #else
     for (i=0; i<eglImages.size(); i++) {
         destroyImage(eglContext->eglContext.display, eglImages[i]);
@@ -906,7 +862,7 @@ int main(int argc, char** argv)
     if (dumpOutputName)
         free(dumpOutputName);
 
-#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+#if __ENABLE_X11__
     if (x11Display && x11Window)
         XDestroyWindow(x11Display, x11Window);
     if (x11Display)

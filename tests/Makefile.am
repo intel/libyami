@@ -86,11 +86,7 @@ V4L2_DECODE_LDFLAGS = \
 	-Wl,--no-whole-archive
 endif
 
-if ENABLE_V4L2_GLX
-V4L2_DECODE_LIBS += $(LIBGL_LIBS)
-else
 V4L2_DECODE_LIBS += $(LIBEGL_LIBS) $(LIBGLES2_LIBS)
-endif
 
 V4L2_ENCODE_LIBS = \
 	$(YAMI_ENCODE_LIBS) \
@@ -158,12 +154,10 @@ yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInp
 v4l2decode_LDADD   = $(V4L2_DECODE_LIBS)
 v4l2decode_LDFLAGS = $(V4L2_DECODE_LDFLAGS)
 v4l2decode_SOURCES = v4l2decode.cpp decodehelp.h $(DECODE_INPUT_SOURCES)
-if ENABLE_V4L2_GLX
-v4l2decode_SOURCES += ./glx/glx_help.c
-else
+
 v4l2decode_SOURCES += ./egl/gles2_help.c
 v4l2decode_LDADD += -ldl
-endif
+
 
 v4l2encode_LDADD   = $(V4L2_ENCODE_LIBS)
 v4l2encode_LDFLAGS = $(V4L2_ENCODE_LDFLAGS)

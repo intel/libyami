@@ -157,7 +157,7 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length)
 
 #if ANDROID
 #else
-#if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+#if __ENABLE_X11__
 int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -170,32 +170,6 @@ int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
      return ret;
 }
 #endif
-#if __ENABLE_V4L2_GLX__
-int32_t YamiV4L2_UsePixmap(int fd, uint32_t bufferIndex, Pixmap pixmap)
-{
-    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
-     bool ret = true;
-
-     ASSERT(v4l2Codec);
-     ret &= v4l2Codec->usePixmap(bufferIndex, pixmap);
-
-     return ret;
-}
-
-int32_t YamiV4L2_Stop(int32_t fd)
-{
-    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
-    bool ret = true;
-
-    ASSERT(v4l2Codec);
-    ret &= v4l2Codec->stop();
-    INFO("stop codec(fd:%d) , ret: %d", fd, ret);
-    ASSERT(ret);
-
-    return ret ? 0 : -1;
-}
-
-#else
 int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int bufferIndex, void* eglImage)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -213,7 +187,6 @@ int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd)
 
      return ret;
 }
-#endif
 #endif
 #if __ENABLE_V4L2_OPS__
 extern "C" int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value);
@@ -248,7 +221,7 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
             return -1;
         }
         ret = v4l2Codec->setFrameMemoryType(memoryType);
-    #if __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+    #if __ENABLE_X11__
     } else if (!strcmp(key, "x11-display")) {
         uintptr_t ptr = (uintptr_t)atoll(value);
         Display* x11Display = (Display*)ptr;

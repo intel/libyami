@@ -49,8 +49,6 @@ class V4l2Decoder : public V4l2CodecBase
 #if ANDROID
     SharedPtr<VideoFrame> createVaSurface(const ANativeWindowBuffer* buf);
     bool mapVideoFrames();
-#elif __ENABLE_V4L2_GLX__
-    virtual int32_t usePixmap(uint32_t buffer_index, Pixmap pixmap);
 #else
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image);
 #endif
@@ -88,8 +86,6 @@ class V4l2Decoder : public V4l2CodecBase
     std::vector <ANativeWindowBuffer*> m_winBuff;
     uint32_t m_reqBuffCnt;
     gralloc_module_t* m_pGralloc;
-#elif __ENABLE_V4L2_GLX__
-    std::vector <Pixmap> m_pixmaps;
 #else
     std::vector <SharedPtr<EglVaapiImage> > m_eglVaapiImages;
 #endif

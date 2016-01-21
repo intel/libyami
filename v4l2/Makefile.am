@@ -9,9 +9,7 @@ libyami_v4l2_source_c = \
 	v4l2_wrapper.cpp \
 	$(NULL)
 
-if !ENABLE_V4L2_GLX
 libyami_v4l2_source_c += ../egl/egl_util.c ../egl/egl_vaapi_image.cpp
-endif
 
 libyami_v4l2_source_h = \
 	v4l2_wrapper.h \
@@ -33,9 +31,7 @@ libyami_v4l2_ldflags = \
 	-pthread \
 	$(NULL)
 
-if !ENABLE_V4L2_GLX
 libyami_v4l2_ldflags += $(LIBEGL_LIBS)
-endif
 
 libyami_v4l2_cppflags = \
 	$(LIBVA_CFLAGS) \
@@ -46,9 +42,7 @@ if ENABLE_DMABUF
 libyami_v4l2_cppflags += $(LIBDRM_CFLAGS)
 endif
 
-if !ENABLE_V4L2_GLX
 libyami_v4l2_cppflags += $(LIBEGL_CFLAGS)
-endif
 
 lib_LTLIBRARIES             = libyami_v4l2.la
 libyami_v4l2includedir      = $(includedir)/libyami_v4l2

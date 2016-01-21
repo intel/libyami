@@ -92,24 +92,12 @@ AC_ARG_ENABLE(v4l2,
         [wrapper of v4l2 interface @<:@default=no@:>@])],
     [], [enable_v4l2="no"])
 
-AC_ARG_ENABLE(v4l2-glx,
-    [AC_HELP_STRING([--enable-v4l2-glx],
-        [use glx/tfp in v4l2 wrapper @<:@default=no@:>@])],
-    [], [enable_v4l2_glx="no"])
-
-if test "$enable_v4l2" = "yes" -o "$enable_v4l2_glx" = "yes"; then
+if test "$enable_v4l2" = "yes"; then
     AC_DEFINE([__ENABLE_V4L2__], [1],
-        [Defined to 1 if --enable-v4l2="yes" or --enable-v4l2-glx="yes"])
+        [Defined to 1 if --enable-v4l2="yes"])
 fi
 AM_CONDITIONAL(ENABLE_V4L2,
-    [test "x$enable_v4l2" = "xyes" -o "x$enable_v4l2_glx" = "xyes"])
-
-if test "$enable_v4l2_glx" = "yes"; then
-    AC_DEFINE([__ENABLE_V4L2_GLX__], [1],
-        [Defined to 1 if --enable-v4l2-glx="yes"])
-fi
-AM_CONDITIONAL(ENABLE_V4L2_GLX,
-    [test "x$enable_v4l2_glx" = "xyes"])
+    [test "x$enable_v4l2" = "xyes"])
 
 AC_ARG_ENABLE(capi,
     [AC_HELP_STRING([--enable-capi],
@@ -352,7 +340,7 @@ AC_SUBST(LIBVA_DRM_PKG_REQ)
 
 LIBVA_X11_PKG_REQ=""
 X11_PKG_REQ=""
-if test "$enable_x11" = "yes" -o "$enable_v4l2_glx" = "yes"; then
+if test "$enable_x11" = "yes"; then
     LIBVA_X11_PKG_REQ="libva-x11"
     PKG_CHECK_MODULES([LIBVA_X11], [$LIBVA_X11_PKG_REQ],
         [AC_DEFINE([HAVE_VA_X11], [1],
@@ -367,21 +355,17 @@ if test "$enable_v4l2" = "yes"; then
     PKG_CHECK_MODULES([LIBV4L2], [libv4l2])
 fi
 
-if test ["$enable_v4l2" = "yes" -a "$enable_v4l2_glx" = "no"] -o "$enable_tests_gles" = "yes"; then
+if test "$enable_v4l2" = "yes" -o "$enable_tests_gles" = "yes"; then
     PKG_CHECK_MODULES([LIBEGL], [egl])
 fi
 
-if test ["$enable_v4l2" = "yes" -a "$enable_v4l2_glx" = "no"  -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
+if test ["$enable_v4l2" = "yes" -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
     PKG_CHECK_MODULES([LIBGLES2], [glesv2])
 fi
 
 # drm_fourcc.h for dma_buf support
 if test "$enable_dmabuf" = "yes"; then
     PKG_CHECK_MODULES([LIBDRM], [libdrm])
-fi
-
-if test "$enable_v4l2_glx" = "yes"; then
-    PKG_CHECK_MODULES([LIBGL], [gl])
 fi
 
 if test "$enable_avformat" = "yes"; then

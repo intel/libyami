@@ -37,9 +37,7 @@
 #include "v4l2_decode.h"
 #include "interface/VideoDecoderHost.h"
 #include "common/log.h"
-#if !__ENABLE_V4L2_GLX__
 #include "egl/egl_vaapi_image.h"
-#endif
 
 #define INT64_TO_TIMEVAL(i64, time_val) do {            \
         time_val.tv_sec = (int32_t)(i64 >> 32);         \
@@ -120,11 +118,8 @@ bool V4l2Decoder::start()
 #if ANDROID
     nativeDisplay.type = NATIVE_DISPLAY_VA;
     nativeDisplay.handle = (intptr_t)m_vaDisplay;
-#elif __ENABLE_X11__ || __ENABLE_V4L2_GLX__
+#elif __ENABLE_X11__
     DEBUG("m_x11Display: %p", m_x11Display);
-    #if __ENABLE_V4L2_GLX__
-    ASSERT(m_x11Display);
-    #endif
     if (m_x11Display) {
         nativeDisplay.type = NATIVE_DISPLAY_X11;
         nativeDisplay.handle = (intptr_t)m_x11Display;
@@ -213,18 +208,11 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
 {
     Decode_Status status = DECODE_SUCCESS;
 
-#if ! __ENABLE_V4L2_GLX__
     VideoFrameRawData *frame=NULL;
-#endif
 
     ASSERT(index >= 0 && index < m_maxBufferCount[OUTPUT]);
     DEBUG("index: %d", index);
 
-#if __ENABLE_V4L2_GLX__
-    int64_t timeStamp = -1;
-    DEBUG("renders to Pixmap=0x%lx", m_pixmaps[index]);
-    status = m_decoder->getOutput(m_pixmaps[index], &timeStamp, 0, 0, m_videoWidth, m_videoHeight);
-#else
     frame = &m_outputRawFrames[index];
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
         if (!m_bufferSpace[OUTPUT])
@@ -241,7 +229,6 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
 
 
     status = m_decoder->getOutput(frame);
-#endif
 
     if (status == RENDER_NO_AVAILABLE_FRAME) {
         if (eosState() == EosStateInput) {
@@ -257,9 +244,6 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
 
     if (status != RENDER_SUCCESS)
         return false;
-#if __ENABLE_V4L2_GLX__
-    m_outputRawFrames[index].timeStamp = timeStamp;
-#else
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
         // FIXME, it introduce one GPU copy; which is not necessary in major case and should be avoided in most case
         m_eglVaapiImages[index]->blt(*frame);
@@ -267,7 +251,6 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
         if (!m_bindEglImage)
             m_eglVaapiImages[index]->exportFrame(m_memoryType, m_outputRawFrames[index]);
     }
-#endif
 
     DEBUG("outputPulse: index=%d, timeStamp=%ld", index, m_outputRawFrames[index].timeStamp);
     return true;
@@ -376,7 +359,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             else
                 m_videoFrames.clear();
         }
-#elif !__ENABLE_V4L2_GLX__
+#else
         struct v4l2_requestbuffers *reqbufs = static_cast<struct v4l2_requestbuffers *>(arg);
         if (reqbufs->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
             if (!reqbufs->count) {
@@ -686,19 +669,6 @@ bool V4l2Decoder::mapVideoFrames()
         m_videoFrames.push_back(frame);
     }
     return true;
-}
-#elif __ENABLE_V4L2_GLX__
-int32_t V4l2Decoder::usePixmap(uint32_t bufferIndex, Pixmap pixmap)
-{
-    if (m_pixmaps.empty()) {
-        m_pixmaps.resize(m_maxBufferCount[OUTPUT]);
-        memset(&m_pixmaps[0], 0, sizeof(Pixmap)*m_pixmaps.size());
-    }
-
-    ASSERT(bufferIndex<m_maxBufferCount[OUTPUT]);
-    m_pixmaps[bufferIndex] = pixmap;
-
-    return 0;
 }
 #else
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
