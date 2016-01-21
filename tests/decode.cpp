@@ -22,6 +22,11 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#ifdef __ENABLE_CAPI__
+#include "vppinputdecodecapi.h"
+#endif
+
 #include "vppinputdecode.h"
 #include "decodeoutput.h"
 #include "common/utils.h"
@@ -40,7 +45,11 @@ SharedPtr<VppInput> createInput(DecodeParameter& para, SharedPtr<NativeDisplay>&
         fprintf(stderr, "VppInput create failed.\n");
         return input;
     }
+#ifdef __ENABLE_CAPI__
+    SharedPtr<VppInputDecodeCapi> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecodeCapi>(input);
+#else
     SharedPtr<VppInputDecode> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecode>(input);
+#endif
     if (!inputDecode) {
         input.reset();
         fprintf(stderr, "createInput failed, cannot convert VppInput to VppInputDecode\n");

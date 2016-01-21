@@ -257,8 +257,7 @@ public:
     int getWidth() { return m_width;}
     int getHeight() { return m_height;}
 
-    virtual ~VppInput() {};
-
+    virtual ~VppInput() {}
 protected:
     uint32_t m_fourcc;
     int m_width;

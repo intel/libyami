@@ -33,7 +33,6 @@ endif
 
 VPP_INPUT_SOURCES = \
 	$(DECODE_INPUT_SOURCES) \
-	$(top_builddir)/tests/vppinputoutput.cpp \
 	$(top_builddir)/tests/vppinputdecode.cpp \
 	$(top_builddir)/tests/vppinputasync.cpp \
 	$(top_builddir)/tests/vppoutputencode.cpp \
