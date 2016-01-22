@@ -178,6 +178,15 @@ AC_ARG_ENABLE(md5,
     [AC_HELP_STRING([--enable-md5], [enable generate md5 by per frame@<:@default=yes@:>@])],
     [], [enable_md5="yes"])
 
+dnl mpeg2 decoder
+AC_ARG_ENABLE(mpeg2dec,
+    [AC_HELP_STRING([--enable-mpeg2dec],
+        [build with mpeg2 decoder support @<:@default=no@:>@])],
+    [], [enable_mpeg2dec="no"])
+
+AM_CONDITIONAL(BUILD_MPEG2_DECODER,
+    [test "x$enable_mpeg2dec" = "xyes"])
+
 dnl vp8 decoder
 AC_ARG_ENABLE(vp8dec,
     [AC_HELP_STRING([--enable-vp8dec],
@@ -430,6 +439,7 @@ DECODERS=""
 AS_IF([test x$enable_h265dec = xyes], [DECODERS="$DECODERS h265"])
 AS_IF([test x$enable_h264dec = xyes], [DECODERS="$DECODERS h264"])
 AS_IF([test x$enable_jpegdec = xyes], [DECODERS="$DECODERS jpeg"])
+AS_IF([test x$enable_mpeg2dec = xyes], [DECODERS="$DECODERS mpeg2"])
 AS_IF([test x$enable_vp8dec = xyes], [DECODERS="$DECODERS vp8"])
 AS_IF([test x$enable_vp9dec = xyes], [DECODERS="$DECODERS vp9"])
 AS_IF([test x$enable_fakedec = xyes], [DECODERS="$DECODERS fake"])
