@@ -112,7 +112,7 @@ public:
 
             PERF_START(blend);
             //blend it
-            for (int i = 0; i < m_blendSurfaces.size(); i++) {
+            for (uint32_t i = 0; i < m_blendSurfaces.size(); i++) {
                 m_bumpBoxes[i]->getPos(m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
                 //printf("(%d, %d, %d, %d)\r\n", m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
 
