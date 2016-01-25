@@ -22,20 +22,22 @@
 
 namespace YamiParser {
 
-class BitReader
-{
+class BitReader {
 public:
     static const uint32_t CACHEBYTES;
-    BitReader(const uint8_t *data, uint32_t size);
+    BitReader(const uint8_t* data, uint32_t size);
     virtual ~BitReader() {}
 
-    /* Read specified bits(<= 8*BitReader::CACHEBYTES) as a uint32_t return value */
+    /* Read specified bits(<= 8*sizeof(uint32_t)) as a uint32_t return value */
     uint32_t read(uint32_t nbits);
+
+    /*read the next nbits bits from the bitstream but not advance the bitstream pointer*/
+    uint32_t peek(uint32_t nbits) const;
 
     /* You are allowed to skip less than BitReader::CACHEBYTES bytes
      * when call this function at a time. And if you need to skip more than
-     * BitReader::CACHEBYTES bytes, you can call skipBits() repeatedly. */
-    void skipBits(uint32_t nbits);
+     * BitReader::CACHEBYTES bytes, you can call skip() repeatedly. */
+    void skip(uint32_t nbits);
 
     /* Get the total bits that had been read from bitstream, and the return
      * value also is the position of the next bit to be read. */
@@ -53,11 +55,12 @@ public:
     {
         return (getPos() >= (static_cast<uint64_t>(m_size) << 3));
     }
+
 protected:
     virtual void loadDataToCache(uint32_t nbytes);
     inline uint32_t extractBitsFromCache(uint32_t nbits);
 
-    const uint8_t *m_stream; /*a pointer to source data*/
+    const uint8_t* m_stream; /*a pointer to source data*/
     uint32_t m_size; /*the size of source data in bytes*/
     unsigned long int m_cache; /*the buffer which load less than or equal to 8 bytes*/
     uint32_t m_loadBytes; /*the total bytes of data read from source data*/

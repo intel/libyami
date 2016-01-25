@@ -107,9 +107,9 @@ bool NalReader::moreRbspData() const
 void NalReader::rbspTrailingBits()
 {
     /*rbsp_stop_one_bit, equal to 1*/
-    skipBits(1);
+    skip(1);
     while(getPos() & 7)
-        skipBits(1); /*rbsp_alignment_zero_bit, equal to 0*/
+        skip(1); /*rbsp_alignment_zero_bit, equal to 0*/
 }
 
 } /*namespace YamiParser*/

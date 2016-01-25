@@ -31,7 +31,7 @@ namespace YamiParser {
 
 const uint32_t BitReader::CACHEBYTES = sizeof(unsigned long int);
 
-BitReader::BitReader(const uint8_t *pdata, uint32_t size)
+BitReader::BitReader(const uint8_t* pdata, uint32_t size)
     : m_stream(pdata)
     , m_size(size)
     , m_cache(0)
@@ -44,7 +44,7 @@ BitReader::BitReader(const uint8_t *pdata, uint32_t size)
 void BitReader::loadDataToCache(uint32_t nbytes)
 {
     unsigned long int tmp = 0;
-    const uint8_t *pStart = m_stream + m_loadBytes;
+    const uint8_t* pStart = m_stream + m_loadBytes;
 
     if (nbytes == 8)
         tmp = LOAD8BYTESDATA_BE(pStart);
@@ -62,7 +62,7 @@ void BitReader::loadDataToCache(uint32_t nbytes)
 
 inline uint32_t BitReader::extractBitsFromCache(uint32_t nbits)
 {
-    if(!nbits)
+    if (!nbits)
         return 0;
     uint32_t tmp = 0;
     tmp = m_cache << ((CACHEBYTES << 3) - m_bitsInCache) >> ((CACHEBYTES << 3) - nbits);
@@ -72,7 +72,7 @@ inline uint32_t BitReader::extractBitsFromCache(uint32_t nbits)
 
 uint32_t BitReader::read(uint32_t nbits)
 {
-    assert(nbits <= CACHEBYTES << 3);
+    assert(nbits <= (CACHEBYTES << 3));
 
     /* Firstly loading data to m_cache, only need to read aligned bytes.
        So we can load 8 bytes which aligned with machine address in the next per time*/
@@ -101,18 +101,16 @@ uint32_t BitReader::read(uint32_t nbits)
     return res;
 }
 
-void BitReader::skipBits(uint32_t nbits)
+void BitReader::skip(uint32_t nbits)
 {
-    int32_t bits = nbits - m_bitsInCache;
-    if (bits <= 0)
-        m_bitsInCache -= nbits;
-    else {
-        uint32_t remainingBytes = m_size - m_loadBytes;
-        uint32_t toBeLoadSize = std::min(remainingBytes, CACHEBYTES);
-        assert(std::abs(bits) <= toBeLoadSize << 3);
-        loadDataToCache(toBeLoadSize);
-        m_bitsInCache -= bits;
-    }
+    read(nbits);
+}
+
+uint32_t BitReader::peek(uint32_t nbits) const
+{
+    BitReader tmp(*this);
+
+    return tmp.read(nbits);
 }
 
 } /*namespace YamiParser*/
