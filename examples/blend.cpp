@@ -241,6 +241,7 @@ private:
             SharedPtr<VideoFrame> frame = createSurface(VA_RT_FORMAT_RGB32, VA_FOURCC_RGBA, w, h);
             if (!frame)
                 return false;
+            frame->fourcc = YAMI_FOURCC_RGBA;
             drawSurfaceRGBA(frame);
             m_blendSurfaces.push_back(frame);
             SharedPtr<BumpBox> box(new BumpBox(targetWidth, targetHeight, w, h));

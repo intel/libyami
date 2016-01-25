@@ -14,6 +14,7 @@ libyami_vpp_source_c = \
 if BUILD_OCL_BLENDER
 libyami_vpp_source_c += ../ocl/oclcontext.cpp
 libyami_vpp_source_c += oclpostprocess_base.cpp
+libyami_vpp_source_c += oclvppimage.cpp
 endif
 
 if BUILD_OCL_BLENDER
@@ -35,6 +36,7 @@ libyami_vpp_source_h_priv = \
 if BUILD_OCL_BLENDER
 libyami_vpp_source_h_priv += ../ocl/oclcontext.h
 libyami_vpp_source_h_priv += oclpostprocess_base.h
+libyami_vpp_source_h_priv += oclvppimage.h
 endif
 
 if BUILD_OCL_BLENDER

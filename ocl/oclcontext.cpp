@@ -42,14 +42,17 @@ public:
     static SharedPtr<OclDevice> getInstance();
     bool createKernel(cl_context context, const char* name, cl_kernel& kernel);
     YamiStatus createImageFromFdIntel(cl_context context, const cl_import_image_info_intel* info, cl_mem* mem);
+    YamiStatus createBufferFromFdIntel(cl_context context, const cl_import_buffer_info_intel* info, cl_mem* mem);
 
 private:
     typedef cl_mem (*OclCreateImageFromFdIntel)(cl_context, const cl_import_image_info_intel*, cl_int*);
+    typedef cl_mem (*OclCreateBufferFromFdIntel)(cl_context, const cl_import_buffer_info_intel*, cl_int*);
 
     OclDevice();
     bool init();
     bool loadKernel_l(cl_context context, const char* name, cl_kernel& kernel);
     bool loadFile(const char* path, vector<char>& dest);
+    void* getExtensionFunctionAddress(const char* name);
 
     static WeakPtr<OclDevice> m_instance;
     static Lock m_lock;
@@ -58,6 +61,7 @@ private:
     cl_platform_id m_platform;
     cl_device_id m_device;
     OclCreateImageFromFdIntel m_oclCreateImageFromFdIntel;
+    OclCreateBufferFromFdIntel m_oclCreateBufferFromFdIntel;
     friend OclContext;
 
     DISALLOW_COPY_AND_ASSIGN(OclDevice)
@@ -115,8 +119,17 @@ OclContext::createImageFromFdIntel(const cl_import_image_info_intel* info, cl_me
     return m_device->createImageFromFdIntel(m_context, info, mem);
 }
 
+YamiStatus
+OclContext::createBufferFromFdIntel(const cl_import_buffer_info_intel* info, cl_mem* mem)
+{
+    return m_device->createBufferFromFdIntel(m_context, info, mem);
+}
+
 OclDevice::OclDevice()
-    :m_platform(0), m_device(0), m_oclCreateImageFromFdIntel(0)
+    : m_platform(0)
+    , m_device(0)
+    , m_oclCreateImageFromFdIntel(0)
+    , m_oclCreateBufferFromFdIntel(0)
 {
 }
 
@@ -144,18 +157,24 @@ bool OclDevice::init()
     if (!checkOclStatus(status, "clGetDeviceIDs"))
         return false;
 
-#ifdef CL_VERSION_1_2
     m_oclCreateImageFromFdIntel = (OclCreateImageFromFdIntel)
-        clGetExtensionFunctionAddressForPlatform(m_platform, "clCreateImageFromFdINTEL");
-#else
-    m_oclCreateImageFromFdIntel = (OclCreateImageFromFdIntel)
-        clGetExtensionFunctionAddress("clCreateImageFromFdINTEL");
-#endif
-    if (!m_oclCreateImageFromFdIntel) {
-        ERROR("failed to get extension function createImageFromFdIntel");
+        getExtensionFunctionAddress("clCreateImageFromFdINTEL");
+    m_oclCreateBufferFromFdIntel = (OclCreateBufferFromFdIntel)
+        getExtensionFunctionAddress("clCreateBufferFromFdINTEL");
+    if (!m_oclCreateImageFromFdIntel || !m_oclCreateBufferFromFdIntel) {
+        ERROR("failed to get extension function");
         return false;
     }
     return true;
+}
+
+void* OclDevice::getExtensionFunctionAddress(const char* name)
+{
+#ifdef CL_VERSION_1_2
+    return clGetExtensionFunctionAddressForPlatform(m_platform, name);
+#else
+    return clGetExtensionFunctionAddress(name);
+#endif
 }
 
 bool OclDevice::loadFile(const char* path, vector<char>& dest)
@@ -225,9 +244,18 @@ YamiStatus OclDevice::createImageFromFdIntel(cl_context context, const cl_import
     *mem = m_oclCreateImageFromFdIntel(context, info, &status);
     if (checkOclStatus(status, "clCreateImageFromFdINTEL")) {
         return YAMI_SUCCESS;
-    } else {
-        return YAMI_FAIL;
     }
+    return YAMI_FAIL;
+}
+
+YamiStatus OclDevice::createBufferFromFdIntel(cl_context context, const cl_import_buffer_info_intel* info, cl_mem* mem)
+{
+    cl_int status;
+    *mem = m_oclCreateBufferFromFdIntel(context, info, &status);
+    if (checkOclStatus(status, "clCreateBufferFromFdINTEL")) {
+        return YAMI_SUCCESS;
+    }
+    return YAMI_FAIL;
 }
 
 bool checkOclStatus(cl_int status, const char* msg)

@@ -58,67 +58,6 @@ YamiStatus OclPostProcessBase::ensureContext(const char* kernalName)
     return YAMI_SUCCESS;
 }
 
-SharedPtr<OclPostProcessBase::OclImage>
-OclPostProcessBase::createCLImage(const SharedPtr<VideoFrame>& frame,
-                                  const cl_image_format& fmt)
-{
-    SharedPtr<OclImage> clImage(new OclImage(m_display));
-    VASurfaceID surfaceId = (VASurfaceID)frame->surface;
-    VABufferInfo bufferInfo;
-    cl_import_image_info_intel importInfo;
-    uint32_t height[3], i;
-
-    VAImage image;
-    if (!checkVaapiStatus(vaDeriveImage(m_display, surfaceId, &image), "DeriveImage")) {
-        clImage.reset();
-        goto done;
-    }
-
-    clImage->m_imageId = image.image_id;
-    clImage->m_bufId = image.buf;
-    bufferInfo.mem_type = VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME;
-    if (!checkVaapiStatus(vaAcquireBufferHandle(m_display, image.buf, &bufferInfo),
-        "AcquireBufferHandle")) {
-        clImage.reset();
-        goto done;
-    }
-
-    switch (image.format.fourcc) {
-    case VA_FOURCC_RGBA:
-        height[0] = image.height;
-        break;
-    case VA_FOURCC_NV12:
-        height[0] = image.height;
-        height[1] = image.height / 2;
-        break;
-    default:
-        ERROR("unsupported format");
-        clImage.reset();
-        goto done;
-    }
-    clImage->m_format = image.format.fourcc;
-
-    clImage->m_numPlanes = image.num_planes;
-    for (i = 0; i < image.num_planes; i++) {
-        importInfo.fd = bufferInfo.handle;
-        importInfo.type = CL_MEM_OBJECT_IMAGE2D;
-        importInfo.fmt.image_channel_order = fmt.image_channel_order;
-        importInfo.fmt.image_channel_data_type = fmt.image_channel_data_type;
-        importInfo.row_pitch = image.pitches[i];
-        importInfo.offset = image.offsets[i];
-        importInfo.width = image.width;
-        importInfo.height = height[i];
-        importInfo.size = importInfo.row_pitch * importInfo.height;
-        if (YAMI_SUCCESS != m_context->createImageFromFdIntel(&importInfo, &clImage->m_mem[i])) {
-            clImage.reset();
-            goto done;
-        }
-    }
-
-done:
-    return clImage;
-}
-
 uint32_t OclPostProcessBase::getPixelSize(const cl_image_format& fmt)
 {
     uint32_t size = 0;
@@ -190,20 +129,5 @@ OclPostProcessBase::~OclPostProcessBase()
     if (m_kernel) {
         checkOclStatus(clReleaseKernel(m_kernel), "ReleaseKernel");
     }
-}
-
-OclPostProcessBase::OclImage::OclImage(VADisplay d)
-    : m_numPlanes(0), m_display(d), m_imageId(VA_INVALID_ID), m_bufId(VA_INVALID_ID)
-{
-     memset(m_mem, 0, sizeof(m_mem));
-}
-
-OclPostProcessBase::OclImage::~OclImage()
-{
-    for (int i = 0; i < m_numPlanes; i++)
-        checkOclStatus(clReleaseMemObject(m_mem[i]), "ReleaseMemObject");
-
-    checkVaapiStatus(vaReleaseBufferHandle(m_display, m_bufId), "ReleaseBufferHandle");
-    checkVaapiStatus(vaDestroyImage(m_display, m_imageId), "DestroyImage");
 }
 }
