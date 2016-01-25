@@ -12,7 +12,7 @@ class BumpBox
 {
 public:
 
-    BumpBox(int outerWidth, int outerHeight, uint32_t width, uint32_t height, uint32_t step = 5)
+    BumpBox(uint32_t outerWidth, uint32_t outerHeight, uint32_t width, uint32_t height, uint32_t step = 5)
         :m_width(width), m_height(height)
     {
         assert(outerWidth > width && outerHeight > height);

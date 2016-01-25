@@ -164,7 +164,7 @@ bool OclDevice::loadFile(const char* path, vector<char>& dest)
     if (!fp)
         return false;
     fseek(fp,0L,SEEK_END);
-    long len = ftell(fp);
+    size_t len = ftell(fp);
     if (len > 0) {
         dest.resize(len + 1);
         fseek(fp,0L,SEEK_SET);
