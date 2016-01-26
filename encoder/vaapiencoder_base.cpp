@@ -153,7 +153,7 @@ Encode_Status VaapiEncoderBase::encode(VideoFrameRawData* frame)
 
 Encode_Status VaapiEncoderBase::encode(const SharedPtr<VideoFrame>& frame)
 {
-    if (!frame || !frame->surface)
+    if (!frame)
         return ENCODE_INVALID_PARAMS;
     if (isBusy())
         return ENCODE_IS_BUSY;
