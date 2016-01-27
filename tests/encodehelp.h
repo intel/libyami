@@ -1,5 +1,5 @@
 /*
- *  h264_encode.cpp - h264 encode test
+ *  encodehelp.h
  *
  *  Copyright (C) 2011-2014 Intel Corporation
  *    Author: Cong Zhong<congx.zhong@intel.com>
@@ -23,56 +23,46 @@
 #ifndef __ENCODE_HELP__
 #define __ENCODE_HELP__
 #include "interface/VideoEncoderDefs.h"
+#include "vppoutputencode.h"
+
 #include <getopt.h>
+#include <cstdlib>
+#include <string>
+#include <sstream>
+#include <map>
+#include <sys/stat.h>
 
-static int kIPeriod = 30;
-static int ipPeriod = 1;
-static int ipbMode = 1;
-static char *inputFileName = NULL;
-static char defaultOutputFile[] = "test.264";
-static char *outputFileName = defaultOutputFile;
-static char *codec = NULL;
-static uint32_t inputFourcc = 0;
-static int videoWidth = 0, videoHeight = 0, bitRate = 0, fps = 30;
-static int initQp=26;
-static VideoRateControl rcMode = RATE_CONTROL_CQP;
-static int frameCount = 0;
-static int numRefFrames = 1;
+typedef std::map<std::string, std::string> SSMap;
 
-#ifdef __BUILD_GET_MV__
-static FILE *MVFp;
-#endif
+static const SSMap::value_type init_suffix[] =
+{
+    SSMap::value_type("H264", "264"),
+    SSMap::value_type("AVC", "264"),
+    SSMap::value_type("H265", "265"),
+    SSMap::value_type("HEVC", "265"),
+    SSMap::value_type("VP8", "vp8"),
+    SSMap::value_type("JPEG", "jpeg")
+};
 
-#ifndef __cplusplus
-#ifndef bool
-#define bool  int
-#endif
-
-#ifndef true
-#define true  1
-#endif
-
-#ifndef false
-#define false 0
-#endif
-#endif
+static SSMap fileSuffix(init_suffix, init_suffix + 6);
 
 static void print_help(const char* app)
 {
     printf("%s <options>\n", app);
-    printf("   -i <source yuv filename> load YUV from a file\n");
+    printf("   -i <source yuv filename> load YUV from a file or container\n");
     printf("   -W <width> -H <height>\n");
     printf("   -o <coded file> optional\n");
     printf("   -b <bitrate: kbps> optional\n");
     printf("   -f <frame rate> optional\n");
-    printf("   -c <codec: AVC|VP8|JPEG> Note: not support now\n");
-    printf("   -s <fourcc: NV12|IYUV|YV12> Note: not support now\n");
+    printf("   -c <codec: HEVC|AVC|VP8|JPEG>\n");
+    printf("   -s <fourcc: NV12(default)>\n");
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
     printf("   --ipbmode <0(I frame only ) | 1 (I and P frames) | 2 (I,P,B frames)> optional\n");
     printf("   --keyperiod <key frame period(default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
+
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -90,7 +80,7 @@ static VideoRateControl string_to_rc_mode(char *str)
     return rcMode;
 }
 
-static bool process_cmdline(int argc, char *argv[])
+static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
 {
     char opt;
     const struct option long_opts[] = {
@@ -116,113 +106,103 @@ static bool process_cmdline(int argc, char *argv[])
             print_help (argv[0]);
             return false;
         case 'i':
-            inputFileName = optarg;
+            para.inputFileName = optarg;
             break;
         case 'o':
-            outputFileName = optarg;
+            para.outputFileName = optarg;
             break;
         case 'W':
-            videoWidth = atoi(optarg);
+            para.oWidth = atoi(optarg);
             break;
         case 'H':
-            videoHeight = atoi(optarg);
+            para.oHeight = atoi(optarg);
             break;
         case 'b':
-            bitRate = atoi(optarg) * 1024;//kbps to bps
+            para.m_encParams.bitRate = atoi(optarg) * 1024;//kbps to bps
             break;
         case 'f':
-            fps = atoi(optarg);
+            para.m_encParams.fps = atoi(optarg);
             break;
         case 'c':
-            codec = optarg;
+            para.m_encParams.codec = optarg;
             break;
         case 's':
-            if (strlen(optarg) == 4)
-                inputFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
+            para.fourcc = atoi(optarg);
             break;
         case 'N':
-            frameCount = atoi(optarg);
+            para.frameCount = atoi(optarg);
             break;
         case 0:
              switch (option_index) {
                 case 1:
-                    initQp = atoi(optarg);
+                    para.m_encParams.initQp = atoi(optarg);
                     break;
                 case 2:
-                    rcMode = string_to_rc_mode(optarg);
+                    para.m_encParams.rcMode = string_to_rc_mode(optarg);
                     break;
                 case 3:
-                    ipbMode= atoi(optarg);
+                    para.m_encParams.ipbMode = atoi(optarg);
                     break;
                 case 4:
-                    kIPeriod = atoi(optarg);
+                    para.m_encParams.kIPeriod = atoi(optarg);
                     break;
                 case 5:
-                    numRefFrames= atoi(optarg);
-                    break;
+                    para.m_encParams.numRefFrames = atoi(optarg);
             }
         }
     }
 
-    if (!inputFileName) {
+    if (para.inputFileName.empty()) {
         fprintf(stderr, "can not encode without input file\n");
         return false;
     }
 
-    if ((rcMode == RATE_CONTROL_CBR) && (bitRate <= 0)) {
+    std::string suffix;
+    if (!para.m_encParams.codec.empty()) {
+        std::string codec = para.m_encParams.codec;
+        SSMap::iterator it = fileSuffix.find(codec);
+        if (it == fileSuffix.end()) {
+            fprintf(stderr, "codec:%s, not supported", para.m_encParams.codec.c_str());
+            return false;
+        }
+        suffix = it->second;
+    } else {
+        para.m_encParams.codec = "AVC";
+        suffix = fileSuffix["AVC"];
+    }
+
+    uint32_t fourcc = guessFourcc(para.inputFileName.c_str());
+    if (fourcc != para.fourcc) {
+        fprintf(stderr, "Note: inconsistency between the fourcc type and the file type, use the fourcc of file.\n");
+        para.fourcc = fourcc;
+    }
+
+    if (!para.oWidth || !para.oHeight)
+        guessResolution(para.inputFileName.c_str(), para.oWidth, para.oHeight);
+
+    if (para.outputFileName.empty())
+        para.outputFileName = "./";
+    struct stat buf;
+    int r = stat(para.outputFileName.c_str(), &buf);
+    if (r == 0 && buf.st_mode & S_IFDIR) {
+        std::ostringstream outputfile;
+        const char* fileName = para.inputFileName.c_str();
+        const char* s = strrchr(para.inputFileName.c_str(), '/');
+        if (s) fileName = s + 1;
+        outputfile<<para.outputFileName<<"/"<<fileName;
+        outputfile<<"."<<suffix;
+        para.outputFileName = outputfile.str();
+    }
+
+    if ((para.m_encParams.rcMode == RATE_CONTROL_CBR) && (para.m_encParams.bitRate <= 0)) {
         fprintf(stderr, "please make sure bitrate is positive when CBR mode\n");
         return false;
     }
 
-    if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video")) && !frameCount)
-        frameCount = 50;
+    if (!strncmp(para.inputFileName.c_str(), "/dev/video", strlen("/dev/video")) && !para.frameCount)
+        para.frameCount = 50;
 
     return true;
 }
 
-void ensureInputParameters()
-{
-    if (!fps)
-        fps = 30;
-
-    if (ipbMode == 0)
-        ipPeriod = 0;
-    else if (ipbMode == 1)
-        ipPeriod = 1;
-    else if (ipbMode == 2)
-        ipPeriod = 3;
-
-    /* if (!bitRate) {
-        int rawBitRate = videoWidth * videoHeight * fps  * 3 / 2 * 8;
-        int EmpiricalVaue = 40;
-        bitRate = rawBitRate / EmpiricalVaue;
-    } */
-
-}
-
-void setEncoderParameters(VideoParamsCommon * encVideoParams)
-{
-    ensureInputParameters();
-    //resolution
-    encVideoParams->resolution.width = videoWidth;
-    encVideoParams->resolution.height = videoHeight;
-
-    //frame rate parameters.
-    encVideoParams->frameRate.frameRateDenom = 1;
-    encVideoParams->frameRate.frameRateNum = fps;
-
-    //picture type and bitrate
-    encVideoParams->intraPeriod = kIPeriod;
-    encVideoParams->ipPeriod = ipPeriod;
-    encVideoParams->rcParams.bitRate = bitRate;
-    encVideoParams->rcParams.initQP = initQp;
-    encVideoParams->rcMode = rcMode;
-    encVideoParams->numRefFrames = numRefFrames;
-    //encVideoParams->rcParams.minQP = 1;
-
-    //encVideoParams->profile = VAProfileH264Main;
- //   encVideoParams->profile = VAProfileVP8Version0_3;
-    encVideoParams->rawFormat = RAW_FORMAT_YUV420;
-
-}
 #endif

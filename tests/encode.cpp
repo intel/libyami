@@ -1,8 +1,7 @@
 /*
- *  h264_encode.cpp - h264 encode test
+ *  encode.cpp - encode test
  *
  *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Cong Zhong<congx.zhong@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -23,158 +22,113 @@
 #include "config.h"
 #endif
 
-#include <stdio.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
-#if __ENABLE_X11__
-#include <X11/Xlib.h>
-#endif
-#include "common/log.h"
-#include "VideoEncoderInterface.h"
-#include "VideoEncoderHost.h"
-#include "encodeinput.h"
+#include "vppinputoutput.h"
+#include "vppoutputencode.h"
 #include "encodehelp.h"
+#include "common/utils.h"
+
+#ifdef __ENABLE_CAPI__
+#include "vppoutputencodecapi.h"
+#endif
+
+#include <cstdio>
 
 using namespace YamiMediaCodec;
 
+SharedPtr<VppInput> createInput(const TranscodeParams& param, const SharedPtr<VADisplay>& display)
+{
+    SharedPtr<VppInput> input(VppInput::create(param.inputFileName.c_str()));
+    if (!input) {
+		fprintf(stderr, "creat input failed\n");
+		return input;
+    }
+    SharedPtr<VppInputFile> inputFile = std::tr1::dynamic_pointer_cast<VppInputFile>(input);
+    if (inputFile) {
+		SharedPtr<FrameReader> reader(new VaapiFrameReader(display));
+		SharedPtr<FrameAllocator> alloctor(new PooledFrameAllocator(display, 5));
+		inputFile->config(alloctor, reader);
+    }
+    return inputFile;
+}
+
+SharedPtr<VppOutput> createOutput(const TranscodeParams& param, const SharedPtr<VADisplay>& display)
+{
+    SharedPtr<VppOutput> output = VppOutput::create(param.outputFileName.c_str());
+#ifdef __ENABLE_CAPI__
+    SharedPtr<VppOutputEncodeCapi> outputEncode = std::tr1::dynamic_pointer_cast<VppOutputEncodeCapi>(output);
+#else
+     SharedPtr<VppOutputEncode> outputEncode = std::tr1::dynamic_pointer_cast<VppOutputEncode>(output);
+#endif
+    if (outputEncode) {
+		NativeDisplay nativeDisplay;
+		nativeDisplay.type = NATIVE_DISPLAY_VA;
+		nativeDisplay.handle = (intptr_t)*display;
+		if (!outputEncode->config(nativeDisplay, &param.m_encParams)) {
+			fprintf(stderr, "config ouput encode failed\n");
+			output.reset();
+		}
+		return output;
+    }
+    output.reset();
+    return output;
+}
+
+class EncoderTest
+{
+public:
+    bool init(int argc, char *argv[])
+    {
+		if (!processCmdLine(argc, argv, m_para))
+			return false;
+		m_display = createVADisplay();
+		if (!m_display) {
+			printf("create display failed\n");
+			return false;
+		}
+		m_input = createInput(m_para, m_display);
+		m_output =  createOutput(m_para, m_display);
+		if (!m_input || !m_output) {
+			printf("create input or output failed\n");
+			return false;
+		}
+		return true;
+    }
+
+    bool run()
+    {
+		SharedPtr<VideoFrame> src;
+		int count = 0;
+		FpsCalc fps;
+		while (m_input->read(src)) {
+			if (!m_output->output(src)) {
+				fprintf(stderr, "EncoderTest VppOutput output failed\n");
+				return false;
+			}
+			fps.addFrame();
+			if ( ++count == m_para.frameCount)
+				break;
+		}
+		fps.log();
+		return true;
+	}
+private:
+    TranscodeParams    m_para;
+    SharedPtr<VADisplay> m_display;
+    SharedPtr<VppInput> m_input;
+    SharedPtr<VppOutput> m_output;
+};
+
 int main(int argc, char** argv)
 {
-    IVideoEncoder *encoder = NULL;
-    uint32_t maxOutSize = 0;
-    EncodeInput* input;
-    EncodeOutput* output;
-    Encode_Status status;
-    VideoFrameRawData inputBuffer;
-    VideoEncOutputBuffer outputBuffer;
-    int encodeFrameCount = 0;
-
-    yamiTraceInit();
-    if (!process_cmdline(argc, argv))
-        return -1;
-
-    DEBUG("inputFourcc: %.4s", (char*)(&(inputFourcc)));
-    input = EncodeInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
-    if (!input) {
-        fprintf (stderr, "fail to init input stream\n");
+    EncoderTest encoder;
+    if (!encoder.init(argc, argv)) {
+		fprintf(stderr, "\nEncoder init failed\n");
         return -1;
     }
-
-    videoWidth = input->getWidth();
-    videoHeight = input->getHeight();
-
-    output = EncodeOutput::create(outputFileName, videoWidth, videoHeight);
-    if (!output) {
-        fprintf (stderr, "fail to init ouput stream\n");
-        delete input;
+    if (!encoder.run()){
+		fprintf(stderr, "run encoder failed");
         return -1;
     }
-
-    encoder = createVideoEncoder(output->getMimeType());
-    assert(encoder != NULL);
-
-    NativeDisplay nativeDisplay;
-    nativeDisplay.type = NATIVE_DISPLAY_DRM;
-    nativeDisplay.handle = -1;
-    encoder->setNativeDisplay(&nativeDisplay);
-
-    //configure encoding parameters
-    VideoParamsCommon encVideoParams;
-    encVideoParams.size = sizeof(VideoParamsCommon);
-    encoder->getParameters(VideoParamsTypeCommon, &encVideoParams);
-    setEncoderParameters(&encVideoParams);
-    encVideoParams.size = sizeof(VideoParamsCommon);
-    encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
-
-    VideoConfigAVCStreamFormat streamFormat;
-    streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
-    streamFormat.streamFormat = AVC_STREAM_FORMAT_ANNEXB;
-    encoder->setParameters(VideoConfigTypeAVCStreamFormat, &streamFormat);
-
-    status = encoder->start();
-    assert(status == ENCODE_SUCCESS);
-
-    //init output buffer
-    encoder->getMaxOutSize(&maxOutSize);
-
-#ifdef __BUILD_GET_MV__
-    uint32_t size;
-    VideoEncMVBuffer MVBuffer;
-    MVFp = fopen("feimv.bin","wb");
-    encoder->getMVBufferSize(&size);
-    if (!createMVBuffer(&MVBuffer, size)) {
-        fprintf (stderr, "fail to create MV buffer\n");
-        return -1;
-    }
-#endif
-    if (!createOutputBuffer(&outputBuffer, maxOutSize)) {
-        fprintf (stderr, "fail to create output\n");
-        delete input;
-        delete output;
-        return -1;
-    }
-
-    while (!input->isEOS())
-    {
-        memset(&inputBuffer, 0, sizeof(inputBuffer));
-        if (input->getOneFrameInput(inputBuffer)) {
-            status = encoder->encode(&inputBuffer);
-            ASSERT(status == ENCODE_SUCCESS);
-            input->recycleOneFrameInput(inputBuffer);
-        }
-        else
-            break;
-
-        //get the output buffer
-        do {
-#ifndef __BUILD_GET_MV__
-            status = encoder->getOutput(&outputBuffer, false);
-#else
-            status = encoder->getOutput(&outputBuffer, &MVBuffer, false);
-#endif
-            if (status == ENCODE_SUCCESS
-                && !output->write(outputBuffer.data, outputBuffer.dataSize))
-                assert(0);
-#ifdef __BUILD_GET_MV__
-            if (status == ENCODE_SUCCESS) {
-                fwrite(MVBuffer.data, MVBuffer.bufferSize, 1, MVFp);
-            }
-#endif
-        } while (status != ENCODE_BUFFER_NO_MORE);
-
-        encodeFrameCount++;
-
-        if (frameCount && encodeFrameCount >= frameCount)
-            break;
-    }
-
-    // drain the output buffer
-    do {
-#ifndef __BUILD_GET_MV__
-       status = encoder->getOutput(&outputBuffer, true);
-#else
-       status = encoder->getOutput(&outputBuffer, &MVBuffer, true);
-#endif
-       if (status == ENCODE_SUCCESS
-           && !output->write(outputBuffer.data, outputBuffer.dataSize))
-           assert(0);
-#ifdef __BUILD_GET_MV__
-        if (status == ENCODE_SUCCESS) {
-            fwrite(MVBuffer.data, MVBuffer.bufferSize, 1, MVFp);
-        }
-#endif
-    } while (status != ENCODE_BUFFER_NO_MORE);
-
-    encoder->stop();
-    releaseVideoEncoder(encoder);
-    free(outputBuffer.data);
-    delete output;
-    delete input;
-#ifdef __BUILD_GET_MV__
-    free(MVBuffer.data);
-    fclose(MVFp);
-#endif
-    fprintf(stderr, "encode done\n");
-    return 0;
+    printf("encoder done\n");
+    return  0;
 }

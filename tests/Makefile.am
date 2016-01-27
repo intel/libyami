@@ -137,8 +137,8 @@ if ENABLE_TESTS_GLES
 decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
-encodecapi_LDADD    = $(CAPI_ENCODE_LIBS)
-encodecapi_SOURCES  = encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp encodeInputCapi.cpp $(DECODE_INPUT_SOURCES)
+encodecapi_LDADD    = $(CAPI_ENCODE_LIBS) $(YAMI_VPP_LIBS)
+encodecapi_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputoutput.cpp vppoutputencode.cpp vppinputdecode.cpp vppoutputencodecapi.cpp
 else
 yamidecode_LDADD    = $(YAMI_DECODE_LIBS)
 yamidecode_LDFLAGS  = $(YAMI_DECODE_LDFLAGS)
@@ -147,9 +147,9 @@ if ENABLE_TESTS_GLES
 yamidecode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
-yamiencode_LDADD    = $(YAMI_ENCODE_LIBS)
+yamiencode_LDADD    = $(YAMI_ENCODE_LIBS) $(LIBVA_DRM_LIBS)
 yamiencode_LDFLAGS  = $(YAMI_ENCODE_LDFLAGS)
-yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
+yamiencode_SOURCES  = encode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppinputoutput.cpp vppoutputencode.cpp vppinputdecode.cpp
 
 v4l2decode_LDADD   = $(V4L2_DECODE_LIBS)
 v4l2decode_LDFLAGS = $(V4L2_DECODE_LDFLAGS)
@@ -161,7 +161,7 @@ v4l2decode_LDADD += -ldl
 
 v4l2encode_LDADD   = $(V4L2_ENCODE_LIBS)
 v4l2encode_LDFLAGS = $(V4L2_ENCODE_LDFLAGS)
-v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES)
+v4l2encode_SOURCES = v4l2encode.cpp encodeinput.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp $(DECODE_INPUT_SOURCES) vppoutputencode.cpp
 endif
 
 yamivpp_LDADD    = $(YAMI_VPP_LIBS)
