@@ -39,13 +39,12 @@ libyami_vaapi_cppflags = \
 	$(LIBVA_CFLAGS) \
 	$(NULL)
 
-lib_LTLIBRARIES              = libyami_vaapi.la
+noinst_LTLIBRARIES           = libyami_vaapi.la
 libyami_vaapiincludedir      = ${includedir}/libyami_vaapi
 libyami_vaapiinclude_HEADERS = $(libyami_vaapi_source_h)
 libyami_vaapi_la_SOURCES     = $(libyami_vaapi_source_c)
 libyami_vaapi_la_LDFLAGS     = $(libyami_vaapi_ldflags)
 libyami_vaapi_la_CPPFLAGS    = $(libyami_vaapi_cppflags)
-libyami_vaapi_la_LIBADD      = $(top_builddir)/common/libyami_common.la
 
 DISTCLEANFILES = \
 	Makefile.in 

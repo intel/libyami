@@ -403,13 +403,8 @@ AC_CONFIG_FILES([Makefile
                  pkgconfig/Makefile])
 
 AC_OUTPUT([
-         pkgconfig/libyami_codecparser.pc
-         pkgconfig/libyami_common.pc
-         pkgconfig/libyami_decoder.pc
-         pkgconfig/libyami_encoder.pc
-         pkgconfig/libyami_vaapi.pc
-         pkgconfig/libyami_vpp.pc
-         pkgconfig/libyami_capi.pc
+         pkgconfig/libyami.pc
+         pkgconfig/libyami_v4l2.pc
 ])
 
 # Print a configuration summary

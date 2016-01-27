@@ -1,11 +1,6 @@
 pkg_config_files = \
-	libyami_codecparser.pc \
-	libyami_common.pc \
-	libyami_decoder.pc \
-	libyami_encoder.pc \
-	libyami_vaapi.pc \
-	libyami_vpp.pc \
-	libyami_capi.pc \
+	libyami.pc \
+	libyami_v4l2.pc \
 	$(NULL)
 
 pkgconfigdir = @pkgconfigdir@
