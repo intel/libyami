@@ -290,6 +290,10 @@ AC_ARG_ENABLE(h265enc,
 AM_CONDITIONAL(BUILD_H265_ENCODER,
     [test "x$enable_h265enc" = "xyes"])
 
+dnl jpeg parser
+AM_CONDITIONAL(BUILD_JPEG_PARSER,
+    [test "x$enable_jpegdec" = "xyes" -o "x$enable_jpegenc" = "xyes"])
+
 dnl encoder getmv
 AC_ARG_ENABLE(getmv,
     [AC_HELP_STRING([--enable-getmv],

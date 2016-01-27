@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Intel Corporation. All rights reserved.
+ * Copyright 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@
 
 #include "vaapiencoder_base.h"
 #include "vaapi/vaapiptrs.h"
-#include "codecparsers/jpegparser.h"
 #include <va/va_enc_jpeg.h>
 
 namespace YamiMediaCodec {
@@ -30,7 +29,7 @@ public:
     typedef SharedPtr<VaapiEncPictureJPEG> PicturePtr;
 
     VaapiEncoderJpeg();
-    ~VaapiEncoderJpeg();
+    virtual ~VaapiEncoderJpeg() { }
     virtual Encode_Status start();
     virtual void flush();
     virtual Encode_Status stop();
@@ -38,31 +37,30 @@ public:
     virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR videoEncParams);
     virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR videoEncParams);
     virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
-    
+
 protected:
     virtual Encode_Status doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame);
     virtual bool isBusy() { return false;};
 
 private:
+    friend class FactoryTest<IVideoEncoder, VaapiEncoderJpeg>;
+    friend class VaapiEncoderJpegTest;
+
     Encode_Status encodePicture(const PicturePtr &);
     bool addSliceHeaders (const PicturePtr&) const;
     bool fill(VAEncPictureParameterBufferJPEG * picParam, const PicturePtr &, const SurfacePtr &) const;
     bool fill(VAQMatrixBufferJPEG * qMatrix) const;
     bool fill(VAEncSliceParameterBufferJPEG *sliceParam) const;
     bool fill(VAHuffmanTableBufferJPEGBaseline *huffTableParam) const;
-    
+
     bool ensurePicture (const PicturePtr&, const SurfacePtr&);
     bool ensureQMatrix (const PicturePtr&);
     bool ensureSlice (const PicturePtr&);
     bool ensureHuffTable (const PicturePtr&);
-    
+
     void resetParams();
 
     unsigned char quality;
-    JpegHuffmanTables m_hufTables;
-    JpegQuantTables m_quantTables;
-    BOOL m_hasHufTable;
-    BOOL m_hasQuantTable;
 
     static const bool s_registered; // VaapiEncoderFactory registration result
 };

@@ -7,7 +7,7 @@ libyami_codecparser_source_c = \
 	dboolhuff.c \
 	$(NULL)
 
-if BUILD_JPEG_DECODER
+if BUILD_JPEG_PARSER
 libyami_codecparser_source_c += \
 	jpegParser.cpp \
 	$(NULL)
@@ -57,7 +57,7 @@ libyami_codecparser_source_h_priv = \
 	nalReader.h \
 	$(NULL)
 
-if BUILD_JPEG_DECODER
+if BUILD_JPEG_PARSER
 libyami_codecparser_source_h_priv += \
 	jpegParser.h \
 	$(NULL)
@@ -139,7 +139,7 @@ unittest_SOURCES += \
         $(NULL)
 endif
 
-if BUILD_JPEG_DECODER
+if BUILD_JPEG_PARSER
 unittest_SOURCES += \
         jpegParser_unittest.cpp \
         $(NULL)

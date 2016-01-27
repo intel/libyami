@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Intel Corporation. All rights reserved.
+ * Copyright 2016 Intel Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,187 +13,219 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
 #include "vaapiencoder_jpeg.h"
+#include "codecparsers/jpegParser.h"
 #include "common/common_def.h"
 #include "scopedlogger.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
 #include "vaapiencoder_factory.h"
 #include "log.h"
-#include "bitwriter.h"
 #include <stdio.h>
+#include <tr1/array>
 
-#define NUM_QUANT_ELEMENTS 64
 #define NUM_DC_RUN_SIZE_BITS 16
 #define NUM_AC_RUN_SIZE_BITS 16
 #define NUM_AC_CODE_WORDS_HUFFVAL 162
 #define NUM_DC_CODE_WORDS_HUFFVAL 12
 
-void generateFrameHdr(JpegFrameHdr *frameHdr, int picWidth, int picHeight)
+using ::YamiParser::JPEG::FrameHeader;
+using ::YamiParser::JPEG::ScanHeader;
+using ::YamiParser::JPEG::QuantTable;
+using ::YamiParser::JPEG::QuantTables;
+using ::YamiParser::JPEG::HuffTable;
+using ::YamiParser::JPEG::HuffTables;
+using ::YamiParser::JPEG::Component;
+using ::YamiParser::JPEG::Defaults;
+
+void generateFrameHdr(const FrameHeader::Shared& frameHdr, int picWidth, int picHeight)
 {
-    frameHdr->sample_precision = 8;
-    frameHdr->width = picWidth;
-    frameHdr->height = picHeight;
-    frameHdr->num_components = 3;
+    frameHdr->dataPrecision = 8;
+    frameHdr->imageWidth = picWidth;
+    frameHdr->imageHeight = picHeight;
+
+    frameHdr->components.resize(3);
 
     for(int i = 0; i < 3; i++) {
-        frameHdr->components[i].identifier = i+1;
+        frameHdr->components[i].reset(new Component);
+
+        frameHdr->components[i]->id = i + 1;
+        frameHdr->components[i]->index = i;
 
         if(i == 0) {
-            frameHdr->components[i].horizontal_factor = 2;
-            frameHdr->components[i].vertical_factor = 2;
-            frameHdr->components[i].quant_table_selector = 0;
+            frameHdr->components[i]->hSampleFactor = 2;
+            frameHdr->components[i]->vSampleFactor = 2;
+            frameHdr->components[i]->quantTableNumber = 0;
 
         } else {
             //Analyzing the sampling factors for U/V, they are 1 for all formats except for Y8.
             //So, it is okay to have the code below like this. For Y8, we wont reach this code.
-            frameHdr->components[i].horizontal_factor = 1;
-            frameHdr->components[i].vertical_factor = 1;
-            frameHdr->components[i].quant_table_selector = 1;
+            frameHdr->components[i]->hSampleFactor = 1;
+            frameHdr->components[i]->vSampleFactor = 1;
+            frameHdr->components[i]->quantTableNumber = 1;
         }
     }
 }
 
-void generateScanHdr(JpegScanHdr *scanHdr)
+void generateScanHdr(const ScanHeader::Shared& scanHdr)
 {
-    scanHdr->num_components = 3;
+    scanHdr->numComponents = 3;
 
     //Y Component
-    scanHdr->components[0].component_selector = 1;
-    scanHdr->components[0].dc_selector = 0;
-    scanHdr->components[0].ac_selector = 0;
+    scanHdr->components[0].reset(new Component);
+    scanHdr->components[0]->id = 1;
+    scanHdr->components[0]->dcTableNumber = 0;
+    scanHdr->components[0]->acTableNumber = 0;
 
-   
     //U Component
-    scanHdr->components[1].component_selector = 2;
-    scanHdr->components[1].dc_selector = 1;
-    scanHdr->components[1].ac_selector = 1;
+    scanHdr->components[1].reset(new Component);
+    scanHdr->components[1]->id = 2;
+    scanHdr->components[1]->dcTableNumber = 1;
+    scanHdr->components[1]->acTableNumber = 1;
 
     //V Component
-    scanHdr->components[2].component_selector = 3;
-    scanHdr->components[2].dc_selector = 1;
-    scanHdr->components[2].ac_selector = 1;
+    scanHdr->components[2].reset(new Component);
+    scanHdr->components[2]->id = 3;
+    scanHdr->components[2]->dcTableNumber = 1;
+    scanHdr->components[2]->acTableNumber = 1;
 }
 
-int buildJpegHeader(unsigned char **header_buffer, int picture_width, int picture_height)
+static const size_t JPEG_HEADER_SIZE = 83 + (YamiParser::JPEG::DCTSIZE2 * 2)
+    + (NUM_DC_RUN_SIZE_BITS * 2) + (NUM_DC_CODE_WORDS_HUFFVAL * 2)
+    + (NUM_AC_RUN_SIZE_BITS * 2) + (NUM_AC_CODE_WORDS_HUFFVAL * 2);
+
+typedef std::tr1::array<uint8_t, JPEG_HEADER_SIZE> JPEGHeader;
+
+int buildJpegHeader(JPEGHeader& header, int picture_width, int picture_height)
 {
-    BitWriter bs;
-    bit_writer_init(&bs, 256*4);
+    using namespace ::YamiParser::JPEG;
 
-    bit_writer_put_bits_uint8(&bs, 0xFF, 8);
-    bit_writer_put_bits_uint8(&bs, JPEG_MARKER_SOI, 8);
-    bit_writer_put_bits_uint8(&bs, 0xFF, 8);
-    bit_writer_put_bits_uint8(&bs, JPEG_MARKER_APP_MIN, 8);
-    bit_writer_put_bits_uint16(&bs, 16, 16);
-    bit_writer_put_bits_uint8(&bs, 0x4A, 8);   //J
-    bit_writer_put_bits_uint8(&bs, 0x46, 8);   //F
-    bit_writer_put_bits_uint8(&bs, 0x49, 8);   //I
-    bit_writer_put_bits_uint8(&bs, 0x46, 8);   //F
-    bit_writer_put_bits_uint8(&bs, 0x00, 8);   //0
-    bit_writer_put_bits_uint8(&bs, 1, 8);      //Major Version
-    bit_writer_put_bits_uint8(&bs, 1, 8);      //Minor Version
-    bit_writer_put_bits_uint8(&bs, 1, 8);      //Density units 0:no units, 1:pixels per inch, 2: pixels per cm
-    bit_writer_put_bits_uint16(&bs, 72, 16);    //X density
-    bit_writer_put_bits_uint16(&bs, 72, 16);    //Y density
-    bit_writer_put_bits_uint8(&bs, 0, 8);      //Thumbnail width
-    bit_writer_put_bits_uint8(&bs, 0, 8);      //Thumbnail height
+    size_t idx(0);
 
-    JpegQuantTables quant_tables;
-    jpeg_get_default_quantization_tables(&quant_tables);
+    // Start Of Input
+    header[idx] = 0xFF;
+    header[++idx] = M_SOI;
 
-    bit_writer_put_bits_uint8(&bs, 0xFF, 8);
-    bit_writer_put_bits_uint8(&bs, JPEG_MARKER_DQT, 8);
-    bit_writer_put_bits_uint16(&bs, 3 + NUM_QUANT_ELEMENTS, 16); //lq
-    bit_writer_put_bits_uint8(&bs, quant_tables.quant_tables[0].quant_precision, 4); //pq
-    bit_writer_put_bits_uint8(&bs, 0, 4); //tq
-    for(int i = 0; i < NUM_QUANT_ELEMENTS; i++) {
-        bit_writer_put_bits_uint16(&bs, quant_tables.quant_tables[0].quant_table[i], 8);
+    // Application Segment - JFIF standard 1.01
+    header[++idx] = 0xFF;
+    header[++idx] = M_APP0;
+    header[++idx] = 0x00;
+    header[++idx] = 0x10; // Segment length:16 (2-byte)
+    header[++idx] = 0x4A; // J
+    header[++idx] = 0x46; // F
+    header[++idx] = 0x49; // I
+    header[++idx] = 0x46; // F
+    header[++idx] = 0x00; // 0
+    header[++idx] = 0x01; // Major version
+    header[++idx] = 0x01; // Minor version
+    header[++idx] = 0x01; // Density units 0:no units, 1:pixels per inch, 2: pixels per cm
+    header[++idx] = 0x00;
+    header[++idx] = 0x48; // X density (2-byte)
+    header[++idx] = 0x00;
+    header[++idx] = 0x48; // Y density (2-byte)
+    header[++idx] = 0x00; // Thumbnail width
+    header[++idx] = 0x00; // Thumbnail height
+
+    // Quantization Tables
+    const QuantTables& quantTables = Defaults::instance().quantTables();
+    for (size_t i(0); i < 2; ++i) {
+        const QuantTable::Shared& quantTable = quantTables[i];
+        header[++idx] = 0xFF;
+        header[++idx] = M_DQT;
+        header[++idx] = 0x00;
+        header[++idx] = 0x03 + DCTSIZE2; // Segment length:67 (2-byte)
+
+        // Only 8-bit (1 byte) precision is supported
+        // 0:8-bit precision, 1:16-bit precision
+        assert(quantTable->precision == 0);
+
+        // Precision (4-bit high) = 0, Index (4-bit low) = i
+        header[++idx] = static_cast<uint8_t>(i);
+
+        for (size_t j(0); j < DCTSIZE2; ++j)
+            header[++idx] = static_cast<uint8_t>(quantTable->values[j]);
     }
 
-    bit_writer_put_bits_uint8(&bs, 0xFF, 8);
-    bit_writer_put_bits_uint8(&bs, JPEG_MARKER_DQT, 8);
-    bit_writer_put_bits_uint16(&bs, 3 + NUM_QUANT_ELEMENTS, 16); //lq
-    bit_writer_put_bits_uint8(&bs, quant_tables.quant_tables[1].quant_precision, 4); //pq
-    bit_writer_put_bits_uint8(&bs, 1, 4); //tq
-    for(int i = 0; i < NUM_QUANT_ELEMENTS; i++) {
-        bit_writer_put_bits_uint16(&bs, quant_tables.quant_tables[1].quant_table[i], 8);
+    // Start of Frame - Baseline
+    FrameHeader::Shared frameHdr(new FrameHeader);
+    generateFrameHdr(frameHdr, picture_width, picture_height);
+    header[++idx] = 0xFF;
+    header[++idx] = M_SOF0; // Baseline
+    header[++idx] = 0x00;
+    header[++idx] = 0x11; // Segment length:17 (2-byte)
+    header[++idx] = static_cast<uint8_t>(frameHdr->dataPrecision);
+    header[++idx] = static_cast<uint8_t>((frameHdr->imageHeight >> 8) & 0xFF);
+    header[++idx] = static_cast<uint8_t>(frameHdr->imageHeight & 0xFF);
+    header[++idx] = static_cast<uint8_t>((frameHdr->imageWidth >> 8) & 0xFF);
+    header[++idx] = static_cast<uint8_t>(frameHdr->imageWidth & 0xFF);
+    header[++idx] = 0x03; // Number of Components
+    for (size_t i(0); i < 3; ++i) {
+        const Component::Shared& component = frameHdr->components[i];
+        header[++idx] = static_cast<uint8_t>(component->id);
+        // Horizontal Sample Factor (4-bit high), Vertical Sample Factor (4-bit low)
+        header[++idx] = static_cast<uint8_t>(component->hSampleFactor << 4)
+                        | static_cast<uint8_t>(component->vSampleFactor);
+        header[++idx] = static_cast<uint8_t>(component->quantTableNumber);
     }
 
-    JpegFrameHdr frameHdr;
-    memset(&frameHdr,0,sizeof(JpegFrameHdr));
-    generateFrameHdr(&frameHdr,  picture_width, picture_height);
+    // Huffman Tables
+    const HuffTables& dcTables = Defaults::instance().dcHuffTables();
+    const HuffTables& acTables = Defaults::instance().acHuffTables();
+    for(size_t i(0); i < 2; ++i) {
+        // DC Table
+        const HuffTable::Shared& dcTable = dcTables[i];
+        header[++idx] = 0xFF;
+        header[++idx] = M_DHT;
+        header[++idx] = 0x00;
+        header[++idx] = 0x1F; // Segment length:31 (2-byte)
 
-    bit_writer_put_bits_uint8(&bs, 0xFF, 8);
-    bit_writer_put_bits_uint8(&bs, JPEG_MARKER_SOF_MIN, 8);
-    bit_writer_put_bits_uint16(&bs, 8 + (3 * 3), 16); //lf, Size of FrameHeader in bytes without the Marker SOF
-    bit_writer_put_bits_uint8(&bs, frameHdr.sample_precision, 8);
-    bit_writer_put_bits_uint16(&bs, frameHdr.height, 16);
-    bit_writer_put_bits_uint16(&bs, frameHdr.width, 16);
-    bit_writer_put_bits_uint8(&bs, frameHdr.num_components, 8);
-    
-    for(int i = 0; i < frameHdr.num_components; i++) {
-        bit_writer_put_bits_uint8(&bs, frameHdr.components[i].identifier, 8);
-        bit_writer_put_bits_uint8(&bs, frameHdr.components[i].horizontal_factor, 4);
-        bit_writer_put_bits_uint8(&bs, frameHdr.components[i].vertical_factor, 4);
-        bit_writer_put_bits_uint8(&bs, frameHdr.components[i].quant_table_selector, 8);
+        // Type (4-bit high) = 0:DC, Index (4-bit low)
+        header[++idx] = static_cast<uint8_t>(i);
+
+        for(size_t j(0); j < NUM_DC_RUN_SIZE_BITS; ++j)
+            header[++idx] = dcTable->codes[j];
+        for(size_t j(0); j < NUM_DC_CODE_WORDS_HUFFVAL; ++j)
+            header[++idx] = dcTable->values[j];
+
+        // AC Table
+        const HuffTable::Shared& acTable = acTables[i];
+        header[++idx] = 0xFF;
+        header[++idx] = M_DHT;
+        header[++idx] = 0x00;
+        header[++idx] = 0xB5; // Segment length:181 (2-byte)
+
+        // Type (4-bit high) = 1:AC, Index (4-bit low)
+        header[++idx] = 0x10 | static_cast<uint8_t>(i);
+
+        for(size_t j(0); j < NUM_AC_RUN_SIZE_BITS; ++j)
+            header[++idx] = acTable->codes[j];
+        for(size_t j(0); j < NUM_AC_CODE_WORDS_HUFFVAL; ++j)
+            header[++idx] = acTable->values[j];
     }
 
-    JpegHuffmanTables huffTable;
-    jpeg_get_default_huffman_tables(&huffTable);
-    for(int i = 0; i < 2; i++) {
-        bit_writer_put_bits_uint8(&bs, 0xFF, 8);
-        bit_writer_put_bits_uint8(&bs, JPEG_MARKER_DHT, 8);
-        bit_writer_put_bits_uint16(&bs, 0x1F, 16); //length of table
-        bit_writer_put_bits_uint8(&bs, 0, 4);
-        bit_writer_put_bits_uint8(&bs, i, 4);
-        for(int j = 0; j < NUM_DC_RUN_SIZE_BITS; j++) {
-            bit_writer_put_bits_uint8(&bs, huffTable.dc_tables[i].huf_bits[j], 8);
-        }
-
-        for(int j = 0; j < NUM_DC_CODE_WORDS_HUFFVAL; j++) {
-            bit_writer_put_bits_uint8(&bs, huffTable.dc_tables[i].huf_values[j], 8);
-        }
-
-        bit_writer_put_bits_uint8(&bs, 0xFF, 8);
-        bit_writer_put_bits_uint8(&bs, JPEG_MARKER_DHT, 8);
-        bit_writer_put_bits_uint16(&bs, 0xB5, 16); //length of table
-        bit_writer_put_bits_uint8(&bs, 1, 4);
-        bit_writer_put_bits_uint8(&bs, i, 4);
-        for(int j = 0; j < NUM_AC_RUN_SIZE_BITS; j++) {
-            bit_writer_put_bits_uint8(&bs, huffTable.ac_tables[i].huf_bits[j], 8);
-        }
-
-        for(int j = 0; j < NUM_AC_CODE_WORDS_HUFFVAL; j++) {
-            bit_writer_put_bits_uint8(&bs, huffTable.ac_tables[i].huf_values[j], 8);
-        }
+    // Start of Scan
+    ScanHeader::Shared scanHdr(new ScanHeader);
+    generateScanHdr(scanHdr);
+    header[++idx] = 0xFF;
+    header[++idx] = M_SOS;
+    header[++idx] = 0x00;
+    header[++idx] = 0x0C; // Segment Length:12 (2-byte)
+    header[++idx] = 0x03; // Number of components in scan
+    for (size_t i(0); i < 3; ++i) {
+        header[++idx] = static_cast<uint8_t>(scanHdr->components[i]->id);
+        // DC Table Selector (4-bit high), AC Table Selector (4-bit low)
+        header[++idx] = static_cast<uint8_t>(scanHdr->components[i]->dcTableNumber << 4)
+                        | static_cast<uint8_t>(scanHdr->components[i]->acTableNumber);
     }
+    header[++idx] = 0x00; // 0 for Baseline
+    header[++idx] = 0x3F; // 63 for Baseline
+    header[++idx] = 0x00; // 0 for Baseline
 
-    //Add ScanHeader
-    JpegScanHdr scanHdr;
-    generateScanHdr(&scanHdr);
- 
-    bit_writer_put_bits_uint8(&bs, 0xFF, 8);
-    bit_writer_put_bits_uint8(&bs, JPEG_MARKER_SOS, 8);
-    bit_writer_put_bits_uint16(&bs, 3 + (3 * 2) + 3, 16); //Length of Scan
-    bit_writer_put_bits_uint8(&bs, scanHdr.num_components, 8);
-    
-    for(int i = 0; i < scanHdr.num_components; i++) {
-        bit_writer_put_bits_uint8(&bs, scanHdr.components[i].component_selector, 8);
-        bit_writer_put_bits_uint8(&bs, scanHdr.components[i].dc_selector, 4);
-        bit_writer_put_bits_uint8(&bs, scanHdr.components[i].ac_selector, 4);
-    }
-
-    bit_writer_put_bits_uint8(&bs, 0, 8); //0 for Baseline
-    bit_writer_put_bits_uint8(&bs, 63, 8); //63 for Baseline
-    bit_writer_put_bits_uint8(&bs, 0, 4); //0 for Baseline
-    bit_writer_put_bits_uint8(&bs, 0, 4); //0 for Baseline
-
-    *header_buffer = (unsigned char *)bs.data;
-    return bs.bit_size;
+    return ++idx << 3;
 }
 
 namespace YamiMediaCodec {
@@ -218,14 +250,6 @@ VaapiEncoderJpeg::VaapiEncoderJpeg():
 {
     m_videoParamCommon.profile = VAProfileJPEGBaseline;
     m_entrypoint = VAEntrypointEncPicture;
-    m_hasHufTable = FALSE;
-    m_hasQuantTable = FALSE;
-    memset(&m_hufTables, 0, sizeof(m_hufTables));
-    memset(&m_quantTables, 0, sizeof(m_quantTables));
-}
-
-VaapiEncoderJpeg::~VaapiEncoderJpeg()
-{
 }
 
 Encode_Status VaapiEncoderJpeg::getMaxOutSize(uint32_t *maxSize)
@@ -327,16 +351,16 @@ bool VaapiEncoderJpeg::fill(VAEncPictureParameterBufferJPEG * picParam, const Pi
 
 bool VaapiEncoderJpeg::fill(VAQMatrixBufferJPEG * qMatrix) const
 {
+    const QuantTable::Shared luminance = Defaults::instance().quantTables()[0];
     qMatrix->load_lum_quantiser_matrix = 1;
-  
-    if (!m_hasQuantTable){
-        for(int i=0; i<NUM_QUANT_ELEMENTS; i++) {
-              qMatrix->lum_quantiser_matrix[i] = default_luminance_quant_table[zigzag_index[i]];
-        }
-        qMatrix->load_chroma_quantiser_matrix = 1;
-        for(int i=0; i<NUM_QUANT_ELEMENTS; i++) {
-              qMatrix->chroma_quantiser_matrix[i] = default_chrominance_quant_table[zigzag_index[i]];
-        }
+    for (size_t i = 0; i < ::YamiParser::JPEG::DCTSIZE2; i++) {
+        qMatrix->lum_quantiser_matrix[i] = luminance->values[i];
+    }
+
+    const QuantTable::Shared chrominance = Defaults::instance().quantTables()[1];
+    qMatrix->load_chroma_quantiser_matrix = 1;
+    for (size_t i = 0; i < ::YamiParser::JPEG::DCTSIZE2; i++) {
+        qMatrix->chroma_quantiser_matrix[i] = chrominance->values[i];
     }
 
     return true;
@@ -364,36 +388,40 @@ bool VaapiEncoderJpeg::fill(VAEncSliceParameterBufferJPEG *sliceParam) const
 
 bool VaapiEncoderJpeg::fill(VAHuffmanTableBufferJPEGBaseline *huffTableParam) const
 {
-    const JpegHuffmanTables *const hufTables = &m_hufTables;
-    uint32_t i, numTables;
+    const HuffTables& dcHuffTables = Defaults::instance().dcHuffTables();
+    const HuffTables& acHuffTables = Defaults::instance().acHuffTables();
 
-    if (!m_hasHufTable)
-        jpeg_get_default_huffman_tables(const_cast<JpegHuffmanTables*>(&m_hufTables));
-    
-    numTables = MIN(N_ELEMENTS(huffTableParam->huffman_table),
-                    JPEG_MAX_SCAN_COMPONENTS);
+    const size_t numTables = MIN(N_ELEMENTS(huffTableParam->huffman_table),
+                                 ::YamiParser::JPEG::NUM_HUFF_TBLS);
 
-    for (i = 0; i < numTables; i++) {
-        huffTableParam->load_huffman_table[i] =
-            hufTables->dc_tables[i].valid && hufTables->ac_tables[i].valid;
-        if (!huffTableParam->load_huffman_table[i])
+    for (size_t i(0); i < numTables; ++i) {
+        const HuffTable::Shared& dcTable = dcHuffTables[i];
+        const HuffTable::Shared& acTable = acHuffTables[i];
+        bool valid = bool(dcTable) && bool(acTable);
+        huffTableParam->load_huffman_table[i] = valid;
+        if (!valid)
             continue;
 
+        // Load DC Table
         memcpy(huffTableParam->huffman_table[i].num_dc_codes,
-               hufTables->dc_tables[i].huf_bits,
+               &dcTable->codes[0],
                sizeof(huffTableParam->huffman_table[i].num_dc_codes));
         memcpy(huffTableParam->huffman_table[i].dc_values,
-               hufTables->dc_tables[i].huf_values,
+               &dcTable->values[0],
                sizeof(huffTableParam->huffman_table[i].dc_values));
+
+        // Load AC Table
         memcpy(huffTableParam->huffman_table[i].num_ac_codes,
-               hufTables->ac_tables[i].huf_bits,
+               &acTable->codes[0],
                sizeof(huffTableParam->huffman_table[i].num_ac_codes));
         memcpy(huffTableParam->huffman_table[i].ac_values,
-               hufTables->ac_tables[i].huf_values,
+               &acTable->values[0],
                sizeof(huffTableParam->huffman_table[i].ac_values));
+
         memset(huffTableParam->huffman_table[i].pad,
                0, sizeof(huffTableParam->huffman_table[i].pad));
     }
+
     return true;
 }
 
@@ -446,16 +474,14 @@ bool VaapiEncoderJpeg::ensureHuffTable(const PicturePtr & picture)
 }
 
 bool VaapiEncoderJpeg::addSliceHeaders (const PicturePtr& picture) const
-{    
+{
     unsigned int length_in_bits;
-    unsigned char *packed_header_buffer = NULL;
-    //length_in_bits = build_packed_jpeg_header_buffer(&packed_header_buffer, width(), height(), 0);
-    length_in_bits = buildJpegHeader(&packed_header_buffer, width(), height());
-    
-    if(!picture->addPackedHeader(VAEncPackedHeaderRawData, packed_header_buffer, length_in_bits))
+    JPEGHeader header;
+    length_in_bits = buildJpegHeader(header, width(), height());
+
+    if(!picture->addPackedHeader(VAEncPackedHeaderRawData, header.data(), length_in_bits))
         return false;
     return true;
-
 }
 
 Encode_Status VaapiEncoderJpeg::encodePicture(const PicturePtr &picture)
