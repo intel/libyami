@@ -29,24 +29,28 @@ AM_CPPFLAGS = $(AM_CFLAGS)
 
 YAMI_COMMON_LIBS = \
 	$(LIBVA_LIBS) \
-	$(top_builddir)/common/libyami_common.la \
-	$(top_builddir)/vaapi/libyami_vaapi.la \
+	$(LIBVA_DRM_LIBS) \
+	$(top_builddir)/.libs/libyami.la \
 	$(NULL)
 
 if ENABLE_X11
 YAMI_COMMON_LIBS += $(LIBVA_X11_LIBS) -lX11
 endif
 
+if BUILD_STATIC
+YAMI_STATIC_LDFLAGS = \
+	-Wl,--whole-archive \
+	-Wl,$(top_builddir)/.libs/libyami.a \
+	-Wl,--no-whole-archive \
+	$(NULL)
+endif
+
 YAMI_DECODE_LIBS = \
 	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/decoder/libyami_decoder.la \
 	$(NULL)
 
 if BUILD_STATIC
-YAMI_DECODE_LDFLAGS = \
-	-Wl,--whole-archive \
-	-Wl,$(top_builddir)/decoder/.libs/libyami_decoder.a \
-	-Wl,--no-whole-archive
+YAMI_DECODE_LDFLAGS = $(YAMI_STATIC_LDFLAGS)
 endif
 
 if ENABLE_TESTS_GLES
@@ -62,16 +66,11 @@ YAMI_DECODE_LIBS += -lcrypto
 endif
 
 YAMI_ENCODE_LIBS = \
-	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/encoder/libyami_encoder.la \
 	$(YAMI_DECODE_LIBS) \
 	$(NULL)
 
 if BUILD_STATIC
-YAMI_ENCODE_LDFLAGS = \
-	-Wl,--whole-archive \
-	-Wl,$(top_builddir)/encoder/.libs/libyami_encoder.a \
-	-Wl,--no-whole-archive
+YAMI_ENCODE_LDFLAGS = $(YAMI_STATIC_LDFLAGS)
 endif
 
 V4L2_DECODE_LIBS = \
@@ -80,10 +79,7 @@ V4L2_DECODE_LIBS = \
 	$(NULL)
 
 if BUILD_STATIC
-V4L2_DECODE_LDFLAGS = \
-	-Wl,--whole-archive \
-	-Wl,$(top_builddir)/decoder/.libs/libyami_decoder.a \
-	-Wl,--no-whole-archive
+V4L2_DECODE_LDFLAGS = $(YAMI_STATIC_LDFLAGS)
 endif
 
 V4L2_DECODE_LIBS += $(LIBEGL_LIBS) $(LIBGLES2_LIBS)
@@ -94,36 +90,24 @@ V4L2_ENCODE_LIBS = \
 	$(NULL)
 
 if BUILD_STATIC
-V4L2_ENCODE_LDFLAGS = \
-	-Wl,--whole-archive \
-	-Wl,$(top_builddir)/encoder/.libs/libyami_encoder.a \
-	-Wl,--no-whole-archive
+V4L2_ENCODE_LDFLAGS = $(YAMI_STATIC_LDFLAGS)
 endif
 
 CAPI_DECODE_LIBS = \
 	$(YAMI_DECODE_LIBS) \
-	$(top_builddir)/capi/libyami_capi.la \
 	$(NULL)
 
 CAPI_ENCODE_LIBS = \
 	$(YAMI_ENCODE_LIBS) \
-	$(top_builddir)/capi/libyami_capi.la \
 	$(NULL)
 
 YAMI_VPP_LIBS = \
-	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/vpp/libyami_vpp.la \
 	$(LIBYAMI_LT_LDFLAGS) \
-	$(LIBVA_LIBS) \
-	$(LIBVA_DRM_LIBS) \
 	$(YAMI_ENCODE_LIBS) \
 	$(NULL)
 
 if BUILD_STATIC
-YAMI_VPP_LDFLAGS = \
-	-Wl,--whole-archive \
-	-Wl,$(top_builddir)/vpp/.libs/libyami_vpp.a \
-	-Wl,--no-whole-archive
+YAMI_VPP_LDFLAGS = $(YAMI_STATIC_LDFLAGS)
 endif
 
 YAMI_VPP_CFLAGS = \
@@ -132,12 +116,14 @@ YAMI_VPP_CFLAGS = \
 
 if ENABLE_CAPI
 decodecapi_LDADD    = $(CAPI_DECODE_LIBS)
+decodecapi_LDFLAGS  = $(YAMI_STATIC_LDFLAGS)
 decodecapi_SOURCES  = decodecapi.c decodehelp.h  decodeInputCapi.cpp decodeOutputCapi.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp
 if ENABLE_TESTS_GLES
 decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
 
 encodecapi_LDADD    = $(CAPI_ENCODE_LIBS)
+encodecapi_LDFLAGS  = $(YAMI_STATIC_LDFLAGS)
 encodecapi_SOURCES  = encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp encodeInputCapi.cpp $(DECODE_INPUT_SOURCES)
 else
 yamidecode_LDADD    = $(YAMI_DECODE_LIBS)
@@ -174,13 +160,8 @@ yamitranscode_SOURCES  = vppinputdecode.cpp vppinputoutput.cpp vppoutputencode.c
 
 bin_PROGRAMS += yamiinfo
 yamiinfo_SOURCES = yamiinfo.cpp
-yamiinfo_LDADD = \
-	$(top_builddir)/decoder/libyami_decoder.la \
-	$(top_builddir)/encoder/libyami_encoder.la \
-	$(top_builddir)/vpp/libyami_vpp.la \
-	$(NULL)
+yamiinfo_LDADD = $(YAMI_COMMON_LIBS)
 yamiinfo_LDFLAGS = -Wl,--no-as-needed \
 	$(YAMI_DECODE_LDFLAGS) \
-	$(YAMI_ENCODE_LDFLAGS) \
-	$(YAMI_VPP_LDFLAGS) \
 	$(NULL)
+

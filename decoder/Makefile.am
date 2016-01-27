@@ -74,12 +74,6 @@ if BUILD_FAKE_DECODER
 libyami_decoder_source_h_priv += vaapidecoder_fake.h
 endif
 
-libyami_decoder_la_LIBADD = \
-	$(top_builddir)/common/libyami_common.la \
-	$(top_builddir)/vaapi/libyami_vaapi.la \
-	$(top_builddir)/codecparsers/libyami_codecparser.la \
-	$(NULL)
-
 libyami_decoder_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(LIBVA_LIBS) \
@@ -100,8 +94,8 @@ if ENABLE_X11
 libyami_decoder_cppflags += $(LIBVA_X11_CFLAGS)
 endif
 
-lib_LTLIBRARIES                = libyami_decoder.la
-libyami_decoderincludedir      = $(includedir)/libyami_decoder
+noinst_LTLIBRARIES             = libyami_decoder.la
+libyami_decoderincludedir      = $(includedir)/libyami
 libyami_decoderinclude_HEADERS = $(libyami_decoder_source_h)
 noinst_HEADERS                 = $(libyami_decoder_source_h_priv)
 libyami_decoder_la_SOURCES     = $(libyami_decoder_source_c)

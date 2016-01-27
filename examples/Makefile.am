@@ -44,8 +44,9 @@ VPP_INPUT_SOURCES = \
 
 AM_CPPFLAGS = $(AM_CFLAGS)
 YAMI_COMMON_LIBS = \
-	$(top_builddir)/common/libyami_common.la \
-	$(top_builddir)/vaapi/libyami_vaapi.la \
+	$(LIBVA_LIBS) \
+	$(LIBVA_DRM_LIBS) \
+	$(top_builddir)/libyami.la \
 	$(NULL)
 
 if ENABLE_X11
@@ -54,13 +55,12 @@ endif
 
 YAMI_DECODE_LIBS = \
 	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/decoder/libyami_decoder.la \
 	$(NULL)
 
 if BUILD_STATIC
 YAMI_DECODE_LDFLAGS = \
 	-Wl,--whole-archive \
-	-Wl,$(top_builddir)/decoder/.libs/libyami_decoder.a \
+	-Wl,$(top_builddir)/.libs/libyami.a \
 	-Wl,--no-whole-archive
 endif
 
@@ -73,34 +73,22 @@ YAMI_DECODE_LIBS += $(LIBAVFORMAT_LIBS)
 endif
 
 YAMI_ENCODE_LIBS = \
-	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/encoder/libyami_encoder.la \
 	$(YAMI_DECODE_LIBS) \
 	$(NULL)
 
 if BUILD_STATIC
 YAMI_ENCODE_LDFLAGS = \
-	-Wl,--whole-archive \
-	-Wl,$(top_builddir)/encoder/.libs/libyami_encoder.a \
-	-Wl,--no-whole-archive \
 	$(YAMI_DECODE_LDFLAGS) \
 	$(NULL)
 endif
 
 VPP_INPUT_LIBS = \
-	$(YAMI_COMMON_LIBS) \
-	$(top_builddir)/vpp/libyami_vpp.la \
 	$(LIBYAMI_LT_LDFLAGS) \
-	$(LIBVA_LIBS) \
-	$(LIBVA_DRM_LIBS) \
 	$(YAMI_ENCODE_LIBS) \
 	$(NULL)
 
 if BUILD_STATIC
 VPP_INPUT_LDFLAGS = \
-	-Wl,--whole-archive \
-	-Wl,$(top_builddir)/vpp/.libs/libyami_vpp.a \
-	-Wl,--no-whole-archive \
 	$(YAMI_ENCODE_LDFLAGS)
 endif
 
