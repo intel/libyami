@@ -147,6 +147,15 @@ class V4l2CodecBase {
     YamiMediaCodec::Condition m_outputThreadCond;
     YamiMediaCodec::Condition *m_threadCond[2];
 
+    enum ReqBufState {
+        RBS_Normal,         // normal running state
+        RBS_Request,        // receive REQBUF in I/O thread
+        RBS_Acknowledge,    // work thread acknowledge REQBUF (pause buffer processing)
+        RBS_Released,       //buffer released, which means cannot call Qbuf or Debuf
+        RBS_FormatChanged,  //buffer released, which means can still call Qbuf or Debuf
+    };
+    ReqBufState m_reqBufState[2];
+
     YamiMediaCodec::Lock m_codecLock;
     EosState  m_eosState;
 

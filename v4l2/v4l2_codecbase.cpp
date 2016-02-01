@@ -100,6 +100,9 @@ V4l2CodecBase::V4l2CodecBase()
     m_threadCond[INPUT] = &m_inputThreadCond;
     m_threadCond[OUTPUT] = &m_outputThreadCond;
 
+    m_reqBufState[INPUT] = RBS_Normal;
+    m_reqBufState[OUTPUT] = RBS_Normal;
+
     m_fd[0] = -1;
     m_fd[1] = -1;
 #ifdef __ENABLE_DEBUG__
@@ -161,6 +164,7 @@ void V4l2CodecBase::workerThread()
 {
     bool ret = true;
     int thread = -1;
+    uint32_t index = 0xffffffff;
 
     {
         AutoLock locker(m_codecLock);
@@ -185,12 +189,12 @@ void V4l2CodecBase::workerThread()
                 m_threadCond[thread]->wait(); // wait if no todo frame is available
                 continue;
             }
+            index = (uint32_t)(m_framesTodo[thread].front());
         }
 
-        uint32_t index = (uint32_t)(m_framesTodo[thread].front());
 
         // for decode, outputPulse may update index
-        ret = thread == INPUT ? inputPulse(index) : outputPulse(index);
+        ret = (thread == INPUT) ? inputPulse(index) : outputPulse(index);
 
         {
             AutoLock locker(m_frameLock[thread]);
@@ -230,7 +234,18 @@ void V4l2CodecBase::workerThread()
                 DEBUG("%s thread wait because operation on yami fails", THREAD_NAME(thread));
                 m_threadCond[thread]->wait(); // wait if encode/getOutput fail (encode hw is busy or no available output)
             }
-        }
+
+            //ack i/o thread that it is safe to release the buffer queue
+            if (m_reqBufState[thread] == RBS_Request) {
+                m_reqBufState[thread] = RBS_Acknowledge;
+                m_threadCond[thread]->signal();
+            }
+            // wait until i/o thead has released the buffer queue
+            while (m_reqBufState[thread] == RBS_Acknowledge) {
+                m_threadCond[thread]->wait();
+            }
+
+        }//protected by mLock
         DEBUG("fd: %d", m_fd[0]);
     }
 
@@ -383,17 +398,34 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 break;
             }
             ASSERT(reqbufs->memory == m_memoryMode[port]);
-            m_frameLock[port].acquire();
-            // initial status of buffers are at client side
-            m_framesTodo[port].clear();
-            m_framesDone[port].clear();
-            m_frameLock[port].release();
-            if (reqbufs->count > 0) {
-                // ::CreateInputBuffers()/CreateOutputBuffers()
-                ASSERT(reqbufs->count <= m_maxBufferCount[port]);
-                reqbufs->count = m_maxBufferCount[port];
-            } else {
-                // ::DestroyInputBuffers()/:DestroyOutputBuffers()
+            {
+                AutoLock locker(m_frameLock[port]);
+
+                // initial status of buffers are at client side
+                if (reqbufs->count > 0) {
+                    // ::CreateInputBuffers()/CreateOutputBuffers()
+                    ASSERT(reqbufs->count <= m_maxBufferCount[port]);
+                    reqbufs->count = m_maxBufferCount[port];
+                } else {
+                    // ::DestroyInputBuffers()/:DestroyOutputBuffers()
+
+                }
+
+                m_framesDone[port].clear(); //it is safe to clear m_framesDone, but race condition for clearing m_framesTodo
+                if (m_framesTodo[port].empty())
+                    break;
+
+                // info work thread that we want to release the buffer queue
+                m_reqBufState[port] = RBS_Request;
+                // wait until work thread doesn't work on current buffer queue
+                while (m_reqBufState[port] != RBS_Acknowledge) {
+                    m_threadCond[port]->wait();
+                }
+                DEBUG("m_framesTodo[%d].size %ld, m_framesDone[%d].size %ld\n",
+                    port, m_framesTodo[port].size(), port, m_framesDone[port].size());
+                m_framesTodo[port].clear();
+                m_reqBufState[port] = (reqbufs->count > 0) ? RBS_FormatChanged : RBS_Released;
+                m_threadCond[port]->signal();
             }
         }
         break;
@@ -421,9 +453,14 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
 
             {
                 AutoLock locker(m_frameLock[port]);
-                m_framesTodo[port].push_back(qbuf->index);
+                if (m_reqBufState[port] == RBS_Normal ||
+                    m_reqBufState[port] == RBS_FormatChanged ){
+                    m_framesTodo[port].push_back(qbuf->index);
+                    m_threadCond[port]->signal();
+                } else {
+                    ret = EAGAIN;
+                }
             }
-            m_threadCond[port]->signal();
         }
         break;
         case VIDIOC_DQBUF: {
@@ -448,7 +485,9 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
 
             {
                 AutoLock locker (m_frameLock[port]);
-                if (m_framesDone[port].empty()) {
+                if (m_framesDone[port].empty() ||
+                    ((m_reqBufState[port] != RBS_Normal &&
+                    m_reqBufState[port] != RBS_FormatChanged))) {
                     ret = -1;
                     errno = EAGAIN;
                     break;
@@ -462,10 +501,12 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 bool _ret = giveOutputBuffer(dqbuf);
                 ASSERT(_ret);
             }
-            m_frameLock[port].acquire();
-            m_framesDone[port].pop_front();
-            m_frameLock[port].release();
-            DEBUG("%s port dqbuf->index: %d", THREAD_NAME(port), dqbuf->index);
+
+            {
+                AutoLock locker (m_frameLock[port]);
+                m_framesDone[port].pop_front();
+                DEBUG("%s port dqbuf->index: %d", THREAD_NAME(port), dqbuf->index);
+            }
         }
         break;
         default:
