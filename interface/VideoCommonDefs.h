@@ -85,6 +85,8 @@ extern "C" {
 #define YAMI_FOURCC_NV12 YAMI_FOURCC('N','V','1','2')
 #define YAMI_FOURCC_RGBX YAMI_FOURCC('R','G','B','X')
 #define YAMI_FOURCC_RGBA YAMI_FOURCC('R','G','B','A')
+#define YAMI_FOURCC_BGRX YAMI_FOURCC('B','G','R','X')
+#define YAMI_FOURCC_BGRA YAMI_FOURCC('B','G','R','A')
 
 typedef enum {
     NATIVE_DISPLAY_AUTO,    // decided by yami

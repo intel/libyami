@@ -49,7 +49,10 @@ static void copyVideoFrameMeta(const SharedPtr<VideoFrame>& src, const SharedPtr
 //android csc need us set color standard
 VAProcColorStandardType fourccToColorStandard(uint32_t fourcc)
 {
-    if (fourcc == YAMI_FOURCC_RGBX || fourcc == YAMI_FOURCC_RGBA) {
+    if (fourcc == YAMI_FOURCC_RGBX
+        || fourcc == YAMI_FOURCC_RGBA
+        || fourcc == YAMI_FOURCC_BGRX
+        || fourcc == YAMI_FOURCC_BGRA) {
         //we should return VAProcColorStandardSRGB here
         //but it only exist on libva staging. so we return None
         //side effect is android libva will print error info when we convert it to RGB
@@ -59,7 +62,6 @@ VAProcColorStandardType fourccToColorStandard(uint32_t fourcc)
     }
     if (fourcc == YAMI_FOURCC_NV12)
         return VAProcColorStandardBT601;
-    ERROR("invalid fourcc, set color stand to bt601");
     return VAProcColorStandardBT601;
 }
 
