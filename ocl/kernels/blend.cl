@@ -45,10 +45,10 @@ __kernel void blend(__write_only image2d_t dst_y,
     y2 = read_imagef(bg_y, sampler, (int2)(id_x, id_y + 1));
     uv = read_imagef(bg_uv, sampler, (int2)(id_x, id_y / 2));
 
-    rgba[0] = read_imagef(fg, sampler, (int2)(id_z,     id_w));
-    rgba[1] = read_imagef(fg, sampler, (int2)(id_z + 1, id_w + 1));
-    rgba[2] = read_imagef(fg, sampler, (int2)(id_z    , id_w));
-    rgba[3] = read_imagef(fg, sampler, (int2)(id_z + 1, id_w + 1));
+    rgba[0] = read_imagef(fg, sampler, (int2)(2 * id_z,     id_w));
+    rgba[1] = read_imagef(fg, sampler, (int2)(2 * id_z + 1, id_w));
+    rgba[2] = read_imagef(fg, sampler, (int2)(2 * id_z    , id_w + 1));
+    rgba[3] = read_imagef(fg, sampler, (int2)(2 * id_z + 1, id_w + 1));
 
     y_dst = 0.299 * (float4) (rgba[0].x, rgba[1].x, rgba[2].x, rgba[3].x);
     y_dst = mad(0.587, (float4) (rgba[0].y, rgba[1].y, rgba[2].y, rgba[3].y), y_dst);
