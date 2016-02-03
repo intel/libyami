@@ -188,7 +188,6 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
             ERROR("config input failed");
             input.reset();
         }
-        return input;
     }
     SharedPtr<VppInputDecode> inputDecode = std::tr1::dynamic_pointer_cast<VppInputDecode>(input);
     if (inputDecode) {
@@ -199,9 +198,10 @@ SharedPtr<VppInput> createInput(TranscodeParams& para, const SharedPtr<VADisplay
             ERROR("config input decode failed");
             input.reset();
         }
-        return input;
     }
-    return VppInputAsync::create(input, 3);
+    if (input)
+        input = VppInputAsync::create(input, 3); //make input in other thread.
+    return input;
 }
 
 SharedPtr<VppOutput> createOutput(TranscodeParams& para, const SharedPtr<VADisplay>& display)
