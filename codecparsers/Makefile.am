@@ -13,6 +13,12 @@ libyami_codecparser_source_c += \
 	$(NULL)
 endif
 
+if BUILD_H264_DECODER
+libyami_codecparser_source_c += \
+	h264Parser.cpp \
+	$(NULL)
+endif
+
 if BUILD_VP8_DECODER
 libyami_codecparser_source_c += \
 	vp8_bool_decoder.cpp \
@@ -29,6 +35,12 @@ libyami_codecparser_source_h_priv = \
 if BUILD_JPEG_DECODER
 libyami_codecparser_source_h_priv += \
 	jpegParser.h \
+	$(NULL)
+endif
+
+if BUILD_H264_DECODER
+libyami_codecparser_source_h_priv += \
+	h264Parser.h \
 	$(NULL)
 endif
 
@@ -79,6 +91,12 @@ endif
 if BUILD_JPEG_DECODER
 unittest_SOURCES += \
         jpegParser_unittest.cpp \
+        $(NULL)
+endif
+
+if BUILD_H264_DECODER
+unittest_SOURCES += \
+        h264Parser_unittest.cpp \
         $(NULL)
 endif
 
