@@ -49,6 +49,17 @@
     #define INPUT 0
     #define OUTPUT 1
 #endif
+#define GET_PORT_INDEX(_port, _type, _ret) do {                     \
+        if (_type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {           \
+            _port = INPUT;                                          \
+        } else if (_type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {   \
+            _port = OUTPUT;                                         \
+        } else {                                                    \
+            _ret = -1;                                              \
+            ERROR("unkown port, type num: %d", _type);              \
+            break;                                                  \
+        }                                                           \
+    } while (0)
 
 using namespace YamiMediaCodec;
 class V4l2CodecBase {
@@ -89,6 +100,7 @@ class V4l2CodecBase {
     virtual bool giveOutputBuffer(struct v4l2_buffer *dqbuf) = 0;
     virtual bool inputPulse(uint32_t index) = 0;
     virtual bool outputPulse(uint32_t &index) = 0; // index of decode output is decided by libyami, not FIFO of m_framesTodo[OUTPUT]
+    virtual bool recycleInputBuffer(struct v4l2_buffer *qbuf) {return true; }
     virtual bool recycleOutputBuffer(int32_t index) {return true;};
     virtual bool hasCodecEvent() {return m_hasEvent;}
     virtual void setCodecEvent();

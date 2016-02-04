@@ -165,7 +165,7 @@ bool V4l2Decoder::inputPulse(uint32_t index)
 
     ASSERT(index >= 0 && index < m_maxBufferCount[INPUT]);
     ASSERT(m_maxBufferSize[INPUT] > 0); // update m_maxBufferSize[INPUT] after VIDIOC_S_FMT
-    ASSERT(m_bufferSpace[INPUT]);
+    ASSERT(m_bufferSpace[INPUT] || m_memoryMode[INPUT] != V4L2_MEMORY_MMAP );
     ASSERT(inputBuffer->size <= m_maxBufferSize[INPUT]);
 
     status = m_decoder->decode(inputBuffer);
@@ -259,6 +259,17 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
 
 bool V4l2Decoder::recycleOutputBuffer(int32_t index)
 {
+    // FIXME, after we remove the extra vpp, renderDone() should come here
+    return true;
+}
+
+bool V4l2Decoder::recycleInputBuffer(struct v4l2_buffer *dqbuf)
+{
+    VideoDecodeBuffer *inputBuffer = &(m_inputFrames[dqbuf->index]);
+    uintptr_t *ptr = (uintptr_t*)dqbuf->m.planes[0].reserved;
+    *ptr = (uintptr_t)inputBuffer->data;
+    DEBUG("inputBuffer->data: %p, *ptr: %p\n", inputBuffer->data, (void*)(*ptr));
+
     return true;
 }
 
@@ -266,14 +277,21 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
 {
     VideoDecodeBuffer *inputBuffer = &(m_inputFrames[qbuf->index]);
     ASSERT(m_maxBufferSize[INPUT] > 0);
-    ASSERT(m_bufferSpace[INPUT]);
+    ASSERT(m_bufferSpace[INPUT] || m_memoryMode[INPUT] != V4L2_MEMORY_MMAP );
     ASSERT(qbuf->index >= 0 && qbuf->index < m_maxBufferCount[INPUT]);
     ASSERT(qbuf->length == 1);
     inputBuffer->size = qbuf->m.planes[0].bytesused; // one plane only
     if (!inputBuffer->size) // EOS
         inputBuffer->data = NULL;
-    else
-        inputBuffer->data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*qbuf->index;
+    else {
+        if (m_memoryMode[INPUT] == V4L2_MEMORY_MMAP)
+            inputBuffer->data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*qbuf->index;
+        else if (m_memoryMode[INPUT] == V4L2_MEMORY_USERPTR) {
+            // FIXME, puzzle, videodev2.h uses 'unsigned long userptr', how could it support 64 bit mem address?
+            uintptr_t *ptr = (uintptr_t*)qbuf->m.planes[0].reserved;
+            inputBuffer->data = (uint8_t*)(*ptr);
+        }
+    }
 
     TIMEVAL_TO_INT64(inputBuffer->timeStamp, qbuf->timestamp);
     inputBuffer->flag = qbuf->flags;
@@ -351,17 +369,16 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     case VIDIOC_REQBUFS: {
         ret = V4l2CodecBase::ioctl(command, arg);
         ASSERT(ret == 0);
-#if ANDROID
+        int port = -1;
         struct v4l2_requestbuffers *reqbufs = static_cast<struct v4l2_requestbuffers *>(arg);
-        if (reqbufs->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        GET_PORT_INDEX(port, reqbufs->type, ret);
+        if (port == OUTPUT) {
+        #if ANDROID
             if (reqbufs->count)
                 m_reqBuffCnt = reqbufs->count;
             else
                 m_videoFrames.clear();
-        }
-#else
-        struct v4l2_requestbuffers *reqbufs = static_cast<struct v4l2_requestbuffers *>(arg);
-        if (reqbufs->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        #else
             if (!reqbufs->count) {
                 m_eglVaapiImages.clear();
             } else {
@@ -379,22 +396,13 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                     m_eglVaapiImages.push_back(image);
                 }
             }
+        #endif
         }
-#endif
         break;
     }
     case VIDIOC_QUERYBUF: {
         struct v4l2_buffer *buffer = static_cast<struct v4l2_buffer*>(arg);
-        if (buffer->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-            port = INPUT;
-        } else if (buffer->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-            port = OUTPUT;
-
-        } else {
-            ret = -1;
-            ERROR("unknow type: %d of query buffer info VIDIOC_QUERYBUF", buffer->type);
-            break;
-        }
+        GET_PORT_INDEX(port, buffer->type, ret);
 
         ASSERT(buffer->memory == m_memoryMode[port]);
         ASSERT(buffer->index >= 0 && buffer->index < m_maxBufferCount[port]);
@@ -402,6 +410,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         ASSERT(m_maxBufferSize[port] > 0);
 
         if (port == INPUT) {
+            ASSERT(buffer->memory == V4L2_MEMORY_MMAP);
             buffer->m.planes[0].length = m_maxBufferSize[INPUT];
             buffer->m.planes[0].m.mem_offset = m_maxBufferSize[INPUT] * buffer->index;
         } else if (port == OUTPUT) {
