@@ -67,15 +67,20 @@ OclPostProcessBlender::blend(const SharedPtr<VideoFrame>& src,
     crop.y = dst->crop.y & ~1;
     crop.width = dst->crop.width / pixelSize;
     crop.height = dst->crop.height;
-    if ((CL_SUCCESS != clSetKernelArg(m_kernel, 0, sizeof(cl_mem), &dstImagePtr->plane(0)))
-         || (CL_SUCCESS != clSetKernelArg(m_kernel, 1, sizeof(cl_mem), &dstImagePtr->plane(1)))
-         || (CL_SUCCESS != clSetKernelArg(m_kernel, 2, sizeof(cl_mem), &bgImageMem[0]))
-         || (CL_SUCCESS != clSetKernelArg(m_kernel, 3, sizeof(cl_mem), &bgImageMem[1]))
-         || (CL_SUCCESS != clSetKernelArg(m_kernel, 4, sizeof(cl_mem), &srcImagePtr->plane(0)))
-         || (CL_SUCCESS != clSetKernelArg(m_kernel, 5, sizeof(uint32_t), &crop.x))
-         || (CL_SUCCESS != clSetKernelArg(m_kernel, 6, sizeof(uint32_t), &crop.y))
-         || (CL_SUCCESS != clSetKernelArg(m_kernel, 7, sizeof(uint32_t), &crop.width))
-         || (CL_SUCCESS != clSetKernelArg(m_kernel, 8, sizeof(uint32_t), &crop.height))) {
+    cl_kernel kernel = getKernel("blend");
+    if (!kernel) {
+        ERROR("failed to get cl kernel");
+        return YAMI_FAIL;
+    }
+    if ((CL_SUCCESS != clSetKernelArg(kernel, 0, sizeof(cl_mem), &dstImagePtr->plane(0)))
+         || (CL_SUCCESS != clSetKernelArg(kernel, 1, sizeof(cl_mem), &dstImagePtr->plane(1)))
+         || (CL_SUCCESS != clSetKernelArg(kernel, 2, sizeof(cl_mem), &bgImageMem[0]))
+         || (CL_SUCCESS != clSetKernelArg(kernel, 3, sizeof(cl_mem), &bgImageMem[1]))
+         || (CL_SUCCESS != clSetKernelArg(kernel, 4, sizeof(cl_mem), &srcImagePtr->plane(0)))
+         || (CL_SUCCESS != clSetKernelArg(kernel, 5, sizeof(uint32_t), &crop.x))
+         || (CL_SUCCESS != clSetKernelArg(kernel, 6, sizeof(uint32_t), &crop.y))
+         || (CL_SUCCESS != clSetKernelArg(kernel, 7, sizeof(uint32_t), &crop.width))
+         || (CL_SUCCESS != clSetKernelArg(kernel, 8, sizeof(uint32_t), &crop.height))) {
         ERROR("clSetKernelArg failed");
         return YAMI_FAIL;
     }
@@ -86,8 +91,9 @@ OclPostProcessBlender::blend(const SharedPtr<VideoFrame>& src,
     localWorkSize[1] = 8;
     globalWorkSize[0] = ALIGN16(dst.get()->crop.width) / pixelSize;
     globalWorkSize[1] = ALIGN16(dst.get()->crop.height) / 2;
-    if (!checkOclStatus(clEnqueueNDRangeKernel(m_context->m_queue, m_kernel, 2, NULL,
-        globalWorkSize, localWorkSize, 0, NULL, NULL), "EnqueueNDRangeKernel")) {
+    if (!checkOclStatus(clEnqueueNDRangeKernel(m_context->m_queue, kernel, 2, NULL,
+                            globalWorkSize, localWorkSize, 0, NULL, NULL),
+            "EnqueueNDRangeKernel")) {
         return YAMI_FAIL;
     }
 

@@ -33,7 +33,6 @@
 namespace YamiMediaCodec{
 
 OclPostProcessBase::OclPostProcessBase()
-    :m_kernel(0)
 {
 }
 
@@ -48,12 +47,12 @@ YamiStatus OclPostProcessBase::setNativeDisplay(const NativeDisplay& display)
     return YAMI_SUCCESS;
 }
 
-YamiStatus OclPostProcessBase::ensureContext(const char* kernalName)
+YamiStatus OclPostProcessBase::ensureContext(const char* name)
 {
-    if (m_kernel)
+    if (m_kernels.size())
         return YAMI_SUCCESS;
     m_context = OclContext::create();
-    if (!m_context || !m_context->createKernel(kernalName,m_kernel))
+    if (!m_context || !m_context->createKernel(name, m_kernels))
         return YAMI_DRIVER_FAIL;
     return YAMI_SUCCESS;
 }
@@ -126,8 +125,13 @@ uint32_t OclPostProcessBase::getPixelSize(const cl_image_format& fmt)
 
 OclPostProcessBase::~OclPostProcessBase()
 {
-    if (m_kernel) {
-        checkOclStatus(clReleaseKernel(m_kernel), "ReleaseKernel");
-    }
+    if (m_context)
+        m_context->releaseKernel(m_kernels);
+}
+
+cl_kernel OclPostProcessBase::getKernel(const char* name)
+{
+    OclKernelMap::iterator it = m_kernels.find(name);
+    return it == m_kernels.end() ? 0 : it->second;
 }
 }

@@ -25,6 +25,7 @@
 
 #include "VideoPostProcessInterface.h"
 #include <CL/opencl.h>
+#include <ocl/oclcontext.h>
 #include <va/va.h>
 
 namespace YamiMediaCodec{
@@ -39,7 +40,7 @@ public:
     // set native display
     virtual YamiStatus  setNativeDisplay(const NativeDisplay& display);
 
-    YamiStatus ensureContext(const char* kernalName);
+    YamiStatus ensureContext(const char* name);
     //
     virtual YamiStatus process(const SharedPtr<VideoFrame>& src,
                                const SharedPtr<VideoFrame>& dest) = 0;
@@ -48,9 +49,10 @@ public:
 
 protected:
     uint32_t getPixelSize(const cl_image_format& fmt);
+    cl_kernel getKernel(const char* name);
 
     VADisplay m_display;
-    cl_kernel m_kernel;
+    OclKernelMap m_kernels;
     SharedPtr<OclContext> m_context;
 };
 }

@@ -27,16 +27,21 @@
 #include "common/lock.h"
 #include <CL/opencl.h>
 #include <CL/cl_intel.h>
+#include <map>
+#include <string>
 
 namespace YamiMediaCodec{
 
 class OclDevice;
 
+typedef std::map<std::string, cl_kernel> OclKernelMap;
+
 class OclContext
 {
 public:
     static SharedPtr<OclContext> create();
-    bool createKernel(const char* name, cl_kernel& kernel);
+    bool createKernel(const char* name, OclKernelMap& kernelMap);
+    bool releaseKernel(OclKernelMap& kernelMap);
     YamiStatus createImageFromFdIntel(const cl_import_image_info_intel* info, cl_mem* mem);
     YamiStatus createBufferFromFdIntel(const cl_import_buffer_info_intel* info, cl_mem* mem);
     ~OclContext();
