@@ -52,6 +52,8 @@ static void print_help(const char* app)
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
+    printf("   --ipbmode <0(I frame only ) | 1 (I and P frames) | 2 (I,P,B frames)> optional\n");
+    printf("   --keyperiod <key frame period(default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
 }
 
@@ -77,6 +79,8 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"help", no_argument, NULL, 'h' },
         {"qp", required_argument, NULL, 0 },
         {"rcmode", required_argument, NULL, 0 },
+        {"ipbmode", required_argument, NULL, 0 },
+        {"keyperiod", required_argument, NULL, 0 },
         {"refnum", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
@@ -130,6 +134,12 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     para.m_encParams.rcMode = string_to_rc_mode(optarg);
                     break;
                 case 3:
+                    para.m_encParams.ipbMode= atoi(optarg);
+                    break;
+                case 4:
+                    para.m_encParams.kIPeriod = atoi(optarg);
+                    break;
+                case 5:
                     para.m_encParams.numRefFrames= atoi(optarg);
                     break;
             }
@@ -146,6 +156,15 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
     if ((para.m_encParams.rcMode == RATE_CONTROL_CBR) && (para.m_encParams.bitRate <= 0)) {
         fprintf(stderr, "please make sure bitrate is positive when CBR mode\n");
         return false;
+    }
+
+    // Set ipPeriod parameters for encoder according to different ipbMode value.
+    if (para.m_encParams.ipbMode == 0) {
+        para.m_encParams.ipPeriod = 0;
+    } else if (para.m_encParams.ipbMode == 2) {
+        para.m_encParams.ipPeriod = 3;
+    } else {
+        para.m_encParams.ipPeriod = 1;
     }
 
     if (!strncmp(para.inputFileName.c_str(), "/dev/video", strlen("/dev/video")) && !para.frameCount)
