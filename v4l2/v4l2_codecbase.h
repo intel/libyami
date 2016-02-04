@@ -175,7 +175,7 @@ class V4l2CodecBase {
 
 #ifdef __ENABLE_DEBUG__
   protected:
-    const char* IoctlCommandString(long unsigned int command);
+    const char* IoctlCommandString(int command);
 
     uint32_t m_frameCount[2];
 #endif
