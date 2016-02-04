@@ -272,7 +272,7 @@ static void* _workerThread(void *arg)
 }
 
 #if __ENABLE_DEBUG__
-const char* V4l2CodecBase::IoctlCommandString(long unsigned int command)
+const char* V4l2CodecBase::IoctlCommandString(int command)
 {
     static const char* unknown = "Unkonwn command";
 #define IOCTL_COMMAND_STRING_MAP(cmd)   {cmd, #cmd}
@@ -297,9 +297,12 @@ const char* V4l2CodecBase::IoctlCommandString(long unsigned int command)
             IOCTL_COMMAND_STRING_MAP(VIDIOC_G_CTRL)
         };
 
+    // int --> long unsigned is different from int-->uint-->long unsigned
+    unsigned int u_cmd = (unsigned int)command;
+    long unsigned int lu_cmd = (long unsigned int) u_cmd;
     size_t i;
     for (i=0; i<sizeof(ioctlCommandMap)/sizeof(IoctlCommanMap); i++)
-        if (ioctlCommandMap[i].command == command)
+        if (ioctlCommandMap[i].command == lu_cmd)
             return ioctlCommandMap[i].cmdStr;
 
     return unknown;
