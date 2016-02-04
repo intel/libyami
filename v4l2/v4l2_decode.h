@@ -61,6 +61,7 @@ class V4l2Decoder : public V4l2CodecBase
     virtual bool inputPulse(uint32_t index);
     virtual bool outputPulse(uint32_t &index);
     virtual bool recycleOutputBuffer(int32_t index);
+    virtual bool recycleInputBuffer(struct v4l2_buffer *qbuf);
     virtual void releaseCodecLock(bool lockable);
     virtual void flush();
 

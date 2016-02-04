@@ -322,31 +322,24 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
         case VIDIOC_STREAMON: {
             // ::Enqueue
             __u32 type = * ((__u32*)arg);
-            if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-                // XXX, setup X display
+            GET_PORT_INDEX(port, type, ret);
+            if (port == INPUT) {
                 DEBUG("start decoding");
-#ifdef ANDROID
+            #ifdef ANDROID
+                // FIXME, I remember cros flush uses STREAMON/STREAMOFF as well
                 if (!setVaDisplay()) {
-                    fprintf(stderr, "fail to set up VADisplay\n");
+                    ERROR("fail to set up VADisplay");
                     ret = -1;
                 }
 
                 if (!createVpp()) {
-                    fprintf(stderr, "fail to set up VPP\n");
+                    ERROR("fail to set up VPP");
                     ret = -1;
                 }
-#endif
+            #endif
                 boolRet = start();
                 ASSERT(boolRet);
-                port = INPUT;
-            } else if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-                port = OUTPUT;
-            } else {
-                ret = -1;
-                ERROR("unkown stream type: %d", type);
-                break;
-            }
-            if (port == INPUT) {
+
                 DEBUG("INPUT port got STREAMON, escape from flushing state");
                 releaseCodecLock(true);
             }
@@ -361,17 +354,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
         case VIDIOC_STREAMOFF: {
             // ::StopDevicePoll
             __u32 type = * ((__u32*)arg);
-            if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-                port = INPUT;
-            }
-            else if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-                port = OUTPUT;
-            } else {
-                ret = -1;
-                ERROR("unkown stream type: %d", type);
-                break;
-            }
-
+            GET_PORT_INDEX(port, type, ret);
             m_streamOn[port] = false;
 
             // wait until the worker thread exit, some cleanup happend there
@@ -397,7 +380,8 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 ERROR("unknown request buffer type: %d", reqbufs->type);
                 break;
             }
-            ASSERT(reqbufs->memory == m_memoryMode[port]);
+            ASSERT(port == INPUT || reqbufs->memory == m_memoryMode[port]);
+            m_memoryMode[port] = reqbufs->memory;
             {
                 AutoLock locker(m_frameLock[port]);
 
@@ -431,15 +415,8 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
         break;
         case VIDIOC_QBUF: {
             struct v4l2_buffer *qbuf = static_cast<struct v4l2_buffer *>(arg);
-            if (qbuf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-                port  = INPUT;
-            } else if (qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-                port = OUTPUT;
-            } else {
-                ret = -1;
-                ERROR("unknown enqueued (VIDIOC_QBUF) buffer type: %d", qbuf->type);
-                break;
-            }
+            GET_PORT_INDEX(port, qbuf->type, ret);
+
             // ::EnqueueInputRecord/EnqueueOutputRecord
             ASSERT(qbuf->memory == m_memoryMode[port]);
             ASSERT (qbuf->length == m_bufferPlaneCount[port]);
@@ -466,21 +443,15 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
         case VIDIOC_DQBUF: {
             // ::Dequeue
             struct v4l2_buffer *dqbuf = static_cast<struct v4l2_buffer *>(arg);
-            if (dqbuf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-                port = INPUT;
-            } else if (dqbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-                port = OUTPUT;
-#ifdef ANDROID
+            GET_PORT_INDEX(port, dqbuf->type, ret);
+            if (port == OUTPUT) {
+            #ifdef ANDROID
                 if (m_streamOn[port] == false) {
                     dqbuf->index = m_framesTodo[port].front();
                     m_framesTodo[port].pop_front();
                     break;
                 }
-#endif
-            } else {
-                ret = -1;
-                ERROR("unknown buffer type: %d in command VIDIOC_DQBUF", dqbuf->type);
-                break;
+            #endif
             }
 
             {
@@ -497,11 +468,15 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             ASSERT(dqbuf->length == m_bufferPlaneCount[port]);
             dqbuf->index = m_framesDone[port].front();
             ASSERT(dqbuf->index >= 0 && dqbuf->index < m_maxBufferCount[port]);
-            if (port == OUTPUT) {
-                bool _ret = giveOutputBuffer(dqbuf);
-                ASSERT(_ret);
-            }
 
+            bool _ret = true;
+            if (port == OUTPUT) {
+                _ret = giveOutputBuffer(dqbuf);
+            } else {
+                DEBUG();
+                _ret = recycleInputBuffer(dqbuf);
+            }
+            ASSERT(_ret);
             {
                 AutoLock locker (m_frameLock[port]);
                 m_framesDone[port].pop_front();
