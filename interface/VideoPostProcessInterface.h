@@ -24,6 +24,7 @@
 #define VIDEO_POST_PROCESS_INTERFACE_H_
 
 #include "VideoCommonDefs.h"
+#include "VideoPostProcessDefs.h"
 
 namespace YamiMediaCodec{
 /**
@@ -41,6 +42,7 @@ class IVideoPostProcess {
     // for some type of vpp such as deinterlace, we will hold a referece of src.
     virtual YamiStatus process(const SharedPtr<VideoFrame>& src,
                                const SharedPtr<VideoFrame>& dest) = 0;
+    virtual YamiStatus setParameters(VppParamType type, void* vppParam) = 0;
     virtual ~IVideoPostProcess() {}
 };
 }

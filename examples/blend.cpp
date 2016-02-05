@@ -23,6 +23,7 @@
 #endif
 
 #include "bumpbox.h"
+#include "font.h"
 #include "vppinputdecode.h"
 #include "common/log.h"
 #include "common/utils.h"
@@ -35,7 +36,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <vector>
-
+#include "vpp/oclpostprocess_osd.h"
 #include <X11/Xlib.h>
 #include <va/va.h>
 #include <va/va_x11.h>
@@ -53,18 +54,24 @@ using namespace std;
 class VideoFrameDeleter
 {
 public:
-    VideoFrameDeleter(VADisplay display):m_display(display)
+    VideoFrameDeleter(SharedPtr<VADisplay> display)
+        : m_display(display)
     {
     }
     void operator()(VideoFrame* frame)
     {
         VASurfaceID id = (VASurfaceID)frame->surface;
-        vaDestroySurfaces(m_display, &id, 1);
+        vaDestroySurfaces(*m_display, &id, 1);
     }
 private:
-    VADisplay m_display;
-
+    SharedPtr<VADisplay> m_display;
 };
+
+void VADisplayDeleter(VADisplay* display)
+{
+    checkVaapiStatus(vaTerminate(*display), "Terminate");
+    delete display;
+}
 
 #define ROOF(a, b) (a & (b - 1)
 
@@ -96,9 +103,11 @@ public:
         int height = m_input->getHeight();
         if (!createBlendSurfaces(width, height))
             return false;
+        if (!createOSDSurfaces(width, height))
+            return false;
         if (!createDestSurface(width, height))
             return false;
-        resizeWindow(800, 600);
+        resizeWindow(960, 540);
         return true;
     }
     bool run()
@@ -113,7 +122,7 @@ public:
             PERF_START(blend);
             //blend it
             for (uint32_t i = 0; i < m_blendSurfaces.size(); i++) {
-                m_bumpBoxes[i]->getPos(m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
+                m_blendBumpBoxes[i]->getPos(m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
                 //printf("(%d, %d, %d, %d)\r\n", m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
 
                 SharedPtr<VideoFrame>& src = m_blendSurfaces[i];
@@ -121,9 +130,20 @@ public:
             }
             PERF_STOP(blend);
 
+            PERF_START(osd);
+            //osd
+            for (uint32_t i = 0; i < m_osdSurfaces.size(); i++) {
+                m_osdBumpBoxes[i]->getPos(m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
+                //printf("(%d, %d, %d, %d)\r\n", m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
+
+                SharedPtr<VideoFrame>& src = m_osdSurfaces[i];
+                m_osd->process(src, m_dest);
+            }
+            PERF_STOP(osd);
+
             //display it on screen
             memcpy(&m_dest->crop, &frame->crop, sizeof(VideoRect));
-            status = vaPutSurface(m_vaDisplay, (VASurfaceID)m_dest->surface,
+            status = vaPutSurface(*m_vaDisplay, (VASurfaceID)m_dest->surface,
                 m_window, m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height, 0, 0, m_width, m_height,
                 NULL, 0, 0);
             if (status != VA_STATUS_SUCCESS) {
@@ -137,9 +157,6 @@ public:
     ~Blend()
     {
         m_input.reset();
-        if (m_nativeDisplay) {
-            vaTerminate(m_vaDisplay);
-        }
         if (m_window) {
             XDestroyWindow(m_display.get(), m_window);
         }
@@ -160,17 +177,18 @@ private:
             return false;
         }
         m_display.reset(display, XCloseDisplay);
-        m_vaDisplay = vaGetDisplay(m_display.get());
+        VADisplay vaDisplay = vaGetDisplay(m_display.get());
         int major, minor;
         VAStatus status;
-        status = vaInitialize(m_vaDisplay, &major, &minor);
+        status = vaInitialize(vaDisplay, &major, &minor);
         if (status != VA_STATUS_SUCCESS) {
             fprintf(stderr, "init va failed status = %d", status);
             return false;
         }
+        m_vaDisplay.reset(new VADisplay(vaDisplay), VADisplayDeleter);
         m_nativeDisplay.reset(new NativeDisplay);
         m_nativeDisplay->type = NATIVE_DISPLAY_VA;
-        m_nativeDisplay->handle = (intptr_t)m_vaDisplay;
+        m_nativeDisplay->handle = (intptr_t)*m_vaDisplay;
         return true;
     }
     SharedPtr<VideoFrame> createSurface(uint32_t rtFormat, int pixelFormat, uint32_t width, uint32_t height)
@@ -184,7 +202,7 @@ private:
         attrib.value.type = VAGenericValueTypeInteger;
         attrib.value.value.i = pixelFormat;
 
-        status = vaCreateSurfaces(m_vaDisplay, rtFormat, width, height, &id, 1, &attrib, 1);
+        status = vaCreateSurfaces(*m_vaDisplay, rtFormat, width, height, &id, 1, &attrib, 1);
         if (!checkVaapiStatus(status, "vaCreateSurfaces"))
             return frame;
         frame.reset(new VideoFrame, VideoFrameDeleter(m_vaDisplay));
@@ -195,38 +213,52 @@ private:
         return frame;
     }
 
-    bool drawSurfaceRGBA(SharedPtr<VideoFrame>& frame)
+    bool drawSurfaceRGBA(SharedPtr<VideoFrame>& frame, bool text = false)
     {
         VASurfaceID surface = (VASurfaceID)frame->surface;
         VAImage image;
 
-        VAStatus status = vaDeriveImage(m_vaDisplay,surface,&image);
+        VAStatus status = vaDeriveImage(*m_vaDisplay, surface, &image);
         if (!checkVaapiStatus(status, "vaDeriveImage"))
             return false;
         assert(image.num_planes == 1);
         char* buf;
-        status = vaMapBuffer(m_vaDisplay, image.buf, (void**)&buf);
+        status = vaMapBuffer(*m_vaDisplay, image.buf, (void**)&buf);
         if (!checkVaapiStatus(status, "vaMapBuffer")) {
-            vaDestroyImage(m_vaDisplay, image.image_id);
+            vaDestroyImage(*m_vaDisplay, image.image_id);
             return false;
         }
 
-        uint8_t  r = rand() % 256;
-        uint8_t  g = rand() % 256;
-        uint8_t  b = rand() % 256;
-        uint8_t  a = rand() % 256;
-
-        uint32_t pixel = (r << 24) | (g << 16) | (b << 8) | a;
-        char* ptr = buf + image.offsets[0];
-        for (int i = 0; i < image.height; i++) {
-            uint32_t* dest = (uint32_t*)(ptr + image.pitches[0] * i);
-            for (int j = 0; j < image.width; j++) {
-                *dest = pixel;
-                dest++;
+        if (text) {
+            int n = rand() % (sizeof(font) / sizeof(font[0]));
+            char* ptr = buf + image.offsets[0];
+            for (int i = 0; i < image.height; i++) {
+                uint32_t* dest = (uint32_t*)(ptr + image.pitches[0] * i);
+                for (int j = 0; j < image.width; j++) {
+                    *dest = font[n][i * FONT_BLOCK_SIZE + j % FONT_BLOCK_SIZE];
+                    dest++;
+                }
             }
         }
-        checkVaapiStatus(vaUnmapBuffer(m_vaDisplay, image.buf), "vaUnmapBuffer");
-        checkVaapiStatus(vaDestroyImage(m_vaDisplay, image.image_id), "vaDestroyImage");
+        else {
+            uint8_t r = rand() % 256;
+            uint8_t g = rand() % 256;
+            uint8_t b = rand() % 256;
+            uint8_t a = rand() % 256;
+
+            uint32_t pixel = (r << 24) | (g << 16) | (b << 8) | a;
+            char* ptr = buf + image.offsets[0];
+            for (int i = 0; i < image.height; i++) {
+                uint32_t* dest = (uint32_t*)(ptr + image.pitches[0] * i);
+                for (int j = 0; j < image.width; j++) {
+                    *dest = pixel;
+                    dest++;
+                }
+            }
+        }
+
+        checkVaapiStatus(vaUnmapBuffer(*m_vaDisplay, image.buf), "vaUnmapBuffer");
+        checkVaapiStatus(vaDestroyImage(*m_vaDisplay, image.image_id), "vaDestroyImage");
         return true;
     }
 
@@ -245,7 +277,25 @@ private:
             drawSurfaceRGBA(frame);
             m_blendSurfaces.push_back(frame);
             SharedPtr<BumpBox> box(new BumpBox(targetWidth, targetHeight, w, h));
-            m_bumpBoxes.push_back(box);
+            m_blendBumpBoxes.push_back(box);
+        }
+        return true;
+    }
+
+    bool createOSDSurfaces(uint32_t targetWidth, uint32_t targetHeight)
+    {
+        for (int i = 0; i < 3; i++) {
+            int w = FONT_BLOCK_SIZE * 22;
+            int h = FONT_BLOCK_SIZE;
+
+            SharedPtr<VideoFrame> text = createSurface(VA_RT_FORMAT_RGB32, VA_FOURCC_RGBA, w, h);
+            if (!text)
+                return false;
+            text->fourcc = YAMI_FOURCC_RGBA;
+            drawSurfaceRGBA(text, true);
+            m_osdSurfaces.push_back(text);
+            SharedPtr<BumpBox> box(new BumpBox(targetWidth, targetHeight, w, h));
+            m_osdBumpBoxes.push_back(box);
         }
         return true;
 
@@ -262,13 +312,18 @@ private:
     {
         NativeDisplay nativeDisplay;
         nativeDisplay.type = NATIVE_DISPLAY_VA;
-        nativeDisplay.handle = (intptr_t)m_vaDisplay;
+        nativeDisplay.handle = (intptr_t)*m_vaDisplay;
         m_scaler.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
         m_blender.reset(createVideoPostProcess(YAMI_VPP_OCL_BLENDER), releaseVideoPostProcess);
-        if (!m_scaler || !m_blender)
+        m_osd.reset(createVideoPostProcess(YAMI_VPP_OCL_OSD), releaseVideoPostProcess);
+        if (!m_scaler || !m_blender || !m_osd)
             return false;
+        VppParamOsd osdParam;
+        osdParam.threshold = 128;
+        m_osd->setParameters(VppParamTypeOsd, &osdParam);
         return m_scaler->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS
-            && m_blender->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
+            && m_blender->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS
+            && m_osd->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
     }
 
     void resizeWindow(int width, int height)
@@ -297,14 +352,17 @@ private:
     }
     SharedPtr<Display> m_display;
     SharedPtr<NativeDisplay> m_nativeDisplay;
-    VADisplay m_vaDisplay;
+    SharedPtr<VADisplay> m_vaDisplay;
     Window   m_window;
     SharedPtr<VppInputDecode> m_input;
     SharedPtr<IVideoPostProcess> m_scaler;
     SharedPtr<IVideoPostProcess> m_blender;
+    SharedPtr<IVideoPostProcess> m_osd;
     int m_width, m_height;
     vector<SharedPtr<VideoFrame> > m_blendSurfaces;
-    vector<SharedPtr<BumpBox> > m_bumpBoxes;
+    vector<SharedPtr<BumpBox> > m_blendBumpBoxes;
+    vector<SharedPtr<VideoFrame> > m_osdSurfaces;
+    vector<SharedPtr<BumpBox> > m_osdBumpBoxes;
     SharedPtr<VideoFrame> m_dest;
 };
 

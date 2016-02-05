@@ -222,6 +222,7 @@ typedef struct VideoFrame {
 #define YAMI_MIME_JPEG "image/jpeg"
 #define YAMI_VPP_SCALER "vpp/scaler"
 #define YAMI_VPP_OCL_BLENDER "vpp/ocl_blender"
+#define YAMI_VPP_OCL_OSD "vpp/ocl_osd"
 
 #ifdef __cplusplus
 }

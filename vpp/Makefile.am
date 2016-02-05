@@ -19,10 +19,12 @@ endif
 
 if BUILD_OCL_BLENDER
 libyami_vpp_source_c += oclpostprocess_blender.cpp
+libyami_vpp_source_c += oclpostprocess_osd.cpp
 endif
 
 libyami_vpp_source_h = \
 	../interface/VideoCommonDefs.h \
+	../interface/VideoPostProcessDefs.h \
 	../interface/VideoPostProcessHost.h \
 	../interface/VideoPostProcessInterface.h \
 	$(NULL)
@@ -41,6 +43,7 @@ endif
 
 if BUILD_OCL_BLENDER
 libyami_vpp_source_h_priv += oclpostprocess_blender.h
+libyami_vpp_source_h_priv += oclpostprocess_osd.h
 endif
 
 libyami_vpp_ldflags = \
