@@ -930,6 +930,15 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
     bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= keyFramePeriod() || forceKeyFrame);
 
     if (isIdr) {
+        // If the last frame before IDR is B frame, set it to P frame.
+        if (m_reorderFrameList.size()) {
+            PicturePtr lastPic = m_reorderFrameList.back();
+            if (lastPic->m_type == VAAPI_PICTURE_TYPE_B) {
+                lastPic->m_type = VAAPI_PICTURE_TYPE_P;
+                m_reorderFrameList.pop_back();
+                m_reorderFrameList.push_front(lastPic);
+            }
+        }
         setIdrFrame (picture);
         m_reorderFrameList.push_back(picture);
         m_curFrameNum++;
