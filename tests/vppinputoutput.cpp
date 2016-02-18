@@ -43,9 +43,13 @@ using namespace YamiMediaCodec;
 SharedPtr<VADisplay> createVADisplay()
 {
     SharedPtr<VADisplay> display;
-    int fd = open("/dev/dri/card0", O_RDWR);
+    int fd = open("/dev/dri/renderD128", O_RDWR);
     if (fd < 0) {
-        ERROR("open card0 failed");
+        ERROR("can't open /dev/dri/renderD128, try to /dev/dri/card0");
+        fd = open("/dev/dri/card0", O_RDWR);
+    }
+    if (fd < 0) {
+        ERROR("can't open drm device");
         return display;
     }
     VADisplay vadisplay = vaGetDisplayDRM(fd);
