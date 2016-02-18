@@ -327,7 +327,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             __u32 type = * ((__u32*)arg);
             GET_PORT_INDEX(port, type, ret);
             if (port == INPUT) {
-                DEBUG("start decoding");
+                DEBUG("start decoding/encoding");
             #ifdef ANDROID
                 // FIXME, I remember cros flush uses STREAMON/STREAMOFF as well
                 if (!setVaDisplay()) {
@@ -404,6 +404,10 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
 
                 // info work thread that we want to release the buffer queue
                 m_reqBufState[port] = RBS_Request;
+
+                //try to wakeup workthread (workthread may not be active, after EOS for example)
+                m_threadCond[port]->signal();
+
                 // wait until work thread doesn't work on current buffer queue
                 while (m_reqBufState[port] != RBS_Acknowledge) {
                     m_threadCond[port]->wait();
