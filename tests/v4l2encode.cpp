@@ -237,9 +237,15 @@ int main(int argc, char** argv)
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
     switch (inputFourcc) {
+    case VA_FOURCC_YV12:
     case VA_FOURCC('I', '4', '2', '0'):
         format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_YUV420M;
         inputFramePlaneCount = 3;
+        inputFrameSize = videoWidth*videoHeight*3/2;
+        break;
+    case VA_FOURCC_NV12:
+        format.fmt.pix_mp.pixelformat = V4L2_PIX_FMT_NV12;
+        inputFramePlaneCount = 2;
         inputFrameSize = videoWidth*videoHeight*3/2;
         break;
     case VA_FOURCC_YUY2:
