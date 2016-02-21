@@ -53,7 +53,7 @@ void encodeStop(EncodeHandler p)
         ((IVideoEncoder*)p)->stop();
 }
 
-Encode_Status encode(EncodeHandler p, VideoFrameRawData * inBuffer)
+Encode_Status encodeEncodeRawData(EncodeHandler p, VideoFrameRawData* inBuffer)
 {
     if(p)
         return ((IVideoEncoder*)p)->encode(inBuffer);
@@ -69,7 +69,7 @@ Encode_Status encodeGetOutput(EncodeHandler p, VideoEncOutputBuffer * outBuffer,
         return ENCODE_FAIL;
 }
 
-Encode_Status getParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams)
+Encode_Status encodeGetParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     if(p)
         return ((IVideoEncoder*)p)->getParameters(type, videoEncParams);
@@ -77,7 +77,7 @@ Encode_Status getParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR
         return ENCODE_FAIL;
 }
 
-Encode_Status setParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams)
+Encode_Status encodeSetParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     if(p)
         return ((IVideoEncoder*)p)->setParameters(type, videoEncParams);
@@ -85,12 +85,18 @@ Encode_Status setParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR
         return ENCODE_FAIL;
 }
 
-Encode_Status getMaxOutSize(EncodeHandler p, uint32_t * maxSize)
+Encode_Status encodeGetMaxOutSize(EncodeHandler p, uint32_t* maxSize)
 {
     if(p)
         return ((IVideoEncoder*)p)->getMaxOutSize(maxSize);
     else
         return ENCODE_FAIL;
+}
+
+void releaseEncoder(EncodeHandler p)
+{
+    if (p)
+        releaseVideoEncoder((IVideoEncoder*)p);
 }
 
 Encode_Status getStatistics(EncodeHandler p, VideoStatistics * videoStat)
@@ -115,10 +121,4 @@ Encode_Status setConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR vid
         return ((IVideoEncoder*)p)->setConfig(type, videoEncConfig);
     else
         return ENCODE_FAIL;
-}
-
-void releaseEncoder(EncodeHandler p)
-{
-    if(p)
-        releaseVideoEncoder((IVideoEncoder*)p);
 }

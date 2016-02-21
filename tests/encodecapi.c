@@ -77,21 +77,21 @@ int main(int argc, char** argv)
     //configure encoding parameters
     VideoParamsCommon encVideoParams;
     encVideoParams.size = sizeof(VideoParamsCommon);
-    getParameters(encoder, VideoParamsTypeCommon, &encVideoParams);
+    encodeGetParameters(encoder, VideoParamsTypeCommon, &encVideoParams);
     setEncoderParameters(&encVideoParams);
     encVideoParams.size = sizeof(VideoParamsCommon);
-    setParameters(encoder, VideoParamsTypeCommon, &encVideoParams);
+    encodeSetParameters(encoder, VideoParamsTypeCommon, &encVideoParams);
 
     VideoConfigAVCStreamFormat streamFormat;
     streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
     streamFormat.streamFormat = AVC_STREAM_FORMAT_ANNEXB;
-    setParameters(encoder, VideoConfigTypeAVCStreamFormat, &streamFormat);
+    encodeSetParameters(encoder, VideoConfigTypeAVCStreamFormat, &streamFormat);
 
     status = encodeStart(encoder);
     assert(status == ENCODE_SUCCESS);
 
     //init output buffer
-    getMaxOutSize(encoder, &maxOutSize);
+    encodeGetMaxOutSize(encoder, &maxOutSize);
 
     if (!createOutputBuffer(&outputBuffer, maxOutSize)) {
         fprintf (stderr, "fail to init input stream\n");
@@ -102,7 +102,7 @@ int main(int argc, char** argv)
     {
         memset(&inputBuffer, 0, sizeof(inputBuffer));
         if (getOneFrameInput(input, &inputBuffer)){
-            status = encode(encoder, &inputBuffer);
+            status = encodeEncodeRawData(encoder, &inputBuffer);
             recycleOneFrameInput(input, &inputBuffer);
         }
         else

@@ -41,23 +41,26 @@ Encode_Status encodeStart(EncodeHandler p);
 
 void encodeStop(EncodeHandler p);
 
-Encode_Status encode(EncodeHandler p, VideoFrameRawData * inBuffer);
+Encode_Status encodeEncodeRawData(EncodeHandler p, VideoFrameRawData* inBuffer);
 
 Encode_Status encodeGetOutput(EncodeHandler p, VideoEncOutputBuffer * outBuffer, bool withWait);
 
-Encode_Status getParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams);
+Encode_Status encodeGetParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams);
 
-Encode_Status setParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams);
+Encode_Status encodeSetParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams);
 
-Encode_Status getMaxOutSize(EncodeHandler p, uint32_t * maxSize);
-
-Encode_Status getStatistics(EncodeHandler p, VideoStatistics * videoStat);
-
-Encode_Status getConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig);
-
-Encode_Status setConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig);
+Encode_Status encodeGetMaxOutSize(EncodeHandler p, uint32_t* maxSize);
 
 void releaseEncoder(EncodeHandler p);
+
+/*deprecated*/
+Encode_Status getStatistics(EncodeHandler p, VideoStatistics * videoStat);
+
+/*deprecated*/
+Encode_Status getConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig);
+
+/*deprecated*/
+Encode_Status setConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig);
 
 #ifdef __cplusplus
 };
