@@ -53,6 +53,21 @@ void encodeStop(EncodeHandler p)
         ((IVideoEncoder*)p)->stop();
 }
 
+static void freeFrame(VideoFrame* frame)
+{
+    if (frame && frame->free) {
+        frame->free(frame);
+    }
+}
+
+Encode_Status encodeEncode(EncodeHandler p, VideoFrame* frame)
+{
+    if (!p)
+        return ENCODE_INVALID_PARAMS;
+    SharedPtr<VideoFrame> f(frame, freeFrame);
+    return ((IVideoEncoder*)p)->encode(f);
+}
+
 Encode_Status encodeEncodeRawData(EncodeHandler p, VideoFrameRawData* inBuffer)
 {
     if(p)
