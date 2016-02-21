@@ -55,24 +55,6 @@ const VideoFormatInfo* decodeGetFormatInfo(DecodeHandler p);
 void releaseDecoder(DecodeHandler p);
 
 /*deprecated*/
-void renderDone(DecodeHandler p, const VideoRenderBuffer* buffer);
-
-/*deprecated*/
-void renderDoneRawData(DecodeHandler p, VideoFrameRawData* buffer);
-
-/*deprecated*/
-void flushOutport(DecodeHandler p);
-
-/*deprecated*/
-void enableNativeBuffers(DecodeHandler p);
-
-/*deprecated*/
-Decode_Status getClientNativeWindowBuffer(DecodeHandler p, void *bufferHeader, void *nativeBufferHandle);
-
-/*deprecated*/
-Decode_Status flagNativeBuffer(DecodeHandler p, void * pBuffer);
-
-/*deprecated*/
 void releaseLock(DecodeHandler p);
 
 #ifdef __cplusplus

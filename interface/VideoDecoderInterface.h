@@ -55,91 +55,24 @@ public:
 
     ///get decoded frame from decoder.
     virtual SharedPtr<VideoFrame> getOutput() = 0;
-    /**
-     * \brief return one frame to client for display; obsolete API. please use getOutput(XID, ...) or getOutput(VideoFrameRawData, ...) instead.
-     * NULL will be returned if no available frame for rendering
-     * @param[in] draining drain out all possible frames or not. it is set to true upon EOS.
-     * @return a #VideoRenderBuffer to be rendered by client
-     */
-    virtual const VideoRenderBuffer* getOutput(bool draining) = 0;
-    /**
-     * \brief  render one available video frame to draw
-     * @param[in] draw a X11 drawable, Pixmap or Window ID. we do not use Drawable/XID type from X11/X.h because interface should be unique unconditionally
-     * @param[in/out] timeStamp, time stamp of current rendering frame (it is passed from client before)
-     * @param[in] drawX/drawY/drawWidth/drawHeight specify a rect to render on the draw
-     * @param[in] drawX horizontal offset to render on the draw
-     * @param[in] drawY vertical offset to render on the draw
-     * @param[in] width rendering rect width on the draw
-     * @param[in] height render rect height on the draw
-     * @param[in] frameX/frameY/frameWidth/frameHeight specify a portion rect for rendering, default means the whole surface to render
-     * @param[in] frameX horizontal offset of the video frame to render
-     * @param[in] frameY vertical offset of the video frame to render
-     * @param[in] frameWidth rect width of the video frame to render
-     * @param[in] frameHeight rect height of the video frame to render
-     *
-     * default value of frameX/frameY/frameWidth/frameHeight means rendering the whole video frame(surface)
-     *
-     * @return DECODE_SUCCESS for success
-     * @return RENDER_NO_AVAILABLE_FRAME when no available frame to render
-     * @return RENDER_FAIL when driver fail to do vaPutSurface
-     * @return RENDER_INVALID_PARAMETER
-     */
-    virtual Decode_Status getOutput(unsigned long draw, int64_t *timeStamp
-        , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
-        , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1) = 0;
-    /**
-     * \brief export one frame to client buffer;
-     * there are four type to export one frame (VideoDataMemoryType); after rendering, client return the buffer back by renderDone(VideoFrameRawData*);
-     * RENDER_NO_AVAILABLE_FRAME will be returned if no available frame for rendering.
-     * if frame->fourcc or/and frame->width/height are set, color conversion or/and resize is done as well.
-     * @param[in] draining drain out all possible frames or not. it is set to true upon EOS.
-     */
-    virtual Decode_Status getOutput(VideoFrameRawData* frame, bool draining = false) = 0;
 
-    /**
-    * in chromeos v4l2vda, it creates all EGLImage from output frames at initialization time, not create/destroy each frame texture on the fly.
-    * @param[in] frames the exported handles (and attributes) for all output frames.
-    * @param[in/out] frameCount. the size of input frames when it is not zero. return the internal output pool size when it is zero.
-    * make sure to recycle (renderDone()) these frames.
-    */
-    virtual Decode_Status populateOutputHandles(VideoFrameRawData *frames, unsigned int &frameCount) = 0;
-
-    /** \brief retrieve updated stream information after decoder has parsed the video stream.
+   /** \brief retrieve updated stream information after decoder has parsed the video stream.
     * client usually calls it when libyami return DECODE_FORMAT_CHANGE in decode().
     */
     virtual const VideoFormatInfo* getFormatInfo(void) = 0;
-    /** \brief client recycles buffer back to libyami after the buffer has been rendered.
-    *
-    * <pre>
-    * it is used by current omx client in async rendering mode.
-    * if rendering target is passed in getOutput(), then yami can does the rendering directly; this function becomes unnecessary.
-    * however, this API is still useful when we export video frame directly for EGLImage (dma_buf).
-    * </pre>
-    */
-    virtual void renderDone(const VideoRenderBuffer* buffer) = 0;
-
-    /** \brief client recycles video frame (retrieve by getOutput) back to libyami after the buffer has been rendered.
-    */
-    virtual void renderDone(VideoFrameRawData* frame) = 0;
 
     /// set native display
     virtual void  setNativeDisplay( NativeDisplay * display = NULL) = 0;
     virtual void  setAllocator(SurfaceAllocator* allocator) = 0;
 
+    /*deprecated*/
     /// lockable is set to false when seek begins and reset to true after seek is done
     /// EOS also set lockable to false
     virtual void releaseLock(bool lockable=false) = 0;
 
+    /*deprecated*/
     ///do not use this, we will remove this in near future
     virtual VADisplay getDisplayID() = 0;
-    /// obsolete, make all cached video frame output-able, it can be done by getOutput(draining=true) as well
-    virtual void flushOutport(void) = 0;
-    /// not interest for now, may be used by Android to accept external video frame memory from gralloc
-    virtual void  enableNativeBuffers(void) = 0;
-    /// not interest for now, may be used by Android to accept external video frame memory from gralloc
-    virtual Decode_Status  getClientNativeWindowBuffer(void *bufferHeader, void *nativeBufferHandle) = 0;
-    /// not interest for now, may be used by Android to accept external video frame memory from gralloc
-    virtual Decode_Status flagNativeBuffer(void * pBuffer) = 0;
 };
 }
 #endif                          /* VIDEO_DECODER_INTERFACE_H_ */

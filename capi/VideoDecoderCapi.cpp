@@ -118,47 +118,6 @@ void releaseDecoder(DecodeHandler p)
         releaseVideoDecoder((IVideoDecoder*)p);
 }
 
-void renderDone(DecodeHandler p, const VideoRenderBuffer* buffer)
-{
-    if(p)
-        ((IVideoDecoder*)p)->renderDone(buffer);
-}
-
-void renderDoneRawData(DecodeHandler p, VideoFrameRawData* buffer)
-{
-    if(p)
-        ((IVideoDecoder*)p)->renderDone(buffer);
-}
-
-
-void flushOutport(DecodeHandler p)
-{
-    if(p)
-        ((IVideoDecoder*)p)->flushOutport();
-}
-
-void enableNativeBuffers(DecodeHandler p)
-{
-    if(p)
-        ((IVideoDecoder*)p)->enableNativeBuffers();
-}
-
-Decode_Status getClientNativeWindowBuffer(DecodeHandler p, void *bufferHeader, void *nativeBufferHandle)
-{
-    if(p)
-        return ((IVideoDecoder*)p)->getClientNativeWindowBuffer(bufferHeader, nativeBufferHandle);
-    else
-        return DECODE_FAIL;
-}
-
-Decode_Status flagNativeBuffer(DecodeHandler p, void * pBuffer)
-{
-    if(p)
-        return ((IVideoDecoder*)p)->flagNativeBuffer(pBuffer);
-    else
-        return DECODE_FAIL;
-}
-
 void releaseLock(DecodeHandler p)
 {
     if(p)
