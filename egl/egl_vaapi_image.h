@@ -38,7 +38,7 @@ public:
     EglVaapiImage(VADisplay, int width, int height);
     bool init();
     EGLImageKHR createEglImage(EGLDisplay, EGLContext, VideoDataMemoryType);
-    bool blt(const VideoFrameRawData& src);
+    bool blt(const SharedPtr<VideoFrame>& src);
     bool exportFrame(VideoDataMemoryType memoryType, VideoFrameRawData &frame);
     ~EglVaapiImage();
 private:

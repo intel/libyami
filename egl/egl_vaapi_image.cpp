@@ -117,7 +117,7 @@ EGLImageKHR EglVaapiImage::createEglImage(EGLDisplay eglDisplay, EGLContext eglC
     return m_eglImage;
 }
 
-bool EglVaapiImage::blt(const VideoFrameRawData& src)
+bool EglVaapiImage::blt(const SharedPtr<VideoFrame>& src)
 {
     if (!m_inited) {
         ERROR("call init before blt!");
@@ -126,11 +126,11 @@ bool EglVaapiImage::blt(const VideoFrameRawData& src)
     if (m_acquired)
         vaReleaseBufferHandle(m_display, m_image.buf);
 
-    VAStatus vaStatus = vaGetImage(m_display, src.internalID, 0, 0, src.width, src.height, m_image.image_id);
+    VAStatus vaStatus = vaGetImage(m_display, (VASurfaceID)src->surface, src->crop.x, src->crop.y, src->crop.width, src->crop.height, m_image.image_id);
 
     // incomplete data yet
-    m_frameInfo.timeStamp = src.timeStamp;
-    m_frameInfo.flags = src.flags;
+    m_frameInfo.timeStamp = src->timeStamp;
+    m_frameInfo.flags = src->flags;
     return checkVaapiStatus(vaStatus, "vaGetImage");
 }
 
