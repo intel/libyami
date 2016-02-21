@@ -24,10 +24,18 @@
 #include "config.h"
 #endif
 
-#include "common/log.h"
 #include "encodeInputDecoder.h"
+#include "common/log.h"
+#include "vaapi/vaapiimageutils.h"
 #include "assert.h"
 
+EncodeInputDecoder::EncodeInputDecoder(DecodeInput* input)
+    : m_input(input)
+    , m_decoder(NULL)
+    , m_isEOS(false)
+    , m_id(0)
+{
+}
 EncodeInputDecoder::~EncodeInputDecoder()
 {
     if (m_decoder) {
@@ -64,6 +72,9 @@ bool EncodeInputDecoder::decodeOneFrame()
         return false;
     VideoDecodeBuffer inputBuffer;
     if (!m_input->getNextDecodeUnit(inputBuffer)) {
+        memset(&inputBuffer, 0, sizeof(inputBuffer));
+        //flush decoder
+        m_decoder->decode(&inputBuffer);
         m_isEOS = true;
         return true;
     }
@@ -82,37 +93,90 @@ bool EncodeInputDecoder::decodeOneFrame()
     return true;
 }
 
+class MyRawImage {
+public:
+    static SharedPtr<MyRawImage> create(VADisplay display, const SharedPtr<VideoFrame>& frame, VideoFrameRawData& inputBuffer)
+    {
+        SharedPtr<MyRawImage> image;
+        if (!frame)
+            return image;
+        image.reset(new MyRawImage(display, frame));
+        if (!image->init(inputBuffer)) {
+            image.reset();
+        }
+        return image;
+    }
+    ~MyRawImage()
+    {
+        if (m_frame) {
+            unmapImage(m_display, m_image);
+        }
+    }
+
+private:
+    MyRawImage(VADisplay display, const SharedPtr<VideoFrame>& frame)
+        : m_display(display)
+        , m_frame(frame)
+    {
+    }
+
+    VAImage m_image;
+    VADisplay m_display;
+    SharedPtr<VideoFrame> m_frame;
+    bool init(VideoFrameRawData& inputBuffer)
+    {
+        uint8_t* p = mapSurfaceToImage(m_display, m_frame->surface, m_image);
+        if (!p) {
+            m_frame.reset();
+            return false;
+        }
+        memset(&inputBuffer, 0, sizeof(inputBuffer));
+        inputBuffer.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
+        inputBuffer.fourcc = m_frame->fourcc;
+        inputBuffer.handle = (intptr_t)p;
+        memcpy(inputBuffer.pitch, m_image.pitches, sizeof(inputBuffer.pitch));
+        memcpy(inputBuffer.offset, m_image.offsets, sizeof(inputBuffer.offset));
+        inputBuffer.timeStamp = m_frame->timeStamp;
+        inputBuffer.flags = m_frame->flags;
+        inputBuffer.width = m_frame->crop.width;
+        inputBuffer.height = m_frame->crop.height;
+        return true;
+    }
+    DISALLOW_COPY_AND_ASSIGN(MyRawImage)
+};
+
 bool EncodeInputDecoder::getOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     if (!m_decoder)
         return false;
-    bool drain = false;
     if (m_input->isEOS()) {
         m_isEOS = true;
-        drain = true;
     }
-    Decode_Status status;
+    SharedPtr<VideoFrame> frame;
     do {
-        memset(&inputBuffer, 0, sizeof(inputBuffer));
-        inputBuffer.memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
-        inputBuffer.fourcc = m_fourcc;
-        status = m_decoder->getOutput(&inputBuffer, drain);
-        inputBuffer.flags = 0;
-        if (status == RENDER_NO_AVAILABLE_FRAME) {
+        frame = m_decoder->getOutput();
+        if (frame) {
+            SharedPtr<MyRawImage> image = MyRawImage::create(m_decoder->getDisplayID(), frame, inputBuffer);
+            if (!image)
+                return false;
+            inputBuffer.internalID = m_id;
+            m_images[m_id++] = image;
+        }
+        else {
             if (m_isEOS)
                 return false;
             if (!decodeOneFrame())
                 return false;
         }
-    } while (status == RENDER_NO_AVAILABLE_FRAME);
-    return status == RENDER_SUCCESS;
+    } while (!frame);
+    return true;
 }
 
 bool EncodeInputDecoder::recycleOneFrameInput(VideoFrameRawData &inputBuffer)
 {
     if (!m_decoder)
         return false;
-    m_decoder->renderDone(&inputBuffer);
+    m_images.erase(inputBuffer.internalID);
     return true;
 }
 

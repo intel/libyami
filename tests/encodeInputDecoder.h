@@ -26,12 +26,14 @@
 #include "encodeinput.h"
 
 #include "VideoDecoderHost.h"
+#include <map>
 
 using namespace YamiMediaCodec;
 
+class MyRawImage;
 class EncodeInputDecoder : public  EncodeInput {
 public:
-    EncodeInputDecoder(DecodeInput* input):m_input(input), m_decoder(NULL), m_isEOS(false){}
+    EncodeInputDecoder(DecodeInput* input);
     ~EncodeInputDecoder();
     virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
     virtual bool getOneFrameInput(VideoFrameRawData &inputBuffer);
@@ -42,6 +44,11 @@ private:
     DecodeInput* m_input;
     IVideoDecoder* m_decoder;
     bool m_isEOS;
+
+    typedef std::map<uint32_t, SharedPtr<MyRawImage> > ImageMap;
+
+    ImageMap m_images;
+    uint32_t m_id;
     DISALLOW_COPY_AND_ASSIGN(EncodeInputDecoder);
 };
 #endif
