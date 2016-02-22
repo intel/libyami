@@ -35,6 +35,7 @@
 #include <vector>
 #include <deque>
 #include <string.h>
+#include <sys/time.h>
 
 
 using namespace YamiMediaCodec;
@@ -54,8 +55,30 @@ extern "C" {
 #include "common/common_def.h"
 #include "common/condition.h"
 #include "common/lock.h"
+#include "font.h"
 
 using namespace std;
+
+class Timer
+{
+public:
+    Timer(const char* str):m_str(str)
+    {
+        gettimeofday(&start, NULL);
+    }
+    ~Timer()
+    {
+        timeval end, diff;
+        gettimeofday(&end, NULL);
+        timersub(&end, &start, &diff);
+        if (diff.tv_usec > 999)
+            ERROR("%s: %d ms", m_str, (int)diff.tv_usec/1000);
+    }
+private:
+    timeval start;
+    const char* m_str;
+};
+
 
 bool checkDrmRet(int ret,const char* msg)
 {
@@ -76,6 +99,7 @@ public:
     ~DrmFrame();
     bool init();
     uint32_t getFbHandle();
+    uint32_t getBo();
 private:
     bool createBo();
     //add current bo to frame buffer
@@ -86,7 +110,7 @@ private:
     int m_fd;
     uint32_t m_width;
     uint32_t m_height;
-    int m_bo;
+    uint32_t m_bo;
     uint32_t m_handle;
     uint32_t m_pitch;
     static const uint32_t BPP = 32;
@@ -179,6 +203,10 @@ uint32_t DrmFrame::getFbHandle()
     return m_handle;
 }
 
+uint32_t DrmFrame::getBo()
+{
+    return m_bo;
+}
 
 DrmFrame::~DrmFrame()
 {
@@ -200,14 +228,55 @@ DrmFrame::~DrmFrame()
     }
 }
 
+class FlipNotifier {
+public:
+    FlipNotifier(int fd);
+    ~FlipNotifier();
+    bool init();
+
+private:
+    //thread loop
+    static void* start(void*);
+    void loop();
+
+    int        m_fd;
+    int        m_pipe[2];
+
+    pthread_t  m_thread;
+
+};
+
+
 class DrmRenderer
 {
+    class FpsPlane {
+    public:
+        FpsPlane(DrmRenderer* render);
+        ~FpsPlane();
+        bool init();
+        void addFrame();
+    private:
+        void update(double fps);
+        int         m_fd;
+        uint32_t    m_crtcID;
+        VADisplay   m_display;
+        uint32_t    m_width;
+        uint32_t    m_height;
+        SharedPtr<DrmFrame> m_plane;
+        VAImage m_image;
+        uint32_t*   m_buf;
+        int m_count; //frame count in one seconds
+        timeval m_start;
+
+    };
+
     typedef std::deque<SharedPtr<DrmFrame> > FrameQueue;
+
+    friend void ::pageFlipHandler(int fd, unsigned int frame,
+		  unsigned int sec, unsigned int usec, void *data);
     class Flipper {
     public:
-        Flipper(int fd, uint32_t crtcID,
-            FrameQueue& fronts, FrameQueue& backs, SharedPtr<DrmFrame>& current,
-            Condition&, Lock&);
+        Flipper(DrmRenderer* render);
         ~Flipper();
         bool init();
 
@@ -219,6 +288,15 @@ class DrmRenderer
         //flip buffer and wait it done
         bool flip_l();
 
+        friend void ::pageFlipHandler(int fd, unsigned int frame,
+		  unsigned int sec, unsigned int usec, void *data);
+        void pageFlipHandler();
+
+        //sync to time, return true if late
+        bool waitingRenderTime();
+
+
+        VADisplay  m_display;
         int        m_fd;
         uint32_t   m_crtcID;
 
@@ -227,12 +305,22 @@ class DrmRenderer
         FrameQueue& m_backs;
         SharedPtr<DrmFrame>& m_current;
         bool       m_quit;
+        bool       m_pending;
 
         Condition& m_cond;
         Lock&      m_lock;
 
         pthread_t  m_thread;
+
+        //for frame reate control
+        bool       m_firstFrame;
+        timeval    m_nextTime;
+        timeval    m_duration;
+        int        m_fps;
+
+        SharedPtr<FpsPlane> m_fpsPlane;
     };
+
 public:
     ///init the render;
     bool init();
@@ -256,7 +344,7 @@ public:
     uint32_t getHeight();
 
 
-    DrmRenderer(VADisplay, int fd, int displayIdx);
+    DrmRenderer(VADisplay, int fd, int displayIdx, int fps);
     ~DrmRenderer();
 private:
     bool createFrames(uint32_t width, uint32_t height, int size);
@@ -284,16 +372,14 @@ private:
     SharedPtr<DrmFrame> m_current;
     SharedPtr<Flipper>    m_flipper;
     int m_frameCount;
+    int m_fps;
 };
 
-DrmRenderer::Flipper::Flipper(
-    int fd, uint32_t crtcID,
-    FrameQueue & fronts, FrameQueue & backs, SharedPtr<DrmFrame> & current,
-    Condition &cond, Lock &lock)
-    :m_fd(fd), m_crtcID(crtcID),
-     m_fronts(fronts),m_backs(backs), m_current(current), m_quit(false),
-     m_cond(cond), m_lock(lock),
-     m_thread(-1)
+DrmRenderer::Flipper::Flipper(DrmRenderer* r)
+    :m_display(r->m_display), m_fd(r->m_fd), m_crtcID(r->m_crtcID),
+     m_fronts(r->m_fronts),m_backs(r->m_backs), m_current(r->m_current), m_quit(false), m_pending(false),
+     m_cond(r->m_cond), m_lock(r->m_lock),
+     m_thread(-1), m_firstFrame(true), m_fps(r->m_fps), m_fpsPlane(new FpsPlane(r))
 {
 
 }
@@ -311,6 +397,8 @@ DrmRenderer::Flipper::~Flipper()
 
 bool DrmRenderer::Flipper::init()
 {
+    if (!m_fpsPlane->init())
+        return false;
     if (pthread_create(&m_thread, NULL, start, this)) {
         ERROR("create thread failed");
         return false;
@@ -318,35 +406,84 @@ bool DrmRenderer::Flipper::init()
     return true;
 }
 
+bool DrmRenderer::Flipper::waitingRenderTime()
+{
+    bool late = false;
+    if (!m_fps)
+        return late;
+    timeval current;
+    if (m_firstFrame) {
+        m_firstFrame = false;
+        gettimeofday(&m_nextTime, NULL);
+        m_duration.tv_sec = 0;
+        m_duration.tv_usec = 1000 * 1000  / m_fps;
+    } else {
+        bool neverSleep = true;
+        do {
+            gettimeofday(&current, NULL);
+            timeval refresh;
+            refresh.tv_sec = 0;
+            refresh.tv_usec = 1000 * 1000  / 60;
+            timeval nextRefresh;
+            timeradd(&current, &refresh, &nextRefresh);
+
+            if (timercmp(&nextRefresh, &m_nextTime, <)) {
+                usleep(refresh.tv_usec);
+                neverSleep = false;
+            } else {
+                if (neverSleep) {
+                    late = !timercmp(&current, &m_nextTime, <);
+		    /*       if (late) {
+                        timeval diff;
+                        timersub(&current, &m_nextTime, &diff);
+                        ERROR("late %d ms",(int)diff.tv_usec/1000);
+			}*/
+                }
+                break;
+            }
+
+        } while (1);
+            /*
+            if (timercmp(&current, &m_nextTime, <)) {
+                timeval sleepTime;
+                timersub(&m_nextTime, &current, &sleepTime);
+                if (timercmp(&sleepTime, &m_duration, >)) {
+                    double seconds = sleepTime.tv_sec + ((double)sleepTime.tv_usec)/(1000*1000);
+                    ERROR("sleep: %.4f seconds", seconds);
+                    usleep(sleepTime.tv_usec);
+                }
+            } else {
+                timeval lag;
+                timersub(&current, &m_nextTime, &lag);
+                double seconds = lag.tv_sec + ((double)lag.tv_usec)/(1000*1000);
+                ERROR("lag: %.4f seconds", seconds);
+                late = true;
+            }*/
+    }
+    current = m_nextTime;
+    timeradd(&current, &m_duration, &m_nextTime);
+    return late;
+}
+
 bool DrmRenderer::Flipper::flip_l()
 {
     //start a flip.
     SharedPtr<DrmFrame>& frame = m_fronts.front();
     uint32_t handle = frame->getFbHandle();
-    int ret = drmModePageFlip(m_fd, m_crtcID, handle, DRM_MODE_PAGE_FLIP_EVENT, NULL);
-    checkDrmRet(ret, "drmModePageFlip");
+    int ret = drmModePageFlip(m_fd, m_crtcID, handle, DRM_MODE_PAGE_FLIP_EVENT, this);
+    return checkDrmRet(ret, "drmModePageFlip");
+}
 
-    //wait it done
-    drmEventContext evctx;
-    struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
-    fd_set fds;
-    memset(&evctx, 0, sizeof evctx);
-    evctx.version = DRM_EVENT_CONTEXT_VERSION;
-    FD_ZERO(&fds);
-    FD_SET(m_fd, &fds);
-
-    //we hold the lock, release it here to
-    m_lock.release();
-    select(m_fd + 1, &fds, NULL, NULL, &timeout);
-    drmHandleEvent(m_fd, &evctx);
-    m_lock.acquire();
-    if (m_current)
-        m_backs.push_back(m_current);
+void DrmRenderer::Flipper::pageFlipHandler()
+{
+    AutoLock lock(m_lock);
+    m_backs.push_back(m_current);
     m_current = m_fronts.front();
     m_fronts.pop_front();
-    m_cond.signal();
+    m_pending = false;
+    //notify all
+    m_cond.broadcast();
 
-    return true;
 }
 
 void* DrmRenderer::Flipper::start(void* flipper)
@@ -360,18 +497,218 @@ void DrmRenderer::Flipper::loop()
 {
     while (1) {
         AutoLock lock(m_lock);
-        if (m_fronts.empty()) {
-            if (m_quit)
-                break;
+        while (m_fronts.empty() || m_pending) {
+            if (m_fronts.empty() && m_quit)
+                return;
             m_cond.wait();
+        }
+        VASurfaceID id = (VASurfaceID)m_fronts.front()->surface;
+        m_lock.release();
+        checkVaapiStatus(vaSyncSurface(m_display, id), "vaSyncSurface");
+        bool late = waitingRenderTime();
+        m_fpsPlane->addFrame();
+
+        m_lock.acquire();
+        if (late) {
+            ERROR("late m_fronts.size = %d", (int)m_fronts.size());
+        }
+        m_pending = true;
+        if (m_fps)
+        {
+          //Timer t("flip");
+          flip_l();
         } else {
-            flip_l();
+          flip_l();
         }
     }
 }
 
-DrmRenderer::DrmRenderer(VADisplay display, int fd, int displayIdx)
-    :m_display(display), m_fd(fd), m_displayIdx(displayIdx), m_cond(m_lock), m_frameCount(0)
+DrmRenderer::FpsPlane::FpsPlane(DrmRenderer* r):
+    m_fd(r->m_fd), m_crtcID(r->m_crtcID),m_display(r->m_display),
+    m_width(256), m_height(256), m_count(-1)
+{
+}
+
+bool DrmRenderer::FpsPlane::init()
+{
+    SharedPtr<DrmFrame> frame(new DrmFrame(m_display, m_fd, m_width, m_height));
+    if (!frame->init()
+        || !checkVaapiStatus(vaDeriveImage (m_display, frame->surface, &m_image), "vaDeriveImage")) {
+        return false;
+    }
+    if (!checkVaapiStatus(vaMapBuffer(m_display, m_image.buf, (void**)&m_buf), "vaMapBuffer")) {
+        vaDestroyImage(m_display, m_image.image_id);
+        return false;
+    }
+    checkDrmRet(drmModeSetCursor(m_fd, m_crtcID, frame->getBo(), m_width, m_height), "drmModeSetCursor");
+    m_plane = frame;
+    return true;
+}
+
+void DrmRenderer::FpsPlane::addFrame()
+{
+    m_count++;
+    if (!m_count) {
+        gettimeofday(&m_start, NULL);
+    } else {
+        timeval end, diff;
+        gettimeofday(&end, NULL);
+        timersub(&end, &m_start, &diff);
+        if (diff.tv_sec > 0) {
+
+            double fps = m_count/(diff.tv_sec + diff.tv_usec * 1e-6);
+            update(fps);
+
+            //save for next time
+            m_count = 0;
+            m_start = end;
+        }
+    }
+
+}
+
+int toDec(double fps, double rate)
+{
+    int dec = (int)(fps/rate);
+   // printf("(%f, %f), %d\n", fps, rate, dec);
+    return dec % 10;
+}
+
+#define FONT_WIDTH  48
+#define FONT_HEIGHT  48
+void writeDigital(uint32_t* dest, uint32_t pitch, const uint32_t *font )
+{
+    for (int i = 0; i < FONT_HEIGHT; i++) {
+        for (int j = 0; j < FONT_WIDTH; j++) {
+            if (font[j])
+                dest[j] = font[j] | 0xff000000;
+            else
+                dest[j] = 0;
+           //printf("%d, ", (bool)dest[j]);
+        }
+        dest += pitch;
+        font += FONT_WIDTH;
+    }
+}
+
+void DrmRenderer::FpsPlane::update(double fps)
+{
+    if (!m_plane)
+        return;
+
+    const uint32_t pitch = m_image.pitches[0] / 4;
+    const uint32_t *font;
+    int dec = toDec(fps, 10);
+    if (dec) {
+        font = &DIGITALS_48X48[dec][0][0];
+        writeDigital(m_buf, pitch, font);
+    }
+
+    font = &DIGITALS_48X48[toDec(fps, 1)][0][0];
+    writeDigital(m_buf+FONT_WIDTH, pitch, font);
+
+    //dot
+    font = &DIGITALS_48X48[10][0][0];
+    writeDigital(m_buf+FONT_WIDTH*2, pitch, font);
+
+    font = &DIGITALS_48X48[toDec(fps, 0.1)][0][0];
+    writeDigital(m_buf+FONT_WIDTH*3, pitch, font);
+
+    font = &DIGITALS_48X48[toDec(fps, 0.01)][0][0];
+    writeDigital(m_buf+FONT_WIDTH*4, pitch, font);
+}
+
+DrmRenderer::FpsPlane::~FpsPlane()
+{
+    if (!m_plane)
+        return;
+    vaUnmapBuffer(m_display, m_image.buf);
+    vaDestroyImage(m_display, m_image.image_id);
+}
+
+FlipNotifier::FlipNotifier(int fd)
+    :m_fd(fd)
+{
+    m_pipe[0] = -1;
+    m_pipe[1] = -1;
+
+}
+
+FlipNotifier::~FlipNotifier()
+{
+    int buf = 0;
+    if (m_pipe[1] != -1) {
+        if (write(m_pipe[1], &buf, sizeof(buf)) == -1) {
+            ERROR("write pipe failed");
+        }
+    }
+    if (m_thread != -1)
+        pthread_join(m_thread, NULL);
+    for (int i = 0; i < N_ELEMENTS(m_pipe); i++) {
+        if (m_pipe[i] != -1)
+            close(m_pipe[i]);
+    }
+
+}
+
+bool FlipNotifier::init()
+{
+    if (pipe(m_pipe) == -1)
+        return false;
+
+    if (pthread_create(&m_thread, NULL, start, this)) {
+        ERROR("create thread failed");
+        return false;
+    }
+    return true;
+}
+
+void* FlipNotifier::start(void* notifier)
+{
+    FlipNotifier* f = (FlipNotifier*)notifier;
+    f->loop();
+    return NULL;
+}
+
+void pageFlipHandler(int fd, unsigned int frame, unsigned int sec, unsigned int usec, void *data)
+{
+    DrmRenderer::Flipper* f = (DrmRenderer::Flipper*)data;
+    f->pageFlipHandler();
+}
+
+void FlipNotifier::loop()
+{
+    drmEventContext evctx;
+    fd_set fds;
+    memset(&evctx, 0, sizeof evctx);
+    evctx.version = DRM_EVENT_CONTEXT_VERSION;
+    evctx.page_flip_handler = pageFlipHandler;
+    int nfds = std::max(m_fd, m_pipe[0]) + 1;
+    while (1) {
+        FD_ZERO(&fds);
+        FD_SET(m_fd, &fds);
+        FD_SET(m_pipe[0], &fds);
+        struct timeval timeout = { .tv_sec = 3, .tv_usec = 0 };
+        int retval = select(nfds, &fds, NULL, NULL, &timeout);
+        if (retval < 0) {
+            ERROR("select failed");
+            return;
+        } else if (!retval) {
+            ERROR("select timeout, ignore it");
+        } else {
+            if (FD_ISSET(m_fd, &fds)) {
+                drmHandleEvent(m_fd, &evctx);
+            }
+            if (FD_ISSET(m_pipe[0], &fds)) {
+                //request quit
+                return;
+            }
+        }
+    }
+}
+
+DrmRenderer::DrmRenderer(VADisplay display, int fd, int displayIdx, int fps)
+    :m_display(display), m_fd(fd), m_displayIdx(displayIdx), m_cond(m_lock), m_frameCount(0), m_fps(fps)
 {
 }
 
@@ -484,7 +821,7 @@ bool DrmRenderer::setPlane()
 
 bool DrmRenderer::createFlipper()
 {
-    m_flipper.reset(new Flipper(m_fd, m_crtcID, m_fronts, m_backs, m_current, m_cond, m_lock));
+    m_flipper.reset(new Flipper(this));
     if (!m_flipper->init())
         return false;
     return true;
@@ -509,9 +846,9 @@ bool DrmRenderer::init()
 {
     if (!initDrm())
         return false;
-    if (!createFrames(m_mode.hdisplay, m_mode.vdisplay, 5) || !setPlane() || !createFlipper())
+    if (!createFrames(m_mode.hdisplay, m_mode.vdisplay, 5) || !setPlane())
         return false;
-    ERROR("%dx%d@%d", m_mode.hdisplay, m_mode.vdisplay, m_mode.vrefresh);
+    ERROR("display %d: %dx%d@%d", m_displayIdx, m_mode.hdisplay, m_mode.vdisplay, m_mode.vrefresh);
     return true;
 }
 
@@ -537,6 +874,9 @@ bool DrmRenderer::queue(const SharedPtr<VideoFrame>& vframe)
     AutoLock lock(m_lock);
     m_fronts.push_back(frame);
     m_cond.signal();
+    if (!m_flipper && m_backs.empty()) {
+        return createFlipper();
+    }
     return true;
 }
 
@@ -561,6 +901,7 @@ void DrmRenderer::flush()
         m_cond.wait();
 }
 
+
 DrmRenderer::~DrmRenderer()
 {
     m_flipper.reset();
@@ -582,6 +923,7 @@ void usage(const char* app) {
         printf("   -g, <grid command line> create other grid instance  \n");
         printf("       example: grid a.mp4 -g \"b.mp4 -d 2\"\n");
         printf("       it will render a.mp4 in first display and b.mp4 in second\n");
+        printf("   -f, <frame rate> you can force video sync to this frame rate \n");
 }
 
 class Grid
@@ -642,7 +984,7 @@ public:
     Grid(int fd, const SharedPtr<NativeDisplay>& nativeDisplay):m_fd(fd), m_nativeDisplay(nativeDisplay),
         m_vaDisplay((VADisplay)nativeDisplay->handle),
         m_width(0), m_height(0), m_col(0), m_row(0),
-        m_displayIdx(1), m_singleThread(false), m_vppThread(-1){}
+        m_displayIdx(1), m_singleThread(false), m_vppThread(-1), m_fps(0){}
 
     ~Grid()
     {
@@ -695,7 +1037,7 @@ private:
             return false;
         }
 
-        SharedPtr<DrmRenderer> tmp(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx));
+        SharedPtr<DrmRenderer> tmp(new DrmRenderer(m_vaDisplay, m_fd, m_displayIdx, m_fps));
         if (!tmp->init()) {
             ERROR("init drm renderer failed");
             return false;
@@ -750,7 +1092,7 @@ DONE:
     {
         char opt;
         optind = 0;
-        while ((opt = getopt(argc, argv, "c:r:d:s")) != -1)
+        while ((opt = getopt(argc, argv, "c:r:d:f:s")) != -1)
         {
             switch (opt) {
                 case 'c':
@@ -764,6 +1106,9 @@ DONE:
                     break;
                 case 's':
                     m_singleThread = true;
+                    break;
+                case 'f':
+                    m_fps = atoi(optarg);
                     break;
                 default:
                     return false;
@@ -799,6 +1144,7 @@ DONE:
     vector<char*> m_files;
     pthread_t m_vppThread;
     Arg m_arg;
+    int m_fps;
 };
 
 class App
@@ -822,7 +1168,8 @@ public:
             }
             m_grids.push_back(grid);
         }
-        return true;
+        m_notifier.reset(new FlipNotifier(m_fd));
+        return m_notifier->init();
     }
     bool run()
     {
@@ -839,6 +1186,7 @@ public:
     {
         //make sure we destory all grid instance before we destory va
         m_grids.clear();
+        m_notifier.reset();
 
         if (m_nativeDisplay) {
             vaTerminate(m_vaDisplay);
@@ -904,6 +1252,7 @@ private:
 
     vector<string> m_args;
     vector< SharedPtr<Grid> > m_grids;
+    SharedPtr<FlipNotifier>   m_notifier;
 };
 
 int main(int argc, char** argv)
