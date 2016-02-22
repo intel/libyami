@@ -89,14 +89,6 @@ class VaapiDecoderBase:public IVideoDecoder {
     DecSurfacePoolPtr m_surfacePool;
     SharedPtr<SurfaceAllocator> m_allocator;
     SharedPtr<SurfaceAllocator> m_externalAllocator;
-    /* the current render target for decoder */
-    // XXX, not useful. decoding bases on VaapiPicture, rendering bases on IVideoDecoder->getOutput()
-    VideoSurfaceBuffer *m_renderTarget;
-
-    /* reference picture, h264 will not use */
-    // XXX, not used. reference frame management base on VaapiPicture
-    VideoSurfaceBuffer *m_lastReference;
-    VideoSurfaceBuffer *m_forwardReference;
 
     bool m_VAStarted;
 
@@ -110,7 +102,6 @@ class VaapiDecoderBase:public IVideoDecoder {
   private:
     bool m_lowDelay;
     bool m_rawOutput;
-    bool m_enableNativeBuffersFlag;
 #ifdef __ENABLE_DEBUG__
     int renderPictureCount;
 #endif

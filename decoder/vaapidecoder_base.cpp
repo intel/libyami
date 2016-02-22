@@ -42,12 +42,9 @@ inline void unrefAllocator(SurfaceAllocator* allocator)
     allocator->unref(allocator);
 }
 
-VaapiDecoderBase::VaapiDecoderBase():
-m_renderTarget(NULL),
-m_lastReference(NULL),
-m_forwardReference(NULL),
-m_VAStarted(false),
-m_currentPTS(INVALID_PTS), m_enableNativeBuffersFlag(false)
+VaapiDecoderBase::VaapiDecoderBase()
+    : m_VAStarted(false)
+    , m_currentPTS(INVALID_PTS)
 {
     INFO("base: construct()");
     m_externalDisplay.handle = 0,
@@ -146,9 +143,6 @@ void VaapiDecoderBase::stop(void)
     terminateVA();
 
     m_currentPTS = INVALID_PTS;
-    m_renderTarget = NULL;
-    m_lastReference = NULL;
-    m_forwardReference = NULL;
 
     m_lowDelay = false;
     m_rawOutput = false;
@@ -165,9 +159,6 @@ void VaapiDecoderBase::flush(void)
     }
 
     m_currentPTS = INVALID_PTS;
-    m_renderTarget = NULL;
-    m_lastReference = NULL;
-    m_forwardReference = NULL;
 }
 
 struct BufferRecycler
@@ -219,34 +210,10 @@ const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
     return &m_videoFormatInfo;
 }
 
-Decode_Status VaapiDecoderBase::updateReference(void)
-{
-    // update reference frames
-    if (m_renderTarget->referenceFrame) {
-        // managing reference for MPEG4/H.263/WMV.
-        // AVC should manage reference frame in a different way
-        if (m_forwardReference != NULL) {
-            // this foward reference is no longer needed
-            m_forwardReference->asReferernce = false;
-        }
-        // Forware reference for either P or B frame prediction
-        m_forwardReference = m_lastReference;
-        m_renderTarget->asReferernce = true;
-
-        // the last reference frame.
-        m_lastReference = m_renderTarget;
-    }
-    return DECODE_SUCCESS;
-}
-
 Decode_Status
     VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
 {
     INFO("base: setup VA");
-
-    if (m_enableNativeBuffersFlag == true) {
-        numSurface = 20;        //NATIVE_WINDOW_COUNT;
-    }
 
     if (m_VAStarted) {
         return DECODE_SUCCESS;
