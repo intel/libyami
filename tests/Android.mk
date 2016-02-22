@@ -1,5 +1,6 @@
 LOCAL_PATH := $(call my-dir)
 
+## v4l2decoder
 include $(CLEAR_VARS)
 include $(LOCAL_PATH)/../common.mk
 
@@ -31,4 +32,29 @@ LOCAL_CPPFLAGS += -D__ENABLE_V4L2_OPS__
 endif
 
 LOCAL_MODULE := v4l2decoder
+include $(BUILD_EXECUTABLE)
+
+## v4l2encoder
+include $(CLEAR_VARS)
+include $(LOCAL_PATH)/../common.mk
+
+LOCAL_SRC_FILES := \
+        encodeinput.cpp \
+        v4l2encode.cpp
+
+LOCAL_C_INCLUDES:= \
+        $(LOCAL_PATH)/.. \
+        external/libcxx/include \
+        $(LOCAL_PATH)/../interface \
+        $(TARGET_OUT_HEADERS)/libva
+
+LOCAL_SHARED_LIBRARIES := \
+        libyami_v4l2 \
+        libutils \
+        libgui \
+
+LOCAL_CPPFLAGS += \
+         -fpermissive
+
+LOCAL_MODULE := v4l2encoder
 include $(BUILD_EXECUTABLE)
