@@ -57,23 +57,11 @@ class VaapiDecoderBase:public IVideoDecoder {
     //virtual Decode_Status decode(VideoDecodeBuffer *buffer);
     virtual void flush(void);
     virtual void flushOutport(void);
-    virtual const VideoRenderBuffer *getOutput(bool draining);
-    virtual Decode_Status getOutput(unsigned long draw, int64_t *timeStamp
-        , int drawX, int drawY, int drawWidth, int drawHeight, bool draining = false
-        , int frameX = -1, int frameY = -1, int frameWidth = -1, int frameHeight = -1);
-    virtual Decode_Status getOutput(VideoFrameRawData* frame, bool draining = false);
-    virtual Decode_Status populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount);
     virtual const VideoFormatInfo *getFormatInfo(void);
-    virtual void renderDone(const VideoRenderBuffer * renderBuf);
-    virtual void renderDone(VideoFrameRawData* frame);
     virtual SharedPtr<VideoFrame> getOutput();
 
     /* native window related functions */
     void setNativeDisplay(NativeDisplay * nativeDisplay);
-    void enableNativeBuffers(void);
-    Decode_Status getClientNativeWindowBuffer(void *bufferHeader,
-                                              void *nativeBufferHandle);
-    Decode_Status flagNativeBuffer(void *pBuffer);
     void releaseLock(bool lockable=false);
 
     void  setAllocator(SurfaceAllocator* allocator);

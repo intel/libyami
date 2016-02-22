@@ -23,9 +23,6 @@
 #include "config.h"
 #endif
 
-#ifdef __ENABLE_X11__
-#include <X11/Xlib.h>
-#endif
 #include "vaapidecoder_base.h"
 #include "common/log.h"
 #include "vaapi/vaapisurfaceallocator.h"
@@ -36,12 +33,6 @@
 #include <string.h>
 #include <stdlib.h> // for setenv
 #include <va/va_backend.h>
-
-#ifdef ANDROID
-#include <va/va_android.h>
-#endif
-
-#define ANDROID_DISPLAY_HANDLE 0x18C34078
 
 namespace YamiMediaCodec{
 typedef VaapiDecoderBase::PicturePtr PicturePtr;
@@ -222,65 +213,6 @@ SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
     return frame;
 }
 
-const VideoRenderBuffer *VaapiDecoderBase::getOutput(bool draining)
-{
-    if (!m_surfacePool)
-        return NULL;
-    if (draining)
-        flushOutport();
-
-    VideoRenderBuffer *buffer = m_surfacePool->getOutput();
-
-#ifdef __ENABLE_DEBUG__
-    if (buffer) {
-        renderPictureCount++;
-        DEBUG("getOutput renderPictureCount: %d", renderPictureCount);
-    }
-#endif
-
-    return buffer;
-}
-
-Decode_Status VaapiDecoderBase::getOutput(unsigned long draw, int64_t *timeStamp
-    , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
-    , int frameX, int frameY, int frameWidth, int frameHeight)
-{
-    VAStatus vaStatus = VA_STATUS_SUCCESS;
-    const VideoRenderBuffer *renderBuffer = getOutput(draining);
-
-    if (!renderBuffer)
-        return RENDER_NO_AVAILABLE_FRAME;
-
-    if (frameX == -1 && frameY == -1 && frameWidth == -1 && frameHeight == -1) {
-        frameX = 0;
-        frameY = 0;
-        frameWidth = m_videoFormatInfo.width;
-        frameHeight = m_videoFormatInfo.height;
-    }
-
-    if (!draw || drawX < 0 || drawY < 0 || drawWidth <=0 || drawHeight <=0
-        || frameX < 0 || frameY < 0 || frameWidth <= 0 || frameHeight <= 0)
-        return RENDER_INVALID_PARAMETER;
-
-#if __ENABLE_X11__
-    vaStatus = vaPutSurface(m_display->getID(), renderBuffer->surface,
-            draw, drawX, drawY, drawWidth, drawHeight,
-            frameX, frameY, frameWidth, frameHeight,
-            NULL,0,0);
-#else
-    vaStatus = VA_STATUS_ERROR_OPERATION_FAILED;
-    ERROR("vaPutSurface is not supported when libva-x11 backend is disable during build (--disable-x11)");
-#endif
-
-    if (vaStatus != VA_STATUS_SUCCESS)
-        return RENDER_FAIL;
-
-    *timeStamp = renderBuffer->timeStamp;
-
-    renderDone(renderBuffer);
-    return RENDER_SUCCESS;
-}
-
 const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
 {
     INFO("base: getFormatInfo()");
@@ -289,63 +221,6 @@ const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
         return NULL;
 
     return &m_videoFormatInfo;
-}
-
-Decode_Status VaapiDecoderBase::getOutput(VideoFrameRawData* frame, bool draining)
-{
-    if (!m_surfacePool)
-        return RENDER_NO_AVAILABLE_FRAME;
-
-    if (!frame)
-        return DECODE_INVALID_DATA;
-
-    if (draining)
-        flushOutport();
-
-    bool haveSize = frame->width && frame->height;
-    if (!m_surfacePool->getOutput(frame))
-        return RENDER_NO_AVAILABLE_FRAME;
-    if (!haveSize) {
-        frame->width = m_videoFormatInfo.width;
-        frame->height  = m_videoFormatInfo.height;
-    }
-
-#ifdef __ENABLE_DEBUG__
-    renderPictureCount++;
-    DEBUG("getOutput renderPictureCount=%d, timeStamp=%ld", renderPictureCount, frame->timeStamp);
-#endif
-
-    return RENDER_SUCCESS;
-}
-
-Decode_Status VaapiDecoderBase::populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount)
-{
-    if (!m_surfacePool)
-        return RENDER_NO_AVAILABLE_FRAME;
-
-    if (!m_surfacePool->populateOutputHandles(frames, frameCount))
-        return RENDER_NO_AVAILABLE_FRAME;
-    return RENDER_SUCCESS;
-}
-
-void VaapiDecoderBase::renderDone(const VideoRenderBuffer * renderBuf)
-{
-    INFO("base: renderDone()");
-    if (!m_surfacePool) {
-        ERROR("surface pool is not initialized yet");
-        return;
-    }
-    m_surfacePool->recycle(renderBuf);
-}
-
-void VaapiDecoderBase::renderDone(VideoFrameRawData* frame)
-{
-    INFO("base: renderDone()");
-    if (!m_surfacePool) {
-        ERROR("surface pool is not initialized yet");
-        return;
-    }
-    m_surfacePool->recycle(frame);
 }
 
 Decode_Status VaapiDecoderBase::updateReference(void)
@@ -464,23 +339,6 @@ void VaapiDecoderBase::setNativeDisplay(NativeDisplay * nativeDisplay)
         return;
 
     m_externalDisplay = *nativeDisplay;
-}
-
-/* not used funtion here */
-void VaapiDecoderBase::enableNativeBuffers(void)
-{
-}
-
-Decode_Status
-    VaapiDecoderBase::getClientNativeWindowBuffer(void *bufferHeader,
-                                                  void *nativeBufferHandle)
-{
-    return DECODE_SUCCESS;
-}
-
-Decode_Status VaapiDecoderBase::flagNativeBuffer(void *pBuffer)
-{
-    return DECODE_SUCCESS;
 }
 
 void VaapiDecoderBase::releaseLock(bool lockable)
