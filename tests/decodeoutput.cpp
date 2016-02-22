@@ -31,6 +31,7 @@
 #include "common/log.h"
 #include "common/utils.h"
 #include "vaapi/vaapiutils.h"
+#include "vaapi/vaapiimageutils.h"
 
 #if __ENABLE_MD5__
 #include <openssl/md5.h>
@@ -55,7 +56,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-using YamiMediaCodec::checkVaapiStatus;
+using namespace YamiMediaCodec;
 using std::vector;
 
 bool DecodeOutput::init()
@@ -144,7 +145,7 @@ public:
             return false;
         }
         VAImage image;
-        uint8_t* p = map(src->surface, image);
+        uint8_t* p = mapSurfaceToImage(*m_display, src->surface, image);
         if (!p) {
             ERROR("failed to map VAImage");
             return false;
@@ -156,7 +157,7 @@ public:
         copyY(dest, p, image.offsets[0], width, height, image.pitches[0]);
         copyUV(dest, p, image.offsets[1], width, height, image.pitches[1]);
         copyUV(dest, p, image.offsets[1] + 1, width, height, image.pitches[1]);
-        unmap(image);
+        unmapImage(*m_display, image);
         return true;
     }
 
@@ -186,24 +187,6 @@ private:
             data += pitch;
         }
 
-    }
-    uint8_t* map(intptr_t surface, VAImage& image)
-    {
-        uint8_t* p = NULL;
-        VAStatus status = vaDeriveImage(*m_display, (VASurfaceID)surface, &image);
-        if (!checkVaapiStatus(status, "vaDeriveImage"))
-            return NULL;
-        status = vaMapBuffer(*m_display, image.buf, (void**)&p);
-        if (!checkVaapiStatus(status, "vaMapBuffer")) {
-            checkVaapiStatus(vaDestroyImage(*m_display, image.image_id), "vaDestroyImage");
-            return NULL;
-        }
-        return p;
-    }
-    void unmap(const VAImage& image)
-    {
-        checkVaapiStatus(vaUnmapBuffer(*m_display, image.buf), "vaUnmapBuffer");
-        checkVaapiStatus(vaDestroyImage(*m_display, image.image_id), "vaDestroyImage");
     }
 
     bool init(uint32_t width, uint32_t height)

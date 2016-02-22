@@ -5,6 +5,7 @@ libyami_vaapi_source_c = \
 	vaapibuffer.cpp \
 	vaapiimage.cpp \
 	vaapisurface.cpp\
+	vaapiimageutils.cpp \
 	vaapiutils.cpp \
 	vaapidisplay.cpp \
 	vaapicontext.cpp \
@@ -17,6 +18,7 @@ libyami_vaapi_source_h_priv = \
 	vaapibuffer.h \
 	vaapiimage.h \
 	vaapisurface.h \
+	vaapiimageutils.h \
 	vaapiutils.h \
 	vaapitypes.h \
 	vaapidisplay.h \
