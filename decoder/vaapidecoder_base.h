@@ -56,7 +56,6 @@ class VaapiDecoderBase:public IVideoDecoder {
     virtual void stop(void);
     //virtual Decode_Status decode(VideoDecodeBuffer *buffer);
     virtual void flush(void);
-    virtual void flushOutport(void);
     virtual const VideoFormatInfo *getFormatInfo(void);
     virtual SharedPtr<VideoFrame> getOutput();
 

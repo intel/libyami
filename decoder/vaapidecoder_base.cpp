@@ -170,10 +170,6 @@ void VaapiDecoderBase::flush(void)
     m_forwardReference = NULL;
 }
 
-void VaapiDecoderBase::flushOutport(void)
-{
-}
-
 struct BufferRecycler
 {
     BufferRecycler(const DecSurfacePoolPtr&  pool, VideoRenderBuffer* buffer)
