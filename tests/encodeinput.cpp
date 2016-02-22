@@ -45,12 +45,15 @@ EncodeInput * EncodeInput::create(const char* inputFileName, uint32_t fourcc, in
     if (!inputFileName)
         return NULL;
 
+#ifndef ANDROID // temp disable transcoding and camera support on android
     DecodeInput* decodeInput = DecodeInput::create(inputFileName);
     if (decodeInput) {
         input = new EncodeInputDecoder(decodeInput);
     } else if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video"))) {
         input = new EncodeInputCamera;
-    } else {
+    } else
+#endif
+    {
         input =  new EncodeInputFile;
     }
 
@@ -136,7 +139,7 @@ bool EncodeInputFile::getOneFrameInput(VideoFrameRawData &inputBuffer)
     }
 
     if (ret < m_frameSize) {
-        fprintf (stderr, "data is not enough to read, maybe resolution is wrong\n");
+        fprintf (stderr, "data is not enough to read(read size: %zu, m_frameSize: %zu), maybe resolution is wrong\n", ret, m_frameSize);
         return false;
     }
 
