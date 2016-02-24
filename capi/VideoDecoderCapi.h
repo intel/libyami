@@ -26,9 +26,7 @@
 #define __ENABLE_CAPI__ 1
 #endif
 #include "VideoDecoderDefs.h"
-#ifdef __ENABLE_X11__
-#include <X11/Xlib.h>
-#endif
+#include "VideoCommonDefs.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,15 +46,7 @@ void decodeFlush(DecodeHandler p);
 
 Decode_Status decode(DecodeHandler p, VideoDecodeBuffer *buffer);
 
-const VideoRenderBuffer* decodeGetOutput(DecodeHandler p, bool draining);
-
-#ifdef __ENABLE_X11__
-Decode_Status decodeGetOutput_x11(DecodeHandler p, Drawable draw, int64_t *timeStamp
-        , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
-        , int frameX, int frameY, int frameWidth, int frameHeight);
-#endif
-
-Decode_Status decodeGetOutputRawData(DecodeHandler p, VideoFrameRawData* frame, bool draining);
+VideoFrame* getOutput(DecodeHandler p);
 
 const VideoFormatInfo* getFormatInfo(DecodeHandler p);
 

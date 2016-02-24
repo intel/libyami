@@ -27,8 +27,10 @@
 #include <unistd.h>
 #include <limits.h>
 #include <stdlib.h>
-#include "common/utils.h"
 #include <string>
+#include "common/utils.h"
+
+using namespace YamiMediaCodec;
 
 static void print_help(const char* app)
 {
@@ -129,6 +131,26 @@ bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
         parameters->width =  width;
         parameters->height =  height;
     }
+    return true;
+}
+
+static bool possibleWait(const char* mimeType, short wait, short mode)
+{
+    // waitBeforeQuit 0:no-wait, 1:auto(jpeg wait), 2:wait
+    switch(wait) {
+    case 0:
+        break;
+    case 1:
+        if (mode == 0 || strcmp(mimeType, YAMI_MIME_JPEG))
+            break;
+    case 2:
+        fprintf(stdout, "press any key to continue ...");
+        getchar();
+        break;
+    default:
+        break;
+    }
+
     return true;
 }
 

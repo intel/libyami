@@ -26,7 +26,22 @@
 #include "VideoDecoderInterface.h"
 #include "VideoDecoderHost.h"
 
+#include <stdlib.h>
+
 using namespace YamiMediaCodec;
+
+class SharedPtrHold
+{
+public:
+    SharedPtrHold(SharedPtr<VideoFrame> frame):frame(frame){}
+private:
+    SharedPtr<VideoFrame> frame;
+};
+
+static void freeHold(VideoFrame* frame)
+{
+    delete (SharedPtrHold*)frame->user_data;
+}
 
 DecodeHandler createDecoder(const char *mimeType)
 {
@@ -69,27 +84,18 @@ Decode_Status decode(DecodeHandler p, VideoDecodeBuffer *buffer)
         return DECODE_FAIL;
 }
 
-const VideoRenderBuffer* decodeGetOutput(DecodeHandler p, bool draining)
+VideoFrame* getOutput(DecodeHandler p)
 {
-    return (p ? ((IVideoDecoder*)p)->getOutput(draining) : NULL);
-}
-
-#ifdef __ENABLE_X11__
-Decode_Status decodeGetOutput_x11(DecodeHandler p, Drawable draw, int64_t *timeStamp
-        , int drawX, int drawY, int drawWidth, int drawHeight, bool draining
-        , int frameX, int frameY, int frameWidth, int frameHeight)
-{
-    if(p)
-        return ((IVideoDecoder*)p)->getOutput(draw, timeStamp, drawX, drawY, drawWidth, drawHeight, draining
-                        , frameX, frameY, frameWidth, frameHeight);
-    else
-        return DECODE_FAIL;
-}
-#endif
-
-Decode_Status decodeGetOutputRawData(DecodeHandler p, VideoFrameRawData* frame, bool draining)
-{
-    return (p ? ((IVideoDecoder*)p)->getOutput(frame, draining) : DECODE_FAIL);
+    if (p) {
+        SharedPtr<VideoFrame> frame = ((IVideoDecoder*)p)->getOutput();
+        if (frame) {
+            SharedPtrHold *hold= new SharedPtrHold(frame);
+            frame->user_data = (intptr_t)hold;
+            frame->free = freeHold;
+            return frame.get();
+        }
+    }
+    return NULL;
 }
 
 const VideoFormatInfo* getFormatInfo(DecodeHandler p)
