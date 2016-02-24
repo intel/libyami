@@ -210,6 +210,7 @@ static std::vector<GLuint> textureIds;
 static bool isReadEOS=false;
 static int32_t stagingBufferInDevice = 0;
 static uint32_t renderFrameCount = 0;
+static DecodeParameter parameters;
 
 bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index is not -1, simple enque it*/)
 {
@@ -263,12 +264,12 @@ bool dumpOneVideoFrame(int32_t index)
 
     if (!outfp) {
         char outFileName[256];
-        char* baseFileName = inputFileName;
-        char *s = strrchr(inputFileName, '/');
+        char* baseFileName = parameters.inputFile;
+        char *s = strrchr(parameters.inputFile, '/');
         if (s)
             baseFileName = s+1;
         // V4L2 reports fourcc as NM12 (planar NV12), use hard code here
-        sprintf(outFileName, "%s/%s_%dx%d.NV12", dumpOutputName, baseFileName, rawOutputFrames[index].width, rawOutputFrames[index].height);
+        sprintf(outFileName, "%s/%s_%dx%d.NV12", parameters.outputFile.c_str(), baseFileName, rawOutputFrames[index].width, rawOutputFrames[index].height);
         DEBUG("outFileName: %s", outFileName);
         outfp = fopen(outFileName, "w+");
     }
@@ -428,7 +429,7 @@ int main(int argc, char** argv)
     int32_t ioctlRet = -1;
     YamiMediaCodec::CalcFps calcFps;
 
-    renderMode = 3; // set default render mode to 3
+    parameters.renderMode = 3; // set default render mode to 3
 
     yamiTraceInit();
 #if __ENABLE_X11__
@@ -443,10 +444,10 @@ int main(int argc, char** argv)
     }
 #endif
 
-    if (!process_cmdline(argc, argv))
+    if (!processCmdLine(argc, argv, &parameters))
         return -1;
 
-    switch (renderMode) {
+    switch (parameters.renderMode) {
     case 0:
         memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;
         memoryTypeStr = typeStrRawData;
@@ -464,7 +465,7 @@ int main(int argc, char** argv)
     break;
     }
 
-    input = DecodeInput::create(inputFileName);
+    input = DecodeInput::create(parameters.inputFile);
     if (input==NULL) {
         ERROR("fail to init input stream\n");
         return -1;
@@ -794,7 +795,7 @@ int main(int argc, char** argv)
 
     calcFps.fps(renderFrameCount);
     // SIMULATE_V4L2_OP(Munmap)(void* addr, size_t length)
-    possibleWait(input->getMimeType());
+    possibleWait(input->getMimeType(), parameters.waitBeforeQuit, parameters.renderMode);
 
     // release queued input/output buffer
     memset(&reqbufs, 0, sizeof(reqbufs));
@@ -859,8 +860,6 @@ int main(int argc, char** argv)
     if (outfp)
         fclose(outfp);
 
-    if (dumpOutputName)
-        free(dumpOutputName);
 
 #if __ENABLE_X11__
     if (x11Display && x11Window)
