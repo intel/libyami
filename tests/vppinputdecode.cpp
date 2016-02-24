@@ -46,7 +46,8 @@ bool VppInputDecode::config(NativeDisplay& nativeDisplay)
         configBuffer.data = (uint8_t*)codecData.data();
         configBuffer.size = codecData.size();
     }
-
+    configBuffer.width = m_input->getWidth();
+    configBuffer.height = m_input->getHeight();
     Decode_Status status = m_decoder->start(&configBuffer);
     if (status == DECODE_SUCCESS) {
         //read first frame to update width height
@@ -68,6 +69,8 @@ bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
         frame = m_decoder->getOutput();
         if (frame)
             return true;
+        if (m_error || m_eos)
+            return false;
         VideoDecodeBuffer inputBuffer;
         Decode_Status status = DECODE_FAIL;
         if (m_input->getNextDecodeUnit(inputBuffer)) {
@@ -83,15 +86,18 @@ bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
                 status = m_decoder->decode(&inputBuffer);
             }
         } else { /*EOS, need to flush*/
-            if(m_eos)
-                return false;
             inputBuffer.data = NULL;
             inputBuffer.size = 0;
             status = m_decoder->decode(&inputBuffer);
             m_eos = true;
         }
-        if (status != DECODE_SUCCESS)
-            return false;
+        if (status != DECODE_SUCCESS){  /*failed, need to flush*/
+            inputBuffer.data = NULL;
+            inputBuffer.size = 0;
+            m_decoder->decode(&inputBuffer);
+            m_error = true;
+        }
+
     }
 
 }
