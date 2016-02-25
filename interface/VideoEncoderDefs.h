@@ -315,7 +315,6 @@ typedef enum {
     VideoConfigTypeIntraRefreshType,
     VideoConfigTypeAIR,
     VideoConfigTypeCyclicFrameInterval,
-    VideoConfigTypeAVCIntraPeriod,
     VideoConfigTypeNALSize,
     VideoConfigTypeIDRRequest,
     VideoConfigTypeSliceNum,
@@ -355,7 +354,7 @@ typedef struct VideoParamsAVC {
     uint32_t basicUnitSize;     //for rate control
     uint8_t VUIFlag;
     int32_t maxSliceSize;
-    uint32_t idrInterval;
+    uint32_t idrInterval;    //How many Intra frames will have an IDR frame
     SliceNum sliceNum;
     AVCDelimiterType delimiterType;
     Cropping crop;
@@ -406,12 +405,6 @@ typedef struct VideoConfigBitRate {
     uint32_t size;
     VideoRateControlParams rcParams;
 }VideoConfigBitRate;
-
-typedef struct VideoConfigAVCIntraPeriod {
-    uint32_t size;
-    uint32_t idrInterval;       //How many Intra frame will have a IDR frame
-    uint32_t intraPeriod;
-}VideoConfigAVCIntraPeriod;
 
 typedef struct VideoConfigNALSize {
     uint32_t size;
