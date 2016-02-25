@@ -25,7 +25,8 @@
 #include "interface/VideoEncoderDefs.h"
 #include <getopt.h>
 
-static int kIPeriod = 30;
+static int idrInterval = 0;
+static int intraPeriod = 30;
 static int ipPeriod = 1;
 static int ipbMode = 1;
 static char *inputFileName = NULL;
@@ -71,8 +72,9 @@ static void print_help(const char* app)
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
     printf("   --ipbmode <0(I frame only ) | 1 (I and P frames) | 2 (I,P,B frames)> optional\n");
-    printf("   --keyperiod <key frame period(default 30)> optional\n");
+    printf("   --intraperiod <Intra frame period (default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
+    printf("   --idrinterval <AVC/HEVC IDR frame interval (default 0)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -98,8 +100,9 @@ static bool process_cmdline(int argc, char *argv[])
         {"qp", required_argument, NULL, 0 },
         {"rcmode", required_argument, NULL, 0 },
         {"ipbmode", required_argument, NULL, 0 },
-        {"keyperiod", required_argument, NULL, 0 },
+        {"intraperiod", required_argument, NULL, 0 },
         {"refnum", required_argument, NULL, 0 },
+        {"idrinterval", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -152,13 +155,16 @@ static bool process_cmdline(int argc, char *argv[])
                     rcMode = string_to_rc_mode(optarg);
                     break;
                 case 3:
-                    ipbMode= atoi(optarg);
+                    ipbMode = atoi(optarg);
                     break;
                 case 4:
-                    kIPeriod = atoi(optarg);
+                    intraPeriod = atoi(optarg);
                     break;
                 case 5:
-                    numRefFrames= atoi(optarg);
+                    numRefFrames = atoi(optarg);
+                    break;
+                case 6:
+                    idrInterval = atoi(optarg);
                     break;
             }
         }
@@ -212,7 +218,7 @@ void setEncoderParameters(VideoParamsCommon * encVideoParams)
     encVideoParams->frameRate.frameRateNum = fps;
 
     //picture type and bitrate
-    encVideoParams->intraPeriod = kIPeriod;
+    encVideoParams->intraPeriod = intraPeriod;
     encVideoParams->ipPeriod = ipPeriod;
     encVideoParams->rcParams.bitRate = bitRate;
     encVideoParams->rcParams.initQP = initQp;

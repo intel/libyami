@@ -105,9 +105,6 @@ private:
     void referenceListFree();
     //template end
 
-    uint32_t& keyFramePeriod() {
-        return m_videoParamAVC.idrInterval;
-    }
     void resetGopStart();
     void setBFrame(const PicturePtr&);
     void setPFrame(const PicturePtr&);
@@ -138,6 +135,7 @@ private:
     std::list<PicturePtr> m_reorderFrameList;
     VaapiEncReorderState m_reorderState;
     uint32_t m_frameIndex;
+    uint32_t m_keyPeriod;
     
     /* reference list */
     std::deque<ReferencePtr> m_refList;
