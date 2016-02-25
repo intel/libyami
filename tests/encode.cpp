@@ -87,6 +87,14 @@ int main(int argc, char** argv)
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
 
+    // configure AVC encoding parameters
+    VideoParamsAVC encVideoParamsAVC;
+    encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+    encoder->getParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
+    encVideoParamsAVC.idrInterval = idrInterval;
+    encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+    encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
+
     VideoConfigAVCStreamFormat streamFormat;
     streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
     streamFormat.streamFormat = AVC_STREAM_FORMAT_ANNEXB;

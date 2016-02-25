@@ -46,7 +46,7 @@ using std::vector;
 using std::deque;
 
 /* Define the maximum IDR period */
-#define MAX_IDR_PERIOD 512
+#define MAX_IDR_PERIOD 2000
 
 #define HEVC_NAL_START_CODE 0x000001
 
@@ -868,7 +868,8 @@ VaapiEncoderHEVC::VaapiEncoderHEVC():
     m_cuSize(32),
     m_minTbSize(4),
     m_maxTbSize(16),
-    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES)
+    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
+    m_keyPeriod(30)
 {
     m_videoParamCommon.profile = VAProfileHEVCMain;
     m_videoParamCommon.level = 51;
@@ -876,7 +877,7 @@ VaapiEncoderHEVC::VaapiEncoderHEVC():
     m_videoParamCommon.rcParams.minQP = 1;
 
     memset(&m_videoParamAVC, 0, sizeof(m_videoParamAVC));
-    m_videoParamAVC.idrInterval = 30;
+    m_videoParamAVC.idrInterval = 0;
 }
 
 VaapiEncoderHEVC::~VaapiEncoderHEVC()
@@ -936,10 +937,10 @@ void VaapiEncoderHEVC::resetParams ()
 
     assert(intraPeriod() > ipPeriod());
 
-    /* we set all I frame to be IDR frame right now */
-    keyFramePeriod() = intraPeriod();
-    if (keyFramePeriod() > MAX_IDR_PERIOD)
-        keyFramePeriod() = MAX_IDR_PERIOD;
+    m_keyPeriod = intraPeriod() * (m_videoParamAVC.idrInterval + 1);
+
+    if (m_keyPeriod > MAX_IDR_PERIOD)
+        m_keyPeriod = MAX_IDR_PERIOD;
 
     if (minQP() > initQP() ||
             (rateControlMode()== RATE_CONTROL_CQP && minQP() < initQP()))
@@ -953,7 +954,7 @@ void VaapiEncoderHEVC::resetParams ()
 
     /* init m_maxFrameNum, max_poc */
     m_log2MaxFrameNum =
-        hevc_get_log2_max_frame_num (keyFramePeriod());
+        hevc_get_log2_max_frame_num (m_keyPeriod);
     assert (m_log2MaxFrameNum >= 4);
     m_maxFrameNum = (1 << m_log2MaxFrameNum);
     m_log2MaxPicOrderCnt = m_log2MaxFrameNum + 1;
@@ -1022,16 +1023,7 @@ Encode_Status VaapiEncoderHEVC::setParameters(VideoParamConfigType type, Yami_PT
     case VideoParamsTypeAVC: {
             VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
             if (avc->size == sizeof(VideoParamsAVC)) {
-                PARAMETER_ASSIGN(*avc, m_videoParamAVC);
-                status = ENCODE_SUCCESS;
-            }
-        }
-        break;
-    case VideoConfigTypeAVCIntraPeriod: {
-            VideoConfigAVCIntraPeriod* intraPeriod = (VideoConfigAVCIntraPeriod*)videoEncParams;
-            if (intraPeriod->size == sizeof(VideoConfigAVCIntraPeriod)) {
-                m_videoParamAVC.idrInterval = intraPeriod->idrInterval;
-                m_videoParamCommon.intraPeriod = intraPeriod->intraPeriod;
+                PARAMETER_ASSIGN(m_videoParamAVC, *avc);
                 status = ENCODE_SUCCESS;
             }
         }
@@ -1075,7 +1067,7 @@ Encode_Status VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t time
 
     PicturePtr picture(new VaapiEncPictureHEVC(m_context, surface, timeStamp));
 
-    bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= keyFramePeriod() || forceKeyFrame);
+    bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= m_keyPeriod || forceKeyFrame);
 
     /* check key frames */
     if (isIdr || (m_frameIndex % intraPeriod() == 0)) {
