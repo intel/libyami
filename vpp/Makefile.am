@@ -20,6 +20,7 @@ endif
 if BUILD_OCL_BLENDER
 libyami_vpp_source_c += oclpostprocess_blender.cpp
 libyami_vpp_source_c += oclpostprocess_osd.cpp
+libyami_vpp_source_c += oclpostprocess_transform.cpp
 endif
 
 libyami_vpp_source_h = \
@@ -44,6 +45,7 @@ endif
 if BUILD_OCL_BLENDER
 libyami_vpp_source_h_priv += oclpostprocess_blender.h
 libyami_vpp_source_h_priv += oclpostprocess_osd.h
+libyami_vpp_source_h_priv += oclpostprocess_transform.h
 endif
 
 libyami_vpp_ldflags = \
