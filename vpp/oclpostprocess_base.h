@@ -52,6 +52,23 @@ public:
     virtual ~OclPostProcessBase();
 
 protected:
+    class VideoFrameDeleter {
+    public:
+        VideoFrameDeleter(VADisplay display)
+            : m_display(display)
+        {
+        }
+        void operator()(VideoFrame* frame)
+        {
+            VASurfaceID id = (VASurfaceID)frame->surface;
+            vaDestroySurfaces(m_display, &id, 1);
+            delete frame;
+        }
+
+    private:
+        VADisplay m_display;
+    };
+
     uint32_t getPixelSize(const cl_image_format& fmt);
     cl_kernel getKernel(const char* name);
 

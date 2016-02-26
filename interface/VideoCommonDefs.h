@@ -223,6 +223,7 @@ typedef struct VideoFrame {
 #define YAMI_VPP_SCALER "vpp/scaler"
 #define YAMI_VPP_OCL_BLENDER "vpp/ocl_blender"
 #define YAMI_VPP_OCL_OSD "vpp/ocl_osd"
+#define YAMI_VPP_OCL_TRANSFORM "vpp/ocl_transform"
 
 #ifdef __cplusplus
 }

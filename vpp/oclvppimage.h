@@ -39,6 +39,9 @@ public:
     const MemType& plane(int n) { return m_mem[n]; }
     uint32_t pitch(int n) { return m_image.pitches[n]; }
     uint32_t numPlanes() { return m_image.num_planes; }
+    uint32_t getWidth() { return m_image.width; }
+    uint32_t getHeight() { return m_image.height; }
+    uint32_t getFourcc() { return m_frame->fourcc; }
 
 protected:
     OclVppImage(VADisplay d, const SharedPtr<VideoFrame>& f)
