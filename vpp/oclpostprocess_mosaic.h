@@ -1,5 +1,5 @@
 /*
- *  VideoPostProcessDefs.h - video postprocessing definitions
+ *  oclpostprocess_mosaic.h - opencl based mosaic filter
  *
  *  Copyright (C) 2016 Intel Corporation
  *    Author: Jia Meng<jia.meng@intel.com>
@@ -19,45 +19,33 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+#ifndef oclpostprocess_mosaic_h
+#define oclpostprocess_mosaic_h
 
-#ifndef __VIDEO_POST_PROCESS_DEFS_H__
-#define __VIDEO_POST_PROCESS_DEFS_H__
+#include "interface/VideoCommonDefs.h"
+#include "oclpostprocess_base.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace YamiMediaCodec {
 
-typedef enum {
-    VppParamTypeOsd,
-    VppParamTypeTransform,
-    VppParamTypeMosaic,
-} VppParamType;
+/**
+ * \class OclPostProcessMosaic
+ * \brief OpenCL based mosaic filter
+ */
+class OclPostProcessMosaic : public OclPostProcessBase {
+public:
+    virtual YamiStatus process(const SharedPtr<VideoFrame>& src,
+        const SharedPtr<VideoFrame>& dst);
 
-typedef struct VppParamOsd {
-    size_t size;
-    uint32_t threshold;
-} VppParamOsd;
+    virtual YamiStatus setParameters(VppParamType type, void* vppParam);
 
-typedef enum {
-    VPP_TRANSFORM_NONE   = 0x0,
-    VPP_TRANSFORM_FLIP_H = 0x1,
-    VPP_TRANSFORM_FLIP_V = 0x2,
-    VPP_TRANSFORM_ROT_90 = 0x4,
-    VPP_TRANSFORM_ROT_180 = 0x8,
-    VPP_TRANSFORM_ROT_270 = 0x10,
-} VppTransform;
+    explicit OclPostProcessMosaic()
+        : m_blockSize(32)
+    {
+    }
 
-typedef struct VppParamTransform {
-    size_t size;
-    uint32_t transform;
-} VppParamTransform;
-
-typedef struct VppParamMosaic {
-    size_t size;
-    uint32_t blockSize;
-} VppParamMosaic;
-
-#ifdef __cplusplus
+private:
+    static const bool s_registered; // VaapiPostProcessFactory registration result
+    int m_blockSize;
+};
 }
-#endif
-#endif /*  __VIDEO_POST_PROCESS_DEFS_H__ */
+#endif //oclpostprocess_mosaic_h
