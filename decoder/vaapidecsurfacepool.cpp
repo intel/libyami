@@ -33,7 +33,6 @@
 #include <assert.h>
 
 namespace YamiMediaCodec{
-const uint32_t IMAGE_POOL_SIZE = 8;
 
 DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoConfigBuffer* config,
     const SharedPtr<SurfaceAllocator>& allocator )
@@ -177,55 +176,6 @@ private:
     VideoRenderBuffer* m_buffer;
 };
 
-bool VaapiDecSurfacePool::ensureImagePool(VideoFrameRawData &frame)
-{
-    if (m_imagePool)
-        return true;
-
-    if (!frame.width || !frame.height) {
-        frame.width = m_surfaces[0]->getWidth();
-        frame.height = m_surfaces[0]->getHeight();
-    }
-
-    DEBUG("create image pool with fourcc:%.4s, size=%dx%d", (char*)(&frame.fourcc), frame.width, frame.height);
-    m_imagePool = VaapiImagePool::create(m_display, frame.fourcc, frame.width, frame.height, IMAGE_POOL_SIZE);
-
-    ASSERT(m_imagePool);
-    return m_imagePool;
-}
-
-bool VaapiDecSurfacePool::exportFrame(ImagePtr image, VideoFrameRawData &frame, int64_t timeStamp)
-{
-    if (!image)
-        return false;
-
-    VideoDataMemoryType memoryType = frame.memoryType;
-    ImageRawPtr rawImage = mapVaapiImage(image, memoryType);
-
-    if (!rawImage)
-        return false;
-    if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
-        return rawImage->copyTo((uint8_t *)frame.handle, frame.offset, frame.pitch);
-    }
-    if (!rawImage->getHandle(frame.handle, frame.offset, frame.pitch))
-        return false;
-
-    frame.width = image->getWidth();
-    frame.height = image->getHeight();
-    frame.internalID = image->getID();
-    frame.fourcc = image->getFormat();
-    frame.timeStamp = timeStamp;
-    frame.flags = VIDEO_FRAME_FLAGS_KEY;
-    {
-        AutoLock lock(m_exportFramesLock);
-        ExportFrame frm;
-        frm.rawImage = rawImage;
-        m_exportFrames[image->getID()] = frm;
-    }
-
-    return true;
-}
-
 void VaapiDecSurfacePool::setWaitable(bool waitable)
 {
     m_flushing = !waitable;
@@ -233,8 +183,6 @@ void VaapiDecSurfacePool::setWaitable(bool waitable)
     if (!waitable) {
         m_cond.signal();
     }
-    if (m_imagePool)
-        m_imagePool->setWaitable(waitable);
 }
 
 void VaapiDecSurfacePool::flush()

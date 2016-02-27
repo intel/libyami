@@ -82,8 +82,6 @@ public:
 
 
 private:
-    bool ensureImagePool(VideoFrameRawData &frame);
-    bool exportFrame(ImagePtr image, VideoFrameRawData &frame, int64_t timeStamp=-1);
     enum SurfaceState{
         SURFACE_FREE      = 0x00000000,
         SURFACE_DECODING  = 0x00000001,
@@ -127,17 +125,6 @@ private:
 
     struct SurfaceRecycler;
     struct SurfaceRecyclerRender;
-
-    ImagePoolPtr m_imagePool;
-
-    class ExportFrame {
-      public:
-        ImageRawPtr rawImage;
-        SurfacePtr  surface;
-    };
-    typedef std::map<VAImageID, ExportFrame> ExportFrameMap;
-    ExportFrameMap m_exportFrames;
-    Lock m_exportFramesLock;
 
     DISALLOW_COPY_AND_ASSIGN(VaapiDecSurfacePool);
 };
