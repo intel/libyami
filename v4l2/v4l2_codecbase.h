@@ -24,6 +24,7 @@
 
 #include <assert.h>
 #include <deque>
+#include <vector>
 #include <list>
 #include "common/condition.h"
 #if ANDROID
@@ -38,6 +39,9 @@
     #include "EGL/eglext.h"
 #endif
 #include "interface/VideoCommonDefs.h"
+#if ANDROID
+#include <va/va_android.h>
+#endif
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
@@ -107,6 +111,10 @@ class V4l2CodecBase {
     virtual void clearCodecEvent();
     virtual void releaseCodecLock(bool lockable) {};
     virtual void flush() {}
+#if ANDROID
+    SharedPtr<VideoFrame> createVaSurface(const ANativeWindowBuffer* buf);
+    bool mapVideoFrames();
+#endif
 
     VideoDataMemoryType m_memoryType;
     uint32_t m_maxBufferCount[2];
@@ -120,6 +128,10 @@ class V4l2CodecBase {
 #if ANDROID
     VADisplay m_vaDisplay;
     SharedPtr<IVideoPostProcess> m_vpp;
+    uint32_t m_reqBuffCnt;
+    std::vector<SharedPtr<VideoFrame> > m_videoFrames;
+    std::vector<ANativeWindowBuffer*> m_winBuff;
+    gralloc_module_t* m_pGralloc;
 #else
     #if __ENABLE_X11__
     Display *m_x11Display;

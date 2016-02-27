@@ -24,10 +24,6 @@
 
 #include <vector>
 
-#if ANDROID
-#include <va/va_android.h>
-#endif
-
 #include "v4l2_codecbase.h"
 #include "interface/VideoDecoderInterface.h"
 
@@ -46,10 +42,7 @@ class V4l2Decoder : public V4l2CodecBase
     virtual int32_t ioctl(int request, void* arg);
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset);
-#if ANDROID
-    SharedPtr<VideoFrame> createVaSurface(const ANativeWindowBuffer* buf);
-    bool mapVideoFrames();
-#else
+#if !ANDROID
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image);
 #endif
 
@@ -82,12 +75,7 @@ class V4l2Decoder : public V4l2CodecBase
 
     uint32_t m_videoWidth;
     uint32_t m_videoHeight;
-#if ANDROID
-    std::vector < SharedPtr<VideoFrame> > m_videoFrames;
-    std::vector <ANativeWindowBuffer*> m_winBuff;
-    uint32_t m_reqBuffCnt;
-    gralloc_module_t* m_pGralloc;
-#else
+#if !ANDROID
     std::vector <SharedPtr<EglVaapiImage> > m_eglVaapiImages;
 #endif
 };
