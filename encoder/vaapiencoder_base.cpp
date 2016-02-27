@@ -485,7 +485,7 @@ Encode_Status VaapiEncoderBase::checkEmpty(VideoEncOutputBuffer *outBuffer, bool
 
     AutoLock l(m_lock);
     isEmpty = m_output.empty();
-    INFO("output queue size: %ld\n", m_output.size());
+    INFO("output queue size: %zu\n", m_output.size());
 
     *outEmpty = isEmpty;
 

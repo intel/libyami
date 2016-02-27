@@ -39,6 +39,11 @@
 #include "common/log.h"
 #include "common/common_def.h"
 #include <algorithm>
+#ifdef ANDROID
+#include <va/va_android.h>
+#include <ufo/gralloc.h>
+#include <ufo/graphics.h>
+#endif
 
 #if ANDROID
 #if !defined(EFD_SEMAPHORE)
@@ -83,6 +88,7 @@ V4l2CodecBase::V4l2CodecBase()
     : m_memoryType(VIDEO_DATA_MEMORY_TYPE_RAW_COPY)
     , m_started(false)
 #if ANDROID
+    , m_reqBuffCnt(0)
 #elif __ENABLE_X11__
     , m_x11Display(NULL)
 #else
@@ -108,6 +114,12 @@ V4l2CodecBase::V4l2CodecBase()
 #ifdef __ENABLE_DEBUG__
     m_frameCount[INPUT] = 0;
     m_frameCount[OUTPUT] = 0;
+#endif
+
+#if ANDROID
+    // it's better done inside vaapi driver (retrieve buffer picth etc)
+    hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (hw_module_t const**)&m_pGralloc);
+    ASSERT(m_pGralloc);
 #endif
 }
 
@@ -412,7 +424,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 while (m_reqBufState[port] != RBS_Acknowledge) {
                     m_threadCond[port]->wait();
                 }
-                DEBUG("m_framesTodo[%d].size %ld, m_framesDone[%d].size %ld\n",
+                DEBUG("m_framesTodo[%d].size %zu, m_framesDone[%d].size %zu\n",
                     port, m_framesTodo[port].size(), port, m_framesDone[port].size());
                 m_framesTodo[port].clear();
                 m_reqBufState[port] = (reqbufs->count > 0) ? RBS_FormatChanged : RBS_Released;
@@ -474,7 +486,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             // ASSERT(dqbuf->memory == m_memoryMode[port]);
             ASSERT(dqbuf->length == m_bufferPlaneCount[port]);
             dqbuf->index = m_framesDone[port].front();
-            ASSERT(dqbuf->index >= 0 && dqbuf->index < m_maxBufferCount[port]);
+            ASSERT(dqbuf->index < m_maxBufferCount[port]);
 
             bool _ret = true;
             if (port == OUTPUT) {
@@ -649,5 +661,72 @@ inline bool V4l2CodecBase::createVpp()
     nativeDisplay.handle = (intptr_t)m_vaDisplay;
     m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
     return m_vpp->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
+}
+SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const ANativeWindowBuffer* buf)
+{
+    SharedPtr<VideoFrame> frame;
+
+    intel_ufo_buffer_details_t info;
+    memset(&info, 0, sizeof(info));
+    *reinterpret_cast<uint32_t*>(&info) = sizeof(info);
+
+    int err = 0;
+    // it's better skip pitch attribute here, but vaapi driver retrieve the pitch by itself
+    if (m_pGralloc)
+        err = m_pGralloc->perform(m_pGralloc, INTEL_UFO_GRALLOC_MODULE_PERFORM_GET_BO_INFO, (buffer_handle_t)buf->handle, &info);
+
+    if (0 != err || !m_pGralloc) {
+        fprintf(stderr, "create vaSurface failed\n");
+        return frame;
+    }
+
+    VASurfaceAttrib attrib;
+    memset(&attrib, 0, sizeof(attrib));
+
+    VASurfaceAttribExternalBuffers external;
+    memset(&external, 0, sizeof(external));
+
+    external.pixel_format = VA_FOURCC_NV12;
+    external.width = buf->width;
+    external.height = buf->height;
+    external.pitches[0] = info.pitch;
+    external.num_planes = 2;
+    external.num_buffers = 1;
+    uint8_t* handle = (uint8_t*)buf->handle;
+    external.buffers = (long unsigned int*)&handle; //graphic handel
+    external.flags = VA_SURFACE_ATTRIB_MEM_TYPE_ANDROID_GRALLOC;
+
+    attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
+    attrib.type = (VASurfaceAttribType)VASurfaceAttribExternalBufferDescriptor;
+    attrib.value.type = VAGenericValueTypePointer;
+    attrib.value.value.p = &external;
+
+    VASurfaceID id;
+    VAStatus vaStatus = vaCreateSurfaces(m_vaDisplay, VA_RT_FORMAT_YUV420,
+        buf->width, buf->height, &id, 1, &attrib, 1);
+    if (vaStatus != VA_STATUS_SUCCESS)
+        return frame;
+
+    frame.reset(new VideoFrame);
+    memset(frame.get(), 0, sizeof(VideoFrame));
+
+    frame->surface = static_cast<intptr_t>(id);
+    frame->crop.width = buf->width;
+    frame->crop.height = buf->height;
+
+    return frame;
+}
+
+bool V4l2CodecBase::mapVideoFrames()
+{
+    SharedPtr<VideoFrame> frame;
+
+    for (uint32_t i = 0; i < m_winBuff.size(); i++) {
+        frame = createVaSurface(m_winBuff[i]);
+        if (!frame)
+            return false;
+        m_videoFrames.push_back(frame);
+    }
+    return true;
 }
 #endif

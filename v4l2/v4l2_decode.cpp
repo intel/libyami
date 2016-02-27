@@ -52,9 +52,6 @@ V4l2Decoder::V4l2Decoder()
     : m_bindEglImage(false)
     , m_videoWidth(0)
     , m_videoHeight(0)
-#ifdef ANDROID
-    , m_reqBuffCnt(0)
-#endif
 {
     uint32_t i;
     m_memoryMode[INPUT] = V4L2_MEMORY_MMAP; // dma_buf hasn't been supported yet
@@ -84,9 +81,6 @@ V4l2Decoder::V4l2Decoder()
     m_bufferSpace[OUTPUT] = NULL;
 
     m_memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
-#ifdef ANDROID
-    hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (hw_module_t const**)&m_pGralloc);
-#endif
 }
 
 V4l2Decoder::~V4l2Decoder()
@@ -163,7 +157,7 @@ bool V4l2Decoder::inputPulse(uint32_t index)
 
     VideoDecodeBuffer *inputBuffer = &m_inputFrames[index];
 
-    ASSERT(index >= 0 && index < m_maxBufferCount[INPUT]);
+    ASSERT(index < m_maxBufferCount[INPUT]);
     ASSERT(m_maxBufferSize[INPUT] > 0); // update m_maxBufferSize[INPUT] after VIDIOC_S_FMT
     ASSERT(m_bufferSpace[INPUT] || m_memoryMode[INPUT] != V4L2_MEMORY_MMAP );
     ASSERT(inputBuffer->size <= m_maxBufferSize[INPUT]);
@@ -278,7 +272,7 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
     VideoDecodeBuffer *inputBuffer = &(m_inputFrames[qbuf->index]);
     ASSERT(m_maxBufferSize[INPUT] > 0);
     ASSERT(m_bufferSpace[INPUT] || m_memoryMode[INPUT] != V4L2_MEMORY_MMAP );
-    ASSERT(qbuf->index >= 0 && qbuf->index < m_maxBufferCount[INPUT]);
+    ASSERT(qbuf->index < m_maxBufferCount[INPUT]);
     ASSERT(qbuf->length == 1);
     inputBuffer->size = qbuf->m.planes[0].bytesused; // one plane only
     if (!inputBuffer->size) // EOS
@@ -296,7 +290,7 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
     TIMEVAL_TO_INT64(inputBuffer->timeStamp, qbuf->timestamp);
     inputBuffer->flag = qbuf->flags;
     // set buffer unit-mode if possible, nal, frame?
-    DEBUG("qbuf->index: %d, inputBuffer: %p, timestamp: %ld", qbuf->index, inputBuffer->data, inputBuffer->timeStamp);
+    DEBUG("qbuf->index: %d, inputBuffer: %p, timestamp: %" PRId64, qbuf->index, inputBuffer->data, inputBuffer->timeStamp);
 
     return true;
 }
@@ -307,7 +301,7 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     ASSERT(dqbuf);
     // for the buffers within range of [m_actualOutBufferCount, m_maxBufferCount[OUTPUT]]
     // there are not used in reality, but still be returned back to client during flush (seek/eos)
-    ASSERT(dqbuf->index >= 0 && dqbuf->index < m_maxBufferCount[OUTPUT]);
+    ASSERT(dqbuf->index < m_maxBufferCount[OUTPUT]);
 
     dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
     if (!m_bindEglImage) {
@@ -359,7 +353,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                 mapVideoFrames();
         }
 #endif
-    }
+    } // no break;
     case VIDIOC_STREAMON:
     case VIDIOC_STREAMOFF:
     case VIDIOC_DQBUF:
@@ -405,7 +399,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         GET_PORT_INDEX(port, buffer->type, ret);
 
         ASSERT(buffer->memory == m_memoryMode[port]);
-        ASSERT(buffer->index >= 0 && buffer->index < m_maxBufferCount[port]);
+        ASSERT(buffer->index < m_maxBufferCount[port]);
         ASSERT(buffer->length == m_bufferPlaneCount[port]);
         ASSERT(m_maxBufferSize[port] > 0);
 
@@ -612,74 +606,7 @@ void V4l2Decoder::flush()
         m_decoder->flush();
 }
 
-#if ANDROID
-SharedPtr<VideoFrame> V4l2Decoder::createVaSurface(const ANativeWindowBuffer* buf)
-{
-    SharedPtr<VideoFrame> frame;
-
-    intel_ufo_buffer_details_t info;
-    memset(&info, 0, sizeof(info));
-    *reinterpret_cast<uint32_t*>(&info) = sizeof(info);
-
-    int err = 0;
-    if (m_pGralloc)
-        err = m_pGralloc->perform(m_pGralloc, INTEL_UFO_GRALLOC_MODULE_PERFORM_GET_BO_INFO, (buffer_handle_t)buf->handle, &info);
-
-    if (0 != err || !m_pGralloc) {
-        fprintf(stderr, "create vaSurface failed\n");
-        return frame;
-    }
-
-    VASurfaceAttrib attrib;
-    memset(&attrib, 0, sizeof(attrib));
-
-    VASurfaceAttribExternalBuffers external;
-    memset(&external, 0, sizeof(external));
-
-    external.pixel_format = VA_FOURCC_NV12;
-    external.width = buf->width;
-    external.height = buf->height;
-    external.pitches[0] = info.pitch;
-    external.num_planes = 2;
-    external.num_buffers = 1;
-    uint8_t* handle = (uint8_t*)buf->handle;
-    external.buffers = (long unsigned int*)&handle; //graphic handel
-    external.flags = VA_SURFACE_ATTRIB_MEM_TYPE_ANDROID_GRALLOC;
-
-    attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
-    attrib.type = (VASurfaceAttribType)VASurfaceAttribExternalBufferDescriptor;
-    attrib.value.type = VAGenericValueTypePointer;
-    attrib.value.value.p = &external;
-
-    VASurfaceID id;
-    VAStatus vaStatus = vaCreateSurfaces(m_vaDisplay, VA_RT_FORMAT_YUV420,
-                        buf->width, buf->height, &id, 1, &attrib, 1);
-    if (vaStatus != VA_STATUS_SUCCESS)
-        return frame;
-
-    frame.reset(new VideoFrame);
-    memset(frame.get(), 0, sizeof(VideoFrame));
-
-    frame->surface = static_cast<intptr_t>(id);
-    frame->crop.width = buf->width;
-    frame->crop.height = buf->height;
-
-    return frame;
-}
-
-bool V4l2Decoder::mapVideoFrames()
-{
-    SharedPtr<VideoFrame> frame;
-
-    for (uint32_t i = 0; i < m_winBuff.size(); i++) {
-        frame = createVaSurface(m_winBuff[i]);
-        if (!frame)
-            return false;
-        m_videoFrames.push_back(frame);
-    }
-    return true;
-}
-#else
+#if !ANDROID
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
 {
     m_bindEglImage = true;

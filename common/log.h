@@ -114,12 +114,13 @@ extern int isIni;
 #endif                          //__ANDROID
 
 #ifndef ASSERT
-#define ASSERT(expr) do { \
-        if (!(expr)) { \
-            ERROR(); \
-            assert(0 && (expr)); \
-        } \
-    } while(0)
+#define ASSERT(expr)               \
+    do {                           \
+        if (!(expr)) {             \
+            ERROR("assert fails"); \
+            assert(0 && (expr));   \
+        }                          \
+    } while (0)
 #endif
 
 #define YAMI_LOG_ERROR 0x1
