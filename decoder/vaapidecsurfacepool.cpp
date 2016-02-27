@@ -28,7 +28,6 @@
 #include "common/log.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapisurface.h"
-#include "vaapi/vaapiimagepool.h"
 #include <string.h>
 #include <assert.h>
 
