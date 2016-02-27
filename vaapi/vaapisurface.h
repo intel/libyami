@@ -26,7 +26,6 @@
 #ifndef vaapisurface_h
 #define vaapisurface_h
 
-#include "vaapiimage.h"
 #include "vaapiptrs.h"
 #include "vaapitypes.h"
 #include <va/va_drmcommon.h>
@@ -73,9 +72,6 @@ class VaapiSurface
 
     bool sync();
     bool queryStatus(VaapiSurfaceStatus * pStatus);
-
-    bool getImage(ImagePtr image);
-    bool putImage(ImagePtr image);
 
   private:
     VaapiSurface(const DisplayPtr&,

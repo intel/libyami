@@ -5,7 +5,6 @@ include $(LOCAL_PATH)/../common.mk
 LOCAL_SRC_FILES := \
         vaapipicture.cpp \
         vaapibuffer.cpp \
-        vaapiimage.cpp \
         vaapisurface.cpp\
         vaapiimageutils.cpp \
         vaapiutils.cpp \

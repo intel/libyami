@@ -3,7 +3,6 @@ INCLUDES = -I$(top_srcdir)
 libyami_vaapi_source_c = \
 	vaapipicture.cpp \
 	vaapibuffer.cpp \
-	vaapiimage.cpp \
 	vaapisurface.cpp\
 	vaapiimageutils.cpp \
 	vaapiutils.cpp \
@@ -15,7 +14,6 @@ libyami_vaapi_source_c = \
 libyami_vaapi_source_h_priv = \
 	vaapipicture.h \
 	vaapibuffer.h \
-	vaapiimage.h \
 	vaapisurface.h \
 	vaapiimageutils.h \
 	vaapiutils.h \

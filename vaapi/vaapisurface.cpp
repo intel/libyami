@@ -156,61 +156,6 @@ DisplayPtr VaapiSurface::getDisplay()
     return m_display;
 }
 
-bool VaapiSurface::getImage(ImagePtr image)
-{
-    VAImageID imageID;
-    VAStatus status;
-    uint32_t width, height;
-
-    if (!image)
-        return false;
-
-    width = image->getWidth();
-    height = image->getHeight();
-
-    if (width != m_width || height != m_height) {
-        ERROR("resolution not matched \n");
-        return false;
-    }
-
-    imageID = image->getID();
-
-    DEBUG("Display: 0x%p, surface: 0x%x, width: %d, height: %d, image: 0x%x", m_display->getID(), m_ID, width, height, imageID);
-    status = vaGetImage(m_display->getID(), m_ID, 0, 0, width, height, imageID);
-
-    if (!checkVaapiStatus(status, "vaGetImage()"))
-        return false;
-
-    return true;
-}
-
-bool VaapiSurface::putImage(ImagePtr image)
-{
-    VAImageID imageID;
-    VAStatus status;
-    uint32_t width, height;
-
-    if (!image)
-        return false;
-
-    width = image->getWidth();
-    height = image->getHeight();
-
-    if (width != m_width || height != m_height) {
-        ERROR("Image resolution does not match with surface");
-        return false;
-    }
-
-    imageID = image->getID();
-
-    status = vaPutImage(m_display->getID(), m_ID, imageID, 0, 0, width, height, 0, 0, width, height);
-
-    if (!checkVaapiStatus(status, "vaPutImage()"))
-        return false;
-
-    return true;
-}
-
 bool VaapiSurface::sync()
 {
     VAStatus status;
