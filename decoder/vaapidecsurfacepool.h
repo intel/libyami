@@ -68,13 +68,9 @@ public:
     bool output(const SurfacePtr&, int64_t timetamp);
     /// get surface from output queue
     VideoRenderBuffer* getOutput();
-    bool getOutput(VideoFrameRawData* frame);
-    bool populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount);
     /// recycle to surface pool
     void recycle(const VideoRenderBuffer * renderBuf);
     /// recycle exported video frame to surface/image pool
-    void recycle(VideoFrameRawData* frame);
-
     //after this, acquireWithWait will always return null surface,
     //until all SurfacePtr and VideoRenderBuffer returned.
     void flush();
