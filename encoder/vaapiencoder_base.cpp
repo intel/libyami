@@ -35,7 +35,7 @@
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapisurfaceallocator.h"
 #include "vaapi/vaapiutils.h"
-
+#include "vaapi/vaapiimageutils.h"
 
 const uint32_t MaxOutputBuffer=5;
 namespace YamiMediaCodec{
@@ -301,29 +301,64 @@ SurfacePtr VaapiEncoderBase::createSurface()
     return s;
 }
 
+static bool copyImage(uint8_t* destBase,
+    const uint32_t destOffsets[3], const uint32_t destPitches[3],
+    const uint8_t* srcBase,
+    const uint32_t srcOffsets[3], const uint32_t srcPitches[3],
+    const uint32_t width[3], const uint32_t height[3], uint32_t planes)
+{
+    for (uint32_t i = 0; i < planes; i++) {
+        uint32_t w = width[i];
+        uint32_t h = height[i];
+        if (w > destPitches[i] || w > srcPitches[i]) {
+            ERROR("can't copy, plane = %d,  width = %d, srcPitch = %d, destPitch = %d",
+                i, w, srcPitches[i], destPitches[i]);
+            return false;
+        }
+        const uint8_t* src = srcBase + srcOffsets[i];
+        uint8_t* dest = destBase + destOffsets[i];
+
+        for (uint32_t j = 0; j < h; j++) {
+            memcpy(dest, src, w);
+            src += srcPitches[i];
+            dest += destPitches[i];
+        }
+    }
+    return true;
+}
+
 SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
 {
-    SurfacePtr surface = createNewSurface(frame->fourcc);
+    uint32_t fourcc = frame->fourcc;
+
+    SurfacePtr surface = createNewSurface(fourcc);
     SurfacePtr nil;
     if (!surface)
         return nil;
 
-    ImagePtr image = VaapiImage::derive(surface);
-    if (!image) {
-        ERROR("VaapiImage::derive() failed");
-        return nil;
-    }
-    ImageRawPtr raw = mapVaapiImage(image);
-    if (!raw) {
-        ERROR("image->map() failed");
+    uint32_t width[3];
+    uint32_t height[3];
+    uint32_t planes;
+    if (!getPlaneResolution(fourcc, frame->width, frame->height, width, height, planes)) {
+        ERROR("invalid input format");
         return nil;
     }
 
-    uint8_t* src = reinterpret_cast<uint8_t*>(frame->handle);
-    if (!raw->copyFrom(src, frame->offset, frame->pitch)) {
-        ERROR("copyfrom in buffer failed");
+    VAImage image;
+    VADisplay display = m_display->getID();
+    uint8_t* dest = mapSurfaceToImage(display, surface->getID(), image);
+    if (!dest) {
+        ERROR("map image failed");
         return nil;
     }
+    uint8_t* src = reinterpret_cast<uint8_t*>(frame->handle);
+    if (!copyImage(dest, image.offsets, image.pitches, src,
+            frame->offset, frame->pitch, width, height, planes)) {
+        ERROR("failed to copy image");
+        unmapImage(display, image);
+        return nil;
+    }
+    unmapImage(display, image);
     return surface;
 }
 
