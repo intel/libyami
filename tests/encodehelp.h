@@ -170,17 +170,19 @@ static bool process_cmdline(int argc, char *argv[])
         }
     }
 
+#if !ANDROID
     if (!inputFileName) {
         fprintf(stderr, "can not encode without input file\n");
         return false;
     }
+#endif
 
     if ((rcMode == RATE_CONTROL_CBR) && (bitRate <= 0)) {
         fprintf(stderr, "please make sure bitrate is positive when CBR mode\n");
         return false;
     }
 
-    if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video")) && !frameCount)
+    if (inputFileName && !strncmp(inputFileName, "/dev/video", strlen("/dev/video")) && !frameCount)
         frameCount = 50;
 
     return true;

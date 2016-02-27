@@ -30,6 +30,13 @@
 #include "VideoEncoderDefs.h"
 #include "VideoEncoderInterface.h"
 #include <vector>
+#if ANDROID
+#include <gui/Surface.h>
+#include <android/native_window.h>
+#include <system/window.h>
+#include <queue>
+using namespace android;
+#endif
 
 using namespace YamiMediaCodec;
 
@@ -105,6 +112,28 @@ private:
     bool uninitDevice();
 
 };
+
+#if ANDROID
+#define SURFACE_BUFFER_COUNT 5
+class EncodeInputSurface : public EncodeInput {
+public:
+    EncodeInputSurface() { m_bufferCount = SURFACE_BUFFER_COUNT; }
+    ~EncodeInputSurface(){};
+    virtual bool init(const char* inputFileName, uint32_t fourcc, int width, int height);
+    virtual bool getOneFrameInput(VideoFrameRawData& inputBuffer);
+    virtual bool isEOS() { return false; }
+
+protected:
+    int m_bufferCount;
+    sp<Surface> m_surface;
+    sp<ANativeWindow> mNativeWindow;
+    std::queue<ANativeWindowBuffer*> mBufferInfo;
+
+private:
+    bool prepareInputBuffer();
+    DISALLOW_COPY_AND_ASSIGN(EncodeInputSurface);
+};
+#endif
 
 class EncodeOutput {
 public:

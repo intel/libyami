@@ -42,19 +42,27 @@ using namespace YamiMediaCodec;
 EncodeInput * EncodeInput::create(const char* inputFileName, uint32_t fourcc, int width, int height)
 {
     EncodeInput *input = NULL;
-    if (!inputFileName)
+    if (!inputFileName) {
+#if ANDROID
+        input = new EncodeInputSurface();
+#else
         return NULL;
-
-#ifndef ANDROID // temp disable transcoding and camera support on android
-    DecodeInput* decodeInput = DecodeInput::create(inputFileName);
-    if (decodeInput) {
-        input = new EncodeInputDecoder(decodeInput);
-    } else if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video"))) {
-        input = new EncodeInputCamera;
-    } else
 #endif
-    {
-        input =  new EncodeInputFile;
+    }
+    else {
+#ifndef ANDROID // temp disable transcoding and camera support on android
+        DecodeInput* decodeInput = DecodeInput::create(inputFileName);
+        if (decodeInput) {
+            input = new EncodeInputDecoder(decodeInput);
+        }
+        else if (!strncmp(inputFileName, "/dev/video", strlen("/dev/video"))) {
+            input = new EncodeInputCamera;
+        }
+        else
+#endif
+        {
+            input = new EncodeInputFile;
+        }
     }
 
     if (!input)

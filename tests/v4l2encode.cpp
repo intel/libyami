@@ -37,6 +37,7 @@
 #include "encodehelp.h"
 #include "encodeinput.h"
 
+static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
 uint32_t inputFramePlaneCount = 3; // I420(default) format has 3 planes
 uint32_t inputFrameSize = 0;
 
@@ -73,18 +74,28 @@ bool readOneFrameData(uint32_t index)
 
 void fillV4L2Buffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
 {
+    if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_POINTER) {
+        uint32_t width[3];
+        uint32_t height[3];
+        uint32_t planes;
+        bool ret;
 
-    uint32_t width[3];
-    uint32_t height[3];
-    uint32_t planes;
-    bool ret;
-    ret = getPlaneResolution(frame.fourcc, frame.width, frame.height, width, height,  planes);
-    ASSERT(ret && "get planes resolution failed");
-    unsigned long data = (unsigned long)frame.handle;
-    for (uint32_t i = 0; i < planes; i++) {
-        buf.m.planes[i].bytesused = width[i] * height[i];
-        buf.m.planes[i].m.userptr = data + frame.offset[i];
+        ret = getPlaneResolution(frame.fourcc, frame.width, frame.height, width, height, planes);
+        ASSERT(ret && "get planes resolution failed");
+        unsigned long data = (unsigned long)frame.handle;
+        for (uint32_t i = 0; i < planes; i++) {
+            buf.m.planes[i].bytesused = width[i] * height[i];
+            buf.m.planes[i].m.userptr = data + frame.offset[i];
+        }
     }
+    else if (memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER) {
+        // !!! FIXME, v4l2 use long for userptr. so bad
+        DEBUG("ANativeWindowBuffer, frame.handle: %p", (void*)frame.handle);
+        buf.m.planes[0].m.userptr = (long)((intptr_t)frame.handle);
+        buf.m.planes[0].bytesused = sizeof(buf.m.planes[0].m.userptr);
+    }
+    else
+        ASSERT(0 && "unknown memory type");
 }
 
 bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enque it*/)
@@ -95,7 +106,7 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
     static uint32_t dqCountAfterEOS = 0;
 
     memset(&buf, 0, sizeof(buf));
-    memset(&planes, 0, sizeof(planes));
+    memset(planes, 0, sizeof(planes));
     buf.m.planes = planes;
     buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type
     buf.memory = V4L2_MEMORY_USERPTR;
@@ -212,6 +223,12 @@ int main(int argc, char** argv)
     if (!process_cmdline(argc, argv))
         return -1;
 
+#if ANDROID
+    if (!inputFileName) {
+        memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER;
+        inputFourcc = VA_FOURCC_NV12;
+    }
+#endif
     streamInput = EncodeInput::create(inputFileName, inputFourcc, videoWidth, videoHeight);
     ASSERT(streamInput);
 
@@ -236,6 +253,7 @@ int main(int argc, char** argv)
 
     memset(&format, 0, sizeof(format));
     format.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
+    DEBUG_FOURCC("inputFourcc", inputFourcc);
     switch (inputFourcc) {
     case VA_FOURCC_YV12:
     case VA_FOURCC('I', '4', '2', '0'):
@@ -261,6 +279,9 @@ int main(int argc, char** argv)
     format.fmt.pix_mp.height = videoHeight;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_S_FMT, &format);
     ASSERT(ioctlRet != -1);
+
+    // set input buffer type
+    YamiV4L2_FrameMemoryType(fd, memoryType);
 
     // set framerate
     struct v4l2_streamparm parms;
@@ -315,10 +336,16 @@ int main(int argc, char** argv)
     ASSERT(reqbufs.count>0 && reqbufs.count <= kMaxFrameQueueLength);
     inputQueueCapacity = reqbufs.count;
 
-    for (i=0; i<inputQueueCapacity; i++)
-        inputFrames[i].handle = reinterpret_cast<intptr_t>(malloc(inputFrameSize));
-    for (i=inputQueueCapacity; i<kMaxFrameQueueLength; i++)
-        inputFrames[i].handle = 0;
+#if ANDROID
+    if (memoryType != VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER)
+#endif
+    {
+        for (i = 0; i < inputQueueCapacity; i++) {
+            inputFrames[i].handle = reinterpret_cast<intptr_t>(malloc(inputFrameSize));
+        }
+        for (i = inputQueueCapacity; i < kMaxFrameQueueLength; i++)
+            inputFrames[i].handle = 0;
+    }
 
     // setup output buffers
     memset(&reqbufs, 0, sizeof(reqbufs));

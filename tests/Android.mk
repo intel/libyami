@@ -31,7 +31,7 @@ ifeq ($(ENABLE-V4L2-OPS),true)
 LOCAL_CPPFLAGS += -D__ENABLE_V4L2_OPS__
 endif
 
-LOCAL_MODULE := v4l2decoder
+LOCAL_MODULE := v4l2decode
 include $(BUILD_EXECUTABLE)
 
 ## v4l2encoder
@@ -40,6 +40,7 @@ include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
         encodeinput.cpp \
+        encodeInputSurface.cpp \
         v4l2encode.cpp
 
 LOCAL_C_INCLUDES:= \
@@ -52,9 +53,11 @@ LOCAL_SHARED_LIBRARIES := \
         libyami_v4l2 \
         libutils \
         libgui \
+        libui \
+        liblog
 
 LOCAL_CPPFLAGS += \
          -fpermissive
 
-LOCAL_MODULE := v4l2encoder
+LOCAL_MODULE := v4l2encode
 include $(BUILD_EXECUTABLE)
