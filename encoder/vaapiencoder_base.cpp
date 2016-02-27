@@ -263,10 +263,28 @@ Encode_Status VaapiEncoderBase::getMVBufferSize(uint32_t *Size)
 }
 #endif
 
+struct SurfaceDestroyer {
+    SurfaceDestroyer(DisplayPtr display)
+        : m_display(display)
+    {
+    }
+    void operator()(VaapiSurface* surface)
+    {
+        VASurfaceID id = surface->getID();
+        checkVaapiStatus(vaDestroySurfaces(m_display->getID(), &id, 1),
+            "vaDestroySurfaces");
+        delete surface;
+    }
+
+private:
+    DisplayPtr m_display;
+};
+
 SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
 {
     VASurfaceAttrib attrib;
-    VaapiChromaType chroma;
+    uint32_t rtFormat;
+    SurfacePtr surface;
 
     attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
     attrib.type = VASurfaceAttribPixelFormat;
@@ -276,18 +294,26 @@ SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
     switch(fourcc) {
     case VA_FOURCC_NV12:
     case VA_FOURCC_I420:
-        chroma = VAAPI_CHROMA_TYPE_YUV420;
-    break;
-    case VA_FOURCC_YUY2:
-        chroma = VAAPI_CHROMA_TYPE_YUV422;
-    break;
-    default:
-        ASSERT(0);
+        rtFormat = VA_RT_FORMAT_YUV420;
         break;
+    case VA_FOURCC_YUY2:
+        rtFormat = VA_RT_FORMAT_YUV422;
+        break;
+    default:
+        ERROR("unspported fourcc %x", fourcc);
+        return surface;
     }
-    return VaapiSurface::create(m_display, chroma,
-                                m_videoParamCommon.resolution.width, m_videoParamCommon.resolution.height, &attrib, 1);
 
+    VASurfaceID id;
+    uint32_t width = m_videoParamCommon.resolution.width;
+    uint32_t height = m_videoParamCommon.resolution.height;
+    VAStatus status = vaCreateSurfaces(m_display->getID(), rtFormat, width, height,
+        &id, 1, &attrib, 1);
+    if (!checkVaapiStatus(status, "vaCreateSurfaces"))
+        return surface;
+    surface.reset(new VaapiSurface(m_display, (intptr_t)id, width, height),
+        SurfaceDestroyer(m_display));
+    return surface;
 }
 
 SurfacePtr VaapiEncoderBase::createSurface()
