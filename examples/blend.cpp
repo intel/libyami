@@ -31,6 +31,7 @@
 #include "vaapi/vaapiutils.h"
 #include "VideoDecoderHost.h"
 #include "VideoPostProcessHost.h"
+#include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -43,9 +44,9 @@
 
 struct timespec start, end;
 #define PERF_START(block) clock_gettime(CLOCK_REALTIME, &start);
-#define PERF_STOP(block) clock_gettime(CLOCK_REALTIME, &end);      \
-                         INFO(#block " used %f ms\n",            \
-                             (end.tv_sec - start.tv_sec) * 1000    \
+#define PERF_STOP(block) clock_gettime(CLOCK_REALTIME, &end);     \
+                         INFO("%s used %f ms\n", block,           \
+                             (end.tv_sec - start.tv_sec) * 1000   \
                            + (end.tv_nsec - start.tv_nsec) / 1E6);
 
 using namespace YamiMediaCodec;
@@ -80,13 +81,84 @@ class Blend
 public:
     bool init(int argc, char** argv)
     {
-        if (argc != 2) {
-            printf("usage: blend xxx.264\n");
+        const char* optShort = "bom";
+        const struct option optLong[] = {
+            { "flip", required_argument, NULL, 'F' },
+            { "rotate", required_argument, NULL, 'R' },
+            { "ot", required_argument, NULL, 'T' },
+            { "ms", required_argument, NULL, 'S' },
+            {0, 0, 0, 0},
+        };
+        int opt;
+        while ((opt = getopt_long(argc, argv, optShort, optLong, NULL)) != -1) {
+            switch (opt) {
+            case 'b':
+                m_bBlend = true;
+                break;
+            case 'o':
+                m_bOsd = true;
+                break;
+            case 'm':
+                m_bMosaic = true;
+                break;
+            case 'F': {
+                int flip = atoi(optarg);
+                if (flip != 0 && flip != 1) {
+                    fprintf(stderr, "invalid flip type\n");
+                    usage();
+                    return false;
+                }
+                m_flipRot |= (flip + VPP_TRANSFORM_FLIP_H);
+                break;
+            }
+            case 'R': {
+                int rot = atoi(optarg);
+                if (rot != 90 && rot != 180 && rot != 270) {
+                    fprintf(stderr, "invalid rotation degree\n");
+                    usage();
+                    return false;
+                }
+                m_flipRot |= (1 << (rot / 90 + 1));
+                break;
+            }
+            case 'T': {
+                int thr = atoi(optarg);
+                if (thr < 0 || thr > 255) {
+                    fprintf(stderr, "invalid osd threshold\n");
+                    usage();
+                    return false;
+                }
+                m_osdThreshold = thr;
+                break;
+            }
+            case 'S': {
+                int size = atoi(optarg);
+                if (size < 1 || size >256) {
+                    fprintf(stderr, "invalid mosaice block size\n");
+                    usage();
+                    return false;
+                }
+                m_mosaicSize = size;
+                break;
+            }
+            default:
+                fprintf(stderr, "invalid argument");
+                usage();
+                return false;
+            }
+        }
+        printf("Blend: %d, OSD(%d): %d, Mosaic(%d): %d, Transform: %u\n",
+            m_bBlend, m_osdThreshold, m_bOsd, m_mosaicSize, m_bMosaic, m_flipRot);
+
+        m_input.reset(new VppInputDecode);
+        if (optind >= argc) {
+            fprintf(stderr, "please specify video clip\n");
+            usage();
             return false;
         }
-        m_input.reset(new VppInputDecode);
-        if (!m_input->init(argv[1])) {
-            fprintf(stderr, "failed to open %s", argv[1]);
+
+        if (!m_input->init(argv[optind])) {
+            fprintf(stderr, "failed to open %s", argv[optind]);
             return false;
         }
 
@@ -101,13 +173,29 @@ public:
         setRandomSeed();
         int width = m_input->getWidth();
         int height = m_input->getHeight();
-        if (!createBlendSurfaces(width, height))
+        if (m_bBlend && !createBlendSurfaces(width, height))
             return false;
-        if (!createOSDSurfaces(width, height))
+        if (m_bOsd && !createOSDSurfaces(width, height))
+            return false;
+        if (m_bMosaic && !createMosaicSurfaces(width, height))
             return false;
         if (!createDestSurface(width, height))
             return false;
-        resizeWindow(960, 540);
+        if (m_flipRot) {
+            if (m_flipRot & (VPP_TRANSFORM_ROT_90 | VPP_TRANSFORM_ROT_270)) {
+                if (!createDisplaySurface(height, width))
+                    return false;
+                resizeWindow(540, 960);
+            }
+            else {
+                if (!createDisplaySurface(width, height))
+                    return false;
+                resizeWindow(960, 540);
+            }
+        }
+        else {
+            resizeWindow(960, 540);
+        }
         return true;
     }
     bool run()
@@ -119,33 +207,46 @@ public:
             memset(&m_dest->crop, 0, sizeof(VideoRect));
             m_scaler->process(frame, m_dest);
 
-            PERF_START(blend);
-            //blend it
-            for (uint32_t i = 0; i < m_blendSurfaces.size(); i++) {
-                m_blendBumpBoxes[i]->getPos(m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
-                //printf("(%d, %d, %d, %d)\r\n", m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
-
-                SharedPtr<VideoFrame>& src = m_blendSurfaces[i];
-                m_blender->process(src, m_dest);
+            if (m_bBlend) {
+                process(m_blender, "blend", m_blendSurfaces, m_blendBumpBoxes, m_dest);
             }
-            PERF_STOP(blend);
 
-            PERF_START(osd);
-            //osd
-            for (uint32_t i = 0; i < m_osdSurfaces.size(); i++) {
-                m_osdBumpBoxes[i]->getPos(m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
-                //printf("(%d, %d, %d, %d)\r\n", m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height);
-
-                SharedPtr<VideoFrame>& src = m_osdSurfaces[i];
-                m_osd->process(src, m_dest);
+            if (m_bOsd) {
+                process(m_osd, "osd", m_osdSurfaces, m_osdBumpBoxes, m_dest);
             }
-            PERF_STOP(osd);
 
-            //display it on screen
-            memcpy(&m_dest->crop, &frame->crop, sizeof(VideoRect));
-            status = vaPutSurface(*m_vaDisplay, (VASurfaceID)m_dest->surface,
-                m_window, m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height, 0, 0, m_width, m_height,
-                NULL, 0, 0);
+            if (m_bMosaic) {
+                vector<SharedPtr<VideoFrame> > srcFrame;
+                srcFrame.push_back(m_dest);
+                process(m_mosaic, "mosaic", srcFrame, m_mosaicBumpBoxes, m_dest);
+            }
+
+            if (m_flipRot) {
+                PERF_START("transform");
+                memcpy(&m_dest->crop, &frame->crop, sizeof(VideoRect));
+                if (m_flipRot & (VPP_TRANSFORM_ROT_90 | VPP_TRANSFORM_ROT_270)) {
+                    m_displaySurface->crop.x = m_dest->crop.y;
+                    m_displaySurface->crop.y = m_dest->crop.x;
+                    m_displaySurface->crop.width = m_dest->crop.height;
+                    m_displaySurface->crop.height = m_dest->crop.width;
+                }
+                else {
+                    memcpy(&m_displaySurface->crop, &m_dest->crop, sizeof(VideoRect));
+                }
+                m_transform->process(m_dest, m_displaySurface);
+                PERF_STOP("transform");
+                //display it on screen
+                status = vaPutSurface(*m_vaDisplay, (VASurfaceID)m_displaySurface->surface,
+                    m_window, m_displaySurface->crop.x, m_displaySurface->crop.y, m_displaySurface->crop.width, m_displaySurface->crop.height, 0, 0, m_width, m_height,
+                    NULL, 0, 0);
+            }
+            else {
+                //display it on screen
+                memcpy(&m_dest->crop, &frame->crop, sizeof(VideoRect));
+                status = vaPutSurface(*m_vaDisplay, (VASurfaceID)m_dest->surface,
+                    m_window, m_dest->crop.x, m_dest->crop.y, m_dest->crop.width, m_dest->crop.height, 0, 0, m_width, m_height,
+                    NULL, 0, 0);
+            }
             if (status != VA_STATUS_SUCCESS) {
                 ERROR("vaPutSurface return %d", status);
                 break;
@@ -153,7 +254,18 @@ public:
         }
         return true;
     }
-    Blend():m_window(0), m_width(0), m_height(0) {}
+    Blend()
+        : m_window(0)
+        , m_width(0)
+        , m_height(0)
+        , m_bBlend(false)
+        , m_bOsd(false)
+        , m_bMosaic(false)
+        , m_osdThreshold(128)
+        , m_mosaicSize(32)
+        , m_flipRot(0)
+    {
+    }
     ~Blend()
     {
         m_input.reset();
@@ -162,6 +274,17 @@ public:
         }
     }
 private:
+    void usage()
+    {
+        fprintf(stderr, "Usage: blend [OPTIONS] xxx.264\n"
+            "  -b               enable alpha blending\n"
+            "  -o               enable OSD\n"
+            "  -m               enable mosaic\n"
+            "  --flip=TYPE      0: flip horizontal, 1: flip vertical\n"
+            "  --rotate=DEGREE  rotate clock wise: 0, 90, 270\n"
+            "  --ot=THRESHOLD   threshold for OSD font color: [0, 255]\n"
+            "  --ms=SIZE        mosaic block size: [1, 256]\n");
+    }
     void setRandomSeed()
     {
         time_t t = time(NULL);
@@ -298,7 +421,19 @@ private:
             m_osdBumpBoxes.push_back(box);
         }
         return true;
+    }
 
+    bool createMosaicSurfaces(uint32_t targetWidth, uint32_t targetHeight)
+    {
+        uint32_t maxWidth = targetWidth / 2;
+        uint32_t maxHeight = targetHeight / 2;
+        for (int i = 0; i < 1; i++) {
+            int w = maxWidth;
+            int h = maxHeight;
+            SharedPtr<BumpBox> box(new BumpBox(targetWidth, targetHeight, w, h));
+            m_mosaicBumpBoxes.push_back(box);
+        }
+        return true;
     }
 
     bool createDestSurface(uint32_t targetWidth, uint32_t targetHeight)
@@ -308,22 +443,59 @@ private:
         return m_dest;
     }
 
+    bool createDisplaySurface(uint32_t targetWidth, uint32_t targetHeight)
+    {
+        m_displaySurface = createSurface(VA_RT_FORMAT_YUV420, VA_FOURCC_NV12, targetWidth, targetHeight);
+        m_displaySurface->fourcc = YAMI_FOURCC_NV12;
+        return m_displaySurface;
+    }
+
     bool createVpp()
     {
         NativeDisplay nativeDisplay;
         nativeDisplay.type = NATIVE_DISPLAY_VA;
         nativeDisplay.handle = (intptr_t)*m_vaDisplay;
         m_scaler.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
-        m_blender.reset(createVideoPostProcess(YAMI_VPP_OCL_BLENDER), releaseVideoPostProcess);
-        m_osd.reset(createVideoPostProcess(YAMI_VPP_OCL_OSD), releaseVideoPostProcess);
-        if (!m_scaler || !m_blender || !m_osd)
+        if (!m_scaler || m_scaler->setNativeDisplay(nativeDisplay) != YAMI_SUCCESS)
             return false;
-        VppParamOsd osdParam;
-        osdParam.threshold = 128;
-        m_osd->setParameters(VppParamTypeOsd, &osdParam);
-        return m_scaler->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS
-            && m_blender->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS
-            && m_osd->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
+
+        if (m_bBlend) {
+            m_blender.reset(createVideoPostProcess(YAMI_VPP_OCL_BLENDER), releaseVideoPostProcess);
+            if (!m_blender || m_blender->setNativeDisplay(nativeDisplay) != YAMI_SUCCESS)
+                return false;
+        }
+
+        if (m_bOsd) {
+            m_osd.reset(createVideoPostProcess(YAMI_VPP_OCL_OSD), releaseVideoPostProcess);
+            if (!m_osd || m_osd->setNativeDisplay(nativeDisplay) != YAMI_SUCCESS)
+                return false;
+            VppParamOsd osdParam;
+            osdParam.size = sizeof(VppParamOsd);
+            osdParam.threshold = m_osdThreshold;
+            m_osd->setParameters(VppParamTypeOsd, &osdParam);
+        }
+
+        if (m_bMosaic) {
+            m_mosaic.reset(createVideoPostProcess(YAMI_VPP_OCL_MOSAIC), releaseVideoPostProcess);
+            if (!m_mosaic || m_mosaic->setNativeDisplay(nativeDisplay) != YAMI_SUCCESS)
+                return false;
+            VppParamMosaic mosaicParam;
+            mosaicParam.size = sizeof(VppParamMosaic);
+            mosaicParam.blockSize = m_mosaicSize;
+            m_mosaic->setParameters(VppParamTypeMosaic, &mosaicParam);
+        }
+
+        if (m_flipRot) {
+            m_transform.reset(createVideoPostProcess(YAMI_VPP_OCL_TRANSFORM), releaseVideoPostProcess);
+            if (!m_transform || m_transform->setNativeDisplay(nativeDisplay) != YAMI_SUCCESS)
+                return false;
+            VppParamTransform transformParam;
+            transformParam.size = sizeof(VppParamTransform);
+            transformParam.transform = m_flipRot;
+            m_transform->setParameters(VppParamTypeTransform, &transformParam);
+        }
+
+        return true;
     }
 
     void resizeWindow(int width, int height)
@@ -350,6 +522,25 @@ private:
         m_width = width;
         m_height = height;
     }
+
+    bool process(SharedPtr<IVideoPostProcess>& vpp,
+        const char* type,
+        vector<SharedPtr<VideoFrame> >& srcSurfaces,
+        vector<SharedPtr<BumpBox> >& srcBumpBoxes,
+        SharedPtr<VideoFrame>& dstSurface)
+    {
+        PERF_START(type);
+        for (uint32_t i = 0; i < srcSurfaces.size(); i++) {
+            srcBumpBoxes[i]->getPos(dstSurface->crop.x, dstSurface->crop.y, dstSurface->crop.width, dstSurface->crop.height);
+            //printf("(%d, %d, %d, %d)\r\n", dstSurface->crop.x, dstSurface->crop.y, dstSurface->crop.width, dstSurface->crop.height);
+
+            vpp->process(srcSurfaces[i], m_dest);
+        }
+        PERF_STOP(type);
+
+        return true;
+    }
+
     SharedPtr<Display> m_display;
     SharedPtr<NativeDisplay> m_nativeDisplay;
     SharedPtr<VADisplay> m_vaDisplay;
@@ -358,12 +549,22 @@ private:
     SharedPtr<IVideoPostProcess> m_scaler;
     SharedPtr<IVideoPostProcess> m_blender;
     SharedPtr<IVideoPostProcess> m_osd;
+    SharedPtr<IVideoPostProcess> m_mosaic;
+    SharedPtr<IVideoPostProcess> m_transform;
     int m_width, m_height;
     vector<SharedPtr<VideoFrame> > m_blendSurfaces;
     vector<SharedPtr<BumpBox> > m_blendBumpBoxes;
     vector<SharedPtr<VideoFrame> > m_osdSurfaces;
     vector<SharedPtr<BumpBox> > m_osdBumpBoxes;
+    vector<SharedPtr<BumpBox> > m_mosaicBumpBoxes;
     SharedPtr<VideoFrame> m_dest;
+    SharedPtr<VideoFrame> m_displaySurface;
+    bool m_bBlend;
+    bool m_bOsd;
+    bool m_bMosaic;
+    int m_osdThreshold;
+    int m_mosaicSize;
+    uint32_t m_flipRot;
 };
 
 int main(int argc, char** argv)
