@@ -44,7 +44,7 @@ using std::list;
 using std::vector;
 
 /* Define the maximum IDR period */
-#define MAX_IDR_PERIOD 512
+#define MAX_IDR_PERIOD 2000
 
 #define LEVEL51_MAX_MBPS 983040
 #define H264_FRAME_FR 172
@@ -700,7 +700,8 @@ VaapiEncoderH264::VaapiEncoderH264():
     m_useDct8x8(false),
     m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
     m_streamFormat(AVC_STREAM_FORMAT_ANNEXB),
-    m_frameIndex(0)
+    m_frameIndex(0),
+    m_keyPeriod(30)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;
@@ -708,7 +709,7 @@ VaapiEncoderH264::VaapiEncoderH264():
     m_videoParamCommon.rcParams.minQP = 1;
 
     memset(&m_videoParamAVC, 0, sizeof(m_videoParamAVC));
-    m_videoParamAVC.idrInterval = 30;
+    m_videoParamAVC.idrInterval = 0;
 }
 
 VaapiEncoderH264::~VaapiEncoderH264()
@@ -763,11 +764,11 @@ void VaapiEncoderH264::resetParams ()
         m_numBFrames = ipPeriod() - 1;
 
     assert(intraPeriod() > ipPeriod());
+	
+    m_keyPeriod = intraPeriod() * (m_videoParamAVC.idrInterval + 1);
 
-    if (keyFramePeriod() < intraPeriod())
-        keyFramePeriod() = intraPeriod();
-    if (keyFramePeriod() > MAX_IDR_PERIOD)
-        keyFramePeriod() = MAX_IDR_PERIOD;
+    if (m_keyPeriod > MAX_IDR_PERIOD)
+        m_keyPeriod = MAX_IDR_PERIOD;
 
     if (minQP() > initQP() ||
             (rateControlMode()== RATE_CONTROL_CQP && minQP() < initQP()))
@@ -778,7 +779,7 @@ void VaapiEncoderH264::resetParams ()
 
     /* init m_maxFrameNum, max_poc */
     m_log2MaxFrameNum =
-        h264_get_log2_max_frame_num (keyFramePeriod());
+        h264_get_log2_max_frame_num (m_keyPeriod);
     assert (m_log2MaxFrameNum >= 4);
     m_maxFrameNum = (1 << m_log2MaxFrameNum);
     m_log2MaxPicOrderCnt = m_log2MaxFrameNum + 1;
@@ -855,16 +856,7 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PT
     case VideoParamsTypeAVC: {
             VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
             if (avc->size == sizeof(VideoParamsAVC)) {
-                PARAMETER_ASSIGN(*avc, m_videoParamAVC);
-                status = ENCODE_SUCCESS;
-            }
-        }
-        break;
-    case VideoConfigTypeAVCIntraPeriod: {
-            VideoConfigAVCIntraPeriod* intraPeriod = (VideoConfigAVCIntraPeriod*)videoEncParams;
-            if (intraPeriod->size == sizeof(VideoConfigAVCIntraPeriod)) {
-                m_videoParamAVC.idrInterval = intraPeriod->idrInterval;
-                m_videoParamCommon.intraPeriod = intraPeriod->intraPeriod;
+                PARAMETER_ASSIGN(m_videoParamAVC, *avc);
                 status = ENCODE_SUCCESS;
             }
         }
@@ -927,7 +919,7 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
 
     PicturePtr picture(new VaapiEncPictureH264(m_context, surface, timeStamp));
 
-    bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= keyFramePeriod() || forceKeyFrame);
+    bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= m_keyPeriod || forceKeyFrame);
 
     if (isIdr) {
         // If the last frame before IDR is B frame, set it to P frame.
