@@ -63,6 +63,18 @@ libyami_vpp_cppflags = \
 	$(NULL)
 
 if BUILD_OCL_BLENDER
+libyami_vpp_ocl_kernel = \
+	../ocl/kernels/blend.cl \
+	../ocl/kernels/osd.cl \
+	../ocl/kernels/transform.cl \
+	../ocl/kernels/mosaic.cl \
+	$(NULL)
+kerneldir             = $(datadir)/libyami/kernel
+kernel_DATA           = $(libyami_vpp_ocl_kernel)
+libyami_vpp_cppflags += -DKERNEL_DIR=\"$(kerneldir)/\"
+endif
+
+if BUILD_OCL_BLENDER
 libyami_vpp_ldflags += -lOpenCL
 endif
 

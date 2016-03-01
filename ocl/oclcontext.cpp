@@ -207,7 +207,8 @@ bool OclDevice::loadFile(const char* path, vector<char>& dest)
 bool OclDevice::loadKernel_l(cl_context context, const char* name, OclKernelMap& kernelMap)
 {
     bool ret = true;
-    string path = name;
+    string path = KERNEL_DIR;
+    path += name;
     path += ".cl";
 
     vector<char> text;
