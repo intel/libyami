@@ -28,7 +28,6 @@
 static int idrInterval = 0;
 static int intraPeriod = 30;
 static int ipPeriod = 1;
-static int ipbMode = 1;
 static char *inputFileName = NULL;
 static char defaultOutputFile[] = "test.264";
 static char *outputFileName = defaultOutputFile;
@@ -71,7 +70,7 @@ static void print_help(const char* app)
     printf("   -N <number of frames to encode(camera default 50), useful for camera>\n");
     printf("   --qp <initial qp> optional\n");
     printf("   --rcmode <CBR|CQP> optional\n");
-    printf("   --ipbmode <0(I frame only ) | 1 (I and P frames) | 2 (I,P,B frames)> optional\n");
+    printf("   --ipperiod <0 (I frame only) | 1 (I and P frames) | N (I,P and B frames, B frame number is N-1)> optional\n");
     printf("   --intraperiod <Intra frame period (default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
     printf("   --idrinterval <AVC/HEVC IDR frame interval (default 0)> optional\n");
@@ -99,7 +98,7 @@ static bool process_cmdline(int argc, char *argv[])
         {"help", no_argument, NULL, 'h' },
         {"qp", required_argument, NULL, 0 },
         {"rcmode", required_argument, NULL, 0 },
-        {"ipbmode", required_argument, NULL, 0 },
+        {"ipperiod", required_argument, NULL, 0 },
         {"intraperiod", required_argument, NULL, 0 },
         {"refnum", required_argument, NULL, 0 },
         {"idrinterval", required_argument, NULL, 0 },
@@ -155,7 +154,7 @@ static bool process_cmdline(int argc, char *argv[])
                     rcMode = string_to_rc_mode(optarg);
                     break;
                 case 3:
-                    ipbMode= atoi(optarg);
+                    ipPeriod = atoi(optarg);
                     break;
                 case 4:
                     intraPeriod = atoi(optarg);
@@ -192,13 +191,6 @@ void ensureInputParameters()
 {
     if (!fps)
         fps = 30;
-
-    if (ipbMode == 0)
-        ipPeriod = 0;
-    else if (ipbMode == 1)
-        ipPeriod = 1;
-    else if (ipbMode == 2)
-        ipPeriod = 3;
 
     /* if (!bitRate) {
         int rawBitRate = videoWidth * videoHeight * fps  * 3 / 2 * 8;

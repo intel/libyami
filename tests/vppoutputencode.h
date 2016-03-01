@@ -40,9 +40,9 @@ public:
     int32_t bitRate;
     int32_t fps;
     int32_t ipPeriod;
-    int32_t ipbMode;
-    int32_t kIPeriod;
+    int32_t intraPeriod;
     int32_t numRefFrames;
+    int32_t idrInterval;
     string codec;
 };
 

@@ -31,9 +31,9 @@ EncodeParams::EncodeParams()
     , bitRate(0)
     , fps(30)
     , ipPeriod(1)
-    , ipbMode(1)
-    , kIPeriod(30)
+    , intraPeriod(30)
     , numRefFrames(1)
+    , idrInterval(0)
     , codec("AVC")
 {
     /*nothing to do*/
@@ -89,7 +89,7 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
     encVideoParams.frameRate.frameRateNum = encParam->fps;
 
     //picture type and bitrate
-    encVideoParams.intraPeriod = encParam->kIPeriod;
+    encVideoParams.intraPeriod = encParam->intraPeriod;
     encVideoParams.ipPeriod = encParam->ipPeriod;
     encVideoParams.rcParams.bitRate = encParam->bitRate;
     encVideoParams.rcParams.initQP = encParam->initQp;
@@ -98,6 +98,14 @@ static void setEncodeParam(const SharedPtr<IVideoEncoder>& encoder,
 
     encVideoParams.size = sizeof(VideoParamsCommon);
     encoder->setParameters(VideoParamsTypeCommon, &encVideoParams);
+
+    // configure AVC encoding parameters
+    VideoParamsAVC encVideoParamsAVC;
+    encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+    encoder->getParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
+    encVideoParamsAVC.idrInterval = encParam->idrInterval;
+    encVideoParamsAVC.size = sizeof(VideoParamsAVC);
+    encoder->setParameters(VideoParamsTypeAVC, &encVideoParamsAVC);
 
     VideoConfigAVCStreamFormat streamFormat;
     streamFormat.size = sizeof(VideoConfigAVCStreamFormat);
