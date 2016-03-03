@@ -107,29 +107,6 @@ static VAProfile getH264VAProfile(H264PPS * pps)
 }
 
 
-static VaapiChromaType getH264ChromaType(H264SPS * sps)
-{
-    VaapiChromaType chromaType = VAAPI_CHROMA_TYPE_YUV420;
-
-    switch (sps->chroma_format_idc) {
-    case 0:
-        chromaType = VAAPI_CHROMA_TYPE_YUV400;
-        break;
-    case 1:
-        chromaType = VAAPI_CHROMA_TYPE_YUV420;
-        break;
-    case 2:
-        chromaType = VAAPI_CHROMA_TYPE_YUV422;
-        break;
-    case 3:
-        if (!sps->separate_colour_plane_flag)
-            chromaType = VAAPI_CHROMA_TYPE_YUV444;
-        break;
-    }
-    return chromaType;
-}
-
-
 static inline uint32_t
 getSliceDataBitOffset(SliceHeaderPtr sliceHdr, uint32_t nal_header_bytes)
 {
@@ -924,15 +901,6 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
         m_configBuffer.flag |= HAS_VA_PROFILE;
         resetContext = true;
     }
-
-    /*
-       parsedChroma = getH264ChromaType(sps);
-       if (parsedChroma != m_chromaType) {
-       WARNING("ensure context: chroma changed !\n");
-       m_chromaType = parsedChroma;
-       resetContext = true;
-       }
-     */
 
     mbWidth = sps->pic_width_in_mbs_minus1 + 1;
     mbHeight = (sps->pic_height_in_map_units_minus1 + 1) <<

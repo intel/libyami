@@ -62,7 +62,7 @@ bool VaapiDecSurfacePool::init(const DisplayPtr& display, VideoConfigBuffer* con
 
     m_renderBuffers.resize(size);
     for (uint32_t i = 0; i < size; i++) {
-        SurfacePtr s(new VaapiSurface(display, m_allocParams.surfaces[i], width, height));
+        SurfacePtr s(new VaapiSurface(m_allocParams.surfaces[i], width, height));
         VASurfaceID id = s->getID();
 
         m_renderBuffers[i].display = m_display->getID();

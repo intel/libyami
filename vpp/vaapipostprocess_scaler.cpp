@@ -77,7 +77,7 @@ VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
         return YAMI_INVALID_PARAM;
     }
     copyVideoFrameMeta(src, dest);
-    SurfacePtr surface(new VaapiSurface(m_display,(VASurfaceID)dest->surface));
+    SurfacePtr surface(new VaapiSurface(dest));
     VaapiVppPicture picture(m_context, surface);
     VAProcPipelineParameterBuffer* vppParam;
     if (!picture.editVppParam(vppParam))

@@ -331,9 +331,9 @@ bool VaapiDecoderVP8::ensureProbabilityTable(const PicturePtr&  pic)
     // XXX, create/render VAProbabilityDataBufferVP8 in base class
     if (!pic->editProbTable(probTable))
         return false;
-    memcpy (probTable->dct_coeff_probs, 
-		   m_frameHdr.token_probs.prob,
-           sizeof (m_frameHdr.token_probs.prob));
+    memcpy(probTable->dct_coeff_probs,
+        m_frameHdr.token_probs.prob,
+        sizeof(m_frameHdr.token_probs.prob));
     return true;
 }
 
@@ -411,7 +411,7 @@ bool VaapiDecoderVP8::allocNewPicture()
 
     SurfacePtr surface = m_currentPicture->getSurface();
     ASSERT(m_frameWidth && m_frameHeight);
-    if (!surface->resize(m_frameWidth, m_frameHeight)) {
+    if (!surface->setCrop(0, 0, m_frameWidth, m_frameHeight)) {
         ASSERT(0 && "frame size is bigger than internal surface resolution");
         return false;
     }

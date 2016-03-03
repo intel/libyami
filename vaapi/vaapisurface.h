@@ -1,11 +1,8 @@
 /*
- *  vaapisurface.h - VA surface abstraction
+ *  vaapisurface.h just proxy for SharedPtr<VideoFrame>
  *
- *  Copyright (C) 2010-2011 Splitted-Desktop Systems
- *    Author: Gwenole Beauchesne <gwenole.beauchesne@splitted-desktop.com>
- *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Gwenole Beauchesne <gwenole.beauchesne@intel.com>
- *    Author: Xiaowei Li<xiaowei.li@intel.com>
+ *  Copyright (C) 2016 Intel Corporation
+ *    Author: Xu Guangxin <Guangxin.Xu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -22,75 +19,31 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-
 #ifndef vaapisurface_h
 #define vaapisurface_h
 
-#include "vaapiptrs.h"
-#include "vaapitypes.h"
-#include <va/va_drmcommon.h>
+#include "interface/VideoCommonDefs.h"
 #include <va/va.h>
-#include "common/common_def.h"
+#include <stdint.h>
 
 namespace YamiMediaCodec{
-typedef enum {
-    VAAPI_CHROMA_TYPE_YUV400,
-    VAAPI_CHROMA_TYPE_YUV420,
-    VAAPI_CHROMA_TYPE_YUV422,
-    VAAPI_CHROMA_TYPE_YUV444
-} VaapiChromaType;
 
-typedef enum {
-    VAAPI_SURFACE_STATUS_IDLE = 1 << 0,
-    VAAPI_SURFACE_STATUS_RENDERING = 1 << 1,
-    VAAPI_SURFACE_STATUS_DISPLAYING = 1 << 2,
-    VAAPI_SURFACE_STATUS_SKIPPED = 1 << 3
-} VaapiSurfaceStatus;
+class VaapiSurface {
+public:
+    VaapiSurface(intptr_t id, uint32_t width, uint32_t height);
+    VaapiSurface(const SharedPtr<VideoFrame>&);
 
-class VaapiSurface
-{
-  private:
-    DISALLOW_COPY_AND_ASSIGN(VaapiSurface);
-  public:
-    static SurfacePtr create(const DisplayPtr&,
-                             VaapiChromaType,
-                             uint32_t width,
-                             uint32_t height,
-                             void *surfaceAttribArray,
-                             uint32_t surfAttribNum);
-    VaapiSurface(const DisplayPtr&, VASurfaceID);
-    VaapiSurface(const DisplayPtr& display, intptr_t id, uint32_t width, uint32_t height);
+    VASurfaceID getID();
 
-    ~VaapiSurface();
+    bool setCrop(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
+    void getCrop(uint32_t& x, uint32_t& y, uint32_t& width, uint32_t& height);
 
-    VaapiChromaType getChromaType(void);
-    VASurfaceID getID(void) const;
-    uint32_t getWidth(void);
-    uint32_t getHeight(void);
-    bool resize(uint32_t width, uint32_t height);
-    DisplayPtr getDisplay();
-
-    bool sync();
-    bool queryStatus(VaapiSurfaceStatus * pStatus);
-
-  private:
-    VaapiSurface(const DisplayPtr&,
-                 VASurfaceID,
-                 VaapiChromaType,
-                 uint32_t width,
-                 uint32_t height);
-
-    uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
-
-    DisplayPtr m_display;
-    VaapiChromaType m_chromaType;
-    uint32_t m_allocWidth;
-    uint32_t m_allocHeight;
+private:
+    SharedPtr<VideoFrame> m_frame;
     uint32_t m_width;
     uint32_t m_height;
-    uint32_t m_fourcc;
-    VASurfaceID m_ID;
-    bool     m_owner;       //surface owner
+    DISALLOW_COPY_AND_ASSIGN(VaapiSurface)
 };
 }
-#endif                          /* VAAPI_SURFACE_H */
+
+#endif //vaapisurface_h

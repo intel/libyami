@@ -112,4 +112,9 @@ bool VaapiPicture::addObject(std::vector < BufObjectPtr >& objects,
     objects.push_back(object);
     return true;
 }
+
+bool VaapiPicture::sync()
+{
+    return vaSyncSurface(m_display->getID(), getSurfaceID()) == VA_STATUS_SUCCESS;
+}
 }

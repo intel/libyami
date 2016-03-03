@@ -311,7 +311,7 @@ SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
         &id, 1, &attrib, 1);
     if (!checkVaapiStatus(status, "vaCreateSurfaces"))
         return surface;
-    surface.reset(new VaapiSurface(m_display, (intptr_t)id, width, height),
+    surface.reset(new VaapiSurface((intptr_t)id, width, height),
         SurfaceDestroyer(m_display));
     return surface;
 }
@@ -388,17 +388,9 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
     return surface;
 }
 
-struct SurfaceRecycler
-{
-    SurfaceRecycler(const SharedPtr<VideoFrame>& frame): m_frame(frame){}
-    void operator()(VaapiSurface* surface) { delete surface;}
-private:
-    SharedPtr<VideoFrame> m_frame;
-};
-
 SurfacePtr VaapiEncoderBase::createSurface(const SharedPtr<VideoFrame>& frame)
 {
-    SurfacePtr surface(new VaapiSurface(m_display, (VASurfaceID)frame->surface), SurfaceRecycler(frame));
+    SurfacePtr surface(new VaapiSurface(frame));
     return surface;
 }
 
@@ -519,7 +511,7 @@ bool VaapiEncoderBase::initVA()
 
     int32_t surfaceWidth = ALIGN16(m_videoParamCommon.resolution.width);
     int32_t surfaceHeight = ALIGN16(m_videoParamCommon.resolution.height);
-    m_pool = SurfacePool::create(m_display, m_alloc, YAMI_FOURCC_NV12, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight,m_maxOutputBuffer);
+    m_pool = SurfacePool::create(m_alloc, YAMI_FOURCC_NV12, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight, m_maxOutputBuffer);
     if (!m_pool)
         return false;
 

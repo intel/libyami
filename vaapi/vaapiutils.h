@@ -44,17 +44,6 @@ vaapiCreateBuffer(VADisplay dpy,
 
 void vaapiDestroyBuffer(VADisplay dpy, VABufferID * bufId);
 
-const char *stringOfVAProfile(VAProfile profile);
-
-const char *stringOfVAEntrypoint(VAEntrypoint entrypoint);
-
-uint32_t fromVaapiSurfaceRenderFlags(uint32_t flags);
-
-uint32_t toVaapiSurfaceStatus(uint32_t vaFlags);
-
-uint32_t fromVaapiRotation(uint32_t value);
-
-uint32_t toVaapiRotation(uint32_t value);
 
 static inline bool checkVaapiStatus(VAStatus status, const char *msg)
 {
