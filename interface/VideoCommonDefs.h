@@ -201,6 +201,7 @@ typedef struct VideoFrame {
 #endif
 } VideoFrame;
 
+#define YAMI_MIME_MPEG2 "video/mpeg2"
 #define YAMI_MIME_H264 "video/h264"
 #define YAMI_MIME_AVC  "video/avc"
 #define YAMI_MIME_H265 "video/h265"

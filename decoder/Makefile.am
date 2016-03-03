@@ -12,6 +12,10 @@ libyami_decoder_source_c = \
 	vaapidecpicture.cpp \
 	$(NULL)
 
+if BUILD_MPEG2_DECODER
+libyami_decoder_source_c += vaapidecoder_mpeg2.cpp
+endif
+
 if BUILD_H264_DECODER
 libyami_decoder_source_c += vaapidecoder_h264.cpp
 endif
@@ -48,6 +52,10 @@ libyami_decoder_source_h_priv = \
 	vaapidecsurfacepool.h \
 	vaapidecpicture.h \
 	$(NULL)
+
+if BUILD_MPEG2_DECODER
+libyami_decoder_source_h_priv += vaapidecoder_mpeg2.h
+endif
 
 if BUILD_H264_DECODER
 libyami_decoder_source_h_priv += vaapidecoder_h264.h
@@ -122,6 +130,10 @@ endif
 
 if BUILD_H265_DECODER
 unittest_SOURCES += vaapidecoder_h265_unittest.cpp
+endif
+
+if BUILD_MPEG2_DECODER
+unittest_SOURCES += vaapidecoder_mpeg2_unittest.cpp
 endif
 
 unittest_LDFLAGS = \

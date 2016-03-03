@@ -87,6 +87,7 @@ struct MimeEntry
 };
 
 static const MimeEntry MimeEntrys[] = {
+    AV_CODEC_ID_MPEG2VIDEO, YAMI_MIME_MPEG2,
     AV_CODEC_ID_VP8, YAMI_MIME_VP8,
 
 #if LIBAVCODEC_VERSION_INT > AV_VERSION_INT(54, 40, 0)
