@@ -31,6 +31,7 @@
 #include "vaapidecoder_factory.h"
 #include "codecparsers/bytereader.h"
 
+#include "common/common_def.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"

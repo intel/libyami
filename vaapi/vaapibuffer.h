@@ -1,11 +1,8 @@
 /*
- *  vaapibuffer.h - Basic object used for decode/encode
+ *  vaapibuffer.h just abstract for VABuffer
  *
- *  Copyright (C) 2010-2011 Splitted-Desktop Systems
- *    Author: Gwenole Beauchesne <gwenole.beauchesne@splitted-desktop.com>
- *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Gwenole Beauchesne <gwenole.beauchesne@intel.com>
- *    Author: Xiaowei Li<xiaowei.li@intel.com>
+ *  Copyright (C) 2016 Intel Corporation
+ *    Author: Xu Guangxin <Guangxin.Xu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -22,39 +19,37 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
+#ifndef vaapibuffer_h
+#define vaapibuffer_h
 
-#ifndef VAAPIBUFFER_H
-#define VAAPIBUFFER_H
-
-#include "vaapitypes.h"
+#include "interface/VideoCommonDefs.h"
 #include "vaapiptrs.h"
-#include <stdint.h>
+
 #include <va/va.h>
-#include "common/common_def.h"
+#include <stdint.h>
 
 namespace YamiMediaCodec{
-class VaapiBufObject {
-  private:
-    DISALLOW_COPY_AND_ASSIGN(VaapiBufObject);
-  public:
-    ~VaapiBufObject();
-    VABufferID getID() const;
-    uint32_t getSize();
-    void *map();
-    void unmap();
-    bool isMapped() const;
-    static BufObjectPtr create(const ContextPtr&,
-                               VABufferType bufType,
-                               uint32_t size,
-                               const void *data = 0,
-                               void **mapped_data = 0);
 
-  private:
-    VaapiBufObject(const DisplayPtr&, VABufferID, void *buf, uint32_t size);
+class VaapiBuffer {
+public:
+    static BufObjectPtr create(const ContextPtr&,
+        VABufferType,
+        uint32_t size,
+        const void* data = 0);
+    void* map();
+    void unmap();
+    uint32_t getSize();
+    VABufferID getID();
+    ~VaapiBuffer();
+
+private:
+    VaapiBuffer(const DisplayPtr&, VABufferID id, uint32_t size);
     DisplayPtr m_display;
-    VABufferID m_bufID;
-    void *m_buf;
+    VABufferID m_id;
+    void* m_data;
     uint32_t m_size;
+    DISALLOW_COPY_AND_ASSIGN(VaapiBuffer)
 };
 }
-#endif                          /* VAAPIBUFFER_H */
+
+#endif //vaapibuffer_h

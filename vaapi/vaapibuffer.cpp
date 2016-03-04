@@ -1,11 +1,8 @@
 /*
- *  vaapibuffer.cpp - Basic object used for decode/encode
+ *  vaapibuffer.cpp abstract for VABuffer
  *
- *  Copyright (C) 2010-2011 Splitted-Desktop Systems
- *    Author: Gwenole Beauchesne <gwenole.beauchesne@splitted-desktop.com>
- *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Gwenole Beauchesne <gwenole.beauchesne@intel.com>
- *    Author: Xiaowei Li<xiaowei.li@intel.com>
+ *  Copyright (C) 2016 Intel Corporation
+ *    Author: Xu Guangxin <Guangxin.Xu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -22,86 +19,77 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include "vaapibuffer.h"
 
-#include "common/log.h"
+#include "vaapiutils.h"
 #include "vaapicontext.h"
 #include "vaapidisplay.h"
-#include "vaapiutils.h"
-#include <va/va.h>
 
 namespace YamiMediaCodec{
-VaapiBufObject::VaapiBufObject(const DisplayPtr& display,
-                               VABufferID bufID, void *buf, uint32_t size)
-:m_display(display), m_bufID(bufID), m_buf(buf), m_size(size)
-{
 
+BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
+    VABufferType type,
+    uint32_t size,
+    const void* data)
+{
+    BufObjectPtr buf;
+    if (!context || !context->getDisplay())
+        return buf;
+    DisplayPtr display = context->getDisplay();
+    VABufferID id;
+    VAStatus status = vaCreateBuffer(display->getID(), context->getID(),
+        type, size, 1, (void*)data, &id);
+    if (!checkVaapiStatus(status, "vaCreateBuffer"))
+        return buf;
+    buf.reset(new VaapiBuffer(display, id, size));
+    return buf;
 }
 
-VaapiBufObject::~VaapiBufObject()
+void* VaapiBuffer::map()
 {
-    unmap();
-    vaapiDestroyBuffer(m_display->getID(), &m_bufID);
+    if (!m_data) {
+        VAStatus status = vaMapBuffer(m_display->getID(), m_id, &m_data);
+        if (!checkVaapiStatus(status, "vaMapBuffer")) {
+            m_data = NULL;
+        }
+    }
+    return m_data;
 }
 
-VABufferID VaapiBufObject::getID() const
+void VaapiBuffer::unmap()
 {
-    return m_bufID;
+    if (m_data) {
+        checkVaapiStatus(vaUnmapBuffer(m_display->getID(), m_id), "vaUnmapBuffer");
+        m_data = NULL;
+    }
 }
 
-uint32_t VaapiBufObject::getSize()
+uint32_t VaapiBuffer::getSize()
 {
     return m_size;
 }
 
-void *VaapiBufObject::map()
+VABufferID VaapiBuffer::getID()
 {
-    if (m_buf)
-        return m_buf;
-
-    m_buf = vaapiMapBuffer(m_display->getID(), m_bufID);
-    return m_buf;
+    return m_id;
 }
 
-void VaapiBufObject::unmap()
+VaapiBuffer::VaapiBuffer(const DisplayPtr& display, VABufferID id, uint32_t size)
+    : m_display(display)
+    , m_id(id)
+    , m_data(NULL)
+    , m_size(size)
 {
-    if (m_buf) {
-        vaapiUnmapBuffer(m_display->getID(), m_bufID, &m_buf);
-        m_buf = NULL;
-    }
 }
 
-bool VaapiBufObject::isMapped() const
+VaapiBuffer::~VaapiBuffer()
 {
-    return m_buf != NULL;
+    unmap();
+    checkVaapiStatus(vaDestroyBuffer(m_display->getID(), m_id), "vaDestroyBuffer");
 }
 
-BufObjectPtr VaapiBufObject::create(const ContextPtr& context,
-                                    VABufferType bufType,
-                                    uint32_t size,
-                                    const void *data, void **mapped_data)
-{
-    BufObjectPtr buf;
-
-    if (size == 0) {
-        ERROR("buffer size is zero");
-        return buf;
-    }
-
-    DisplayPtr display = context->getDisplay();
-    VABufferID bufID;
-    if (!vaapiCreateBuffer(display->getID(), context->getID(),
-                           bufType, size, data, &bufID, mapped_data)) {
-        ERROR("create buffer failed");
-        return buf;
-    }
-
-    void *mapped = mapped_data ? *mapped_data : NULL;
-    buf.reset(new VaapiBufObject(display, bufID, mapped, size));
-    return buf;
-}
 }

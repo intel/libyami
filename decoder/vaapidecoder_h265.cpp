@@ -26,6 +26,8 @@
 #endif
 
 #include "codecparsers/h265parser.h"
+
+#include "common/common_def.h"
 #include "common/log.h"
 #include "common/nalreader.h"
 #include "vaapidecoder_factory.h"

@@ -72,13 +72,14 @@ protected:
     template<class T>
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
     inline BufObjectPtr createBufferObject(VABufferType bufType,
-                                           uint32_t size,const void *data, void **mapped_data);
+        uint32_t size, const void* data, void** mapped);
     VaapiPicture();
 };
 
 template<class T>
 BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr)
 {
+    bufPtr = NULL;
     BufObjectPtr  p = createBufferObject(bufType, sizeof(T), NULL, (void**)&bufPtr);
     if (p)
         memset(bufPtr, 0, sizeof(T));
@@ -86,9 +87,15 @@ BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr)
 }
 
 BufObjectPtr VaapiPicture::createBufferObject(VABufferType bufType,
-                                          uint32_t size,const void *data, void **mapped_data)
+    uint32_t size, const void* data, void** mapped)
 {
-    return VaapiBufObject::create(m_context, bufType, size, data, mapped_data);
+    BufObjectPtr p = VaapiBuffer::create(m_context, bufType, size, data);
+    if (p && mapped) {
+        *mapped = p->map();
+        if (!*mapped)
+            p.reset();
+    }
+    return p;
 }
 
 template<class T>

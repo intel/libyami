@@ -74,8 +74,7 @@ bool VaapiPicture::render(BufObjectPtr& buffer)
     if (!buffer)
         return true;
 
-    if (buffer->isMapped())
-        buffer->unmap();
+    buffer->unmap();
 
     bufferID = buffer->getID();
     if (bufferID == VA_INVALID_ID)
