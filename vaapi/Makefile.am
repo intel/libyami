@@ -4,7 +4,7 @@ libyami_vaapi_source_c = \
 	vaapipicture.cpp \
 	vaapibuffer.cpp \
 	vaapisurface.cpp\
-	vaapiimageutils.cpp \
+	vaapiutils.cpp \
 	vaapidisplay.cpp \
 	vaapicontext.cpp \
 	vaapisurfaceallocator.cpp \
@@ -14,7 +14,6 @@ libyami_vaapi_source_h_priv = \
 	vaapipicture.h \
 	vaapibuffer.h \
 	vaapisurface.h \
-	vaapiimageutils.h \
 	vaapiutils.h \
 	vaapitypes.h \
 	vaapidisplay.h \

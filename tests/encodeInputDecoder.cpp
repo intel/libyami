@@ -26,7 +26,7 @@
 
 #include "encodeInputDecoder.h"
 #include "common/log.h"
-#include "vaapi/vaapiimageutils.h"
+#include "vaapi/vaapiutils.h"
 #include "assert.h"
 
 EncodeInputDecoder::EncodeInputDecoder(DecodeInput* input)
