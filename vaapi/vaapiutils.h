@@ -1,11 +1,8 @@
 /*
- *  vaapiutils.h - VA-API utilities
+ *  vaapiutils.h utils for vaapi
  *
- *  Copyright (C) 2010-2011 Splitted-Desktop Systems
- *    Author: Gwenole Beauchesne <gwenole.beauchesne@splitted-desktop.com>
- *  Copyright (C) 2011-2014 Intel Corporation
- *    Author: Gwenole Beauchesne <gwenole.beauchesne@intel.com>
- *    Author: Xiaowei Li<xiaowei.li@intel.com>
+ *  Copyright (C) 2016 Intel Corporation
+ *    Author: Xu Guangxin <Guangxin.Xu@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -22,36 +19,20 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-
 #ifndef vaapiutils_h
 #define vaapiutils_h
 
-#include <stdint.h>
-#include <va/va.h>
 #include "common/log.h"
+#include <va/va.h>
 
-namespace YamiMediaCodec{
-void *vaapiMapBuffer(VADisplay dpy, VABufferID bufId);
+#define checkVaapiStatus(status, prompt)                     \
+    (                                                        \
+        {                                                    \
+            bool ret;                                        \
+            ret = (status == VA_STATUS_SUCCESS);             \
+            if (!ret)                                        \
+                ERROR("%s: %s", prompt, vaErrorStr(status)); \
+            ret;                                             \
+        })
 
-void vaapiUnmapBuffer(VADisplay dpy, VABufferID bufId, void **pbuf);
-
-bool
-vaapiCreateBuffer(VADisplay dpy,
-                  VAContextID ctx,
-                  int type,
-                  unsigned int size,
-                  const void *data, VABufferID * bufId, void **mappedData);
-
-void vaapiDestroyBuffer(VADisplay dpy, VABufferID * bufId);
-
-
-static inline bool checkVaapiStatus(VAStatus status, const char *msg)
-{
-    if (status != VA_STATUS_SUCCESS) {
-        ERROR("%s: %s", msg, vaErrorStr(status));
-        return false;
-    }
-    return true;
-}
-}
-#endif                          /* vaapiutils_h */
+#endif //vaapiutils_h

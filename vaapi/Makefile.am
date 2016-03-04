@@ -5,7 +5,6 @@ libyami_vaapi_source_c = \
 	vaapibuffer.cpp \
 	vaapisurface.cpp\
 	vaapiimageutils.cpp \
-	vaapiutils.cpp \
 	vaapidisplay.cpp \
 	vaapicontext.cpp \
 	vaapisurfaceallocator.cpp \
