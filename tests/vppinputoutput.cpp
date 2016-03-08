@@ -36,7 +36,9 @@
 #include "vppinputoutput.h"
 #include "vppoutputencode.h"
 #include "vppinputdecode.h"
-
+#ifdef __ENABLE_CAPI__
+#include "vppinputdecodecapi.h"
+#endif
 using namespace YamiMediaCodec;
 
 #ifndef ANDROID
@@ -67,9 +69,15 @@ SharedPtr<VppInput> VppInput::create(const char* inputFileName, uint32_t fourcc,
     if (!inputFileName)
         return input;
 
+#ifdef __ENABLE_CAPI__
+    input.reset(new VppInputDecodeCapi);
+    if(input->init(inputFileName, fourcc, width, height))
+        return input;
+#else
     input.reset(new VppInputDecode);
     if(input->init(inputFileName, fourcc, width, height))
         return input;
+#endif
     input.reset(new VppInputFile);
     if (input->init(inputFileName, fourcc, width, height))
         return input;
@@ -194,12 +202,6 @@ bool VppOutputFile::init(const char* outputFileName, uint32_t fourcc, int width,
     if (!outputFileName) {
         ERROR("output file name is null");
         return false;
-    }
-    if(!fourcc || !width || !height) {
-        if (!guessFormat(outputFileName, fourcc, width, height)) {
-            ERROR("guess format from %s failed", outputFileName);
-            return false;
-        }
     }
     m_fourcc = fourcc;
     m_width = width;

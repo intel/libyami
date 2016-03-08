@@ -89,6 +89,7 @@ public:
     }
     bool setFormat(uint32_t fourcc, int width, int height)
     {
+        destroySurfaces();
         m_surfaces.resize(m_poolsize);
         VASurfaceAttrib attrib;
         attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
@@ -128,10 +129,14 @@ public:
     {
         return m_pool->alloc();
     }
-    ~PooledFrameAllocator()
+    void destroySurfaces()
     {
         if (m_surfaces.size())
             vaDestroySurfaces(*m_display, &m_surfaces[0], m_surfaces.size());
+    }
+    ~PooledFrameAllocator()
+    {
+        destroySurfaces();
     }
 private:
     SharedPtr<VADisplay> m_display;
@@ -164,8 +169,10 @@ public:
             return false;
         }
         uint32_t byteWidth[3], byteHeight[3], planes;
-        if (!getPlaneResolution(image.format.fourcc, image.width, image.height, byteWidth, byteHeight, planes)) {
-            ERROR("get plane reoslution failed for %x, %dx%d", image.format.fourcc, image.width, image.height);
+        //image.width is not equal to frame->crop.width.
+        //for supporting VPG Driver, use YV12 to replace I420
+        if (!getPlaneResolution(frame->fourcc, frame->crop.width, frame->crop.height, byteWidth, byteHeight, planes)) {
+            ERROR("get plane reoslution failed for %x, %dx%d", frame->fourcc, frame->crop.width, frame->crop.height);
             return false;
         }
         char* buf;
@@ -249,8 +256,7 @@ public:
     int getWidth() { return m_width;}
     int getHeight() { return m_height;}
 
-    virtual ~VppInput() {};
-
+    virtual ~VppInput(){}
 protected:
     uint32_t m_fourcc;
     int m_width;

@@ -42,6 +42,10 @@ VPP_INPUT_SOURCES = \
 	$(top_builddir)/tests/encodeInputCamera.cpp \
 	$(NULL)
 
+if ENABLE_CAPI
+VPP_INPUT_SOURCES += $(top_builddir)/tests/vppinputdecodecapi.cpp
+endif
+
 AM_CPPFLAGS = $(AM_CFLAGS)
 YAMI_COMMON_LIBS = \
 	$(LIBVA_LIBS) \

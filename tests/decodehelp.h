@@ -3,7 +3,8 @@
  *
  *  Copyright (C) 2011-2014 Intel Corporation
  *    Author: Halley Zhao<halley.zhao@intel.com>
- *             Xin Tang<xin.t.tang@intel.com>
+ *            Xin Tang<xin.t.tang@intel.com>
+ *            Lin Hai<hai1.lin@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -20,36 +21,16 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-#ifndef __DECODE_HELP__
-#define __DECODE_HELP__
+#ifndef decodehelp_h
+#define decodehelp_h
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
-
-#ifdef __cpluscplus
-extern "C" {
-#endif
-
-#include "interface/VideoDecoderDefs.h"
-#ifdef __ENABLE_CAPI__
-#include "capi/VideoDecoderCapi.h"
-#else
-#include "interface/VideoDecoderHost.h"
-#endif
-#include "common/log.h"
 #include <unistd.h>
 #include <limits.h>
+#include <stdlib.h>
+#include <string>
+#include "common/utils.h"
 
-#ifndef VA_FOURCC_I420
-#define VA_FOURCC_I420 VA_FOURCC('I','4','2','0')
-#endif
-char *dumpOutputName = NULL;
-uint32_t dumpFourcc = VA_FOURCC_I420;
-char *inputFileName = NULL;
-int renderMode = 1;
-static int32_t waitBeforeQuit = 1;
-static uint32_t frameCount = UINT_MAX;
+using namespace YamiMediaCodec;
 
 static void print_help(const char* app)
 {
@@ -71,10 +52,28 @@ static void print_help(const char* app)
     printf(" [*] v4l2decode doesn't support the option\n");
 }
 
-static bool process_cmdline(int argc, char *argv[])
+typedef struct DecodeParameter
 {
-    char opt;
+    char*    inputFile;
+    int      width;
+    int      height;
+    short    renderMode;
+    short    waitBeforeQuit;
+    uint32_t renderFrames;
+    uint32_t renderFourcc;
+    std::string outputFile;
+} DecodeParameter;
 
+bool processCmdLine(int argc, char** argv, DecodeParameter* parameters)
+{
+    bool isSetFourcc = false;
+    char* outputFile = NULL;
+    parameters->renderFrames   = UINT_MAX;
+    parameters->waitBeforeQuit = 1;
+    parameters->renderMode     = 1;
+    parameters->inputFile      = NULL;
+
+    char opt;
     while ((opt = getopt(argc, argv, "h:m:n:i:f:o:w:?")) != -1)
     {
         switch (opt) {
@@ -83,24 +82,25 @@ static bool process_cmdline(int argc, char *argv[])
             print_help (argv[0]);
             return false;
         case 'i':
-            inputFileName = optarg;
+                parameters->inputFile = optarg;
             break;
         case 'w':
             if (optarg)
-                waitBeforeQuit = atoi(optarg);
+                parameters->waitBeforeQuit = atoi(optarg);
             break;
         case 'm':
             if (optarg)
-                renderMode = atoi(optarg);
+                parameters->renderMode = atoi(optarg);
             break;
         case 'n':
             if (optarg)
-                frameCount = atoi(optarg);
+                parameters->renderFrames = atoi(optarg);
             break;
         case 'f':
             if (optarg) {
                 if (strlen(optarg) == 4) {
-                    dumpFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
+                    parameters->renderFourcc = VA_FOURCC(optarg[0], optarg[1], optarg[2], optarg[3]);
+                    isSetFourcc = true;
                 } else {
                     fprintf(stderr, "invalid fourcc: %s\n", optarg);
                     return false;
@@ -109,33 +109,39 @@ static bool process_cmdline(int argc, char *argv[])
             break;
         case 'o':
             if (optarg)
-                dumpOutputName = strdup(optarg);
+                outputFile = strdup(optarg);
             break;
         default:
             print_help(argv[0]);
             break;
         }
     }
-    if (!inputFileName) {
-        fprintf(stderr, "no input media file specified\n");
+    if (!parameters->inputFile) {
+        fprintf(stderr, "no input media file specified.\n");
         return false;
     }
-    fprintf(stderr, "input file: %s, renderMode: %d\n", inputFileName, renderMode);
-
-    if (!dumpOutputName)
-        dumpOutputName = strdup ("./");
-
+    if (!outputFile)
+        outputFile = strdup ("./");
+    parameters->outputFile = outputFile;
+    free(outputFile);
+    if (!isSetFourcc)
+        parameters->renderFourcc = guessFourcc(parameters->outputFile.c_str());
+    int width, height;
+    if (guessResolution(parameters->inputFile, width, height)) {
+        parameters->width =  width;
+        parameters->height =  height;
+    }
     return true;
 }
 
-static bool possibleWait(const char* mimeType)
+static bool possibleWait(const char* mimeType, short wait, short mode)
 {
     // waitBeforeQuit 0:no-wait, 1:auto(jpeg wait), 2:wait
-    switch(waitBeforeQuit) {
+    switch(wait) {
     case 0:
         break;
     case 1:
-        if (renderMode == 0 || strcmp(mimeType, YAMI_MIME_JPEG))
+        if (mode == 0 || strcmp(mimeType, YAMI_MIME_JPEG))
             break;
     case 2:
         fprintf(stdout, "press any key to continue ...");
@@ -148,4 +154,4 @@ static bool possibleWait(const char* mimeType)
     return true;
 }
 
-#endif
+#endif //decodehelp_h

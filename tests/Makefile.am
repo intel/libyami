@@ -117,7 +117,7 @@ YAMI_VPP_CFLAGS = \
 if ENABLE_CAPI
 decodecapi_LDADD    = $(CAPI_DECODE_LIBS)
 decodecapi_LDFLAGS  = $(YAMI_STATIC_LDFLAGS)
-decodecapi_SOURCES  = decodecapi.c decodehelp.h  decodeInputCapi.cpp decodeOutputCapi.cpp $(DECODE_INPUT_SOURCES) decodeoutput.cpp
+decodecapi_SOURCES  = decode.cpp decodehelp.h $(DECODE_INPUT_SOURCES) decodeoutput.cpp vppinputoutput.cpp vppinputdecode.cpp vppoutputencode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp vppinputdecodecapi.cpp
 if ENABLE_TESTS_GLES
 decodecapi_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif
@@ -128,7 +128,7 @@ encodecapi_SOURCES  = encodecapi.c encodehelp.h encodeinput.cpp encodeInputCamer
 else
 yamidecode_LDADD    = $(YAMI_DECODE_LIBS)
 yamidecode_LDFLAGS  = $(YAMI_DECODE_LDFLAGS)
-yamidecode_SOURCES  = decode.cpp decodehelp.h $(DECODE_INPUT_SOURCES) decodeoutput.cpp
+yamidecode_SOURCES  = decode.cpp decodehelp.h $(DECODE_INPUT_SOURCES) decodeoutput.cpp vppinputoutput.cpp vppinputdecode.cpp vppoutputencode.cpp encodeinput.cpp encodeInputCamera.cpp encodeInputDecoder.cpp
 if ENABLE_TESTS_GLES
 yamidecode_SOURCES += ../egl/egl_util.c ./egl/gles2_help.c
 endif

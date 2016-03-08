@@ -1,8 +1,8 @@
 /*
- *  vppinputdecode.cpp - vpp input from decoded file
+ *  vppinputdecodecapi.cpp - vpp input from decoded file for capi
  *
  *  Copyright (C) 2015 Intel Corporation
- *    Author: Xu Guangxin <guangxin.xu@intel.com>
+ *    Author: Lin Hai<hai1.lin@intel.com>
  *
  *  This library is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU Lesser General Public License
@@ -19,14 +19,30 @@
  *  Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
  *  Boston, MA 02110-1301 USA
  */
-#include "tests/vppinputdecode.h"
 
-bool VppInputDecode::init(const char* inputFileName, uint32_t /*fourcc*/, int /*width*/, int /*height*/)
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include "vppinputdecodecapi.h"
+
+static void freeFrame(VideoFrame* frame)
+{
+	frame->free(frame);
+}
+
+VppInputDecodeCapi::~VppInputDecodeCapi()
+{
+	decodeStop(m_decoder);
+	releaseDecoder(m_decoder);
+}
+
+bool VppInputDecodeCapi::init(const char* inputFileName, uint32_t /*fourcc*/, int /*width*/, int /*height*/)
 {
     m_input.reset(DecodeInput::create(inputFileName));
     if (!m_input)
         return false;
-    m_decoder.reset(createVideoDecoder(m_input->getMimeType()), releaseVideoDecoder);
+    m_decoder = createDecoder(m_input->getMimeType());
     if (!m_decoder) {
         fprintf(stderr, "failed create decoder for %s", m_input->getMimeType());
         return false;
@@ -34,9 +50,9 @@ bool VppInputDecode::init(const char* inputFileName, uint32_t /*fourcc*/, int /*
     return true;
 }
 
-bool VppInputDecode::config(NativeDisplay& nativeDisplay)
+bool VppInputDecodeCapi::config(NativeDisplay& nativeDisplay)
 {
-    m_decoder->setNativeDisplay(&nativeDisplay);
+    decodeSetNativeDisplay(m_decoder, &nativeDisplay);
 
     VideoConfigBuffer configBuffer;
     memset(&configBuffer, 0, sizeof(configBuffer));
@@ -48,53 +64,38 @@ bool VppInputDecode::config(NativeDisplay& nativeDisplay)
     }
     configBuffer.width = m_input->getWidth();
     configBuffer.height = m_input->getHeight();
-    Decode_Status status = m_decoder->start(&configBuffer);
-    if (status == DECODE_SUCCESS) {
-        //read first frame to update width height
-        if (!read(m_first))
-            status = DECODE_FAIL;
-    }
+    Decode_Status status = decodeStart(m_decoder, &configBuffer);
     return status == DECODE_SUCCESS;
 }
 
-bool VppInputDecode::read(SharedPtr<VideoFrame>& frame)
+bool VppInputDecodeCapi::read(SharedPtr<VideoFrame>& frame)
 {
-    if (m_first) {
-        frame = m_first;
-        m_first.reset();
-        return true;
-    }
-
     while (1)  {
-        frame = m_decoder->getOutput();
-        if (frame)
+        VideoFrame* tmp = getOutput(m_decoder);
+        if (tmp) {
+            frame.reset(tmp, freeFrame);
             return true;
+        }
         if (m_error || m_eos)
             return false;
         VideoDecodeBuffer inputBuffer;
         Decode_Status status = DECODE_FAIL;
         if (m_input->getNextDecodeUnit(inputBuffer)) {
-            status = m_decoder->decode(&inputBuffer);
+            status = decode(m_decoder, &inputBuffer);
             if (DECODE_FORMAT_CHANGE == status) {
-
-                //update width height
-                const VideoFormatInfo* info = m_decoder->getFormatInfo();
-                m_width = info->width;
-                m_height = info->height;
-
                 //resend the buffer
-                status = m_decoder->decode(&inputBuffer);
+                status = decode(m_decoder, &inputBuffer);
             }
         } else { /*EOS, need to flush*/
             inputBuffer.data = NULL;
             inputBuffer.size = 0;
-            status = m_decoder->decode(&inputBuffer);
+            decode(m_decoder, &inputBuffer);
             m_eos = true;
         }
         if (status != DECODE_SUCCESS){  /*failed, need to flush*/
             inputBuffer.data = NULL;
             inputBuffer.size = 0;
-            m_decoder->decode(&inputBuffer);
+            decode(m_decoder, &inputBuffer);
             m_error = true;
         }
 
