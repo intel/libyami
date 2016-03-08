@@ -26,6 +26,8 @@ extern "C" {
     #define AV_CODEC_ID_NONE   CODEC_ID_NONE
     #define AV_CODEC_ID_VP8    CODEC_ID_VP8
     #define AV_CODEC_ID_H264   CODEC_ID_H264
+    #define AV_CODEC_ID_WMV3   CODEC_ID_WMV3
+    #define AV_CODEC_ID_VC1    CODEC_ID_VC1
 #endif
 }
 

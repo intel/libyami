@@ -1,0 +1,356 @@
+/*
+ * Copyright 2016 Intel Corporation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+#include <string.h>
+#include <tr1/functional>
+#include "common/log.h"
+#include "vaapidecoder_vc1.h"
+#include "vaapidecoder_factory.h"
+
+namespace YamiMediaCodec {
+using namespace ::YamiParser::VC1;
+VaapiDecoderVC1::VaapiDecoderVC1()
+{
+}
+
+VaapiDecoderVC1::~VaapiDecoderVC1()
+{
+    stop();
+}
+
+Decode_Status VaapiDecoderVC1::start(VideoConfigBuffer* buffer)
+{
+    buffer->profile = VAProfileVC1Main;
+    buffer->surfaceNumber = 4;
+    m_configBuffer = *buffer;
+    m_parser.m_seqHdr.coded_width = m_configBuffer.width;
+    m_parser.m_seqHdr.coded_height = m_configBuffer.height;
+    if (!m_parser.parseCodecData(m_configBuffer.data, m_configBuffer.size))
+        return DECODE_FAIL;
+    return DECODE_SUCCESS;
+}
+
+void VaapiDecoderVC1::stop(void)
+{
+    flush();
+    VaapiDecoderBase::stop();
+}
+
+void VaapiDecoderVC1::flush(void)
+{
+    m_forwardPicture.reset();
+    VaapiDecoderBase::flush();
+}
+
+Decode_Status VaapiDecoderVC1::ensureContext()
+{
+    Decode_Status status;
+    if ((m_videoFormatInfo.width != m_configBuffer.width)
+        || (m_videoFormatInfo.height != m_configBuffer.height)) {
+
+        m_configBuffer.surfaceWidth = m_configBuffer.width;
+        m_configBuffer.surfaceHeight = m_configBuffer.height;
+        status = VaapiDecoderBase::start(&m_configBuffer);
+        if (status != DECODE_SUCCESS)
+            return status;
+        return DECODE_FORMAT_CHANGE;
+    }
+    return DECODE_SUCCESS;
+}
+
+bool VaapiDecoderVC1::makeBitPlanes(PicturePtr& picture, VAPictureParameterBufferVC1* param)
+{
+    uint8_t val = 0;
+    uint32_t i = 0, j = 0, k = 0, t = 0, dstIdx = 0, srcIdx = 0;
+    uint8_t* bitPlanes[3] = { NULL, NULL, NULL };
+    uint8_t* bitPlanesPayLoad = NULL;
+    if ((m_parser.m_frameHdr.picture_type == FRAME_I)
+        || (m_parser.m_frameHdr.picture_type == FRAME_BI)) {
+        if (param->bitplane_present.flags.bp_ac_pred)
+            bitPlanes[1] = &m_parser.m_bitPlanes.acpred[0];
+        if (param->bitplane_present.flags.bp_overflags)
+            bitPlanes[2] = &m_parser.m_bitPlanes.overflags[0];
+    }
+    else if (m_parser.m_frameHdr.picture_type == FRAME_P) {
+        if (param->bitplane_present.flags.bp_direct_mb)
+            bitPlanes[0] = &m_parser.m_bitPlanes.directmb[0];
+        if (param->bitplane_present.flags.bp_skip_mb)
+            bitPlanes[1] = &m_parser.m_bitPlanes.skipmb[0];
+        if (param->bitplane_present.flags.bp_mv_type_mb)
+            bitPlanes[2] = &m_parser.m_bitPlanes.mvtypemb[0];
+    }
+    else if (m_parser.m_frameHdr.picture_type == FRAME_B) {
+        if (param->bitplane_present.flags.bp_direct_mb)
+            bitPlanes[0] = &m_parser.m_bitPlanes.directmb[0];
+        if (param->bitplane_present.flags.bp_skip_mb)
+            bitPlanes[1] = &m_parser.m_bitPlanes.skipmb[0];
+    }
+    picture->editBitPlane(bitPlanesPayLoad, (m_parser.m_mbWidth * m_parser.m_mbHeight + 1) >> 1);
+    if (!bitPlanesPayLoad)
+        return false;
+    for (i = 0; i < m_parser.m_mbHeight; i++) {
+        for (j = 0; j < m_parser.m_mbWidth; j++) {
+            dstIdx = t++ >> 1;
+            srcIdx = i * m_parser.m_mbWidth + j;
+            val = 0;
+            for (k = 0; k < 3; k++) {
+                if (bitPlanes[k])
+                    val |= bitPlanes[k][srcIdx] << k;
+            }
+            bitPlanesPayLoad[dstIdx] = (bitPlanesPayLoad[dstIdx] << 4) | val;
+        }
+    }
+    if (t & 1)
+        bitPlanesPayLoad[(t >> 1)] <<= 4;
+    return true;
+}
+
+bool VaapiDecoderVC1::ensurePicture(PicturePtr& picture)
+{
+    VAPictureParameterBufferVC1* param;
+    SeqHdr* seqHdr = &m_parser.m_seqHdr;
+    EntryPointHdr* entryPointHdr = &m_parser.m_entryPointHdr;
+    FrameHdr* frameHdr = &m_parser.m_frameHdr;
+    if (!picture->editPicture(param))
+        return false;
+
+    param->forward_reference_picture = VA_INVALID_ID;
+    param->backward_reference_picture = VA_INVALID_ID;
+    param->inloop_decoded_picture = VA_INVALID_ID;
+    param->coded_width = m_configBuffer.width;
+    param->coded_height = m_configBuffer.height;
+
+#define FILL(h, f) param->f = h->f
+#define FILL_MV(h, f) param->mv_fields.bits.f = h->f
+#define FILL_RAWCODING(h, f) param->raw_coding.flags.f = h->f
+#define FILL_SEQUENCE(h, f) param->sequence_fields.bits.f = h->f
+#define FILL_REFERENCE(h, f) param->reference_fields.bits.f = h->f
+#define FILL_TRANSFORM(h, f) param->transform_fields.bits.f = h->f
+#define FILL_ENTRYPOINT(h, f) param->entrypoint_fields.bits.f = h->f
+#define FILL_PICTUREFIELDS(h, f) param->picture_fields.bits.f = h->f
+#define FILL_PICQUANTIZER(h, f) param->pic_quantizer_fields.bits.f = h->f
+    FILL_PICTUREFIELDS(frameHdr, picture_type);
+    FILL_PICQUANTIZER(frameHdr, dq_frame);
+    FILL_PICQUANTIZER(frameHdr, dq_profile);
+    FILL_PICQUANTIZER(frameHdr, dq_binary_level);
+    FILL_PICQUANTIZER(frameHdr, alt_pic_quantizer);
+    param->pic_quantizer_fields.bits.half_qp = frameHdr->halfqp;
+    param->pic_quantizer_fields.bits.pic_quantizer_scale = frameHdr->pquant;
+    param->pic_quantizer_fields.bits.pic_quantizer_type = frameHdr->pquantizer;
+    if (frameHdr->dq_profile == DQPROFILE_SINGLE_EDGE)
+        FILL_PICQUANTIZER(frameHdr, dq_sb_edge);
+
+    if (frameHdr->dq_profile == DQPROFILE_DOUBLE_EDGE)
+        FILL_PICQUANTIZER(frameHdr, dq_db_edge);
+
+    FILL_TRANSFORM(frameHdr, intra_transform_dc_table);
+    FILL_TRANSFORM(frameHdr, mb_level_transform_type_flag);
+    FILL_TRANSFORM(frameHdr, frame_level_transform_type);
+    param->transform_fields.bits.transform_ac_codingset_idx1 = frameHdr->transacfrm;
+    param->transform_fields.bits.transform_ac_codingset_idx2 = frameHdr->transacfrm2;
+    FILL_SEQUENCE(seqHdr, profile);
+
+    FILL_RAWCODING(frameHdr, mv_type_mb);
+    FILL_RAWCODING(frameHdr, direct_mb);
+    FILL_RAWCODING(frameHdr, skip_mb);
+
+    FILL_MV(frameHdr, mv_table);
+    FILL_MV(frameHdr, extended_mv_range);
+    if (frameHdr->picture_type == FRAME_P
+        || frameHdr->picture_type == FRAME_B)
+        FILL_MV(frameHdr, mv_mode);
+
+    if (frameHdr->picture_type == FRAME_P
+        && frameHdr->mv_mode == MVMODE_INTENSITY_COMPENSATION)
+        FILL_MV(frameHdr, mv_mode2);
+
+    FILL(frameHdr, cbp_table);
+    param->luma_scale = frameHdr->lumscale;
+    param->luma_shift = frameHdr->lumshift;
+
+    if ((!(frameHdr->mv_type_mb))
+        && (frameHdr->picture_type == FRAME_P
+               && (frameHdr->mv_mode == MVMODE_MIXED_MV
+                      || (frameHdr->mv_mode == MVMODE_INTENSITY_COMPENSATION
+                             && frameHdr->mv_mode2 == MVMODE_MIXED_MV))))
+        param->bitplane_present.flags.bp_mv_type_mb = 1;
+
+    if ((!(frameHdr->direct_mb))
+        && (frameHdr->picture_type == FRAME_B))
+        param->bitplane_present.flags.bp_direct_mb = 1;
+
+    if ((!(frameHdr->skip_mb))
+        && (frameHdr->picture_type == FRAME_P
+               || frameHdr->picture_type == FRAME_B))
+        param->bitplane_present.flags.bp_skip_mb = 1;
+
+    if (seqHdr->profile == PROFILE_ADVANCED) {
+        FILL_SEQUENCE(seqHdr, pulldown);
+        FILL_SEQUENCE(seqHdr, interlace);
+        FILL_SEQUENCE(seqHdr, tfcntrflag);
+        FILL_SEQUENCE(seqHdr, finterpflag);
+        FILL_SEQUENCE(seqHdr, psf);
+        FILL_SEQUENCE(entryPointHdr, overlap);
+
+        FILL_ENTRYPOINT(entryPointHdr, broken_link);
+        FILL_ENTRYPOINT(entryPointHdr, closed_entry);
+        FILL_ENTRYPOINT(entryPointHdr, panscan_flag);
+        FILL_ENTRYPOINT(entryPointHdr, loopfilter);
+
+        FILL(frameHdr, rounding_control);
+        FILL(frameHdr, post_processing);
+        param->fast_uvmc_flag = entryPointHdr->fastuvmc;
+        param->conditional_overlap_flag = frameHdr->condover;
+
+        param->picture_fields.bits.top_field_first = frameHdr->tff;
+        param->picture_fields.bits.frame_coding_mode = frameHdr->fcm;
+        param->picture_fields.bits.is_first_field = frameHdr->fcm == 0;
+
+        FILL_RAWCODING(frameHdr, ac_pred);
+        FILL_RAWCODING(frameHdr, overflags);
+        FILL_REFERENCE(entryPointHdr, reference_distance_flag);
+
+        param->mv_fields.bits.extended_mv_flag = entryPointHdr->extended_mv;
+        FILL_MV(entryPointHdr, extended_dmv_flag);
+
+        FILL_PICQUANTIZER(entryPointHdr, dquant);
+        FILL_PICQUANTIZER(entryPointHdr, quantizer);
+        FILL_TRANSFORM(entryPointHdr, variable_sized_transform_flag);
+        param->range_mapping_fields.bits.luma_flag = entryPointHdr->range_mapy_flag;
+        param->range_mapping_fields.bits.luma = entryPointHdr->range_mapy;
+        param->range_mapping_fields.bits.chroma_flag = entryPointHdr->range_mapuv_flag;
+        param->range_mapping_fields.bits.chroma = entryPointHdr->range_mapuv;
+
+        if (frameHdr->mv_mode == MVMODE_INTENSITY_COMPENSATION)
+            param->picture_fields.bits.intensity_compensation = 1;
+        if ((!(frameHdr->ac_pred))
+            && (frameHdr->picture_type == FRAME_I
+                   || frameHdr->picture_type == FRAME_BI))
+            param->bitplane_present.flags.bp_ac_pred = 1;
+
+        if ((!(frameHdr->overflags))
+            && ((frameHdr->picture_type == FRAME_I
+                    || frameHdr->picture_type == FRAME_BI)
+                   && (entryPointHdr->overlap
+                          && frameHdr->pquant <= 8)
+                   && frameHdr->condover == 2))
+            param->bitplane_present.flags.bp_overflags = 1;
+    }
+    else {
+        FILL_SEQUENCE(seqHdr, finterpflag);
+        FILL_SEQUENCE(seqHdr, multires);
+        FILL_SEQUENCE(seqHdr, overlap);
+        FILL_SEQUENCE(seqHdr, syncmarker);
+        FILL_SEQUENCE(seqHdr, rangered);
+        FILL_SEQUENCE(seqHdr, max_b_frames);
+        FILL(frameHdr, range_reduction_frame);
+        FILL(frameHdr, picture_resolution_index);
+        param->fast_uvmc_flag = seqHdr->fastuvmc;
+        param->mv_fields.bits.extended_mv_flag = seqHdr->extended_mv;
+        FILL_TRANSFORM(seqHdr, variable_sized_transform_flag);
+
+        /* 8.3.7 Rounding control */
+        if (frameHdr->picture_type == FRAME_I
+            || frameHdr->picture_type == FRAME_BI) {
+            param->rounding_control = 1;
+        }
+        else if (frameHdr->picture_type == FRAME_P) {
+            param->rounding_control ^= 1;
+        }
+    }
+
+    if (frameHdr->picture_type == FRAME_P
+        || frameHdr->picture_type == FRAME_SKIPPED)
+        param->forward_reference_picture = m_forwardPicture->getSurfaceID();
+
+    if (param->bitplane_present.value)
+        return makeBitPlanes(picture, param);
+
+#undef FILL
+#undef FILL_MV
+#undef FILL_RAWCODING
+#undef FILL_SEQUENCE
+#undef FILL_REFERENCE
+#undef FILL_TRANSFORM
+#undef FILL_ENTRYPOINT
+#undef FILL_PICTUREFIELDS
+#undef FILL_PICQUANTIZER
+
+    return true;
+}
+
+bool VaapiDecoderVC1::ensureSlice(PicturePtr& picture, void* data, int size)
+{
+    VASliceParameterBufferVC1* slice = NULL;
+    if (!picture->newSlice(slice, data, size))
+        return false;
+
+    slice->macroblock_offset = m_parser.m_frameHdr.macroblock_offset;
+    return true;
+}
+
+Decode_Status VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
+{
+    Decode_Status ret;
+    ret = ensureContext();
+    if (ret != DECODE_SUCCESS)
+        return ret;
+
+    PicturePtr picture = createPicture(pts);
+    if (!picture) {
+        return DECODE_MEMORY_FAIL;
+    }
+
+    if (!ensurePicture(picture)) {
+        return DECODE_FAIL;
+    }
+    if (!ensureSlice(picture, data, size)) {
+        return DECODE_FAIL;
+    }
+    ret = picture->decode();
+    if (ret != DECODE_SUCCESS) {
+        return ret;
+    }
+
+    if ((m_parser.m_frameHdr.picture_type == FRAME_I)
+        || (m_parser.m_frameHdr.picture_type == FRAME_P)
+        || (m_parser.m_frameHdr.picture_type == FRAME_SKIPPED)) {
+        m_forwardPicture = picture;
+    }
+    return outputPicture(picture);
+}
+
+Decode_Status VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
+{
+    uint8_t* data;
+    uint32_t size;
+    if (!buffer || !(buffer->data) || !(buffer->size)) {
+        m_forwardPicture.reset();
+        return DECODE_SUCCESS;
+    }
+    size = buffer->size;
+    data = buffer->data;
+    m_parser.parseFrameHeader(data, size);
+    return decode(data, size, buffer->timeStamp);
+}
+
+const bool VaapiDecoderVC1::s_registered
+    = VaapiDecoderFactory::register_<VaapiDecoderVC1>(YAMI_MIME_VC1);
+}

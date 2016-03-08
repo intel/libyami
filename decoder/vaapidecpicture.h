@@ -33,7 +33,7 @@ public:
     bool editIqMatrix(T*& matrix);
 
     template <class T>
-    bool editBitPlane(T*& plane);
+    bool editBitPlane(T*& plane, size_t size);
 
     template <class T>
     bool editHufTable(T*& hufTable);
@@ -73,9 +73,14 @@ bool VaapiDecPicture::editIqMatrix(T*& matrix)
 }
 
 template <class T>
-bool VaapiDecPicture::editBitPlane(T*& plane)
+bool VaapiDecPicture::editBitPlane(T*& plane, size_t size)
 {
-    return editObject(m_bitPlane, VABitPlaneBufferType, plane);
+    if (m_bitPlane)
+        return false;
+    m_bitPlane = createBufferObject(VABitPlaneBufferType, size, NULL, (void**)&plane);
+    if (m_bitPlane)
+        memset(plane, 0, size);
+    return m_bitPlane != NULL;
 }
 
 template <class T>

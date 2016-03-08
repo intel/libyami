@@ -209,6 +209,7 @@ typedef struct VideoFrame {
 #define YAMI_MIME_VP8  "video/x-vnd.on2.vp8"
 #define YAMI_MIME_VP9  "video/x-vnd.on2.vp9"
 #define YAMI_MIME_JPEG "image/jpeg"
+#define YAMI_MIME_VC1 "video/vc1"
 #define YAMI_VPP_SCALER "vpp/scaler"
 #define YAMI_VPP_OCL_BLENDER "vpp/ocl_blender"
 #define YAMI_VPP_OCL_OSD "vpp/ocl_osd"
