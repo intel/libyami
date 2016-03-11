@@ -66,13 +66,15 @@ OclPostProcessMosaic::process(const SharedPtr<VideoFrame>& src,
     size_t localMemSize = localWorkSize[0] * sizeof(float);
 
     if ((CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 0, sizeof(cl_mem), &imagePtr->plane(0)))
-        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 1, sizeof(cl_mem), &bgImageMem[0]))
-        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 2, sizeof(cl_mem), &imagePtr->plane(1)))
-        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 3, sizeof(cl_mem), &bgImageMem[1]))
-        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 4, sizeof(uint32_t), &dst->crop.x))
-        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 5, sizeof(uint32_t), &dst->crop.y))
-        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 6, sizeof(uint32_t), &m_blockSize))
-        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 7, localMemSize, NULL))) {
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 1, sizeof(cl_mem), &bgImageMem[0]))
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 2, sizeof(cl_mem), &imagePtr->plane(1)))
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 3, sizeof(cl_mem), &bgImageMem[1]))
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 4, sizeof(uint32_t), &dst->crop.x))
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 5, sizeof(uint32_t), &dst->crop.y))
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 6, sizeof(uint32_t), &dst->crop.width))
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 7, sizeof(uint32_t), &dst->crop.height))
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 8, sizeof(uint32_t), &m_blockSize))
+         || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 9, localMemSize, NULL))) {
         ERROR("clSetKernelArg failed");
         return YAMI_FAIL;
     }
