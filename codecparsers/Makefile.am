@@ -26,6 +26,12 @@ libyami_codecparser_source_c += \
 	$(NULL)
 endif
 
+if BUILD_H265_DECODER
+libyami_codecparser_source_c += \
+	h265Parser.cpp \
+	$(NULL)
+endif
+
 libyami_codecparser_source_h_priv = \
 	bitReader.h \
 	nalReader.h \
@@ -55,6 +61,12 @@ libyami_codecparser_source_h_priv = \
 	dboolhuff.h \
 	$(NULL)
 EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
+
+if BUILD_H265_DECODER
+libyami_codecparser_source_h_priv += \
+	h265Parser.h \
+	$(NULL)
+endif
 
 libyami_codecparser_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
@@ -97,6 +109,12 @@ endif
 if BUILD_H264_DECODER
 unittest_SOURCES += \
         h264Parser_unittest.cpp \
+        $(NULL)
+endif
+
+if BUILD_H265_DECODER
+unittest_SOURCES += \
+        h265Parser_unittest.cpp \
         $(NULL)
 endif
 
