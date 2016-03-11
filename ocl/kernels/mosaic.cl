@@ -20,6 +20,8 @@ __kernel void mosaic(__write_only image2d_t img_y_dst,
                      __read_only image2d_t img_uv,
                      uint crop_x,
                      uint crop_y,
+                     uint crop_w,
+                     uint crop_h,
                      uint blk_size,
                      __local float* sum)
 {
@@ -27,6 +29,7 @@ __kernel void mosaic(__write_only image2d_t img_y_dst,
     size_t g_id_x = get_global_id(0);
     size_t g_id_y = get_global_id(1);
     size_t l_id_x = get_local_id(0);
+    uint imax;
 
     float4 Y;
     sum[l_id_x] = 0;
@@ -43,8 +46,11 @@ __kernel void mosaic(__write_only image2d_t img_y_dst,
     }
     barrier(CLK_LOCAL_MEM_FENCE);
     Y.x = sum[l_id_x / blk_size * blk_size];
-    for (uint i = 0; i < blk_size; i++) {
-        write_imagef(img_y_dst, (int2)(g_id_x + crop_x, g_id_y * blk_size + i + crop_y), Y);
+    imax = min(blk_size, crop_h - g_id_y * blk_size);
+    if (g_id_x < crop_w) {
+        for (uint i = 0; i < imax; i++) {
+            write_imagef(img_y_dst, (int2)(g_id_x + crop_x, g_id_y * blk_size + i + crop_y), Y);
+        }
     }
 
     float4 UV;
@@ -66,7 +72,10 @@ __kernel void mosaic(__write_only image2d_t img_y_dst,
     } else {
         UV.x = sum[l_id_x / blk_size * blk_size + 1];
     }
-    for (uint i = 0; i < blk_size / 2; i++) {
-        write_imagef(img_uv_dst, (int2)(g_id_x + crop_x, g_id_y * blk_size / 2 + i + crop_y / 2), UV);
+    imax /= 2;
+    if (g_id_x < crop_w) {
+        for (uint i = 0; i < blk_size / 2; i++) {
+            write_imagef(img_uv_dst, (int2)(g_id_x + crop_x, g_id_y * blk_size / 2 + i + crop_y / 2), UV);
+        }
     }
 }
