@@ -36,12 +36,18 @@ class OclPostProcessBlender : public OclPostProcessBase {
 public:
     virtual YamiStatus process(const SharedPtr<VideoFrame>& src,
                                const SharedPtr<VideoFrame>& dest);
+    explicit OclPostProcessBlender()
+        : m_kernelBlend(NULL)
+    {
+    }
 
 private:
-    static const bool s_registered; // VaapiPostProcessFactory registration result
-
+    virtual bool prepareKernels();
     YamiStatus blend(const SharedPtr<VideoFrame>& src,
                      const SharedPtr<VideoFrame>& dst);
+
+    static const bool s_registered; // VaapiPostProcessFactory registration result
+    cl_kernel m_kernelBlend;
 };
 
 }

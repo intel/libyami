@@ -94,21 +94,16 @@ OclPostProcessOsd::process(const SharedPtr<VideoFrame>& src,
     crop.y = dst->crop.y & ~1;
     crop.width = dst->crop.width / pixelSize;
     crop.height = dst->crop.height;
-    cl_kernel kernel = getKernel("osd");
-    if (!kernel) {
-        ERROR("failed to get cl kernel");
-        return YAMI_FAIL;
-    }
-    if ((CL_SUCCESS != clSetKernelArg(kernel, 0, sizeof(cl_mem), &dstImagePtr->plane(0)))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 1, sizeof(cl_mem), &dstImagePtr->plane(1)))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 2, sizeof(cl_mem), &bgImageMem[0]))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 3, sizeof(cl_mem), &bgImageMem[1]))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 4, sizeof(cl_mem), &srcImagePtr->plane(0)))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 5, sizeof(uint32_t), &crop.x))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 6, sizeof(uint32_t), &crop.y))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 7, sizeof(uint32_t), &crop.width))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 8, sizeof(uint32_t), &crop.height))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 9, sizeof(cl_mem), osdLuma.get()))) {
+    if ((CL_SUCCESS != clSetKernelArg(m_kernelOsd, 0, sizeof(cl_mem), &dstImagePtr->plane(0)))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 1, sizeof(cl_mem), &dstImagePtr->plane(1)))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 2, sizeof(cl_mem), &bgImageMem[0]))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 3, sizeof(cl_mem), &bgImageMem[1]))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 4, sizeof(cl_mem), &srcImagePtr->plane(0)))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 5, sizeof(uint32_t), &crop.x))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 6, sizeof(uint32_t), &crop.y))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 7, sizeof(uint32_t), &crop.width))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 8, sizeof(uint32_t), &crop.height))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelOsd, 9, sizeof(cl_mem), osdLuma.get()))) {
         ERROR("clSetKernelArg failed");
         return YAMI_FAIL;
     }
@@ -118,7 +113,7 @@ OclPostProcessOsd::process(const SharedPtr<VideoFrame>& src,
     localWorkSize[1] = 8;
     globalWorkSize[0] = ALIGN_POW2(dst->crop.width, localWorkSize[0] * pixelSize) / pixelSize;
     globalWorkSize[1] = ALIGN_POW2(dst->crop.height, localWorkSize[1] * 2) / 2;
-    if (!checkOclStatus(clEnqueueNDRangeKernel(m_context->m_queue, kernel, 2, NULL,
+    if (!checkOclStatus(clEnqueueNDRangeKernel(m_context->m_queue, m_kernelOsd, 2, NULL,
                             globalWorkSize, localWorkSize, 0, NULL, NULL),
             "EnqueueNDRangeKernel")) {
         return YAMI_FAIL;
@@ -186,22 +181,17 @@ YamiStatus OclPostProcessOsd::computeBlockLuma(const SharedPtr<VideoFrame> frame
     crop.y = frame->crop.y;
     crop.width = alignedWidth / pixelSize;
     crop.height = frame->crop.height;
-    cl_kernel kernel = getKernel("reduce_luma");
-    if (!kernel) {
-        ERROR("failed to get cl kernel");
-        return YAMI_FAIL;
-    }
-    if ((CL_SUCCESS != clSetKernelArg(kernel, 0, sizeof(cl_mem), &imagePtr->plane(0)))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 1, sizeof(uint32_t), &crop.x))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 2, sizeof(uint32_t), &crop.y))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 3, sizeof(uint32_t), &crop.height))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 4, sizeof(cl_mem), lineBuf.get()))) {
+    if ((CL_SUCCESS != clSetKernelArg(m_kernelReduceLuma, 0, sizeof(cl_mem), &imagePtr->plane(0)))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelReduceLuma, 1, sizeof(uint32_t), &crop.x))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelReduceLuma, 2, sizeof(uint32_t), &crop.y))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelReduceLuma, 3, sizeof(uint32_t), &crop.height))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelReduceLuma, 4, sizeof(cl_mem), lineBuf.get()))) {
         ERROR("clSetKernelArg failed");
         return YAMI_FAIL;
     }
     size_t localWorkSize = 16;
     size_t globalWorkSize = ALIGN_POW2(alignedWidth, pixelSize * localWorkSize) / pixelSize;
-    if (!checkOclStatus(clEnqueueNDRangeKernel(m_context->m_queue, kernel, 1, NULL,
+    if (!checkOclStatus(clEnqueueNDRangeKernel(m_context->m_queue, m_kernelReduceLuma, 1, NULL,
                             &globalWorkSize, &localWorkSize, 0, NULL, NULL),
             "EnqueueNDRangeKernel")) {
         return YAMI_FAIL;
@@ -233,6 +223,15 @@ YamiStatus OclPostProcessOsd::computeBlockLuma(const SharedPtr<VideoFrame> frame
     }
 
     return YAMI_SUCCESS;
+}
+
+bool OclPostProcessOsd::prepareKernels()
+{
+    m_kernelOsd = prepareKernel("osd");
+    m_kernelReduceLuma = prepareKernel("reduce_luma");
+
+    return (m_kernelOsd != NULL)
+        && (m_kernelReduceLuma != NULL);
 }
 
 const bool OclPostProcessOsd::s_registered = VaapiPostProcessFactory::register_<OclPostProcessOsd>(YAMI_VPP_OCL_OSD);

@@ -52,7 +52,9 @@ YamiStatus OclPostProcessBase::ensureContext(const char* name)
     if (m_kernels.size())
         return YAMI_SUCCESS;
     m_context = OclContext::create();
-    if (!m_context || !m_context->createKernel(name, m_kernels))
+    if (!m_context
+        || !m_context->createKernel(name, m_kernels)
+        || !prepareKernels())
         return YAMI_DRIVER_FAIL;
     return YAMI_SUCCESS;
 }
@@ -123,15 +125,18 @@ uint32_t OclPostProcessBase::getPixelSize(const cl_image_format& fmt)
     return size;
 }
 
+cl_kernel OclPostProcessBase::prepareKernel(const char* name)
+{
+    OclKernelMap::iterator it = m_kernels.find(name);
+    if (it == m_kernels.end())
+        return NULL;
+    else
+        return it->second;
+}
+
 OclPostProcessBase::~OclPostProcessBase()
 {
     if (m_context)
         m_context->releaseKernel(m_kernels);
-}
-
-cl_kernel OclPostProcessBase::getKernel(const char* name)
-{
-    OclKernelMap::iterator it = m_kernels.find(name);
-    return it == m_kernels.end() ? 0 : it->second;
 }
 }

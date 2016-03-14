@@ -70,11 +70,14 @@ protected:
     };
 
     uint32_t getPixelSize(const cl_image_format& fmt);
-    cl_kernel getKernel(const char* name);
+    cl_kernel prepareKernel(const char* name);
 
     VADisplay m_display;
-    OclKernelMap m_kernels;
     SharedPtr<OclContext> m_context;
+    OclKernelMap m_kernels;
+
+private:
+    virtual bool prepareKernels() = 0;
 };
 }
 #endif                          /* vaapipostprocess_base_h */

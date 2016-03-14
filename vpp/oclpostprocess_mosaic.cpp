@@ -71,24 +71,19 @@ OclPostProcessMosaic::process(const SharedPtr<VideoFrame>& src,
     globalWorkSize[1] = dst->crop.height / m_blockSize + 1;
     size_t localMemSize = localWorkSize[0] * sizeof(float);
 
-    cl_kernel kernel = getKernel("mosaic");
-    if (!kernel) {
-        ERROR("failed to get cl kernel");
-        return YAMI_FAIL;
-    }
-    if ((CL_SUCCESS != clSetKernelArg(kernel, 0, sizeof(cl_mem), &imagePtr->plane(0)))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 1, sizeof(cl_mem), &bgImageMem[0]))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 2, sizeof(cl_mem), &imagePtr->plane(1)))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 3, sizeof(cl_mem), &bgImageMem[1]))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 4, sizeof(uint32_t), &dst->crop.x))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 5, sizeof(uint32_t), &dst->crop.y))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 6, sizeof(uint32_t), &m_blockSize))
-         || (CL_SUCCESS != clSetKernelArg(kernel, 7, localMemSize, NULL))) {
+    if ((CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 0, sizeof(cl_mem), &imagePtr->plane(0)))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 1, sizeof(cl_mem), &bgImageMem[0]))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 2, sizeof(cl_mem), &imagePtr->plane(1)))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 3, sizeof(cl_mem), &bgImageMem[1]))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 4, sizeof(uint32_t), &dst->crop.x))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 5, sizeof(uint32_t), &dst->crop.y))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 6, sizeof(uint32_t), &m_blockSize))
+        || (CL_SUCCESS != clSetKernelArg(m_kernelMosaic, 7, localMemSize, NULL))) {
         ERROR("clSetKernelArg failed");
         return YAMI_FAIL;
     }
 
-    if (!checkOclStatus(clEnqueueNDRangeKernel(m_context->m_queue, kernel, 2, NULL,
+    if (!checkOclStatus(clEnqueueNDRangeKernel(m_context->m_queue, m_kernelMosaic, 2, NULL,
                             globalWorkSize, localWorkSize, 0, NULL, NULL),
             "EnqueueNDRangeKernel")) {
         return YAMI_FAIL;
@@ -116,6 +111,13 @@ YamiStatus OclPostProcessMosaic::setParameters(VppParamType type, void* vppParam
         break;
     }
     return status;
+}
+
+bool OclPostProcessMosaic::prepareKernels()
+{
+    m_kernelMosaic = prepareKernel("mosaic");
+
+    return m_kernelMosaic != NULL;
 }
 
 const bool OclPostProcessMosaic::s_registered = VaapiPostProcessFactory::register_<OclPostProcessMosaic>(YAMI_VPP_OCL_MOSAIC);

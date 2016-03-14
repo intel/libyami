@@ -40,12 +40,16 @@ public:
 
     explicit OclPostProcessMosaic()
         : m_blockSize(32)
+        , m_kernelMosaic(NULL)
     {
     }
 
 private:
+    virtual bool prepareKernels();
+
     static const bool s_registered; // VaapiPostProcessFactory registration result
     int m_blockSize;
+    cl_kernel m_kernelMosaic;
 };
 }
 #endif //oclpostprocess_mosaic_h

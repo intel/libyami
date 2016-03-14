@@ -44,10 +44,13 @@ public:
     explicit OclPostProcessOsd()
         : m_blockCount(0)
         , m_threshold(128)
+        , m_kernelOsd(NULL)
+        , m_kernelReduceLuma(NULL)
     {
     }
 
 private:
+    virtual bool prepareKernels();
     YamiStatus computeBlockLuma(const SharedPtr<VideoFrame> frame);
 
     static const bool s_registered; // VaapiPostProcessFactory registration result
@@ -55,6 +58,8 @@ private:
     vector<uint32_t> m_lineBuf;
     int m_blockCount;
     uint32_t m_threshold;
+    cl_kernel m_kernelOsd;
+    cl_kernel m_kernelReduceLuma;
 };
 }
 #endif //oclpostprocess_osd_h

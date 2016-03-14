@@ -43,20 +43,35 @@ public:
 
     explicit OclPostProcessTransform()
         : m_transform(0)
+        , m_kernelFlipH(NULL)
+        , m_kernelFlipV(NULL)
+        , m_kernelRot180(NULL)
+        , m_kernelRot90(NULL)
+        , m_kernelRot270(NULL)
+        , m_kernelFlipHRot90(NULL)
+        , m_kernelFlipVRot90(NULL)
     {
     }
 
 private:
+    virtual bool prepareKernels();
     YamiStatus flip(const SharedPtr<OclVppCLImage>& src,
         const SharedPtr<OclVppCLImage>& dst);
     YamiStatus rotate(const SharedPtr<OclVppCLImage>& src,
         const SharedPtr<OclVppCLImage>& dst);
     YamiStatus flipAndRotate(const SharedPtr<OclVppCLImage>& src,
         const SharedPtr<OclVppCLImage>& dst,
-        const char* kernelName);
+        const cl_kernel& kernel);
 
     static const bool s_registered; // VaapiPostProcessFactory registration result
     uint32_t m_transform;
+    cl_kernel m_kernelFlipH;
+    cl_kernel m_kernelFlipV;
+    cl_kernel m_kernelRot180;
+    cl_kernel m_kernelRot90;
+    cl_kernel m_kernelRot270;
+    cl_kernel m_kernelFlipHRot90;
+    cl_kernel m_kernelFlipVRot90;
 };
 }
 #endif //oclpostprocess_transform_h
