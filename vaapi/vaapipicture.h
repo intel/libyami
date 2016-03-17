@@ -23,11 +23,11 @@
 #ifndef vaapipicture_h
 #define vaapipicture_h
 
+#include "interface/VideoCommonDefs.h"
 #include "vaapibuffer.h"
 #include "vaapiptrs.h"
 #include "vaapipicturetypes.h"
 #include "vaapisurface.h"
-#include "vaapitypes.h"
 #include <string.h>
 #include <va/va.h>
 #include <vector>

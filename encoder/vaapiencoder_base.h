@@ -33,6 +33,7 @@
 #include "vaapi/vaapibuffer.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapisurface.h"
+#include "vaapi/vaapitypes.h"
 
 #include <deque>
 #include <utility>
@@ -107,7 +108,7 @@ protected:
     //rate control related things
     void fill(VAEncMiscParameterHRD*) const ;
     void fill(VAEncMiscParameterRateControl*) const ;
-    void fill(VAEncMiscParameterFrameRate*) const;	
+    void fill(VAEncMiscParameterFrameRate*) const;
     bool ensureMiscParams (VaapiEncPicture*);
 
     //properties

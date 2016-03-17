@@ -24,6 +24,7 @@
 #ifndef VAAPI_DECODER_Jpeg_H
 #define VAAPI_DECODER_Jpeg_H
 
+#include "vaapi/vaapitypes.h"
 #include "vaapidecpicture.h"
 #include "vaapidecoder_base.h"
 #include "codecparsers/jpegparser.h"
