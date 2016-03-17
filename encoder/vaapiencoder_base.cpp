@@ -445,28 +445,27 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 }
 
 struct ProfileMapItem {
-    VaapiProfile vaapiProfile;
+    VideoProfile videoProfile;
     VAProfile    vaProfile;
 };
 
-const ProfileMapItem g_profileMap[] =
-{
-    {VAAPI_PROFILE_H264_BASELINE,  VAProfileH264Baseline},
-    {VAAPI_PROFILE_H264_CONSTRAINED_BASELINE,VAProfileH264ConstrainedBaseline},
-    {VAAPI_PROFILE_H264_MAIN, VAProfileH264Main},
-    {VAAPI_PROFILE_H264_HIGH,VAProfileH264High},
-    {VAAPI_PROFILE_JPEG_BASELINE,VAProfileJPEGBaseline},
-    {VAAPI_PROFILE_HEVC_MAIN, VAProfileHEVCMain},
-    {VAAPI_PROFILE_HEVC_MAIN10, VAProfileHEVCMain10},
+const ProfileMapItem g_profileMap[] = {
+    { PROFILE_H264_BASELINE, VAProfileH264Baseline },
+    { PROFILE_H264_CONSTRAINED_BASELINE, VAProfileH264ConstrainedBaseline },
+    { PROFILE_H264_MAIN, VAProfileH264Main },
+    { PROFILE_H264_HIGH, VAProfileH264High },
+    { PROFILE_JPEG_BASELINE, VAProfileJPEGBaseline },
+    { PROFILE_H265_MAIN, VAProfileHEVCMain },
+    { PROFILE_H265_MAIN10, VAProfileHEVCMain10 },
 };
 
-VaapiProfile VaapiEncoderBase::profile() const
+VideoProfile VaapiEncoderBase::profile() const
 {
     for (size_t i = 0; i < N_ELEMENTS(g_profileMap); i++) {
         if (m_videoParamCommon.profile == g_profileMap[i].vaProfile)
-            return g_profileMap[i].vaapiProfile;
+            return g_profileMap[i].videoProfile;
     }
-    return VAAPI_PROFILE_UNKNOWN;
+    return PROFILE_INVALID;
 }
 
 void VaapiEncoderBase::cleanupVA()

@@ -33,7 +33,6 @@
 #include "vaapi/vaapibuffer.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapisurface.h"
-#include "vaapi/vaapitypes.h"
 
 #include <deque>
 #include <utility>
@@ -112,7 +111,7 @@ protected:
     bool ensureMiscParams (VaapiEncPicture*);
 
     //properties
-    VaapiProfile profile() const;
+    VideoProfile profile() const;
     uint8_t level () const {
         return m_videoParamCommon.level;
     }

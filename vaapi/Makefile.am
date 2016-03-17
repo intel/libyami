@@ -15,7 +15,6 @@ libyami_vaapi_source_h_priv = \
 	vaapibuffer.h \
 	vaapisurface.h \
 	vaapiutils.h \
-	vaapitypes.h \
 	vaapidisplay.h \
 	vaapicontext.h \
 	vaapisurfaceallocator.h \
