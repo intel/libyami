@@ -2,6 +2,7 @@ INCLUDES = -I$(top_srcdir)
 
 libyami_codecparser_source_c = \
 	bitReader.cpp \
+	bitWriter.cpp \
 	nalReader.cpp \
 	dboolhuff.c \
 	$(NULL)
@@ -52,6 +53,7 @@ endif
 
 libyami_codecparser_source_h_priv = \
 	bitReader.h \
+	bitWriter.h \
 	nalReader.h \
 	$(NULL)
 
@@ -128,6 +130,7 @@ noinst_PROGRAMS = unittest
 unittest_SOURCES = \
 	$(top_builddir)/common/unittest_main.cpp \
 	bitReader_unittest.cpp \
+	bitWriter_unittest.cpp \
 	$(NULL)
 
 if BUILD_VP8_DECODER
