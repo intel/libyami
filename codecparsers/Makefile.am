@@ -38,6 +38,12 @@ libyami_codecparser_source_c += \
 	$(NULL)
 endif
 
+if BUILD_VC1_DECODER
+libyami_codecparser_source_c += \
+	vc1Parser.cpp \
+	$(NULL)
+endif
+
 libyami_codecparser_source_h_priv = \
 	bitReader.h \
 	nalReader.h \
@@ -77,6 +83,12 @@ EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
 if BUILD_H265_DECODER
 libyami_codecparser_source_h_priv += \
 	h265Parser.h \
+	$(NULL)
+endif
+
+if BUILD_VC1_DECODER
+libyami_codecparser_source_h_priv += \
+	vc1Parser.h \
 	$(NULL)
 endif
 
@@ -133,6 +145,12 @@ endif
 if BUILD_MPEG2_DECODER
 unittest_SOURCES += \
         mpeg2_parser_unittest.cpp \
+        $(NULL)
+endif
+
+if BUILD_VC1_DECODER
+unittest_SOURCES += \
+        vc1Parser_unittest.cpp \
         $(NULL)
 endif
 

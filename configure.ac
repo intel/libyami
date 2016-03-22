@@ -232,6 +232,15 @@ AC_ARG_ENABLE(h265dec,
 AM_CONDITIONAL(BUILD_H265_DECODER,
     [test "x$enable_h265dec" = "xyes"])
 
+dnl vc1 decoder
+AC_ARG_ENABLE(vc1dec,
+    [AC_HELP_STRING([--enable-vc1dec],
+        [build with vc1 decoder support @<:@default=no@:>@])],
+    [], [enable_vc1dec="no"])
+
+AM_CONDITIONAL(BUILD_VC1_DECODER,
+    [test "x$enable_vc1dec" = "xyes"])
+
 dnl fake decoder
 AC_ARG_ENABLE(fakedec,
     [AC_HELP_STRING([--enable-fakedec],
@@ -437,6 +446,7 @@ AC_OUTPUT([
 # Print a configuration summary
 DECODERS=""
 AS_IF([test x$enable_h265dec = xyes], [DECODERS="$DECODERS h265"])
+AS_IF([test x$enable_vc1dec = xyes], [DECODERS="$DECODERS vc1"])
 AS_IF([test x$enable_h264dec = xyes], [DECODERS="$DECODERS h264"])
 AS_IF([test x$enable_jpegdec = xyes], [DECODERS="$DECODERS jpeg"])
 AS_IF([test x$enable_mpeg2dec = xyes], [DECODERS="$DECODERS mpeg2"])
