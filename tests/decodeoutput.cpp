@@ -119,6 +119,9 @@ public:
     SharedPtr<VideoFrame> convert(const SharedPtr<VideoFrame>& src)
     {
 
+        if (src->fourcc == m_destFourcc)
+            return src;
+
         SharedPtr<VideoFrame> dest;
         uint32_t width = src->crop.width;
         uint32_t height = src->crop.height;
