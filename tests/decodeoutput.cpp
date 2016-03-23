@@ -152,11 +152,16 @@ public:
         }
         //TODO: hanld no zero x, y for crop;
         ASSERT("can't support no zero x,y for crop" && !src->crop.x && !src->crop.y);
-        uint32_t width = src->crop.width;
-        uint32_t height = src->crop.height;
-        copyY(dest, p, image.offsets[0], width, height, image.pitches[0]);
-        copyUV(dest, p, image.offsets[1], width, height, image.pitches[1]);
-        copyUV(dest, p, image.offsets[1] + 1, width, height, image.pitches[1]);
+
+        uint32_t planes, width[3], height[3];
+        if (!getPlaneResolution(src->fourcc, src->crop.width, src->crop.height, width, height, planes)) {
+            ERROR("get plane reoslution failed");
+            return false;
+        }
+
+        copyY(dest, p, image.offsets[0], width[0], height[0], image.pitches[0]);
+        copyUV(dest, p, image.offsets[1], width[1], height[1], image.pitches[1]);
+        copyUV(dest, p, image.offsets[1] + 1, width[1], height[1], image.pitches[1]);
         unmapImage(*m_display, image);
         return true;
     }
@@ -177,7 +182,7 @@ private:
         uint32_t height, uint32_t pitch)
     {
         data += offset;
-        for (uint32_t h = 0; h < height / 2; h++) {
+        for (uint32_t h = 0; h < height; h++) {
             uint8_t* start = data;
             uint8_t* end = data + width;
             while (start < end) {
