@@ -22,6 +22,7 @@
 #ifndef vppoutputencode_h
 #define vppoutputencode_h
 #include "VideoEncoderHost.h"
+#include "VideoPostProcessHost.h"
 #include "encodeinput.h"
 #include <string>
 #include <vector>
@@ -52,6 +53,7 @@ public:
     TranscodeParams();
 
     EncodeParams m_encParams;
+    VPPFilterParameters m_vppParams;
     uint32_t frameCount;
     int32_t oWidth; /*output video width*/
     int32_t oHeight; /*output vide height*/

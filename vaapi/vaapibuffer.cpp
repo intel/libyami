@@ -104,4 +104,20 @@ BufObjectPtr VaapiBufObject::create(const ContextPtr& context,
     buf.reset(new VaapiBufObject(display, bufID, mapped, size));
     return buf;
 }
+
+bool VaapiBufObject::query(const ContextPtr& context,
+                            VAProcFilterType buf_type,
+                            void *filter_caps,
+                            unsigned int *num_filter_caps)
+{
+    DisplayPtr display = context->getDisplay();
+    if (!vaapiQueryVideoProcFilterCaps(display->getID(), context->getID(),
+                                       buf_type, filter_caps, num_filter_caps)) {
+        ERROR("Error: query filter failed\n");
+        return false;
+    }
+
+    return true;
+}
+
 }

@@ -31,6 +31,7 @@ typedef enum {
     VppParamTypeOsd,
     VppParamTypeTransform,
     VppParamTypeMosaic,
+    VppParamTypeProcFilter,
 } VppParamType;
 
 typedef struct VppParamOsd {
@@ -56,6 +57,13 @@ typedef struct VppParamMosaic {
     size_t size;
     uint32_t blockSize;
 } VppParamMosaic;
+
+typedef struct VPPFilterParameters {
+    size_t size;
+    uint32_t denoising_value;
+    short deinterlace_algorithm;
+    uint32_t sharp_value;
+} VPPFilterParameters;
 
 #ifdef __cplusplus
 }

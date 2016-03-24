@@ -56,6 +56,9 @@ static void print_help(const char* app)
     printf("   --intraperiod <Intra frame period(default 30)> optional\n");
     printf("   --refnum <number of referece frames(default 1)> optional\n");
     printf("   --idrinterval <AVC/HEVC IDR frame interval(default 0)> optional\n");
+    printf("   --deinterlace <0 (Disabled) | 1 (Bob algorithm) | 3 (adaptive algorithm). (default 0)> optional\n");
+    printf("   --denoise <denoise value 0 to 64. (default 0)> optional\n");
+    printf("   --sharp <sharpen value 0 to 64. (default 0)> optional\n");
 }
 
 static VideoRateControl string_to_rc_mode(char *str)
@@ -84,6 +87,9 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         {"intraperiod", required_argument, NULL, 0 },
         {"refnum", required_argument, NULL, 0 },
         {"idrinterval", required_argument, NULL, 0 },
+        {"deinterlace", required_argument, NULL, 0 },
+        {"denoise", required_argument, NULL, 0 },
+        {"sharp", required_argument, NULL, 0 },
         {NULL, no_argument, NULL, 0 }};
     int option_index;
 
@@ -91,6 +97,8 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
         fprintf(stderr, "can not encode without option, please type 'yamitranscode -h' to help\n");
         return false;
     }
+
+    memset(&(para.m_vppParams), 0, sizeof(para.m_vppParams));
 
     while ((opt = getopt_long_only(argc, argv, "W:H:b:f:c:s:i:o:N:h:", long_opts,&option_index)) != -1)
     {
@@ -146,6 +154,15 @@ static bool processCmdLine(int argc, char *argv[], TranscodeParams& para)
                     break;
                 case 6:
                     para.m_encParams.idrInterval = atoi(optarg);
+                    break;
+                case 7:
+                    para.m_vppParams.deinterlace_algorithm = atoi(optarg);
+                    break;
+                case 8:
+                    para.m_vppParams.denoising_value = atoi(optarg);
+                    break;
+                case 9:
+                    para.m_vppParams.sharp_value = atoi(optarg);
                     break;
             }
         }
@@ -307,6 +324,9 @@ private:
         nativeDisplay.type = NATIVE_DISPLAY_VA;
         nativeDisplay.handle = (intptr_t)*m_display;
         m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
+        //Enable VPP Proc Filter features
+        m_cmdParam.m_vppParams.size = sizeof(VPPFilterParameters);
+        m_vpp->setParameters(VppParamTypeProcFilter, &(m_cmdParam.m_vppParams));
         return m_vpp->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
     }
     SharedPtr<VADisplay> m_display;

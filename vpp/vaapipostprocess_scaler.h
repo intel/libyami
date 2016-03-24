@@ -24,17 +24,39 @@
 #define vaapipostprocess_scaler_h
 
 #include "vaapipostprocess_base.h"
+#include <va/va.h>
 
 namespace YamiMediaCodec{
+
+typedef struct {
+    VABufferID pipeline_param_buffer_id;
+    VABufferID denoise_filter_buffer_id;
+    VABufferID deinterlace_filter_buffer_id;
+    VABufferID sharp_filter_buffer_id;
+    VAProcPipelineParameterBuffer pipeline_param;
+    VAProcFilterParameterBuffer denoise_param;
+    VAProcFilterParameterBufferDeinterlacing deint_param;
+    VAProcFilterParameterBuffer sharp_param;
+    VABufferID vpp_filters[VAProcFilterCount];
+    int num_vpp_filter_used;
+} VPPContext;
 
 /* class for video scale and color space conversion */
 class VaapiPostProcessScaler : public VaapiPostProcessBase {
 public:
+    VaapiPostProcessScaler();
+    YamiStatus setParameters(VppParamType type, void* vppParam);
     virtual YamiStatus process(const SharedPtr<VideoFrame>& src,
                                const SharedPtr<VideoFrame>& dest);
 
 private:
     static const bool s_registered; // VaapiPostProcessFactory registration result
+    VPPFilterParameters m_vppParam;
+    VPPContext m_vppContext;
+
+    bool EnableDeinterlace(VaapiVppPicture *picture);
+    bool EnableDenoise(VaapiVppPicture *picture);
+    bool EnableSharp(VaapiVppPicture *picture);
 };
 }
 #endif                          /* vaapipostprocess_scaler_h */

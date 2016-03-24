@@ -35,6 +35,9 @@ public:
     virtual ~VaapiVppPicture() { }
 
     bool editVppParam(VAProcPipelineParameterBuffer*&);
+    VABufferID editDeinterlaceParam(VAProcFilterParameterBufferDeinterlacing*&);
+    VABufferID editProcFilterParam(VAProcFilterParameterBuffer*&);
+    bool queryProcFilter(VAProcFilterType buf_type, void *filter_caps, unsigned int *num_filter_caps);
 
     bool process();
 
@@ -42,6 +45,8 @@ protected:
     bool doRender();
 private:
     BufObjectPtr m_vppParam;
+    BufObjectPtr m_deinterlaceParam;
+    std::vector < BufObjectPtr > m_procFilterParam;
     DISALLOW_COPY_AND_ASSIGN(VaapiVppPicture);
 };
 
