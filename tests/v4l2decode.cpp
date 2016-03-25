@@ -62,8 +62,15 @@
 #ifdef ANDROID
 
 #ifndef CHECK_EQ
-#define CHECK_EQ(a, b) assert((a) == (b))
+#define CHECK_EQ(a, b) do {                     \
+            if ((a) != (b)) {                   \
+                assert(0 && "assert fails");    \
+            }                                   \
+    } while (0)
 #endif
+
+int videoWidth = 0;
+int videoHeight = 0;
 
 sp<SurfaceComposerClient> mClient;
 sp<SurfaceControl> mSurfaceCtl;
@@ -88,8 +95,6 @@ bool createNativeWindow(__u32 pixelformat)
     mSurface = mSurfaceCtl->getSurface();
     mNativeWindow = mSurface;
 
-    int bufWidth = 640;
-    int bufHeight = 480;
     CHECK_EQ(0,
              native_window_set_usage(
              mNativeWindow.get(),
@@ -101,11 +106,10 @@ bool createNativeWindow(__u32 pixelformat)
              mNativeWindow.get(),
              NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW));
 
-    CHECK_EQ(0, native_window_set_buffers_geometry(
+    CHECK_EQ(0, native_window_set_buffers_dimensions(
                 mNativeWindow.get(),
-                bufWidth,
-                bufHeight,
-                pixelformat));
+                videoWidth,
+                videoHeight));
 
     return true;
 }
@@ -175,8 +179,6 @@ const uint32_t k_maxInputBufferSize = 1024*1024;
 const int k_inputPlaneCount = 1;
 const int k_maxOutputPlaneCount = 3;
 int outputPlaneCount = 2;
-int videoWidth = 0;
-int videoHeight = 0;
 
 uint32_t inputQueueCapacity = 0;
 uint32_t outputQueueCapacity = 0;
@@ -188,7 +190,7 @@ static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 static const char* typeStrDrmName = "drm-name";
 static const char* typeStrDmaBuf = "dma-buf";
 static const char* typeStrRawData = "raw-data";
-// static const char* typeStrAndroidNativeBuffer = "android-native-buffer";
+// static const char* typeStrAndroidBufferHandle = "android-buffer-handle";
 static const char* memoryTypeStr = typeStrDrmName;
 #define IS_DRM_NAME()   (!strcmp(memoryTypeStr, typeStrDrmName))
 #define IS_DMA_BUF()   (!strcmp(memoryTypeStr, typeStrDmaBuf))
@@ -740,7 +742,7 @@ int main(int argc, char** argv)
             return -1;
         }
 
-        buffer.m.userptr = (unsigned long)pbuf;
+        buffer.m.userptr = (unsigned long)pbuf->handle;
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
         buffer.index = i;
 

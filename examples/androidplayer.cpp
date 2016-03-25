@@ -46,7 +46,11 @@
 using namespace YamiMediaCodec;
 
 #ifndef CHECK_EQ
-#define CHECK_EQ(a, b) assert((a) == (b))
+#define CHECK_EQ(a, b) do {                     \
+            if ((a) != (b)) {                   \
+                assert(0 && "assert fails");    \
+            }                                   \
+    } while (0)
 #endif
 
 #define ANDROID_DISPLAY 0x18C34078

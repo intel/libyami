@@ -343,10 +343,10 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         static uint32_t bufferCount = 0;
         if(qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
            m_streamOn[OUTPUT] == false) {
-            m_winBuff.push_back((ANativeWindowBuffer*)(qbuf->m.userptr));
+            m_bufferHandle.push_back((buffer_handle_t)(qbuf->m.userptr));
             bufferCount++;
             if (bufferCount == m_reqBuffCnt)
-                mapVideoFrames();
+                mapVideoFrames(m_videoWidth, m_videoHeight);
         }
 #endif
     } // no break;
