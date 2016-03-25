@@ -440,7 +440,6 @@ int main(int argc, char** argv)
     int32_t ioctlRet = -1;
     YamiMediaCodec::CalcFps calcFps;
 
-    yamiTraceInit();
 #if __ENABLE_X11__
     XInitThreads();
 #endif

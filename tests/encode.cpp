@@ -50,7 +50,6 @@ int main(int argc, char** argv)
     VideoEncOutputBuffer outputBuffer;
     int encodeFrameCount = 0;
 
-    yamiTraceInit();
     if (!process_cmdline(argc, argv))
         return -1;
 

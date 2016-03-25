@@ -69,7 +69,6 @@ V4l2CodecPtr _findCodecFromFd(int fd)
 
 int32_t YamiV4L2_Open(const char* name, int32_t flags)
 {
-    yamiTraceInit();
     V4l2CodecPtr v4l2Codec = V4l2CodecBase::createCodec(name, flags);
     {
         YamiMediaCodec::AutoLock locker(s_codecMapLock);

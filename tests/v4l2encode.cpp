@@ -222,8 +222,6 @@ int main(int argc, char** argv)
     uint32_t i = 0;
     int32_t ioctlRet = -1;
 
-    yamiTraceInit();
-
     // parse command line parameters
     if (!process_cmdline(argc, argv))
         return -1;
