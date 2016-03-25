@@ -381,4 +381,15 @@ void VaapiDecSurfacePool::recycle(VideoFrameRawData* frame)
     m_exportFrames.erase(frame->internalID);
 }
 
+bool VaapiDecSurfacePool::getSurfaceResolution(uint32_t& width, uint32_t& height, VASurfaceID surfaceID)
+{
+    VaapiSurface* s = m_surfaceMap[surfaceID];
+    if (s) {
+        width = s->getWidth();
+        height = s->getHeight();
+        return true;
+    }
+    return false;
+}
+
 } //namespace YamiMediaCodec
