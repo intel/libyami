@@ -74,8 +74,7 @@ bool VaapiPicture::render(BufObjectPtr& buffer)
     if (!buffer)
         return true;
 
-    if (buffer->isMapped())
-        buffer->unmap();
+    buffer->unmap();
 
     bufferID = buffer->getID();
     if (bufferID == VA_INVALID_ID)
@@ -111,5 +110,10 @@ bool VaapiPicture::addObject(std::vector < BufObjectPtr >& objects,
         return false;
     objects.push_back(object);
     return true;
+}
+
+bool VaapiPicture::sync()
+{
+    return vaSyncSurface(m_display->getID(), getSurfaceID()) == VA_STATUS_SUCCESS;
 }
 }

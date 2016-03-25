@@ -36,7 +36,6 @@
 #include "vaapi/vaapisurfaceallocator.h"
 #include "vaapi/vaapiutils.h"
 
-
 const uint32_t MaxOutputBuffer=5;
 namespace YamiMediaCodec{
 VaapiEncoderBase::VaapiEncoderBase():
@@ -263,10 +262,28 @@ Encode_Status VaapiEncoderBase::getMVBufferSize(uint32_t *Size)
 }
 #endif
 
+struct SurfaceDestroyer {
+    SurfaceDestroyer(DisplayPtr display)
+        : m_display(display)
+    {
+    }
+    void operator()(VaapiSurface* surface)
+    {
+        VASurfaceID id = surface->getID();
+        checkVaapiStatus(vaDestroySurfaces(m_display->getID(), &id, 1),
+            "vaDestroySurfaces");
+        delete surface;
+    }
+
+private:
+    DisplayPtr m_display;
+};
+
 SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
 {
     VASurfaceAttrib attrib;
-    VaapiChromaType chroma;
+    uint32_t rtFormat;
+    SurfacePtr surface;
 
     attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
     attrib.type = VASurfaceAttribPixelFormat;
@@ -276,18 +293,26 @@ SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
     switch(fourcc) {
     case VA_FOURCC_NV12:
     case VA_FOURCC_I420:
-        chroma = VAAPI_CHROMA_TYPE_YUV420;
-    break;
-    case VA_FOURCC_YUY2:
-        chroma = VAAPI_CHROMA_TYPE_YUV422;
-    break;
-    default:
-        ASSERT(0);
+        rtFormat = VA_RT_FORMAT_YUV420;
         break;
+    case VA_FOURCC_YUY2:
+        rtFormat = VA_RT_FORMAT_YUV422;
+        break;
+    default:
+        ERROR("unspported fourcc %x", fourcc);
+        return surface;
     }
-    return VaapiSurface::create(m_display, chroma,
-                                m_videoParamCommon.resolution.width, m_videoParamCommon.resolution.height, &attrib, 1);
 
+    VASurfaceID id;
+    uint32_t width = m_videoParamCommon.resolution.width;
+    uint32_t height = m_videoParamCommon.resolution.height;
+    VAStatus status = vaCreateSurfaces(m_display->getID(), rtFormat, width, height,
+        &id, 1, &attrib, 1);
+    if (!checkVaapiStatus(status, "vaCreateSurfaces"))
+        return surface;
+    surface.reset(new VaapiSurface((intptr_t)id, width, height),
+        SurfaceDestroyer(m_display));
+    return surface;
 }
 
 SurfacePtr VaapiEncoderBase::createSurface()
@@ -301,43 +326,70 @@ SurfacePtr VaapiEncoderBase::createSurface()
     return s;
 }
 
+static bool copyImage(uint8_t* destBase,
+    const uint32_t destOffsets[3], const uint32_t destPitches[3],
+    const uint8_t* srcBase,
+    const uint32_t srcOffsets[3], const uint32_t srcPitches[3],
+    const uint32_t width[3], const uint32_t height[3], uint32_t planes)
+{
+    for (uint32_t i = 0; i < planes; i++) {
+        uint32_t w = width[i];
+        uint32_t h = height[i];
+        if (w > destPitches[i] || w > srcPitches[i]) {
+            ERROR("can't copy, plane = %d,  width = %d, srcPitch = %d, destPitch = %d",
+                i, w, srcPitches[i], destPitches[i]);
+            return false;
+        }
+        const uint8_t* src = srcBase + srcOffsets[i];
+        uint8_t* dest = destBase + destOffsets[i];
+
+        for (uint32_t j = 0; j < h; j++) {
+            memcpy(dest, src, w);
+            src += srcPitches[i];
+            dest += destPitches[i];
+        }
+    }
+    return true;
+}
+
 SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
 {
-    SurfacePtr surface = createNewSurface(frame->fourcc);
+    uint32_t fourcc = frame->fourcc;
+
+    SurfacePtr surface = createNewSurface(fourcc);
     SurfacePtr nil;
     if (!surface)
         return nil;
 
-    ImagePtr image = VaapiImage::derive(surface);
-    if (!image) {
-        ERROR("VaapiImage::derive() failed");
-        return nil;
-    }
-    ImageRawPtr raw = mapVaapiImage(image);
-    if (!raw) {
-        ERROR("image->map() failed");
+    uint32_t width[3];
+    uint32_t height[3];
+    uint32_t planes;
+    if (!getPlaneResolution(fourcc, frame->width, frame->height, width, height, planes)) {
+        ERROR("invalid input format");
         return nil;
     }
 
-    uint8_t* src = reinterpret_cast<uint8_t*>(frame->handle);
-    if (!raw->copyFrom(src, frame->offset, frame->pitch)) {
-        ERROR("copyfrom in buffer failed");
+    VAImage image;
+    VADisplay display = m_display->getID();
+    uint8_t* dest = mapSurfaceToImage(display, surface->getID(), image);
+    if (!dest) {
+        ERROR("map image failed");
         return nil;
     }
+    uint8_t* src = reinterpret_cast<uint8_t*>(frame->handle);
+    if (!copyImage(dest, image.offsets, image.pitches, src,
+            frame->offset, frame->pitch, width, height, planes)) {
+        ERROR("failed to copy image");
+        unmapImage(display, image);
+        return nil;
+    }
+    unmapImage(display, image);
     return surface;
 }
 
-struct SurfaceRecycler
-{
-    SurfaceRecycler(const SharedPtr<VideoFrame>& frame): m_frame(frame){}
-    void operator()(VaapiSurface* surface) { delete surface;}
-private:
-    SharedPtr<VideoFrame> m_frame;
-};
-
 SurfacePtr VaapiEncoderBase::createSurface(const SharedPtr<VideoFrame>& frame)
 {
-    SurfacePtr surface(new VaapiSurface(m_display, (VASurfaceID)frame->surface), SurfaceRecycler(frame));
+    SurfacePtr surface(new VaapiSurface(frame));
     return surface;
 }
 
@@ -393,28 +445,27 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 }
 
 struct ProfileMapItem {
-    VaapiProfile vaapiProfile;
+    VideoProfile videoProfile;
     VAProfile    vaProfile;
 };
 
-const ProfileMapItem g_profileMap[] =
-{
-    {VAAPI_PROFILE_H264_BASELINE,  VAProfileH264Baseline},
-    {VAAPI_PROFILE_H264_CONSTRAINED_BASELINE,VAProfileH264ConstrainedBaseline},
-    {VAAPI_PROFILE_H264_MAIN, VAProfileH264Main},
-    {VAAPI_PROFILE_H264_HIGH,VAProfileH264High},
-    {VAAPI_PROFILE_JPEG_BASELINE,VAProfileJPEGBaseline},
-    {VAAPI_PROFILE_HEVC_MAIN, VAProfileHEVCMain},
-    {VAAPI_PROFILE_HEVC_MAIN10, VAProfileHEVCMain10},
+const ProfileMapItem g_profileMap[] = {
+    { PROFILE_H264_BASELINE, VAProfileH264Baseline },
+    { PROFILE_H264_CONSTRAINED_BASELINE, VAProfileH264ConstrainedBaseline },
+    { PROFILE_H264_MAIN, VAProfileH264Main },
+    { PROFILE_H264_HIGH, VAProfileH264High },
+    { PROFILE_JPEG_BASELINE, VAProfileJPEGBaseline },
+    { PROFILE_H265_MAIN, VAProfileHEVCMain },
+    { PROFILE_H265_MAIN10, VAProfileHEVCMain10 },
 };
 
-VaapiProfile VaapiEncoderBase::profile() const
+VideoProfile VaapiEncoderBase::profile() const
 {
     for (size_t i = 0; i < N_ELEMENTS(g_profileMap); i++) {
         if (m_videoParamCommon.profile == g_profileMap[i].vaProfile)
-            return g_profileMap[i].vaapiProfile;
+            return g_profileMap[i].videoProfile;
     }
-    return VAAPI_PROFILE_UNKNOWN;
+    return PROFILE_INVALID;
 }
 
 void VaapiEncoderBase::cleanupVA()
@@ -458,7 +509,7 @@ bool VaapiEncoderBase::initVA()
 
     int32_t surfaceWidth = ALIGN16(m_videoParamCommon.resolution.width);
     int32_t surfaceHeight = ALIGN16(m_videoParamCommon.resolution.height);
-    m_pool = SurfacePool::create(m_display, m_alloc, YAMI_FOURCC_NV12, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight,m_maxOutputBuffer);
+    m_pool = SurfacePool::create(m_alloc, YAMI_FOURCC_NV12, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight, m_maxOutputBuffer);
     if (!m_pool)
         return false;
 

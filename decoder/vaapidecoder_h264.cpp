@@ -31,6 +31,7 @@
 #include "vaapidecoder_factory.h"
 #include "codecparsers/bytereader.h"
 
+#include "common/common_def.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
@@ -104,29 +105,6 @@ static VAProfile getH264VAProfile(H264PPS * pps)
         ERROR("profile(profile_idc = %d) is not supported", sps->profile_idc);
     }
     return profile;
-}
-
-
-static VaapiChromaType getH264ChromaType(H264SPS * sps)
-{
-    VaapiChromaType chromaType = VAAPI_CHROMA_TYPE_YUV420;
-
-    switch (sps->chroma_format_idc) {
-    case 0:
-        chromaType = VAAPI_CHROMA_TYPE_YUV400;
-        break;
-    case 1:
-        chromaType = VAAPI_CHROMA_TYPE_YUV420;
-        break;
-    case 2:
-        chromaType = VAAPI_CHROMA_TYPE_YUV422;
-        break;
-    case 3:
-        if (!sps->separate_colour_plane_flag)
-            chromaType = VAAPI_CHROMA_TYPE_YUV444;
-        break;
-    }
-    return chromaType;
 }
 
 
@@ -924,15 +902,6 @@ Decode_Status VaapiDecoderH264::ensureContext(H264PPS * pps)
         m_configBuffer.flag |= HAS_VA_PROFILE;
         resetContext = true;
     }
-
-    /*
-       parsedChroma = getH264ChromaType(sps);
-       if (parsedChroma != m_chromaType) {
-       WARNING("ensure context: chroma changed !\n");
-       m_chromaType = parsedChroma;
-       resetContext = true;
-       }
-     */
 
     mbWidth = sps->pic_width_in_mbs_minus1 + 1;
     mbHeight = (sps->pic_height_in_map_units_minus1 + 1) <<

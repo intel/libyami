@@ -5,13 +5,10 @@ include $(LOCAL_PATH)/../common.mk
 LOCAL_SRC_FILES := \
         vaapipicture.cpp \
         vaapibuffer.cpp \
-        vaapiimage.cpp \
         vaapisurface.cpp\
-        vaapiimageutils.cpp \
         vaapiutils.cpp \
         vaapidisplay.cpp \
         vaapicontext.cpp \
-        vaapiimagepool.cpp \
         vaapisurfaceallocator.cpp \
 
 LOCAL_C_INCLUDES:= \

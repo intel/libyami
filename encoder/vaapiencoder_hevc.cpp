@@ -28,6 +28,7 @@
 #include <assert.h>
 #include "bitwriter.h"
 #include "scopedlogger.h"
+#include "common/common_def.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
@@ -150,14 +151,14 @@ hevc_get_log2_max_frame_num (uint32_t num)
     return ret;
 }
 
-static uint8_t hevc_get_profile_idc (VaapiProfile profile)
+static uint8_t hevc_get_profile_idc(VideoProfile profile)
 {
     uint8_t idc;
     switch (profile) {
-    case VAAPI_PROFILE_HEVC_MAIN:
+    case PROFILE_H265_MAIN:
         idc =  1;
         break;
-    case VAAPI_PROFILE_HEVC_MAIN10:
+    case PROFILE_H265_MAIN10:
         idc = 2;
     default:
         assert(0);
@@ -1261,7 +1262,7 @@ void VaapiEncoderHEVC::shortRfsUpdate(const PicturePtr& picture)
             m_shortRFS.num_positive_pics      = 1;
             m_shortRFS.delta_poc_s1_minus1[0]  = m_refList1[0]->m_poc - picture->m_poc - 1;
             m_shortRFS.used_by_curr_pic_s1_flag[0]            = 1;
-			
+
             DEBUG("m_refList1_size is %zu\n", m_refList1.size());
         }
     }

@@ -8,7 +8,7 @@ m4_define([yami_api_major_version], 0)
 # update this for every release when micro version large than zero
 m4_define([yami_api_minor_version], 1)
 # change this for any api change
-m4_define([yami_api_micro_version], 7)
+m4_define([yami_api_micro_version], 8)
 m4_define([yami_api_version],
     [yami_api_major_version.yami_api_minor_version.yami_api_micro_version])
 
@@ -29,7 +29,7 @@ AC_INIT([libyami],
         [libyami],
         [https://github.com/01org/libyami])
 
-AC_CONFIG_SRCDIR([vaapi/vaapitypes.h])
+AC_CONFIG_SRCDIR([common/YamiVersion.h.in])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([aux])

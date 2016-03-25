@@ -23,8 +23,8 @@
 #ifndef vaapidisplay_h
 #define vaapidisplay_h
 
+#include "interface/VideoCommonDefs.h"
 #include "vaapi/vaapiptrs.h"
-#include "vaapi/vaapitypes.h"
 #include <va/va.h>
 #include <va/va_tpi.h>
 #ifdef HAVE_VA_X11

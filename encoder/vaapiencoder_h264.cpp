@@ -27,6 +27,7 @@
 #include <assert.h>
 #include "bitwriter.h"
 #include "scopedlogger.h"
+#include "common/common_def.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
@@ -107,20 +108,20 @@ h264_get_log2_max_frame_num (uint32_t num)
 
 /* Determines the cpbBrNalFactor based on the supplied profile */
 static uint32_t
-h264_get_cpb_nal_factor (VaapiProfile profile)
+h264_get_cpb_nal_factor(VideoProfile profile)
 {
     uint32_t f;
 
     /* Table A-2 */
     switch (profile) {
-    case VAAPI_PROFILE_H264_HIGH:
+    case PROFILE_H264_HIGH:
         f = 1500;
         break;
-    case VAAPI_PROFILE_H264_HIGH10:
+    case PROFILE_H264_HIGH10:
         f = 3600;
         break;
-    case VAAPI_PROFILE_H264_HIGH_422:
-    case VAAPI_PROFILE_H264_HIGH_444:
+    case PROFILE_H264_HIGH422:
+    case PROFILE_H264_HIGH444:
         f = 4800;
         break;
     default:
@@ -130,11 +131,11 @@ h264_get_cpb_nal_factor (VaapiProfile profile)
     return f;
 }
 
-static uint8_t h264_get_profile_idc (VaapiProfile profile)
+static uint8_t h264_get_profile_idc(VideoProfile profile)
 {
     uint8_t idc;
     switch (profile) {
-    case VAAPI_PROFILE_H264_MAIN:
+    case PROFILE_H264_MAIN:
         idc =  77;
         break;
     default:
@@ -201,10 +202,9 @@ bit_writer_write_trailing_bits(BitWriter *bitwriter)
 
 static BOOL
 bit_writer_write_sps(
-    BitWriter *bitwriter,
+    BitWriter* bitwriter,
     const VAEncSequenceParameterBufferH264* const seq,
-    VaapiProfile profile
-)
+    VideoProfile profile)
 {
     uint32_t constraint_set0_flag, constraint_set1_flag;
     uint32_t constraint_set2_flag, constraint_set3_flag;
@@ -219,8 +219,8 @@ bit_writer_write_sps(
     uint32_t mb_adaptive_frame_field = !seq->seq_fields.bits.frame_mbs_only_flag;
     uint32_t i = 0;
 
-    constraint_set0_flag = profile == VAAPI_PROFILE_H264_BASELINE;
-    constraint_set1_flag = profile <= VAAPI_PROFILE_H264_MAIN;
+    constraint_set0_flag = profile == PROFILE_H264_BASELINE;
+    constraint_set1_flag = profile <= PROFILE_H264_MAIN;
     constraint_set2_flag = 0;
     constraint_set3_flag = 0;
 
@@ -243,7 +243,7 @@ bit_writer_write_sps(
     /* seq_parameter_set_id */
     bit_writer_put_ue(bitwriter, seq->seq_parameter_set_id);
 
-    if (profile == VAAPI_PROFILE_H264_HIGH) {
+    if (profile == PROFILE_H264_HIGH) {
         /* for high profile */
         /* chroma_format_idc  = 1, 4:2:0*/
         bit_writer_put_ue(bitwriter, seq->seq_fields.bits.chroma_format_idc);
@@ -482,7 +482,7 @@ class VaapiEncStreamHeaderH264
 {
     typedef std::vector<uint8_t> Header;
 public:
-    void setSPS(const VAEncSequenceParameterBufferH264* const sequence, VaapiProfile profile)
+    void setSPS(const VAEncSequenceParameterBufferH264* const sequence, VideoProfile profile)
     {
         ASSERT(m_sps.empty());
         BitWriter bs;

@@ -107,11 +107,11 @@ protected:
     //rate control related things
     void fill(VAEncMiscParameterHRD*) const ;
     void fill(VAEncMiscParameterRateControl*) const ;
-    void fill(VAEncMiscParameterFrameRate*) const;	
+    void fill(VAEncMiscParameterFrameRate*) const;
     bool ensureMiscParams (VaapiEncPicture*);
 
     //properties
-    VaapiProfile profile() const;
+    VideoProfile profile() const;
     uint8_t level () const {
         return m_videoParamCommon.level;
     }

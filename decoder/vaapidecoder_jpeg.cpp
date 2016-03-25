@@ -37,15 +37,6 @@
 #include "codecparsers/bytereader.h"
 
 namespace YamiMediaCodec{
-static VAProfile convertToVaProfile(VaapiProfile profile)
-{
-    if (profile == VAAPI_PROFILE_JPEG_BASELINE)
-        return VAProfileJPEGBaseline;
-    else {
-        ERROR("Not supported JPEG profile");
-        return VAProfileNone;
-    }
-}
 
 static uint32_t getMaxHorizontalSamples(JpegFrameHdr * frameHdr)
 {
@@ -71,7 +62,6 @@ static uint32_t getMaxVerticalSamples(JpegFrameHdr * frameHdr)
 
 VaapiDecoderJpeg::VaapiDecoderJpeg()
 {
-    m_profile = VAAPI_PROFILE_JPEG_BASELINE;
     m_width = 0;
     m_height = 0;
     m_hasHufTable = FALSE;
@@ -299,11 +289,9 @@ Decode_Status VaapiDecoderJpeg::decodePictureStart()
 {
     VAProfile profile;
 
-    assert(m_profile == VAAPI_PROFILE_JPEG_BASELINE);
-
     m_height = m_frameHdr.height;
     m_width = m_frameHdr.width;
-    profile = convertToVaProfile(VAAPI_PROFILE_JPEG_BASELINE);
+    profile = VAProfileJPEGBaseline;
 
     if (!m_hasContext
         || m_configBuffer.profile != profile

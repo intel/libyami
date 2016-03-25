@@ -28,7 +28,7 @@
 #include "common/common_def.h"
 #include "common/lock.h"
 #include "vaapi/vaapiptrs.h"
-#include "vaapi/vaapitypes.h"
+#include "interface/VideoCommonDefs.h"
 #include "interface/VideoDecoderDefs.h"
 #include <deque>
 #include <map>
@@ -68,13 +68,9 @@ public:
     bool output(const SurfacePtr&, int64_t timetamp);
     /// get surface from output queue
     VideoRenderBuffer* getOutput();
-    bool getOutput(VideoFrameRawData* frame);
-    bool populateOutputHandles(VideoFrameRawData *frames, uint32_t &frameCount);
     /// recycle to surface pool
     void recycle(const VideoRenderBuffer * renderBuf);
     /// recycle exported video frame to surface/image pool
-    void recycle(VideoFrameRawData* frame);
-
     //after this, acquireWithWait will always return null surface,
     //until all SurfacePtr and VideoRenderBuffer returned.
     void flush();
@@ -86,8 +82,6 @@ public:
 
 
 private:
-    bool ensureImagePool(VideoFrameRawData &frame);
-    bool exportFrame(ImagePtr image, VideoFrameRawData &frame, int64_t timeStamp=-1);
     enum SurfaceState{
         SURFACE_FREE      = 0x00000000,
         SURFACE_DECODING  = 0x00000001,
@@ -131,17 +125,6 @@ private:
 
     struct SurfaceRecycler;
     struct SurfaceRecyclerRender;
-
-    ImagePoolPtr m_imagePool;
-
-    class ExportFrame {
-      public:
-        ImageRawPtr rawImage;
-        SurfacePtr  surface;
-    };
-    typedef std::map<VAImageID, ExportFrame> ExportFrameMap;
-    ExportFrameMap m_exportFrames;
-    Lock m_exportFramesLock;
 
     DISALLOW_COPY_AND_ASSIGN(VaapiDecSurfacePool);
 };

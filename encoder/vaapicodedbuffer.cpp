@@ -31,7 +31,7 @@ namespace YamiMediaCodec{
 CodedBufferPtr VaapiCodedBuffer::create(const ContextPtr& context, uint32_t bufSize)
 {
     CodedBufferPtr coded;
-    BufObjectPtr buf = VaapiBufObject::create(context, VAEncCodedBufferType, bufSize);
+    BufObjectPtr buf = VaapiBuffer::create(context, VAEncCodedBufferType, bufSize);
     if (buf)
         coded.reset(new VaapiCodedBuffer(buf));
     return coded;

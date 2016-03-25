@@ -57,7 +57,6 @@ class VaapiDecoderJpeg:public VaapiDecoderBase {
     Decode_Status decodePictureEnd();
 
   private:
-    VaapiProfile m_profile;
     uint32_t m_width;
     uint32_t m_height;
     PicturePtr m_picture;
