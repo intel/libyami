@@ -268,6 +268,7 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
     VideoDecodeBuffer *inputBuffer = &(m_inputFrames[qbuf->index]);
     ASSERT(m_maxBufferSize[INPUT] > 0);
     ASSERT(m_bufferSpace[INPUT] || m_memoryMode[INPUT] != V4L2_MEMORY_MMAP );
+    ASSERT(qbuf->memory == m_memoryMode[INPUT]);
     ASSERT(qbuf->index < m_maxBufferCount[INPUT]);
     ASSERT(qbuf->length == 1);
     inputBuffer->size = qbuf->m.planes[0].bytesused; // one plane only
@@ -343,6 +344,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         static uint32_t bufferCount = 0;
         if(qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
            m_streamOn[OUTPUT] == false) {
+            ASSERT(qbuf->memory == V4L2_MEMORY_ANDROID_BUFFER_HANDLE);
             m_bufferHandle.push_back((buffer_handle_t)(qbuf->m.userptr));
             bufferCount++;
             if (bufferCount == m_reqBuffCnt)
@@ -474,7 +476,6 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         ASSERT(format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
         ASSERT(m_decoder);
 
-        DEBUG();
         const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
         if (format && outFormat && outFormat->width && outFormat->height) {
             format->fmt.pix_mp.num_planes = m_bufferPlaneCount[OUTPUT];
