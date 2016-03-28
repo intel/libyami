@@ -3,7 +3,6 @@ INCLUDES = -I$(top_srcdir)
 libyami_codecparser_source_c = \
 	bitReader.cpp \
 	nalReader.cpp \
-	vp9quant.c \
 	dboolhuff.c \
 	$(NULL)
 
@@ -44,10 +43,16 @@ libyami_codecparser_source_c += \
 	$(NULL)
 endif
 
+if BUILD_VP9_DECODER
+libyami_codecparser_source_c += \
+	vp9quant.c \
+	vp9parser.cpp \
+	$(NULL)
+endif
+
 libyami_codecparser_source_h_priv = \
 	bitReader.h \
 	nalReader.h \
-	vp9quant.h \
 	$(NULL)
 
 if BUILD_JPEG_DECODER
@@ -89,6 +94,13 @@ endif
 if BUILD_VC1_DECODER
 libyami_codecparser_source_h_priv += \
 	vc1Parser.h \
+	$(NULL)
+endif
+
+if BUILD_VP9_DECODER
+libyami_codecparser_source_h_priv += \
+	vp9quant.h \
+	vp9parser.h \
 	$(NULL)
 endif
 

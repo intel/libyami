@@ -12,6 +12,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define MAXQ 255
 #define QINDEX_RANGE 256
 #define QINDEX_BITS 8
@@ -22,5 +26,8 @@ int16_t vp9_dc_quant(int qindex, int delta);
 
 int16_t vp9_ac_quant(int qindex, int delta);
 
+#ifdef __cplusplus
+};
+#endif
 
 #endif //__VP9_QUANT_H__
