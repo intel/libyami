@@ -459,7 +459,9 @@ VaapiDecoderH265::VaapiDecoderH265():
     m_prevPicOrderCntLsb(0),
     m_newStream(true),
     m_endOfSequence(false),
-    m_dpb(bind(&VaapiDecoderH265::outputPicture, this, _1))
+    m_dpb(bind(&VaapiDecoderH265::outputPicture, this, _1)),
+    m_isnalff(false),
+    m_nalLengthSize(4)
 {
     m_parser = h265_parser_new();
     m_prevSlice.reset(new H265SliceHdr(), h265SliceHdrFree);
@@ -473,6 +475,29 @@ VaapiDecoderH265::~VaapiDecoderH265()
 
 Decode_Status VaapiDecoderH265::start(VideoConfigBuffer * buffer)
 {
+    DEBUG("H265: start()");
+    Decode_Status status;
+    bool gotConfig = false;
+
+    if (buffer->data == NULL || buffer->size == 0) {
+        gotConfig = false;
+        if ((buffer->flag & HAS_SURFACE_NUMBER)
+            && (buffer->flag & HAS_VA_PROFILE)) {
+            gotConfig = true;
+        }
+    } else {
+        if (!decodeCodecData((uint8_t *) buffer->data, buffer->size)) {
+            ERROR("codec data has some error");
+            return DECODE_FAIL;
+        }
+    }
+
+    if (gotConfig) {
+        status = VaapiDecoderBase::start(buffer);
+        if (status != DECODE_SUCCESS)
+            return status;
+    }
+
     return DECODE_SUCCESS;
 }
 
@@ -871,6 +896,30 @@ getSliceDataByteOffset(const H265SliceHdr* const sliceHdr, uint32_t nalHeaderByt
             - sliceHdr->n_emulation_prevention_bytes;
 }
 
+static inline int32_t
+scanForStartCode(const uint8_t * data,
+                 uint32_t offset, uint32_t size, uint32_t * scp)
+{
+/*
+    ByteReader br;
+    byte_reader_init(&br, data, size);
+    return byte_reader_masked_scan_uint32(&br, 0xffffff00, 0x00000100, 0, size) - 1;
+*/
+    uint32_t i;
+    const uint8_t *buf;
+
+    if (offset + 3 > size)
+        return -1;
+
+    for (i = 0; i < size - offset - 3 + 1; i++) {
+        buf = data + offset + i;
+        if (buf[0] == 0 && buf[1] == 0 && buf[2] == 1)
+            return i;
+    }
+
+    return -1;
+}
+
 bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
         const H265SliceHdr* const theSlice, const H265NalUnit* const nalu)
 {
@@ -1095,6 +1144,54 @@ Decode_Status VaapiDecoderH265::decodeNalu(H265NalUnit *nalu)
     return status;
 }
 
+bool VaapiDecoderH265::decodeCodecData(uint8_t * buf, uint32_t bufSize)
+{
+    Decode_Status status;
+    H265NalUnit nalu;
+    H265ParserResult result;
+    int32_t i, j;
+    uint8_t * nalBuf, numNalu;
+    DEBUG("H265: codec data detected");
+    if (!buf || bufSize == 0)
+        return false;
+    if (buf[0] != 1) {
+        VideoDecodeBuffer buffer;
+        memset(&buffer, 0, sizeof(buffer));
+        buffer.data = buf;
+        buffer.size = bufSize;
+        status = decode(&buffer);
+        return status == DECODE_SUCCESS;
+    }
+    if (bufSize < 24)
+        return false;
+    nalBuf = &buf[21];
+    m_nalLengthSize = (*nalBuf & 0x03) + 1;
+    nalBuf++;
+    numNalu = *nalBuf & 0x1f;
+    nalBuf++;
+    for (i = 0; i < numNalu; i++) {
+        nalBuf++;
+        int cnt = *(nalBuf+1) & 0xf;
+        nalBuf += 2;
+        for (j = 0; j < cnt; j++) {
+            int nalsize = *(nalBuf + 1) + 2;
+            if (buf + bufSize - nalBuf < nalsize)
+               return false;
+            result = h265_parser_identify_nalu_hevc(m_parser,
+                                                   nalBuf, 0, nalsize, 2,
+                                                   &nalu);
+            if (result != H265_PARSER_OK)
+                return false;
+            status = decodeNalu(&nalu);
+            if (status != DECODE_SUCCESS)
+                return false;
+            nalBuf += nalu.offset + nalu.size;
+        }
+    }
+    m_isnalff = true;
+    return true;
+}
+
 Decode_Status VaapiDecoderH265::decode(VideoDecodeBuffer *buffer)
 {
     if (!buffer || !buffer->data) {
@@ -1108,19 +1205,83 @@ Decode_Status VaapiDecoderH265::decode(VideoDecodeBuffer *buffer)
     }
     m_currentPTS = buffer->timeStamp;
 
-    NalReader nr(buffer->data, buffer->size);
-    const uint8_t* nal;
-    int32_t size;
-    Decode_Status status;
-    while (nr.read(nal, size)) {
-        H265NalUnit nalu;
-        if (H265_PARSER_OK == h265_parser_identify_nalu_unchecked(m_parser, nal, 0, size, &nalu)) {
-            status = decodeNalu(&nalu);
-            if (status != DECODE_SUCCESS)
-                return status;
-        }
+    Decode_Status status = DECODE_SUCCESS;
+    H265ParserResult result;
+    H265NalUnit nalu; 
+    uint8_t *buf;
+    uint32_t bufSize = 0;
+    uint32_t i, naluSize, size;
+    int32_t ofs = 0;
+    uint32_t startCode;
+
+    m_currentPTS = buffer->timeStamp;
+    buf = buffer->data;
+    size = buffer->size;
+    DEBUG("H265: Decode(bufsize =%d, timestamp=%ld)", size, m_currentPTS);
+    if (buf == NULL || size == 0) { // got EOS
+        INFO("flush-debug got EOS, set all frames output-able");
+        return DECODE_SUCCESS;
     }
-    return DECODE_SUCCESS;
+    do {
+        if (m_isnalff || buffer->flag & IS_AVCC) {
+            if (size < m_nalLengthSize)
+                break;
+            naluSize = 0;
+            for (i = 0; i < m_nalLengthSize; i++)
+                naluSize = (naluSize << 8) | buf[i];
+            bufSize = m_nalLengthSize + naluSize;
+            if (size < bufSize)
+                break;
+            result = h265_parser_identify_nalu_hevc(m_parser,
+                                                   buf, 0, bufSize,
+                                                   m_nalLengthSize, &nalu);
+            size -= bufSize;
+            buf += bufSize;
+        } else {
+            if (size < 4)
+                break;
+            if (buffer->flag & IS_NAL_UNIT) {
+                bufSize = buffer->size;
+                size = 0;
+            } else {
+                /* skip the un-used bit before start code */
+                ofs = scanForStartCode(buf, 0, size, &startCode);
+                if (ofs < 0)
+                    break;
+                buf += ofs;
+                size -= ofs;
+
+                /* find the length of the nal */
+                ofs =
+                    (size < 7) ? -1 : scanForStartCode(buf, 3, size - 3, NULL);
+                if (ofs < 0) {
+                    ofs = size - 3;
+                }
+                bufSize = ofs + 3;
+                size -= (ofs + 3);
+            }
+            result = h265_parser_identify_nalu_unchecked(m_parser,
+                                                         buf, 0, bufSize,
+                                                         &nalu);
+            buf += bufSize;
+        }
+
+        //status = getStatus(result);
+        if (result == H265_PARSER_OK) {
+            status = decodeNalu(&nalu);
+        } else {
+            ERROR("parser nalu uncheck failed code =%d", status);
+        }
+
+    } while (status == DECODE_SUCCESS);
+
+
+    if (status == DECODE_FORMAT_CHANGE && m_resetContext) {
+        WARNING("H265 decoder format change happens");
+        m_resetContext = false;
+    }
+
+    return status;
 }
 
 const bool VaapiDecoderH265::s_registered =
