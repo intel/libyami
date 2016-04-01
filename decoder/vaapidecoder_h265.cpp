@@ -19,7 +19,7 @@
 #include "config.h"
 #endif
 
-#include "codecparsers/h265parser.h"
+#include "codecparsers/h265Parser.h"
 #include "common/log.h"
 #include "common/nalreader.h"
 #include "vaapidecoder_factory.h"
@@ -33,87 +33,64 @@
 
 #include "vaapidecoder_h265.h"
 
-
-
-
 namespace YamiMediaCodec{
 typedef VaapiDecoderH265::PicturePtr PicturePtr;
 using std::tr1::bind;
 using std::tr1::placeholders::_1;
 using std::tr1::ref;
 
-void h265SliceHdrFree(H265SliceHdr* pSlice)
+using namespace YamiParser::H265;
+
+bool isIdr(const NalUnit* const nalu)
 {
-    h265_slice_hdr_free(pSlice);
-    delete pSlice;
+    return nalu->nal_unit_type == NalUnit::IDR_W_RADL
+            || nalu->nal_unit_type == NalUnit::IDR_N_LP;
 }
 
-bool isIdr(const H265NalUnit* const nalu)
+bool isBla(const NalUnit* const nalu)
 {
-    return nalu->type == H265_NAL_SLICE_IDR_W_RADL
-            || nalu->type ==H265_NAL_SLICE_IDR_N_LP;
+    return nalu->nal_unit_type == NalUnit::BLA_W_LP
+            || nalu->nal_unit_type == NalUnit::BLA_W_RADL
+            || nalu->nal_unit_type == NalUnit::BLA_N_LP;
 }
 
-bool isBla(const H265NalUnit* const nalu)
+bool isIrap(const NalUnit* const nalu)
 {
-    return nalu->type == H265_NAL_SLICE_BLA_W_LP
-            || nalu->type == H265_NAL_SLICE_BLA_W_RADL
-            || nalu->type == H265_NAL_SLICE_BLA_N_LP;
+    return nalu->nal_unit_type >=  NalUnit::BLA_W_LP
+            && nalu->nal_unit_type <= NalUnit::RSV_IRAP_VCL23;
 }
 
-#ifndef H265_NAL_SLICE_RSV_IRAP_VCL23
-#define H265_NAL_SLICE_RSV_IRAP_VCL23 23
-#endif
-bool isIrap(const H265NalUnit* const nalu)
+bool isRasl(const NalUnit* const nalu)
 {
-    return nalu->type >=  H265_NAL_SLICE_BLA_W_LP
-            && nalu->type <= H265_NAL_SLICE_RSV_IRAP_VCL23;
+    return nalu->nal_unit_type == NalUnit::RASL_R
+            || nalu->nal_unit_type == NalUnit::RASL_N;
 }
 
-bool isRasl(const H265NalUnit* const nalu)
+bool isRadl(const NalUnit* const nalu)
 {
-    return nalu->type == H265_NAL_SLICE_RASL_R
-            || nalu->type == H265_NAL_SLICE_RASL_N;
+    return nalu->nal_unit_type == NalUnit::RADL_R
+            || nalu->nal_unit_type == NalUnit::RADL_N;
 }
 
-bool isRadl(const H265NalUnit* const nalu)
+bool isCra(const NalUnit* const nalu)
 {
-    return nalu->type == H265_NAL_SLICE_RADL_R
-            || nalu->type == H265_NAL_SLICE_RADL_N;
+    return nalu->nal_unit_type == NalUnit::CRA_NUT;
 }
 
-bool isCra(const H265NalUnit* const nalu)
-{
-    return nalu->type == H265_NAL_SLICE_CRA_NUT;
-}
-
-
-#ifndef H265_NAL_SLICE_RSV_VCL_N10
-#define H265_NAL_SLICE_RSV_VCL_N10 10
-#endif
-
-#ifndef H265_NAL_SLICE_RSV_VCL_N12
-#define H265_NAL_SLICE_RSV_VCL_N12 12
-#endif
-
-#ifndef H265_NAL_SLICE_RSV_VCL_N14
-#define H265_NAL_SLICE_RSV_VCL_N14 14
-#endif
-
-bool isSublayerNoRef(const H265NalUnit* const nalu)
+bool isSublayerNoRef(const NalUnit* const nalu)
 {
     static const uint8_t noRef[] = {
-        H265_NAL_SLICE_TRAIL_N,
-        H265_NAL_SLICE_TSA_N,
-        H265_NAL_SLICE_STSA_N,
-        H265_NAL_SLICE_RADL_N,
-        H265_NAL_SLICE_RASL_N,
-        H265_NAL_SLICE_RSV_VCL_N10,
-        H265_NAL_SLICE_RSV_VCL_N12,
-        H265_NAL_SLICE_RSV_VCL_N14
+        NalUnit::TRAIL_N,
+        NalUnit::TSA_N,
+        NalUnit::STSA_N,
+        NalUnit::RADL_N,
+        NalUnit::RASL_N,
+        NalUnit::RSV_VCL_N10,
+        NalUnit::RSV_VCL_N12,
+        NalUnit::RSV_VCL_N14
     };
     static const uint8_t* end  = noRef + N_ELEMENTS(noRef);
-    return std::binary_search(noRef, end, nalu->type);
+    return std::binary_search(noRef, end, nalu->nal_unit_type);
 }
 
 class VaapiDecPictureH265 : public VaapiDecPicture
@@ -172,12 +149,12 @@ bool VaapiDecoderH265::DPB::initShortTermRef(RefSet& ref, int32_t currPoc,
 }
 
 bool VaapiDecoderH265::DPB::initShortTermRef(const PicturePtr& picture,
-                                             const H265SliceHdr* const slice)
+                                             const SliceHeader* const slice)
 {
-    const H265PPS *const pps = slice->pps;
-    const H265SPS *const sps = pps->sps;
+    const PPS *const pps = slice->pps.get();
+    const SPS *const sps = pps->sps.get();
 
-    const H265ShortTermRefPicSet* stRef;
+    const ShortTermRefPicSet* stRef;
     if (!slice->short_term_ref_pic_set_sps_flag)
         stRef = &slice->short_term_ref_pic_sets;
     else
@@ -195,10 +172,10 @@ bool VaapiDecoderH265::DPB::initShortTermRef(const PicturePtr& picture,
     return true;
 }
 
-bool VaapiDecoderH265::DPB::initLongTermRef(const PicturePtr& picture, const H265SliceHdr *const slice)
+bool VaapiDecoderH265::DPB::initLongTermRef(const PicturePtr& picture, const SliceHeader *const slice)
 {
-    const H265PPS *const pps = slice->pps;
-    const H265SPS *const sps = pps->sps;
+    const PPS *const pps = slice->pps.get();
+    const SPS *const sps = pps->sps.get();
 
     int32_t deltaPocMsbCycleLt[16];
 
@@ -224,7 +201,7 @@ bool VaapiDecoderH265::DPB::initLongTermRef(const PicturePtr& picture, const H26
         }
         if (slice->delta_poc_msb_present_flag[i]) {
             poc += picture->m_poc - deltaPocMsbCycleLt[i] * maxPicOrderCntLsb
-                    - slice->pic_order_cnt_lsb;
+                    - slice->slice_pic_order_cnt_lsb;
         }
         VaapiDecPictureH265* pic = getPic(poc, slice->delta_poc_msb_present_flag[i]);
         if (!pic) {
@@ -290,7 +267,7 @@ void VaapiDecoderH265::DPB::clearRefSet()
 }
 /*8.3.2*/
 bool VaapiDecoderH265::DPB::initReference(const PicturePtr& picture,
-     const H265SliceHdr *const slice,  const H265NalUnit *const nalu, bool newStream)
+     const SliceHeader *const slice,  const NalUnit *const nalu, bool newStream)
 {
     clearRefSet();
     if (isIdr(nalu))
@@ -332,10 +309,10 @@ void VaapiDecoderH265::DPB::forEach(ForEachFunction fn)
     std::for_each(m_pictures.begin(), m_pictures.end(), fn);
 }
 
-bool VaapiDecoderH265::DPB::checkReorderPics(const H265SPS* const sps)
+bool VaapiDecoderH265::DPB::checkReorderPics(const SPS* const sps)
 {
     uint32_t num = count_if(m_pictures.begin(), m_pictures.end(), isOutputNeeded);
-    return num > sps->max_num_reorder_pics[sps->max_sub_layers_minus1];
+    return num > sps->sps_max_num_reorder_pics[sps->sps_max_sub_layers_minus1];
 }
 
 bool checkPicLatencyCount(const PicturePtr& picture, uint32_t spsMaxLatencyPictures)
@@ -343,13 +320,13 @@ bool checkPicLatencyCount(const PicturePtr& picture, uint32_t spsMaxLatencyPictu
     return isOutputNeeded(picture) && (picture->m_picLatencyCount >= spsMaxLatencyPictures);
 }
 
-bool VaapiDecoderH265::DPB::checkLatency(const H265SPS* const sps)
+bool VaapiDecoderH265::DPB::checkLatency(const SPS* const sps)
 {
-    uint8_t highestTid = sps->max_sub_layers_minus1;
-    if (!sps->max_latency_increase_plus1[highestTid])
+    uint8_t highestTid = sps->sps_max_sub_layers_minus1;
+    if (!sps->sps_max_latency_increase_plus1[highestTid])
         return false;
-    uint16_t spsMaxLatencyPictures = sps->max_num_reorder_pics[highestTid]
-        + sps->max_latency_increase_plus1[highestTid] - 1;
+    uint16_t spsMaxLatencyPictures = sps->sps_max_num_reorder_pics[highestTid]
+        + sps->sps_max_latency_increase_plus1[highestTid] - 1;
     return find_if(m_pictures.begin(),
                    m_pictures.end(),
                    bind(checkPicLatencyCount, _1, spsMaxLatencyPictures)
@@ -357,15 +334,15 @@ bool VaapiDecoderH265::DPB::checkLatency(const H265SPS* const sps)
 
 }
 
-bool VaapiDecoderH265::DPB::checkDpbSize(const H265SPS* const sps)
+bool VaapiDecoderH265::DPB::checkDpbSize(const SPS* const sps)
 {
-    uint8_t highestTid = sps->max_sub_layers_minus1;
-    return m_pictures.size() >= (size_t)(sps->max_dec_pic_buffering_minus1[highestTid] + 1);
+    uint8_t highestTid = sps->sps_max_sub_layers_minus1;
+    return m_pictures.size() >= (size_t)(sps->sps_max_dec_pic_buffering_minus1[highestTid] + 1);
 }
 
 //C.5.2.2
 bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
-     const H265SliceHdr *const slice,  const H265NalUnit *const nalu, bool newStream)
+     const SliceHeader *const slice,  const NalUnit *const nalu, bool newStream)
 {
     forEach(markUnusedReference);
     if (!initReference(picture, slice, nalu, newStream))
@@ -386,8 +363,8 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
         return true;
     }
     removeUnused();
-    const H265PPS* const pps = slice->pps;
-    const H265SPS* const sps = pps->sps;
+    const PPS* const pps = slice->pps.get();
+    const SPS* const sps = pps->sps.get();
     while (checkReorderPics(sps) || checkLatency(sps) || checkDpbSize(sps))
         bump();
 
@@ -398,7 +375,6 @@ bool VaapiDecoderH265::DPB::output(const PicturePtr& picture)
 {
     picture->m_picOutputFlag = false;
 
-    //    ERROR("DPB: output picture(Poc:%d)", picture->m_poc);
     return m_output(picture) == DECODE_SUCCESS;
 }
 
@@ -426,10 +402,10 @@ void addLatency(const PicturePtr& picture)
         picture->m_picLatencyCount++;
 }
 
-bool VaapiDecoderH265::DPB::add(const PicturePtr& picture, const H265SliceHdr* const lastSlice)
+bool VaapiDecoderH265::DPB::add(const PicturePtr& picture, const SliceHeader* const lastSlice)
 {
-    const H265PPS* const pps = lastSlice->pps;
-    const H265SPS* const sps = pps->sps;
+    const PPS* const pps = lastSlice->pps.get();
+    const SPS* const sps = pps->sps.get();
 
     forEach(addLatency);
     picture->m_picLatencyCount = 0;
@@ -455,14 +431,13 @@ VaapiDecoderH265::VaapiDecoderH265():
     m_endOfSequence(false),
     m_dpb(bind(&VaapiDecoderH265::outputPicture, this, _1))
 {
-    m_parser = h265_parser_new();
-    m_prevSlice.reset(new H265SliceHdr(), h265SliceHdrFree);
+    m_parser.reset(new Parser());
+    m_prevSlice.reset(new SliceHeader());
 }
 
 VaapiDecoderH265::~VaapiDecoderH265()
 {
     stop();
-    h265_parser_free(m_parser);
 }
 
 Decode_Status VaapiDecoderH265::start(VideoConfigBuffer * buffer)
@@ -470,10 +445,22 @@ Decode_Status VaapiDecoderH265::start(VideoConfigBuffer * buffer)
     return DECODE_SUCCESS;
 }
 
-Decode_Status VaapiDecoderH265::decodeParamSet(H265NalUnit *nalu)
+Decode_Status VaapiDecoderH265::decodeParamSet(NalUnit *nalu)
 {
-    H265ParserResult result = h265_parser_parse_nal(m_parser, nalu);
-    return result == H265_PARSER_OK ? DECODE_SUCCESS : DECODE_INVALID_DATA;
+    bool res = true;
+
+    switch (nalu->nal_unit_type) {
+    case NalUnit::VPS_NUT:
+        res = m_parser->parseVps(nalu);
+        break;
+    case NalUnit::SPS_NUT:
+        res = m_parser->parseSps(nalu);
+        break;
+    case NalUnit::PPS_NUT:
+        res = m_parser->parsePps(nalu);
+    }
+
+    return res ? DECODE_SUCCESS : DECODE_INVALID_DATA;
 }
 
 Decode_Status VaapiDecoderH265::outputPicture(const PicturePtr& picture)
@@ -499,13 +486,13 @@ Decode_Status VaapiDecoderH265::decodeCurrent()
     return status;
 }
 
-
 #define FILL_SCALING_LIST(mxm) \
-void fillScalingList##mxm(VAIQMatrixBufferHEVC* iqMatrix, const H265ScalingList* const scalingList) \
+void fillScalingList##mxm(VAIQMatrixBufferHEVC* iqMatrix, const ScalingList* const scalingList) \
 { \
     for (size_t i = 0; i < N_ELEMENTS(iqMatrix->ScalingList##mxm); i++) { \
-        h265_quant_matrix_##mxm##_get_raster_from_uprightdiagonal(iqMatrix->ScalingList##mxm[i], \
-            scalingList->scaling_lists_##mxm[i]); \
+        for (size_t j = 0; j < N_ELEMENTS(UpperRightDiagonal##mxm); j++) { \
+            iqMatrix->ScalingList##mxm[i][UpperRightDiagonal##mxm[j]] = scalingList->scalingList##mxm[i][j]; \
+        } \
     } \
 }
 
@@ -515,26 +502,26 @@ FILL_SCALING_LIST(16x16)
 FILL_SCALING_LIST(32x32)
 
 #define FILL_SCALING_LIST_DC(mxm) \
-void fillScalingListDc##mxm(VAIQMatrixBufferHEVC* iqMatrix, const H265ScalingList* const scalingList) \
+void fillScalingListDc##mxm(VAIQMatrixBufferHEVC* iqMatrix, const ScalingList* const scalingList) \
 { \
     for (size_t i = 0; i < N_ELEMENTS(iqMatrix->ScalingListDC##mxm); i++) { \
         iqMatrix->ScalingListDC##mxm[i] = \
-            scalingList->scaling_list_dc_coef_minus8_##mxm[i] + 8; \
+            scalingList->scalingListDC##mxm[i] + 8; \
     } \
 }
 
 FILL_SCALING_LIST_DC(16x16)
 FILL_SCALING_LIST_DC(32x32)
 
-bool VaapiDecoderH265::fillIqMatrix(const PicturePtr& picture, const H265SliceHdr* const slice)
+bool VaapiDecoderH265::fillIqMatrix(const PicturePtr& picture, const SliceHeader* const slice)
 {
-    H265PPS* pps = slice->pps;
-    H265SPS* sps = pps->sps;
-    H265ScalingList* scalingList;
-    if (pps->scaling_list_data_present_flag) {
+    const PPS* const pps = slice->pps.get();
+    const SPS* const sps = pps->sps.get();
+    const ScalingList* scalingList;
+    if (pps->pps_scaling_list_data_present_flag) {
         scalingList = &pps->scaling_list;
     } else if(sps->scaling_list_enabled_flag) {
-        if(sps->scaling_list_data_present_flag) {
+        if(sps->sps_scaling_list_data_present_flag) {
             scalingList = &sps->scaling_list;
         } else {
             scalingList = &pps->scaling_list;
@@ -558,7 +545,6 @@ bool VaapiDecoderH265::fillIqMatrix(const PicturePtr& picture, const H265SliceHd
 void VaapiDecoderH265::fillReference(VAPictureHEVC* refs, int32_t& n,
     const RefSet& refset, uint32_t flags)
 {
-  //ERROR("fill ref(%x):", flags);
     for (size_t i = 0; i < refset.size(); i++) {
         VAPictureHEVC* r = refs + n;
         const VaapiDecPictureH265* pic = refset[i];
@@ -569,7 +555,6 @@ void VaapiDecoderH265::fillReference(VAPictureHEVC* refs, int32_t& n,
 
         //record for late use
         m_pocToIndex[pic->m_poc] = n;
-	//    ERROR("%d", pic->m_poc);
 
         n++;
 
@@ -596,7 +581,7 @@ void VaapiDecoderH265::fillReference(VAPictureHEVC* refs, int32_t size)
 
 
 }
-bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const H265SliceHdr* const slice)
+bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const SliceHeader* const slice)
 {
     VAPictureParameterBufferHEVC* param;
     if (!picture->editPicture(param))
@@ -605,8 +590,8 @@ bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const H265SliceHdr
     param->CurrPic.pic_order_cnt = picture->m_poc;
     fillReference(param->ReferenceFrames,  N_ELEMENTS(param->ReferenceFrames));
 
-    H265PPS* pps = slice->pps;
-    H265SPS* sps = pps->sps;
+    const PPS* const pps = slice->pps.get();
+    const SPS* const sps = pps->sps.get();
 #define FILL(h, f) param->f = h->f
     FILL(sps, pic_width_in_luma_samples);
     FILL(sps, pic_height_in_luma_samples);
@@ -627,7 +612,7 @@ bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const H265SliceHdr
     FILL_PIC(pps, tiles_enabled_flag);
     FILL_PIC(pps, entropy_coding_sync_enabled_flag);
     param->pic_fields.bits.pps_loop_filter_across_slices_enabled_flag
-        = pps->loop_filter_across_slices_enabled_flag;
+        = pps->pps_loop_filter_across_slices_enabled_flag;
     FILL_PIC(pps, loop_filter_across_tiles_enabled_flag);
     FILL_PIC(sps, pcm_loop_filter_disabled_flag);
     //how to fill this?
@@ -635,7 +620,7 @@ bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const H265SliceHdr
     //NoBiPredFlag
 
     param->sps_max_dec_pic_buffering_minus1 =
-        sps->max_dec_pic_buffering_minus1[0];
+        sps->sps_max_dec_pic_buffering_minus1[0];
     FILL(sps, bit_depth_luma_minus8);
     FILL(sps, bit_depth_chroma_minus8);
     FILL(sps, pcm_sample_bit_depth_luma_minus1);
@@ -650,8 +635,8 @@ bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const H265SliceHdr
     FILL(sps, max_transform_hierarchy_depth_inter);
     FILL(pps, init_qp_minus26);
     FILL(pps, diff_cu_qp_delta_depth);
-    param->pps_cb_qp_offset = pps->cb_qp_offset;
-    param->pps_cr_qp_offset = pps->cr_qp_offset;
+    param->pps_cb_qp_offset = pps->pps_cb_qp_offset;
+    param->pps_cr_qp_offset = pps->pps_cr_qp_offset;
     FILL(pps, log2_parallel_merge_level_minus2);
     FILL(pps, num_tile_columns_minus1);
     FILL(pps, num_tile_rows_minus1);
@@ -677,7 +662,7 @@ bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const H265SliceHdr
     FILL_SLICE(sps, sample_adaptive_offset_enabled_flag);
     FILL_SLICE(pps, deblocking_filter_override_enabled_flag);
     param->slice_parsing_fields.bits.pps_disable_deblocking_filter_flag =
-        pps->deblocking_filter_disabled_flag;
+        pps->pps_deblocking_filter_disabled_flag;
     FILL_SLICE(pps, slice_segment_header_extension_present_flag);
 
     /* how to fill following fields
@@ -690,8 +675,8 @@ bool VaapiDecoderH265::fillPicture(const PicturePtr& picture, const H265SliceHdr
     param->num_long_term_ref_pic_sps = sps->num_long_term_ref_pics_sps;
     FILL(pps, num_ref_idx_l0_default_active_minus1);
     FILL(pps, num_ref_idx_l1_default_active_minus1);
-    param->pps_beta_offset_div2 = pps->beta_offset_div2;
-    param->pps_tc_offset_div2 = pps->tc_offset_div2;
+    param->pps_beta_offset_div2 = pps->pps_beta_offset_div2;
+    param->pps_tc_offset_div2 = pps->pps_tc_offset_div2;
     FILL(pps, num_extra_slice_header_bits);
 
     /* how to fill this
@@ -765,13 +750,13 @@ void VaapiDecoderH265::fillReferenceIndexForList(VASliceParameterBufferHEVC* sli
 }
 
 // 8.3.4
-bool VaapiDecoderH265::fillReferenceIndex(VASliceParameterBufferHEVC* sliceParam, const H265SliceHdr* const slice)
+bool VaapiDecoderH265::fillReferenceIndex(VASliceParameterBufferHEVC* sliceParam, const SliceHeader* const slice)
 {
     RefSet& before = m_dpb.m_stCurrBefore;
     RefSet& after = m_dpb.m_stCurrAfter;
 
     RefSet refset;
-    if (!H265_IS_I_SLICE(slice)) {
+    if (!slice->isISlice()) {
         if (!getRefPicList(refset, before, after,
             slice->num_ref_idx_l0_active_minus1 + 1,
             slice->ref_pic_list_modification.ref_pic_list_modification_flag_l0,
@@ -782,7 +767,7 @@ bool VaapiDecoderH265::fillReferenceIndex(VASliceParameterBufferHEVC* sliceParam
     fillReferenceIndexForList(sliceParam, refset, true);
 
     refset.clear();
-    if (H265_IS_B_SLICE(slice)) {
+    if (slice->isBSlice()) {
         if (!getRefPicList(refset, after, before,
             slice->num_ref_idx_l1_active_minus1 + 1,
             slice->ref_pic_list_modification.ref_pic_list_modification_flag_l1,
@@ -810,9 +795,9 @@ inline int32_t clip3(int32_t x, int32_t y, int32_t z)
 
 #define FILL_WEIGHT_TABLE(n) \
 void fillPredWedightTableL##n(VASliceParameterBufferHEVC* sliceParam, \
-        const H265SliceHdr* slice, uint8_t chromaLog2WeightDenom) \
+        const SliceHeader* slice, uint8_t chromaLog2WeightDenom) \
 { \
-    const H265PredWeightTable& w = slice->pred_weight_table; \
+    const PredWeightTable& w = slice->pred_weight_table; \
     for (int i = 0; i <= sliceParam->num_ref_idx_l##n##_active_minus1; i++) { \
         if (w.luma_weight_l##n##_flag[i]) { \
                 sliceParam->delta_luma_weight_l##n[i] = w.delta_luma_weight_l##n[i]; \
@@ -836,13 +821,13 @@ void fillPredWedightTableL##n(VASliceParameterBufferHEVC* sliceParam, \
 FILL_WEIGHT_TABLE(0)
 FILL_WEIGHT_TABLE(1)
 
-bool VaapiDecoderH265::fillPredWeightTable(VASliceParameterBufferHEVC* sliceParam, const H265SliceHdr* const slice)
+bool VaapiDecoderH265::fillPredWeightTable(VASliceParameterBufferHEVC* sliceParam, const SliceHeader* const slice)
 {
-    H265PPS* pps = slice->pps;
-    H265SPS* sps = pps->sps;
-    const H265PredWeightTable& w = slice->pred_weight_table;
-    if ((pps->weighted_pred_flag && H265_IS_P_SLICE (slice)) ||
-            (pps->weighted_bipred_flag && H265_IS_B_SLICE (slice))) {
+    const PPS* const pps = slice->pps.get();
+    const SPS* const sps = pps->sps.get();
+    const PredWeightTable& w = slice->pred_weight_table;
+    if ((pps->weighted_pred_flag && slice->isPSlice()) ||
+            (pps->weighted_bipred_flag && slice->isBSlice())) {
         uint8_t chromaLog2WeightDenom = w.luma_log2_weight_denom;
         sliceParam->luma_log2_weight_denom = w.luma_log2_weight_denom;
         if (sps->chroma_format_idc != 0) {
@@ -852,29 +837,22 @@ bool VaapiDecoderH265::fillPredWeightTable(VASliceParameterBufferHEVC* slicePara
                 += w.delta_chroma_log2_weight_denom;
         }
         fillPredWedightTableL0(sliceParam,  slice, chromaLog2WeightDenom);
-        if (pps->weighted_bipred_flag && H265_IS_B_SLICE (slice))
+        if (pps->weighted_bipred_flag && slice->isBSlice())
             fillPredWedightTableL1(sliceParam,  slice, chromaLog2WeightDenom);
     }
     return true;
 }
 
-static inline uint32_t
-getSliceDataByteOffset(const H265SliceHdr* const sliceHdr, uint32_t nalHeaderBytes)
-{
-    return nalHeaderBytes + (sliceHdr->header_size + 7) / 8
-            - sliceHdr->n_emulation_prevention_bytes;
-}
-
 bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
-        const H265SliceHdr* const theSlice, const H265NalUnit* const nalu)
+        const SliceHeader* const theSlice, const NalUnit* const nalu)
 {
-    const H265SliceHdr* slice = theSlice;
+    const SliceHeader* slice = theSlice;
     VASliceParameterBufferHEVC* sliceParam;
-    if (!picture->newSlice(sliceParam, nalu->data + nalu->offset, nalu->size))
+    if (!picture->newSlice(sliceParam, nalu->m_data, nalu->m_size))
         return false;
     sliceParam->slice_data_byte_offset =
-        getSliceDataByteOffset(slice, nalu->header_bytes);
-    sliceParam->slice_segment_address = slice->segment_address;
+        slice->getSliceDataByteOffset();
+    sliceParam->slice_segment_address = slice->slice_segment_address;
 
 #define FILL_LONG(f) sliceParam->LongSliceFlags.fields.f = slice->f
 #define FILL_LONG_SLICE(f) sliceParam->LongSliceFlags.fields.slice_##f = slice->f
@@ -890,18 +868,19 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     if (!fillReferenceIndex(sliceParam, slice))
         return false;
 
-    FILL_LONG_SLICE(type);
+    sliceParam->LongSliceFlags.fields.slice_type = slice->slice_type;
     sliceParam->LongSliceFlags.fields.color_plane_id = slice->colour_plane_id;
     FILL_LONG_SLICE(sao_luma_flag);
     FILL_LONG_SLICE(sao_chroma_flag);
     FILL_LONG(mvd_l1_zero_flag);
     FILL_LONG(cabac_init_flag);
     FILL_LONG_SLICE(temporal_mvp_enabled_flag);
+
     if (slice->deblocking_filter_override_flag)
         FILL_LONG_SLICE(deblocking_filter_disabled_flag);
     else
         sliceParam->LongSliceFlags.fields.slice_deblocking_filter_disabled_flag=
-          slice->pps->deblocking_filter_disabled_flag;
+          slice->pps->pps_deblocking_filter_disabled_flag;
     FILL_LONG(collocated_from_l0_flag);
     FILL_LONG_SLICE(loop_filter_across_slices_enabled_flag);
 
@@ -923,9 +902,9 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     return true;
 }
 
-Decode_Status VaapiDecoderH265::ensureContext(const H265SPS* const sps)
+Decode_Status VaapiDecoderH265::ensureContext(const SPS* const sps)
 {
-    uint8_t surfaceNumber = sps->max_dec_pic_buffering_minus1[0] + 1 + H265_EXTRA_SURFACE_NUMBER;
+    uint8_t surfaceNumber = sps->sps_max_dec_pic_buffering_minus1[0] + 1 + H265_EXTRA_SURFACE_NUMBER;
     if (m_configBuffer.surfaceWidth < sps->width
         || m_configBuffer.surfaceHeight <  sps->height
         || m_configBuffer.surfaceNumber < surfaceNumber) {
@@ -934,8 +913,8 @@ Decode_Status VaapiDecoderH265::ensureContext(const H265SPS* const sps)
         Decode_Status status = VaapiDecoderBase::terminateVA();
         if (status != DECODE_SUCCESS)
             return status;
-        m_configBuffer.width = sps->conformance_window_flag ? sps->crop_rect_width : sps->width;
-        m_configBuffer.height = sps->conformance_window_flag ? sps->crop_rect_height : sps->height;
+        m_configBuffer.width = sps->conformance_window_flag ? sps->croppedWidth : sps->width;
+        m_configBuffer.height = sps->conformance_window_flag ? sps->croppedHeight : sps->height;
         m_configBuffer.surfaceWidth = sps->width;
         m_configBuffer.surfaceHeight =sps->height;
         m_configBuffer.flag |= HAS_SURFACE_NUMBER;
@@ -952,13 +931,13 @@ Decode_Status VaapiDecoderH265::ensureContext(const H265SPS* const sps)
 
 /* 8.3.1 */
 void VaapiDecoderH265::getPoc(const PicturePtr& picture,
-        const H265SliceHdr* const slice,
-        const H265NalUnit* const nalu)
+        const SliceHeader* const slice,
+        const NalUnit* const nalu)
 {
-    const H265PPS* const pps = slice->pps;
-    const H265SPS* const sps = pps->sps;
+    const PPS* const pps = slice->pps.get();
+    const SPS* const sps = pps->sps.get();
 
-    const uint16_t pocLsb = slice->pic_order_cnt_lsb;
+    const uint16_t pocLsb = slice->slice_pic_order_cnt_lsb;
     const int32_t MaxPicOrderCntLsb = 1 << (sps->log2_max_pic_order_cnt_lsb_minus4 + 4);
     int32_t picOrderCntMsb;
     if (isIrap(nalu) && picture->m_noRaslOutputFlag) {
@@ -976,9 +955,8 @@ void VaapiDecoderH265::getPoc(const PicturePtr& picture,
     }
     picture->m_poc = picOrderCntMsb + pocLsb;
     picture->m_pocLsb = pocLsb;
-    //ERROR("poc = %d", picture->m_poc);
 
-    uint8_t temporalID = nalu->temporal_id_plus1 - 1;
+    uint8_t temporalID = nalu->nuh_temporal_id_plus1 - 1;
     //fixme:sub-layer non-reference picture.
     if (!temporalID && !isRasl(nalu) &&  !isRadl(nalu) && !isSublayerNoRef(nalu)) {
         m_prevPicOrderCntMsb = picOrderCntMsb;
@@ -986,8 +964,8 @@ void VaapiDecoderH265::getPoc(const PicturePtr& picture,
     }
 }
 
-PicturePtr VaapiDecoderH265::createPicture(const H265SliceHdr* const slice,
-        const H265NalUnit* const nalu)
+PicturePtr VaapiDecoderH265::createPicture(const SliceHeader* const slice,
+        const NalUnit* const nalu)
 {
     PicturePtr picture;
     SurfacePtr surface = createSurface();
@@ -1008,22 +986,16 @@ PicturePtr VaapiDecoderH265::createPicture(const H265SliceHdr* const slice,
     return picture;
 }
 
-Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit *nalu)
+Decode_Status VaapiDecoderH265::decodeSlice(NalUnit *nalu)
 {
-    SharedPtr<H265SliceHdr> currSlice(new H265SliceHdr(), h265SliceHdrFree);
-    H265SliceHdr* slice = currSlice.get();
-    H265ParserResult result;
+    SharedPtr<SliceHeader> currSlice(new SliceHeader());
+    SliceHeader* slice = currSlice.get();
     Decode_Status status;
 
-    memset(slice, 0, sizeof(H265SliceHdr));
-    result = h265_parser_parse_slice_hdr(m_parser, nalu, slice);
-    if (result == H265_PARSER_ERROR) {
+    if (!m_parser->parseSlice(nalu, slice))
         return DECODE_INVALID_DATA;
-    }
-    if (result == H265_PARSER_BROKEN_LINK) {
-        return DECODE_SUCCESS;
-    }
-    status = ensureContext(slice->pps->sps);
+
+    status = ensureContext(slice->pps->sps.get());
     if (status != DECODE_SUCCESS) {
         return status;
     }
@@ -1049,12 +1021,12 @@ Decode_Status VaapiDecoderH265::decodeSlice(H265NalUnit *nalu)
 
 }
 
-Decode_Status VaapiDecoderH265::decodeNalu(H265NalUnit *nalu)
+Decode_Status VaapiDecoderH265::decodeNalu(NalUnit *nalu)
 {
-    uint8_t type = nalu->type;
+    uint8_t type = nalu->nal_unit_type;
     Decode_Status status = DECODE_SUCCESS;
 
-    if (H265_NAL_SLICE_TRAIL_N <= type && type <= H265_NAL_SLICE_CRA_NUT) {
+    if (NalUnit::TRAIL_N <= type && type <= NalUnit::CRA_NUT) {
         status = decodeSlice(nalu);
         if (status == DECODE_INVALID_DATA) {
             //ignore invalid data while decoding slice
@@ -1066,21 +1038,21 @@ Decode_Status VaapiDecoderH265::decodeNalu(H265NalUnit *nalu)
         if (status != DECODE_SUCCESS)
             return status;
         switch (type) {
-            case H265_NAL_VPS:
-            case H265_NAL_SPS:
-            case H265_NAL_PPS:
+            case NalUnit::VPS_NUT:
+            case NalUnit::SPS_NUT:
+            case NalUnit::PPS_NUT:
                 status = decodeParamSet(nalu);
                 break;
-            case H265_NAL_EOB:
+            case NalUnit::EOB_NUT:
                 m_newStream = true;
                 break;
-            case H265_NAL_EOS:
+            case NalUnit::EOS_NUT:
                 m_endOfSequence = true;
                 break;
-            case H265_NAL_AUD:
-            case H265_NAL_FD:
-            case H265_NAL_PREFIX_SEI:
-            case H265_NAL_SUFFIX_SEI:
+            case NalUnit::AUD_NUT:
+            case NalUnit::FD_NUT:
+            case NalUnit::PREFIX_SEI_NUT:
+            case NalUnit::SUFFIX_SEI_NUT:
             default:
                 break;
         }
@@ -1107,8 +1079,8 @@ Decode_Status VaapiDecoderH265::decode(VideoDecodeBuffer *buffer)
     int32_t size;
     Decode_Status status;
     while (nr.read(nal, size)) {
-        H265NalUnit nalu;
-        if (H265_PARSER_OK == h265_parser_identify_nalu_unchecked(m_parser, nal, 0, size, &nalu)) {
+        NalUnit nalu;
+        if (nalu.parseNaluHeader(nal, size)) {
             status = decodeNalu(&nalu);
             if (status != DECODE_SUCCESS)
                 return status;

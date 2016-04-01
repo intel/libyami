@@ -20,6 +20,10 @@ if BUILD_VP8_DECODER
 libyami_decoder_source_c += vaapidecoder_vp8.cpp
 endif
 
+if BUILD_H265_DECODER
+libyami_decoder_source_c += vaapidecoder_h265.cpp
+endif
+
 if BUILD_VP9_DECODER
 libyami_decoder_source_c += vaapidecoder_vp9.cpp
 endif
@@ -114,6 +118,10 @@ endif
 
 if BUILD_H264_DECODER
 unittest_SOURCES += vaapidecoder_h264_unittest.cpp
+endif
+
+if BUILD_H265_DECODER
+unittest_SOURCES += vaapidecoder_h265_unittest.cpp
 endif
 
 unittest_LDFLAGS = \
