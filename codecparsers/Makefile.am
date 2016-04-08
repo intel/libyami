@@ -1,44 +1,12 @@
 INCLUDES = -I$(top_srcdir)
 
 libyami_codecparser_source_c = \
-	bitreader.c \
-	bytereader.c \
-	bytewriter.c \
-	h264parser.c \
-	h265parser.c \
-	mpegvideoparser.c \
-	mpeg4parser.c \
-	vc1parser.c \
-	vp8utils.c \
-	vp8rangedecoder.c \
-	vp8parser.c \
 	vp9quant.c \
-	vp9parser.c\
 	dboolhuff.c \
-	jpegparser.c \
-	parserutils.c \
-	nalutils.c \
-	bitwriter.c \
 	$(NULL)
 
 libyami_codecparser_source_h_priv = \
-	bitreader.h \
-	bytereader.h \
-	bytewriter.h \
-	h264parser.h \
-	h265parser.h \
-	mpegvideoparser.h \
-	mpeg4parser.h \
-	vc1parser.h \
-	vp8utils.h \
-	vp8rangedecoder.h \
-	vp8parser.h \
 	vp9quant.h \
-	vp9parser.h \
-	jpegparser.h \
-	parserutils.h \
-	nalutils.h \
-	bitwriter.h \
 	$(NULL)
 
 libyami_codecparser_source_h_priv = \

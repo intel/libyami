@@ -12,25 +12,12 @@ libyami_decoder_source_c = \
 	vaapidecpicture.cpp \
 	$(NULL)
 
-if BUILD_H264_DECODER
-libyami_decoder_source_c += vaapidecoder_h264.cpp
-libyami_decoder_source_c += vaapidecoder_h264_dpb.cpp
-endif
-
 if BUILD_H265_DECODER
 libyami_decoder_source_c += vaapidecoder_h265.cpp
 endif
 
-if BUILD_VP8_DECODER
-libyami_decoder_source_c += vaapidecoder_vp8.cpp
-endif
-
 if BUILD_VP9_DECODER
 libyami_decoder_source_c += vaapidecoder_vp9.cpp
-endif
-
-if BUILD_JPEG_DECODER
-libyami_decoder_source_c += vaapidecoder_jpeg.cpp
 endif
 
 if BUILD_FAKE_DECODER
@@ -50,24 +37,12 @@ libyami_decoder_source_h_priv = \
 	vaapidecpicture.h \
 	$(NULL)
 
-if BUILD_H264_DECODER
-libyami_decoder_source_h_priv += vaapidecoder_h264.h
-endif
-
 if BUILD_H265_DECODER
 libyami_decoder_source_h_priv += vaapidecoder_h265.h
 endif
 
-if BUILD_VP8_DECODER
-libyami_decoder_source_h_priv += vaapidecoder_vp8.h
-endif
-
 if BUILD_VP9_DECODER
 libyami_decoder_source_h_priv += vaapidecoder_vp9.h
-endif
-
-if BUILD_JPEG_DECODER
-libyami_decoder_source_h_priv += vaapidecoder_jpeg.h
 endif
 
 if BUILD_FAKE_DECODER

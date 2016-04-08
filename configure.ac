@@ -29,7 +29,7 @@ AC_INIT([libyami],
         [libyami],
         [https://github.com/01org/libyami])
 
-AC_CONFIG_SRCDIR([vaapi/vaapitypes.h])
+AC_CONFIG_SRCDIR([common/common_def.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_AUX_DIR([aux])

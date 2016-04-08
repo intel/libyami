@@ -7,27 +7,24 @@ and decodes them leverage hardware acceleration.
 one usage is to encapsulate yami into openMAX component,
 to be used on Chromeos, Android or Linux (by gst-omx).
 
-Copyright (C) 2010-2011 Splitted-Desktop Systems
-Copyright (C) 2011 Collabora Ltd.
-Copyright (C) 2011-2014 Intel Corporation
+Copyright (c) 2010, The WebM Project authors.
+Copyright (C) 2011-2016 Intel Corporation
+Copyright (C) 2015-2016 Alibaba
 
 
 License
 -------
 libyami libraries are available under the terms of the
-GNU Lesser General Public License v2.1+
+Apache License 2.0
 
 
 Overview
 --------
 libyami consists of several libraries:
     * 'codecparsers': it is bit stream parser,
-        most files are reused from gst-plugins-bad <http://cgit.freedesktop.org/gstreamer/gst-plugins-bad>
     * 'common': common objects/operation to work with vaapi (hw acceleration interface)
     * 'decoder': video decoder implementation
     * 'encoder': video encoder implementation
-       some files in common/decoder/encoder are reused from
-       gstreamer-vaapi: <http://gitorious.org/vaapi/gstreamer-vaapi>
     * 'vpp': video post process implementation
 
 

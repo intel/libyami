@@ -1,7 +1,7 @@
 libyami NEWS -- summary of changes.  2015-12-17
-Copyright (C) 2010-2011 Splitted-Desktop Systems
-Copyright (C) 2011 Collabora
-Copyright (C) 2011-2015 Intel Corporation
+Copyright (c) 2010, The WebM Project authors.
+Copyright (C) 2011-2016 Intel Corporation
+Copyright (C) 2015-2016 Alibaba
 
 libyami 0.3.1 release, work with libva 2015Q4 release
 =====================
