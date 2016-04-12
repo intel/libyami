@@ -18,7 +18,6 @@
 #define vaapidisplay_h
 
 #include "vaapi/vaapiptrs.h"
-#include "vaapi/vaapitypes.h"
 #include <va/va.h>
 #include <va/va_tpi.h>
 #ifdef HAVE_VA_X11
@@ -28,8 +27,8 @@
 #include <va/va_drm.h>
 #endif
 #include <vector>
-#include "interface/VideoCommonDefs.h"
 #include "common/lock.h"
+#include "common/NonCopyable.h"
 
 ///abstract for all display, x11, wayland, ozone, android etc.
 namespace YamiMediaCodec{

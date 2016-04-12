@@ -21,7 +21,7 @@
 #include "common/log.h"
 #include "common/common_def.h"
 #include "vaapi/vaapidisplay.h"
-#include "vaapi/vaapiutils.h"
+#include "vaapi/VaapiUtils.h"
 #include <algorithm>
 #include <vector>
 

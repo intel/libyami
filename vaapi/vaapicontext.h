@@ -17,8 +17,9 @@
 #ifndef vaapicontext_h
 #define vaapicontext_h
 
+#include "common/NonCopyable.h"
+#include "interface/VideoCommonDefs.h"
 #include "vaapi/vaapiptrs.h"
-#include "vaapi/vaapitypes.h"
 #include <va/va.h>
 
 namespace YamiMediaCodec{
