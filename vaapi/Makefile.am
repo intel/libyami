@@ -1,21 +1,11 @@
 INCLUDES = -I$(top_srcdir)
 
 libyami_vaapi_source_c = \
-	vaapipicture.cpp \
-	vaapiimageutils.cpp \
-	vaapidisplay.cpp \
-	vaapicontext.cpp \
-	vaapiimagepool.cpp \
-	vaapisurfaceallocator.cpp \
+	VaapiUtils.cpp \
 	$(NULL)
 
 libyami_vaapi_source_h_priv = \
-	vaapipicture.h \
-	vaapiimageutils.h \
-	vaapidisplay.h \
-	vaapicontext.h \
-	vaapiimagepool.h \
-	vaapisurfaceallocator.h \
+	VaapiUtils.h \
 	$(NULL)
 
 libyami_vaapi_ldflags = \
