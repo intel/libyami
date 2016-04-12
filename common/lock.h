@@ -16,8 +16,7 @@
 #ifndef lock_h
 #define lock_h
 
-//TODO: remove this when we put DISALLOW_COPY_AND_ASSIGN to common/
-#include "vaapi/vaapitypes.h"
+#include "NonCopyable.h"
 #include <pthread.h>
 
 namespace YamiMediaCodec{

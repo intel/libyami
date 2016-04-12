@@ -4,7 +4,6 @@ libyami_common_source_c = \
 	log.cpp \
 	utils.cpp \
 	nalreader.cpp \
-	surfacepool.cpp \
 	YamiVersion.cpp \
 	$(NULL)
 
@@ -13,6 +12,7 @@ libyami_common_source_h = \
 	$(NULL)
 
 libyami_common_source_h_priv = \
+	NonCopyable.h \
 	log.h \
 	utils.h \
 	common_def.h \

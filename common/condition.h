@@ -16,8 +16,8 @@
 #ifndef condition_h
 #define condition_h
 
-//TODO: remove this when we put DISALLOW_COPY_AND_ASSIGN to common/
-#include "vaapi/vaapitypes.h"
+#include "NonCopyable.h"
+#include "interface/VideoCommonDefs.h"
 
 #include "lock.h"
 

@@ -47,11 +47,6 @@ namespace YamiMediaCodec{
 
 #define SharedFromThis shared_from_this
 
-
-#define DISALLOW_COPY_AND_ASSIGN(className) \
-      className(const className&); \
-      className & operator=(const className&); \
-
 }
 #endif
 
