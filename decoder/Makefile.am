@@ -12,10 +12,6 @@ libyami_decoder_source_c = \
 	vaapidecpicture.cpp \
 	$(NULL)
 
-if BUILD_H265_DECODER
-libyami_decoder_source_c += vaapidecoder_h265.cpp
-endif
-
 if BUILD_VP9_DECODER
 libyami_decoder_source_c += vaapidecoder_vp9.cpp
 endif

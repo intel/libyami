@@ -23,7 +23,7 @@
 #include "vaapi/vaapisurfaceallocator.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
-#include "vaapi/vaapiutils.h"
+#include "vaapi/VaapiUtils.h"
 #include "vaapidecsurfacepool.h"
 #include <string.h>
 #include <stdlib.h> // for setenv
