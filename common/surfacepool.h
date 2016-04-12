@@ -28,7 +28,8 @@
  * but we have no choose before we make VaapiSurface more generic,
  * and rename it to Surface
  */
-#include "vaapi/vaapisurface.h"
+#include "vaapi/vaapiptrs.h"
+#include "vaapi/VaapiSurface.h"
 #include <vector>
 
 namespace YamiMediaCodec{
@@ -37,8 +38,8 @@ class SurfacePool
 {
 public:
     static SharedPtr<SurfacePool>
-    create(const DisplayPtr& display, const SharedPtr<SurfaceAllocator>& alloc,
-           uint32_t fourcc, uint32_t width, uint32_t height, uint32_t size);
+    create(const SharedPtr<SurfaceAllocator>& alloc,
+        uint32_t fourcc, uint32_t width, uint32_t height, uint32_t size);
 
     /**
      * allocator surface from pool, if no avaliable surface it will return NULL
@@ -54,8 +55,8 @@ public:
 private:
     SurfacePool();
 
-    YamiStatus init(const DisplayPtr& display, const SharedPtr<SurfaceAllocator>& alloc,
-           uint32_t fourcc, uint32_t width, uint32_t height, uint32_t size);
+    YamiStatus init(const SharedPtr<SurfaceAllocator>& alloc,
+        uint32_t fourcc, uint32_t width, uint32_t height, uint32_t size);
 
     SharedPtr<SurfaceAllocator>         m_alloc;
     SurfaceAllocParams                  m_params;

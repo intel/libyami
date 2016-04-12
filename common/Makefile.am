@@ -4,6 +4,7 @@ libyami_common_source_c = \
 	log.cpp \
 	utils.cpp \
 	nalreader.cpp \
+	surfacepool.cpp \
 	YamiVersion.cpp \
 	$(NULL)
 
