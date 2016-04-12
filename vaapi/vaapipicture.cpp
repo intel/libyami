@@ -20,23 +20,25 @@
 #include "vaapipicture.h"
 
 #include "common/log.h"
-#include "vaapibuffer.h"
+#include "VaapiBuffer.h"
 #include "vaapidisplay.h"
 #include "vaapicontext.h"
-#include "vaapisurface.h"
-#include "vaapi/vaapiutils.h"
+#include "VaapiSurface.h"
+#include "VaapiUtils.h"
 
 namespace YamiMediaCodec{
 VaapiPicture::VaapiPicture(const ContextPtr& context,
-                           const SurfacePtr& surface, int64_t timeStamp)
-:m_display(context->getDisplay()), m_context(context), m_surface(surface),
-m_timeStamp(timeStamp), m_type(VAAPI_PICTURE_TYPE_NONE)
+    const SurfacePtr& surface, int64_t timeStamp)
+    : m_display(context->getDisplay())
+    , m_context(context)
+    , m_surface(surface)
+    , m_timeStamp(timeStamp)
 {
 
 }
 
 VaapiPicture::VaapiPicture()
-:m_timeStamp(0), m_type(VAAPI_PICTURE_TYPE_NONE)
+    : m_timeStamp(0)
 {
 }
 
@@ -68,8 +70,7 @@ bool VaapiPicture::render(BufObjectPtr& buffer)
     if (!buffer)
         return true;
 
-    if (buffer->isMapped())
-        buffer->unmap();
+    buffer->unmap();
 
     bufferID = buffer->getID();
     if (bufferID == VA_INVALID_ID)
@@ -105,5 +106,10 @@ bool VaapiPicture::addObject(std::vector < BufObjectPtr >& objects,
         return false;
     objects.push_back(object);
     return true;
+}
+
+bool VaapiPicture::sync()
+{
+    return vaSyncSurface(m_display->getID(), getSurfaceID()) == VA_STATUS_SUCCESS;
 }
 }

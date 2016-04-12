@@ -17,11 +17,10 @@
 #ifndef vaapipicture_h
 #define vaapipicture_h
 
-#include "vaapibuffer.h"
+#include "interface/VideoCommonDefs.h"
+#include "VaapiBuffer.h"
 #include "vaapiptrs.h"
-#include "vaapipicturetypes.h"
-#include "vaapisurface.h"
-#include "vaapitypes.h"
+#include "VaapiSurface.h"
 #include <string.h>
 #include <va/va.h>
 #include <vector>
@@ -42,10 +41,11 @@ public:
     inline VASurfaceID getSurfaceID() const;
     inline SurfacePtr getSurface() const;
     inline void setSurface(const SurfacePtr&);
-    inline bool sync();
+    bool sync();
 
     int64_t                 m_timeStamp;
-    VaapiPictureType        m_type;
+    //TODO: add m_type back
+    //VaapiPictureType        m_type;
 
 protected:
     virtual bool doRender() = 0;
@@ -66,13 +66,14 @@ protected:
     template<class T>
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
     inline BufObjectPtr createBufferObject(VABufferType bufType,
-                                           uint32_t size,const void *data, void **mapped_data);
+        uint32_t size, const void* data, void** mapped);
     VaapiPicture();
 };
 
 template<class T>
 BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr)
 {
+    bufPtr = NULL;
     BufObjectPtr  p = createBufferObject(bufType, sizeof(T), NULL, (void**)&bufPtr);
     if (p)
         memset(bufPtr, 0, sizeof(T));
@@ -80,9 +81,15 @@ BufObjectPtr VaapiPicture::createBufferObject(VABufferType  bufType, T*& bufPtr)
 }
 
 BufObjectPtr VaapiPicture::createBufferObject(VABufferType bufType,
-                                          uint32_t size,const void *data, void **mapped_data)
+    uint32_t size, const void* data, void** mapped)
 {
-    return VaapiBufObject::create(m_context, bufType, size, data, mapped_data);
+    BufObjectPtr p = VaapiBuffer::create(m_context, bufType, size, data);
+    if (p && mapped) {
+        *mapped = p->map();
+        if (!*mapped)
+            p.reset();
+    }
+    return p;
 }
 
 template<class T>
@@ -126,10 +133,6 @@ void VaapiPicture::setSurface(const SurfacePtr& surface)
     m_surface = surface;
 }
 
-bool VaapiPicture::sync()
-{
-    return m_surface->sync();
-}
 }
 
 #endif //vaapipicture_h
