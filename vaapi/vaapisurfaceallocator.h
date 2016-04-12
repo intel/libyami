@@ -17,6 +17,7 @@
 #ifndef vaapisurfaceallocator_h
 #define vaapisurfaceallocator_h
 #include "common/basesurfaceallocator.h"
+#include "common/NonCopyable.h"
 #include <va/va.h>
 
 namespace YamiMediaCodec{
