@@ -21,7 +21,7 @@
 #include "oclpostprocess_base.h"
 #include "common/log.h"
 #include "ocl/oclcontext.h"
-#include "vaapi/vaapiutils.h"
+#include "vaapi/VaapiUtils.h"
 #include <va/va_drmcommon.h>
 
 namespace YamiMediaCodec{

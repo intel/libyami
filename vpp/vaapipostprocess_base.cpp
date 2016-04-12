@@ -22,7 +22,7 @@
 #include "common/log.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapicontext.h"
-#include "vaapi/vaapiutils.h"
+#include "vaapi/VaapiUtils.h"
 
 namespace YamiMediaCodec{
 
