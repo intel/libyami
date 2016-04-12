@@ -32,8 +32,8 @@ typedef SharedPtr < VaapiImageRaw > ImageRawPtr;
 class VaapiCodedBuffer;
 typedef SharedPtr < VaapiCodedBuffer > CodedBufferPtr;
 
-class VaapiBufObject;
-typedef SharedPtr < VaapiBufObject > BufObjectPtr;
+class VaapiBuffer;
+typedef SharedPtr<VaapiBuffer> BufObjectPtr;
 
 class VaapiDisplay;
 typedef SharedPtr < VaapiDisplay > DisplayPtr;

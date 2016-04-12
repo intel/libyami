@@ -1,12 +1,14 @@
 INCLUDES = -I$(top_srcdir)
 
 libyami_vaapi_source_c = \
+	VaapiBuffer.cpp \
 	VaapiUtils.cpp \
 	vaapidisplay.cpp \
 	vaapicontext.cpp \
 	$(NULL)
 
 libyami_vaapi_source_h_priv = \
+	VaapiBuffer.h \
 	VaapiUtils.h \
 	vaapidisplay.h \
 	vaapicontext.h \
