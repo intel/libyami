@@ -20,6 +20,7 @@
 #include <assert.h>
 #include "bitwriter.h"
 #include "scopedlogger.h"
+#include "common/common_def.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
@@ -142,14 +143,14 @@ hevc_get_log2_max_frame_num (uint32_t num)
     return ret;
 }
 
-static uint8_t hevc_get_profile_idc (VaapiProfile profile)
+static uint8_t hevc_get_profile_idc(VideoProfile profile)
 {
     uint8_t idc;
     switch (profile) {
-    case VAAPI_PROFILE_HEVC_MAIN:
+    case PROFILE_H265_MAIN:
         idc =  1;
         break;
-    case VAAPI_PROFILE_HEVC_MAIN10:
+    case PROFILE_H265_MAIN10:
         idc = 2;
     default:
         assert(0);
