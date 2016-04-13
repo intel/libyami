@@ -91,6 +91,7 @@ Encode_Status VaapiEncPicture::getOutput(VideoEncOutputBuffer * outBuffer)
         outBuffer->flag |= m_codedBuffer->getFlags();
     }
     outBuffer->dataSize = size;
+    outBuffer->timeStamp = this->m_timeStamp;
     return ENCODE_SUCCESS;
 }
 

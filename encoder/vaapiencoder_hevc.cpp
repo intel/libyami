@@ -804,6 +804,7 @@ public:
         if (ret == ENCODE_SUCCESS) {
             outBuffer->dataSize = out.data - outBuffer->data;
             outBuffer->flag = out.flag;
+            outBuffer->timeStamp = out.timeStamp;
         }
         return ret;
     }
