@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include "VideoEncoderDefs.h"
 #include "VideoEncoderInterface.h"
+#include "common/NonCopyable.h"
 #include <vector>
 #if ANDROID
 #include <gui/Surface.h>

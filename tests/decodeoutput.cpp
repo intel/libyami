@@ -21,8 +21,7 @@
 #include "decodeoutput.h"
 #include "common/log.h"
 #include "common/utils.h"
-#include "vaapi/vaapiutils.h"
-#include "vaapi/vaapiimageutils.h"
+#include "vaapi/VaapiUtils.h"
 
 #if __ENABLE_MD5__
 #include <openssl/md5.h>

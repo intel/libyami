@@ -21,7 +21,7 @@
 #include "egl_util.h"
 #include "egl_vaapi_image.h"
 #include "common/log.h"
-#include "vaapi/vaapiutils.h"
+#include "vaapi/VaapiUtils.h"
 #if __ENABLE_DMABUF__
 #include "libdrm/drm_fourcc.h"
 #endif
