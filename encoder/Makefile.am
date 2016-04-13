@@ -12,21 +12,21 @@ libyami_encoder_source_c = \
 	vaapiencoder_host.cpp \
 	$(NULL)
 
-if BUILD_H264_ENCODER
-libyami_encoder_source_c += vaapiencoder_h264.cpp
-endif
+#if BUILD_H264_ENCODER
+#libyami_encoder_source_c += vaapiencoder_h264.cpp
+#endif
 
-if BUILD_JPEG_ENCODER
-libyami_encoder_source_c += vaapiencoder_jpeg.cpp
-endif
+#if BUILD_JPEG_ENCODER
+#libyami_encoder_source_c += vaapiencoder_jpeg.cpp
+#endif
 
-if BUILD_VP8_ENCODER
-libyami_encoder_source_c += vaapiencoder_vp8.cpp
-endif
+#if BUILD_VP8_ENCODER
+#libyami_encoder_source_c += vaapiencoder_vp8.cpp
+#endif
 
-if BUILD_H265_ENCODER
-libyami_encoder_source_c += vaapiencoder_hevc.cpp
-endif
+#if BUILD_H265_ENCODER
+#libyami_encoder_source_c += vaapiencoder_hevc.cpp
+#endif
 
 libyami_encoder_source_h = \
 	../interface/VideoCommonDefs.h      \
