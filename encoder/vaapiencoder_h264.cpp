@@ -21,6 +21,7 @@
 #include "bitwriter.h"
 #include "scopedlogger.h"
 #include "common/common_def.h"
+#include "common/Functional.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"

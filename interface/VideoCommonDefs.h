@@ -23,21 +23,17 @@
 #ifdef __cplusplus
 #ifdef ANDROID
 #include <memory>
-#include <functional>
 #else
 #include <tr1/memory>
-#include <tr1/functional>
 #endif
 namespace YamiMediaCodec{
 #ifdef ANDROID
-    #define Bind std::bind
     #define SharedPtr std::shared_ptr
     #define WeakPtr std::weak_ptr
     #define DynamicPointerCast std::dynamic_pointer_cast
     #define StaticPointerCast std::static_pointer_cast
     #define EnableSharedFromThis std::enable_shared_from_this
 #else
-    #define Bind std::tr1::bind
     #define SharedPtr std::tr1::shared_ptr
     #define WeakPtr std::tr1::weak_ptr
     #define DynamicPointerCast std::tr1::dynamic_pointer_cast

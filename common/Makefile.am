@@ -14,6 +14,7 @@ libyami_common_source_h = \
 
 libyami_common_source_h_priv = \
 	NonCopyable.h \
+	Functional.h \
 	log.h \
 	utils.h \
 	common_def.h \
