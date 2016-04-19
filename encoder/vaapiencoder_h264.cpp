@@ -950,7 +950,7 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
         m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
     }
 
-    picture->m_poc = ((m_frameIndex * 2) % m_maxPicOrderCnt);
+    picture->m_poc = m_frameIndex * 2;
     m_frameIndex++;
     return ENCODE_SUCCESS;
 }
@@ -1288,7 +1288,7 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
         sliceParam->slice_type = h264_get_slice_type (picture->m_type);
         assert (sliceParam->slice_type != -1);
         sliceParam->idr_pic_id = m_idrNum;
-        sliceParam->pic_order_cnt_lsb = picture->m_poc;
+        sliceParam->pic_order_cnt_lsb = picture->m_poc % m_maxPicOrderCnt;
 
         sliceParam->num_ref_idx_active_override_flag = 1;
         if (picture->m_type != VAAPI_PICTURE_TYPE_I && m_refList0.size() > 0)

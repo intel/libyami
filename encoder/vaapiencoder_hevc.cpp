@@ -1084,7 +1084,7 @@ Encode_Status VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t time
     }
 
     DEBUG("m_frameIndex is %d\n", m_frameIndex);
-    picture->m_poc = ((m_frameIndex) % m_maxPicOrderCnt);
+    picture->m_poc = m_frameIndex;
     m_frameIndex++;
     return ENCODE_SUCCESS;
 }
