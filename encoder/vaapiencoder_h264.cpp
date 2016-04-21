@@ -768,12 +768,20 @@ void VaapiEncoderH264::resetParams ()
     DEBUG("resetParams, ensureCodedBufferSize");
     ensureCodedBufferSize();
 
+    if (intraPeriod() == 0) {
+        ERROR("intra period must larger than 0");
+        m_videoParamCommon.intraPeriod = 1;
+    }
+
+    if (intraPeriod() <= ipPeriod()) {
+        WARNING("intra period is not larger than ip period");
+        m_videoParamCommon.ipPeriod = intraPeriod() - 1;
+    }
+
     if (ipPeriod() == 0)
         m_videoParamCommon.intraPeriod = 1;
     else
         m_numBFrames = ipPeriod() - 1;
-
-    assert(intraPeriod() > ipPeriod());
 
     m_keyPeriod = intraPeriod() * (m_videoParamAVC.idrInterval + 1);
 
