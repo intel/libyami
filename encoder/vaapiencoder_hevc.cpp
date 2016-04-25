@@ -1138,7 +1138,6 @@ YamiStatus VaapiEncoderHEVC::getCodecConfig(VideoEncOutputBuffer* outBuffer)
 /* Handle new GOP starts */
 void VaapiEncoderHEVC::resetGopStart ()
 {
-    m_idrNum = 0;
     m_frameIndex = 0;
 }
 

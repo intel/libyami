@@ -147,7 +147,6 @@ private:
     uint32_t m_log2MaxFrameNum;
     uint32_t m_maxPicOrderCnt;
     uint32_t m_log2MaxPicOrderCnt;
-    uint32_t m_idrNum;
 
     bool m_confWinFlag;
     uint32_t m_confWinLeftOffset;
