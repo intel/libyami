@@ -694,12 +694,14 @@ public:
 };
 
 VaapiEncoderH264::VaapiEncoderH264():
+    m_numBFrames(0),
     m_useCabac(true),
     m_useDct8x8(false),
     m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
     m_streamFormat(AVC_STREAM_FORMAT_ANNEXB),
     m_frameIndex(0),
-    m_keyPeriod(30)
+    m_keyPeriod(30),
+    m_idrNum(0)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;
@@ -1021,7 +1023,6 @@ YamiStatus VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer* outBuffer)
 /* Handle new GOP starts */
 void VaapiEncoderH264::resetGopStart ()
 {
-    m_idrNum = 0;
     m_frameIndex = 0;
     m_curFrameNum = 0;
 }
@@ -1054,6 +1055,7 @@ void VaapiEncoderH264::setIdrFrame (const PicturePtr& pic)
     pic->m_type = VAAPI_PICTURE_I;
     pic->m_frameNum = 0;
     pic->m_poc = 0;
+    m_idrNum++;
 }
 
 bool VaapiEncoderH264::
