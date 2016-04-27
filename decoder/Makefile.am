@@ -12,6 +12,10 @@ libyami_decoder_source_c = \
 	vaapidecpicture.cpp \
 	$(NULL)
 
+if BUILD_VP8_DECODER
+libyami_decoder_source_c += vaapidecoder_vp8.cpp
+endif
+
 if BUILD_VP9_DECODER
 libyami_decoder_source_c += vaapidecoder_vp9.cpp
 endif
@@ -32,6 +36,10 @@ libyami_decoder_source_h_priv = \
 	vaapidecsurfacepool.h \
 	vaapidecpicture.h \
 	$(NULL)
+
+if BUILD_VP8_DECODER
+libyami_decoder_source_h_priv += vaapidecoder_vp8.h
+endif
 
 if BUILD_H265_DECODER
 libyami_decoder_source_h_priv += vaapidecoder_h265.h
@@ -80,12 +88,19 @@ unittest_SOURCES = \
 	$(top_builddir)/common/unittest_main.cpp \
 	$(NULL)
 
+if BUILD_VP8_DECODER
+unittest_SOURCES += vaapidecoder_vp8_unittest.cpp
+endif
+
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
 	$(NULL)
 
 unittest_LDADD = \
 	libyami_decoder.la \
+        $(top_builddir)/codecparsers/libyami_codecparser.la \
+        $(top_builddir)/vaapi/libyami_vaapi.la \
+        $(top_builddir)/common/libyami_common.la \
 	$(GTEST_LIBS) \
 	$(NULL)
 
