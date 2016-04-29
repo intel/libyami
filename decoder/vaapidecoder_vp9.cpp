@@ -269,7 +269,7 @@ Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* dat
         return outputPicture(picture);
     }
 
-    if (!picture->getSurface()->resize(hdr->width, hdr->height)) {
+    if (!picture->getSurface()->setCrop(0, 0, hdr->width, hdr->height)) {
         ERROR("resize to %dx%d failed", hdr->width, hdr->height);
         return DECODE_MEMORY_FAIL;
     }
