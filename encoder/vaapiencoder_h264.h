@@ -97,8 +97,9 @@ private:
     uint32_t m_numBFrames;
     uint32_t m_mbWidth;
     uint32_t m_mbHeight;
-    bool  m_useCabac;
-    bool  m_useDct8x8;
+    bool  m_enableCabac;
+    bool  m_enableDct8x8;
+    bool  m_enableDeblockFilter;
 
     /* re-ordering */
     std::list<PicturePtr> m_reorderFrameList;

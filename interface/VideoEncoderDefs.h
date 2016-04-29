@@ -263,6 +263,9 @@ typedef struct VideoParamsAVC {
     uint32_t idrInterval;    //How many Intra frames will have an IDR frame
     SliceNum sliceNum;
     SamplingAspectRatio SAR;
+    bool  enableCabac;
+    bool  enableDct8x8;
+    bool  enableDeblockFilter;
 }VideoParamsAVC;
 
 typedef struct VideoParamsHRD {

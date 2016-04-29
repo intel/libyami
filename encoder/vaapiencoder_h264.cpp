@@ -694,8 +694,9 @@ public:
 };
 
 VaapiEncoderH264::VaapiEncoderH264():
-    m_useCabac(true),
-    m_useDct8x8(false),
+    m_enableCabac(true),
+    m_enableDct8x8(false),
+    m_enableDeblockFilter(true),
     m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
     m_streamFormat(AVC_STREAM_FORMAT_ANNEXB),
     m_frameIndex(0),
@@ -760,7 +761,6 @@ bool VaapiEncoderH264::ensureCodedBufferSize()
 
 void VaapiEncoderH264::resetParams ()
 {
-
     m_levelIdc = level();
 
     DEBUG("resetParams, ensureCodedBufferSize");
@@ -867,6 +867,9 @@ YamiStatus VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PTR v
                 PARAMETER_ASSIGN(m_videoParamAVC, *avc);
                 status = YAMI_SUCCESS;
             }
+            m_enableCabac = avc->enableCabac;
+            m_enableDct8x8 = avc->enableDct8x8;
+            m_enableDeblockFilter = avc->enableDeblockFilter;
         }
         break;
     case VideoConfigTypeAVCStreamFormat: {
@@ -1214,10 +1217,11 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
     /* set picture fields */
     picParam->pic_fields.bits.idr_pic_flag = picture->isIdr();
     picParam->pic_fields.bits.reference_pic_flag = (picture->m_type != VAAPI_PICTURE_B);
-    picParam->pic_fields.bits.entropy_coding_mode_flag = m_useCabac;
-    picParam->pic_fields.bits.transform_8x8_mode_flag = m_useDct8x8;
+    picParam->pic_fields.bits.entropy_coding_mode_flag = m_enableCabac;
+    picParam->pic_fields.bits.transform_8x8_mode_flag = m_enableDct8x8;
+
     /* enable debloking */
-    picParam->pic_fields.bits.deblocking_filter_control_present_flag = TRUE;
+    picParam->pic_fields.bits.deblocking_filter_control_present_flag = m_enableDeblockFilter;
 
     return TRUE;
 }
