@@ -20,9 +20,9 @@ libyami_encoder_source_c = \
 #libyami_encoder_source_c += vaapiencoder_jpeg.cpp
 #endif
 
-#if BUILD_VP8_ENCODER
-#libyami_encoder_source_c += vaapiencoder_vp8.cpp
-#endif
+if BUILD_VP8_ENCODER
+libyami_encoder_source_c += vaapiencoder_vp8.cpp
+endif
 
 #if BUILD_H265_ENCODER
 #libyami_encoder_source_c += vaapiencoder_hevc.cpp
@@ -92,12 +92,18 @@ unittest_SOURCES = \
 	$(top_builddir)/common/unittest_main.cpp \
 	$(NULL)
 
+if BUILD_VP8_ENCODER
+unittest_SOURCES += vaapiencoder_vp8_unittest.cpp
+endif
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
 	$(NULL)
 
 unittest_LDADD = \
 	libyami_encoder.la \
+	$(top_builddir)/common/libyami_common.la \
+	$(top_builddir)/vaapi/libyami_vaapi.la \
+	$(top_builddir)/codecparsers/libyami_codecparser.la \
 	$(GTEST_LIBS) \
 	$(NULL)
 

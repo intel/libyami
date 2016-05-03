@@ -18,6 +18,7 @@
 #endif
 #include "vaapiencoder_vp8.h"
 #include "scopedlogger.h"
+#include "common/common_def.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
@@ -129,7 +130,7 @@ Encode_Status VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t time
     PicturePtr picture(new VaapiEncPictureVP8(m_context, surface, timeStamp));
 
     m_frameCount %= keyFramePeriod();
-    picture->m_type = (m_frameCount ? VAAPI_PICTURE_TYPE_P : VAAPI_PICTURE_TYPE_I);
+    picture->m_type = (m_frameCount ? VAAPI_PICTURE_P : VAAPI_PICTURE_I);
     m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
@@ -140,7 +141,7 @@ Encode_Status VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t time
     picture->m_codedBuffer = codedBuffer;
     codedBuffer->setFlag(ENCODE_BUFFERFLAG_ENDOFFRAME);
     INFO("picture->m_type: 0x%x\n", picture->m_type);
-    if (picture->m_type == VAAPI_PICTURE_TYPE_I) {
+    if (picture->m_type == VAAPI_PICTURE_I) {
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
     }
     ret = encodePicture(picture);
@@ -166,7 +167,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
                            const SurfacePtr& surface) const
 {
     picParam->reconstructed_frame = surface->getID();
-    if (picture->m_type == VAAPI_PICTURE_TYPE_P) {
+    if (picture->m_type == VAAPI_PICTURE_P) {
         picParam->pic_flags.bits.frame_type = 1;
         ReferenceQueue::const_iterator it = m_reference.begin();
         picParam->ref_arf_frame = (*it++)->getID();
@@ -218,7 +219,7 @@ bool VaapiEncoderVP8::fill(VAQMatrixBufferVP8* qMatrix) const
 
 bool VaapiEncoderVP8::ensureSequence(const PicturePtr& picture)
 {
-    if (picture->m_type != VAAPI_PICTURE_TYPE_I)
+    if (picture->m_type != VAAPI_PICTURE_I)
         return true;
 
     VAEncSequenceParameterBufferVP8* seqParam;
@@ -255,7 +256,7 @@ bool VaapiEncoderVP8::ensureQMatrix (const PicturePtr& picture)
 bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfacePtr& recon)
 {
 
-    if (pic->m_type == VAAPI_PICTURE_TYPE_I) {
+    if (pic->m_type == VAAPI_PICTURE_I) {
         m_reference.clear();
         m_reference.insert(m_reference.end(), MAX_REFERECNE_FRAME, recon);
     } else {
