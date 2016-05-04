@@ -32,8 +32,10 @@ BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
     const void* data)
 {
     BufObjectPtr buf;
-    if (!context || !context->getDisplay())
+    if (!size || !context || !context->getDisplay()){
+        ERROR("vaapibuffer: can't create buffer");
         return buf;
+    }
     DisplayPtr display = context->getDisplay();
     VABufferID id;
     VAStatus status = vaCreateBuffer(display->getID(), context->getID(),
