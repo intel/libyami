@@ -27,6 +27,18 @@
 #include <utility>
 
 namespace YamiMediaCodec{
+
+typedef enum
+{
+    VAAPI_PICTURE_INVALID = 0x0000,
+    VAAPI_PICTURE_TOP_FIELD = 0x0001,
+    VAAPI_PICTURE_BOTTOM_FIELD = 0x0002,
+    VAAPI_PICTURE_FRAME = 0x0003,
+    VAAPI_PICTURE_I = 0x0100,
+    VAAPI_PICTURE_B = 0x0200,
+    VAAPI_PICTURE_P = 0x0400
+} VaapiPictureType;
+
 class VaapiPicture
 {
 protected:
@@ -44,8 +56,7 @@ public:
     bool sync();
 
     int64_t                 m_timeStamp;
-    //TODO: add m_type back
-    //VaapiPictureType        m_type;
+    VaapiPictureType        m_type;
 
 protected:
     virtual bool doRender() = 0;
