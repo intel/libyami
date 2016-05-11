@@ -74,7 +74,7 @@ endif
 
 DISTCLEANFILES = \
 	Makefile.in\
-	YamiVersion.h.in \
+	YamiVersion.h \
 	$(NULL)
 
 
