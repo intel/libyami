@@ -51,4 +51,9 @@ void releaseVideoPostProcess(IVideoPostProcess * p)
     delete p;
 }
 
+std::vector<std::string> getVideoPostProcessMimeTypes()
+{
+    return VaapiPostProcessFactory::keys();
+}
+
 } // extern "C"

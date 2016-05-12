@@ -17,7 +17,10 @@
 #ifndef VIDEO_ENCODER_HOST_H_
 #define VIDEO_ENCODER_HOST_H_
 
+#include <string>
+#include <vector>
 #include "VideoEncoderInterface.h"
+
 extern "C" { // for dlsym usage
 
 /** \file VideoEncoderHost.h
@@ -29,6 +32,10 @@ extern "C" { // for dlsym usage
 YamiMediaCodec::IVideoEncoder *createVideoEncoder(const char *mimeType);
 ///brief destroy encoder
 void releaseVideoEncoder(YamiMediaCodec::IVideoEncoder * p);
+/** \fn void getVideoEncoderMimeTypes()
+ * \brief return the MimeTypes enabled in the current build
+*/
+std::vector<std::string> getVideoEncoderMimeTypes();
 
 typedef YamiMediaCodec::IVideoEncoder *(*YamiCreateVideoEncoderFuncPtr) (const char *mimeType);
 typedef void (*YamiReleaseVideoEncoderFuncPtr)(YamiMediaCodec::IVideoEncoder * p);

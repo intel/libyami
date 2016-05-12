@@ -44,4 +44,9 @@ void releaseVideoEncoder(IVideoEncoder* p) {
     delete p;
 }
 
+std::vector<std::string> getVideoEncoderMimeTypes()
+{
+    return VaapiEncoderFactory::keys();
+}
+
 } // extern "C"

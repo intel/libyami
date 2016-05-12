@@ -17,7 +17,10 @@
 #ifndef VIDEO_POST_PROCESS_HOST_H_
 #define VIDEO_POST_PROCESS_HOST_H_
 
+#include <string>
+#include <vector>
 #include "VideoPostProcessInterface.h"
+
 extern "C" { // for dlsym usage
 
 /** \file VideoPostProcessHost.h
@@ -31,6 +34,10 @@ YamiMediaCodec::IVideoPostProcess *createVideoPostProcess(const char *mimeType);
  * \brief destroy encoder
 */
 void releaseVideoPostProcess(YamiMediaCodec::IVideoPostProcess * p);
+/** \fn void getVideoPostProcessMimeTypes()
+ * \brief return the MimeTypes enabled in the current build
+*/
+std::vector<std::string> getVideoPostProcessMimeTypes();
 
 typedef YamiMediaCodec::IVideoPostProcess *(*YamiCreateVideoPostProcessFuncPtr) (const char *mimeType);
 typedef void (*YamiReleaseVideoPostProcessFuncPtr)(YamiMediaCodec::IVideoPostProcess * p);

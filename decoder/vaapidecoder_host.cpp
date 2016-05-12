@@ -59,4 +59,8 @@ void releaseVideoDecoder(IVideoDecoder * p)
     delete p;
 }
 
+std::vector<std::string> getVideoDecoderMimeTypes()
+{
+    return VaapiDecoderFactory::keys();
+}
 } // extern "C"
