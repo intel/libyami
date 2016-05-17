@@ -64,30 +64,6 @@ if test "$enable_debug" = "yes"; then
         [Defined to 1 if --enable-debug="yes"])
 fi
 
-AC_ARG_ENABLE(tests,
-    [AC_HELP_STRING([--enable-tests],
-        [build tests @<:@default=no@:>@])],
-    [], [enable_tests="no"])
-
-AC_ARG_ENABLE(tests-gles,
-    [AC_HELP_STRING([--enable-tests-gles],
-        [build tests with opengles/texture rendering @<:@default=no@:>@])],
-    [], [enable_tests_gles="no"])
-
-if test "$enable_tests" = "yes" -o "$enable_tests_gles" = "yes"; then
-    AC_DEFINE([__ENABLE_TESTS__], [1],
-        [Defined to 1 if --enable-tests="yes"])
-fi
-AM_CONDITIONAL(ENABLE_TESTS,
-    [test "x$enable_tests" = "xyes" -o "x$enable_tests_gles" = "xyes"])
-
-if test "$enable_tests_gles" = "yes"; then
-    AC_DEFINE([__ENABLE_TESTS_GLES__], [1],
-        [Defined to 1 if --enable-tests-gles="yes"])
-fi
-AM_CONDITIONAL(ENABLE_TESTS_GLES,
-    [test "x$enable_tests_gles" = "xyes"])
-
 GTEST_LIB_CHECK([1.7.0], [:], [:])
 AM_CONDITIONAL([ENABLE_UNITTESTS],
     [test "x$HAVE_GTEST" = "xyes"])
@@ -139,18 +115,6 @@ if test "$enable_x11" = "yes"; then
 fi
 AM_CONDITIONAL(ENABLE_X11,
     [test "x$enable_x11" = "xyes"])
-
-AC_ARG_ENABLE(avformat,
-    [AC_HELP_STRING([--enable-avformat],
-        [enable avformat @<:@default=no@:>@])],
-    [], [enable_avformat="no"])
-
-if test "$enable_avformat" = "yes"; then
-    AC_DEFINE([__ENABLE_AVFORMAT__], [1],
-        [Defined to 1 if --enable-avformat="yes"])
-fi
-AM_CONDITIONAL(ENABLE_AVFORMAT,
-    [test "x$enable_avformat" = "xyes"])
 
 AC_ARG_ENABLE(baytrail,
     [AC_HELP_STRING([--enable-baytrail],
@@ -392,13 +356,7 @@ AC_SUBST(X11_PKG_REQ)
 
 if test "$enable_v4l2" = "yes"; then
     PKG_CHECK_MODULES([LIBV4L2], [libv4l2])
-fi
-
-if test "$enable_v4l2" = "yes" -o "$enable_tests_gles" = "yes"; then
     PKG_CHECK_MODULES([LIBEGL], [egl])
-fi
-
-if test ["$enable_v4l2" = "yes" -a "$enable_tests" = "yes"] -o "$enable_tests_gles" = "yes"; then
     PKG_CHECK_MODULES([LIBGLES2], [glesv2])
 fi
 
@@ -406,20 +364,6 @@ fi
 if test "$enable_dmabuf" = "yes"; then
     PKG_CHECK_MODULES([LIBDRM], [libdrm])
 fi
-
-if test "$enable_avformat" = "yes"; then
-    PKG_CHECK_MODULES(LIBAVFORMAT, [libavformat libavcodec libavutil])
-fi
-
-#check openssl
-
-if test "$enable_md5" = "yes"; then
-    PKG_CHECK_MODULES([OPENSSL], [openssl],
-        [AC_DEFINE([__ENABLE_MD5__], [1],
-            [Defined to 1 if MD5 API and --enable-md5[default] are enabled])],
-        [enable_md5="no"])
-fi
-AM_CONDITIONAL(ENABLE_MD5, test "x$enable_md5" = "xyes")
 
 # Checks for library functions.
 AC_FUNC_MALLOC
@@ -435,9 +379,6 @@ AC_CONFIG_FILES([Makefile
                  vpp/Makefile
                  v4l2/Makefile
                  capi/Makefile
-                 tests/Makefile
-                 testscripts/Makefile
-                 examples/Makefile
                  doc/Makefile
                  pkgconfig/Makefile])
 

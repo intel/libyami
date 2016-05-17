@@ -25,12 +25,6 @@ if ENABLE_V4L2
 SUBDIRS += v4l2
 endif
 
-if ENABLE_TESTS
-SUBDIRS += tests
-SUBDIRS += testscripts
-SUBDIRS += examples
-endif
-
 lib_LTLIBRARIES = libyami.la
 libyami_la_SOURCES =
 # Dummy C++ source to cause C++ linking
