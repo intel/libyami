@@ -21,7 +21,7 @@ m4_define([libyami_version],
                     [libyami_major_version.libyami_minor_version.libyami_micro_version])
 
 # libva minimun version requirement
-m4_define([va_api_version], [0.36])
+m4_define([va_min_api_version], [0.36])
 
 AC_INIT([libyami],
         [libyami_version],
@@ -191,7 +191,7 @@ dnl h265 decoder
 AC_ARG_ENABLE(h265dec,
     [AC_HELP_STRING([--enable-h265dec],
         [build with h265 decoder support @<:@default=yes@:>@])],
-    [], [enable_h265dec="yes"])
+    [], [enable_h265dec="no"])
 
 AM_CONDITIONAL(BUILD_H265_DECODER,
     [test "x$enable_h265dec" = "xyes"])
@@ -331,7 +331,12 @@ pkgconfigdir=${libdir}/pkgconfig
 AC_SUBST(pkgconfigdir)
 
 # Check for libva (vaapi version)
-VA_API_VERSION=va_api_version
+VA_API_VERSION=va_min_api_version
+AS_IF([test x$enable_h265dec = xyes], [VA_API_VERSION="0.37"])
+AS_IF([test x$enable_vp9dec = xyes], [VA_API_VERSION="0.37"])
+AS_IF([test x$enable_jpegenc = xyes], [VA_API_VERSION="0.37"])
+AS_IF([test x$enable_h265enc = xyes], [VA_API_VERSION="0.38"])
+AS_IF([test x$enable_vp8enc = xyes], [VA_API_VERSION="0.38"])
 LIBVA_PKG_REQ="libva >= $VA_API_VERSION"
 PKG_CHECK_MODULES([LIBVA], [$LIBVA_PKG_REQ])
 AC_SUBST(LIBVA_VERSION)
