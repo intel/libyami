@@ -710,8 +710,16 @@ bool Parser::stRefPicSet(ShortTermRefPicSet* stRef, NalReader& nr,
         stRef->NumPositivePics = i;
     }
     else {
+        uint8_t maxDecPicBufferingMinus1 = sps->sps_max_dec_pic_buffering_minus1[sps->sps_max_sub_layers_minus1];
+
         stRef->num_negative_pics = nr.readUe();
+        if (stRef->num_negative_pics > maxDecPicBufferingMinus1)
+            return false;
+
         stRef->num_positive_pics = nr.readUe();
+        if (stRef->num_positive_pics > maxDecPicBufferingMinus1 - stRef->num_negative_pics)
+            return false;
+
         // 7-61 & 7-62
         stRef->NumNegativePics = stRef->num_negative_pics;
         stRef->NumPositivePics = stRef->num_positive_pics;
