@@ -1259,7 +1259,7 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
     uint32_t UsedByCurrPicLt[16] = {0};
     int32_t numPicTotalCurr = 0;
 
-    if (!nalu && !slice)
+    if (!nalu || !slice)
         return false;
 
     NalReader nr(nalu->m_data + NalUnit::NALU_HEAD_SIZE,
