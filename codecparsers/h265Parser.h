@@ -281,7 +281,6 @@ namespace H265 {
     struct SPS {
         SPS();
 
-        SharedPtr<VPS> vps;
         uint8_t vps_id; //sps_video_parameter_set_id
         uint8_t sps_max_sub_layers_minus1;
         bool sps_temporal_id_nesting_flag;
@@ -343,13 +342,15 @@ namespace H265 {
         VuiParameters vui_params;
 
         bool sps_extension_present_flag;
+
+        //all non pod type should start here
+        SharedPtr<VPS> vps;
     };
 
     //Picture parameter set
     struct PPS {
         PPS();
 
-        SharedPtr<SPS> sps;
         uint8_t pps_id; //pps_pic_parameter_set_id, [0, 63]
         uint8_t sps_id; //pps_seq_parameter_set_id, [0, 15]
         bool dependent_slice_segments_enabled_flag;
@@ -411,6 +412,9 @@ namespace H265 {
         //used for parsing other syntax elements
         uint32_t picWidthInCtbsY;
         uint32_t picHeightInCtbsY;
+
+        //all non pod type should start here
+        SharedPtr<SPS> sps;
     };
 
     class NalUnit {
@@ -490,7 +494,6 @@ namespace H265 {
         bool isPSlice() const;
         bool isISlice() const;
 
-        SharedPtr<PPS> pps;
         uint8_t pps_id; //slice_pic_parameter_set_id
         bool first_slice_segment_in_pic_flag;
         bool no_output_of_prior_pics_flag;
@@ -546,6 +549,9 @@ namespace H265 {
         uint32_t headerSize;
         //Number of emulation prevention bytes
         uint32_t emulationPreventionBytes;
+
+        //all none pod type should start here
+        SharedPtr<PPS> pps;
     };
 
     class Parser {
@@ -583,7 +589,7 @@ namespace H265 {
         VpsMap m_vps;
         SpsMap m_sps;
         PpsMap m_pps;
-        
+
         friend class H265ParserTest;
     };
 }

@@ -112,17 +112,17 @@ VPS::~VPS()
 
 SPS::SPS()
 {
-    memset(&vps_id, 0, sizeof(*this) - offsetof(SPS, vps_id));
+    memset(this, 0, offsetof(SPS, vps));
 }
 
 PPS::PPS()
 {
-    memset(&pps_id, 0, sizeof(*this) - offsetof(PPS, pps_id));
+    memset(this, 0, offsetof(PPS, sps));
 }
 
 SliceHeader::SliceHeader()
 {
-    memset(&pps_id, 0, sizeof(*this) - offsetof(SliceHeader, pps_id));
+    memset(this, 0, offsetof(SliceHeader, pps));
 }
 
 SliceHeader::~SliceHeader()
