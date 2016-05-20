@@ -30,6 +30,7 @@
 #include "interface/VideoCommonDefs.h"
 
 #include <map>
+#include <vector>
 
 namespace YamiParser {
 namespace H265 {
@@ -271,10 +272,12 @@ namespace H265 {
         bool vps_poc_proportional_to_timing_flag;
         uint32_t vps_num_ticks_poc_diff_one_minus1;
         uint16_t vps_num_hrd_parameters;
-        uint16_t* hrd_layer_set_idx;
-        uint8_t* cprms_present_flag;
         HRDParameters hrd_parameters;
         bool vps_extension_flag;
+
+        //all non pod type should start here
+        std::vector<uint16_t> hrd_layer_set_idx;
+        std::vector<uint8_t> cprms_present_flag;
     };
 
     //Sequence parameter set
@@ -542,7 +545,6 @@ namespace H265 {
         bool loop_filter_across_slices_enabled_flag;
         uint32_t num_entry_point_offsets;
         uint8_t offset_len_minus1; //[0, 31]
-        uint32_t* entry_point_offset_minus1;
         uint16_t slice_segment_header_extension_length; //[0, 256]
 
         //Size of the slice_header() in bits
@@ -552,6 +554,7 @@ namespace H265 {
 
         //all none pod type should start here
         SharedPtr<PPS> pps;
+        std::vector<uint32_t> entry_point_offset_minus1;
     };
 
     class Parser {

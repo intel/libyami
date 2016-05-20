@@ -101,13 +101,11 @@ static const uint8_t DefaultScalingList2[64] = {
 
 VPS::VPS()
 {
-    memset(this, 0, sizeof(*this));
+    memset(this, 0, offsetof(VPS, hrd_layer_set_idx));
 }
 
 VPS::~VPS()
 {
-    free(hrd_layer_set_idx);
-    free(cprms_present_flag);
 }
 
 SPS::SPS()
@@ -127,7 +125,6 @@ SliceHeader::SliceHeader()
 
 SliceHeader::~SliceHeader()
 {
-    free(entry_point_offset_minus1);
 }
 
 uint32_t SliceHeader::getSliceDataByteOffset() const
@@ -885,12 +882,10 @@ bool Parser::parseVps(const NalUnit* nalu)
         // and vps_num_layer_sets_minus shall be in the range [0, 1023]
         if (vps->vps_num_hrd_parameters > vps->vps_num_layer_sets_minus1 + 1)
             return false;
-        vps->hrd_layer_set_idx = (uint16_t*)calloc(vps->vps_num_hrd_parameters, sizeof(uint16_t));
-        vps->cprms_present_flag = (uint8_t*)calloc(vps->vps_num_hrd_parameters, sizeof(uint8_t));
-        if (!vps->hrd_layer_set_idx || !vps->cprms_present_flag)
-            return false; // calloc error
+        vps->hrd_layer_set_idx.reserve(vps->vps_num_hrd_parameters);
+        vps->cprms_present_flag.resize(vps->vps_num_hrd_parameters, 0);
         for (uint32_t i = 0; i < vps->vps_num_hrd_parameters; i++) {
-            vps->hrd_layer_set_idx[i] = nr.readUe();
+            vps->hrd_layer_set_idx.push_back(nr.readUe());
             if (i > 0)
                 vps->cprms_present_flag[i] = nr.read(1);
             hrdParameters(&vps->hrd_parameters, nr, vps->cprms_present_flag[i],
@@ -1473,12 +1468,9 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
             if (slice->offset_len_minus1 > 31)
                 return false;
             nbits = slice->offset_len_minus1 + 1;
-            slice->entry_point_offset_minus1 = static_cast<uint32_t*>(
-                calloc(slice->num_entry_point_offsets, sizeof(uint32_t)));
-            if (!slice->entry_point_offset_minus1)
-                return false; // calloc error
+            slice->entry_point_offset_minus1.reserve(slice->num_entry_point_offsets);
             for (uint32_t i = 0; i < slice->num_entry_point_offsets; i++)
-                slice->entry_point_offset_minus1[i] = nr.read(nbits);
+                slice->entry_point_offset_minus1.push_back(nr.read(nbits));
         }
     }
     if (pps->slice_segment_header_extension_present_flag) {
