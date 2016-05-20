@@ -332,6 +332,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             // ::Enqueue
             __u32 type = * ((__u32*)arg);
             GET_PORT_INDEX(port, type, ret);
+            ASSERT(ret != -1);
             if (port == INPUT) {
                 DEBUG("start decoding/encoding");
             #ifdef ANDROID
@@ -364,6 +365,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             // ::StopDevicePoll
             __u32 type = * ((__u32*)arg);
             GET_PORT_INDEX(port, type, ret);
+            ASSERT(ret != -1);
             m_streamOn[port] = false;
 
             // wait until the worker thread exit, some cleanup happend there
@@ -429,6 +431,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
         case VIDIOC_QBUF: {
             struct v4l2_buffer *qbuf = static_cast<struct v4l2_buffer *>(arg);
             GET_PORT_INDEX(port, qbuf->type, ret);
+            ASSERT(ret != -1);
 
             // ::EnqueueInputRecord/EnqueueOutputRecord
             ASSERT(qbuf->memory == m_memoryMode[port]);
@@ -457,6 +460,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             // ::Dequeue
             struct v4l2_buffer *dqbuf = static_cast<struct v4l2_buffer *>(arg);
             GET_PORT_INDEX(port, dqbuf->type, ret);
+            ASSERT(ret != -1);
             if (port == OUTPUT) {
             #ifdef ANDROID
                 if (m_streamOn[port] == false) {

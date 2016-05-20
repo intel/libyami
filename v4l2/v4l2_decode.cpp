@@ -388,6 +388,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         struct v4l2_buffer *buffer = static_cast<struct v4l2_buffer*>(arg);
         GET_PORT_INDEX(port, buffer->type, ret);
 
+        ASSERT(ret == 0);
         ASSERT(buffer->memory == m_memoryMode[port]);
         ASSERT(buffer->index < m_maxBufferCount[port]);
         ASSERT(buffer->length == m_bufferPlaneCount[port]);
@@ -465,7 +466,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     case VIDIOC_G_FMT: {
         // ::GetFormatInfo
         struct v4l2_format* format = static_cast<struct v4l2_format*>(arg);
-        ASSERT(format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+        ASSERT(format && format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
         ASSERT(m_decoder);
 
         DEBUG();
