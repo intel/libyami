@@ -1654,7 +1654,7 @@ Decode_Status VaapiDecoderH264::decode(VideoDecodeBuffer* buffer)
 
     int32_t size;
     NalUnit nalu;
-    Decode_Status status;
+    Decode_Status status = DECODE_SUCCESS;
     const uint8_t* nal;
     // h264 parser can't support avcc right now.
     // bool is_avcc = (m_nalLengthSize || (buffer->flag & IS_AVCC));
