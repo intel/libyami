@@ -83,7 +83,7 @@ bool OclVppCLImage::init()
         return false;
 
     cl_import_image_info_intel importInfo;
-    uint32_t height[3];
+    uint32_t height[3] = {0};
     switch (m_image.format.fourcc) {
     case VA_FOURCC_RGBA:
         height[0] = m_image.height;
