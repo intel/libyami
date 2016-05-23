@@ -64,12 +64,13 @@ addPackedHeader(VAEncPackedHeaderType packedHeaderType, const void *header,
         createBufferObject(VAEncPackedHeaderDataBufferType,
                            (headerBitSize + 7) / 8, header, NULL);
     bool ret = addObject(m_packedHeaders, param, data);
-    if (ret) {
+    if (ret && packedHeader) {
         packedHeader->type = packedHeaderType;
         packedHeader->bit_length = headerBitSize;
         packedHeader->has_emulation_bytes = 0;
+        return true;
     }
-    return ret;
+    return false;
 }
 
 Encode_Status VaapiEncPicture::getOutput(VideoEncOutputBuffer * outBuffer)

@@ -110,6 +110,10 @@ bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& b
     if (object)
         return false;
     object = createBufferObject(bufType, bufPtr);
+
+    if (!bufPtr)
+        return false;
+
     return object;
 }
 

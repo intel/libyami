@@ -102,12 +102,14 @@ bool VaapiDecPicture::newSlice(T*& sliceParam, const void* sliceData, uint32_t s
     BufObjectPtr param = createBufferObject(VASliceParameterBufferType, sliceParam);
 
     bool ret = addObject(m_slices, param, data);
-    if (ret) {
+    if (ret && sliceParam) {
         sliceParam->slice_data_size = sliceSize;
         sliceParam->slice_data_offset = 0;
         sliceParam->slice_data_flag = VA_SLICE_DATA_FLAG_ALL;
+        return true;
     }
-    return ret;
+
+    return false;
 }
 }
 #endif //#ifndef vaapidecpicture_h

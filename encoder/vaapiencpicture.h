@@ -109,7 +109,7 @@ template < class T > bool VaapiEncPicture::newSlice(T * &sliceParam)
 {
     BufObjectPtr slice =
         createBufferObject(VAEncSliceParameterBufferType, sliceParam);
-    return addObject(m_slices, slice);
+    return (sliceParam != NULL) && addObject(m_slices, slice);
 }
 
 template < class T >

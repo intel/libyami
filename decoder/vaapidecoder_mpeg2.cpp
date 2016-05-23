@@ -637,9 +637,9 @@ Decode_Status VaapiDecoderMPEG2::loadIQMatrix()
 
     // IQMatrix_ is loaded once
 
-    status = m_currentPicture->editIqMatrix(IQMatrix);
-    if (status != DECODE_SUCCESS) {
-        DEBUG("picture->editIqMatrix failed");
+    if (!m_currentPicture->editIqMatrix(IQMatrix)) {
+        ERROR("picture->editIqMatrix failed");
+        return DECODE_FAIL;
     }
 
     if (m_sequenceHeader->load_intra_quantiser_matrix) {
