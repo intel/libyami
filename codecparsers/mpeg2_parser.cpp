@@ -172,6 +172,7 @@ namespace MPEG2 {
                 bitReaderReadFlag(&(m_slice.extra_bit_slice));
                 if (!m_slice.extra_bit_slice) {
                     ERROR("Bad extra bit slice");
+                    bitReaderDeInit();
                     return false;
                 }
                 skipByte();
@@ -182,6 +183,7 @@ namespace MPEG2 {
 
         if (m_slice.extra_bit_slice) {
             ERROR("Bad extra bit slice");
+            bitReaderDeInit();
             return false;
         }
 
