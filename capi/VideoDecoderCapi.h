@@ -20,8 +20,8 @@
 #ifndef __ENABLE_CAPI__
 #define __ENABLE_CAPI__ 1
 #endif
-#include "VideoDecoderDefs.h"
-#include "VideoCommonDefs.h"
+#include "interface/VideoDecoderDefs.h"
+#include "interface/VideoCommonDefs.h"
 
 #ifdef __cplusplus
 extern "C" {

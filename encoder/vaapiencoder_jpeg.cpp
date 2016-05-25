@@ -20,11 +20,11 @@
 #include "vaapiencoder_jpeg.h"
 #include "codecparsers/jpegParser.h"
 #include "common/common_def.h"
-#include "scopedlogger.h"
+#include "common/scopedlogger.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
 #include "vaapiencoder_factory.h"
-#include "log.h"
+#include "common/log.h"
 #include <stdio.h>
 #include <tr1/array>
 

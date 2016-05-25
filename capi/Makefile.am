@@ -1,7 +1,3 @@
-INCLUDES = -I$(top_srcdir) \
-	-I$(top_srcdir)/interface \
-	$(NULL)
-
 libyami_capi_source_c = \
 	VideoDecoderCapi.cpp \
 	VideoEncoderCapi.cpp \
@@ -32,31 +28,7 @@ libyami_capi_la_LDFLAGS     = $(libyami_capi_ldflags)
 libyami_capi_la_CPPFLAGS    = $(libyami_capi_cppflags)
 
 if ENABLE_UNITTESTS
-noinst_PROGRAMS = unittest
-
-unittest_SOURCES = \
-	$(top_builddir)/common/unittest_main.cpp \
-	$(NULL)
-
-unittest_LDFLAGS = \
-	$(GTEST_LDFLAGS) \
-	$(NULL)
-
-unittest_LDADD = \
-	libyami_capi.la \
-	$(GTEST_LIBS) \
-	$(NULL)
-
-unittest_CPPFLAGS = \
-	$(GTEST_CPPFLAGS) \
-	$(NULL)
-
-unittest_CXXFLAGS = \
-	$(GTEST_CXXFLAGS) \
-	$(NULL)
-
-check-local: unittest
-	$(builddir)/unittest
+-include Makefile.unittest
 endif
 
 DISTCLEANFILES = \

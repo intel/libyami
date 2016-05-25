@@ -19,7 +19,7 @@
 #endif
 #include "vaapidecpicture.h"
 
-#include "log.h"
+#include "common/log.h"
 
 namespace YamiMediaCodec{
 VaapiDecPicture::VaapiDecPicture(const ContextPtr& context,

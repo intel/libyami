@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include "common/common_def.h"
 #include "common/utils.h"
-#include "scopedlogger.h"
+#include "common/scopedlogger.h"
 #include "vaapicodedbuffer.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapicontext.h"

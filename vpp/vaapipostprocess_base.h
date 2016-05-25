@@ -17,7 +17,7 @@
 #ifndef vaapipostprocess_base_h
 #define vaapipostprocess_base_h
 
-#include "VideoPostProcessInterface.h"
+#include "interface/VideoPostProcessInterface.h"
 #include "vaapi/vaapiptrs.h"
 
 namespace YamiMediaCodec{

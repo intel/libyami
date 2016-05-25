@@ -19,7 +19,7 @@
 #include "vaapiencpicture.h"
 #include "vaapicodedbuffer.h"
 
-#include "log.h"
+#include "common/log.h"
 #ifdef __BUILD_GET_MV__
 #include <va/va_intel_fei.h>
 #endif

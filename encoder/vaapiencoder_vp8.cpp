@@ -17,7 +17,7 @@
 #include "config.h"
 #endif
 #include "vaapiencoder_vp8.h"
-#include "scopedlogger.h"
+#include "common/scopedlogger.h"
 #include "common/common_def.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
