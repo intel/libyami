@@ -1,7 +1,3 @@
-INCLUDES = -I$(top_srcdir) \
-	-I$(top_srcdir)/interface \
-	$(NULL)
-
 libyami_v4l2_source_c = \
 	v4l2_codecbase.cpp \
 	v4l2_decode.cpp \
@@ -52,31 +48,7 @@ libyami_v4l2_la_LDFLAGS     = $(libyami_v4l2_ldflags)
 libyami_v4l2_la_CPPFLAGS    = $(libyami_v4l2_cppflags)
 
 if ENABLE_UNITTESTS
-noinst_PROGRAMS = unittest
-
-unittest_SOURCES = \
-	$(top_builddir)/common/unittest_main.cpp \
-	$(NULL)
-
-unittest_LDFLAGS = \
-	$(GTEST_LDFLAGS) \
-	$(NULL)
-
-unittest_LDADD = \
-	libyami_v4l2.la \
-	$(GTEST_LIBS) \
-	$(NULL)
-
-unittest_CPPFLAGS = \
-	$(GTEST_CPPFLAGS) \
-	$(NULL)
-
-unittest_CXXFLAGS = \
-	$(GTEST_CXXFLAGS) \
-	$(NULL)
-
-check-local: unittest
-	$(builddir)/unittest
+-include Makefile.unittest
 endif
 
 DISTCLEANFILES = \

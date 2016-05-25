@@ -20,8 +20,8 @@
 
 #include "vaapiencoder_h264.h"
 #include <assert.h>
-#include "bitWriter.h"
-#include "scopedlogger.h"
+#include "codecparsers/bitWriter.h"
+#include "common/scopedlogger.h"
 #include "common/common_def.h"
 #include "common/Functional.h"
 #include "vaapi/vaapicontext.h"

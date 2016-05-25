@@ -1,0 +1,58 @@
+noinst_PROGRAMS = unittest
+
+unittest_SOURCES = \
+	unittest_main.cpp \
+	$(NULL)
+
+if BUILD_VP8_DECODER
+unittest_SOURCES += vaapidecoder_vp8_unittest.cpp
+endif
+
+if BUILD_JPEG_DECODER
+unittest_SOURCES += vaapiDecoderJPEG_unittest.cpp
+endif
+
+if BUILD_H264_DECODER
+unittest_SOURCES += vaapidecoder_h264_unittest.cpp
+endif
+
+if BUILD_H265_DECODER
+unittest_SOURCES += vaapidecoder_h265_unittest.cpp
+endif
+
+if BUILD_MPEG2_DECODER
+unittest_SOURCES += vaapidecoder_mpeg2_unittest.cpp
+endif
+
+if BUILD_VC1_DECODER
+unittest_SOURCES += vaapidecoder_vc1_unittest.cpp
+endif
+
+if BUILD_VP9_DECODER
+unittest_SOURCES += vaapidecoder_vp9_unittest.cpp
+endif
+
+unittest_LDFLAGS = \
+	$(GTEST_LDFLAGS) \
+	$(NULL)
+
+unittest_LDADD = \
+	libyami_decoder.la \
+        $(top_builddir)/codecparsers/libyami_codecparser.la \
+        $(top_builddir)/vaapi/libyami_vaapi.la \
+        $(top_builddir)/common/libyami_common.la \
+	$(GTEST_LIBS) \
+	$(NULL)
+
+unittest_CPPFLAGS = \
+	$(GTEST_CPPFLAGS) \
+	$(LIBVA_CFLAGS) \
+	$(NULL)
+
+unittest_CXXFLAGS = \
+	$(GTEST_CXXFLAGS) \
+	$(NULL)
+
+check-local: unittest
+	$(builddir)/unittest
+

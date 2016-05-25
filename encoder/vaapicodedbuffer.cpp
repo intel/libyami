@@ -20,7 +20,7 @@
 
 #include "vaapicodedbuffer.h"
 
-#include "vaapicontext.h"
+#include "vaapi/vaapicontext.h"
 #include <string.h>
 
 namespace YamiMediaCodec{

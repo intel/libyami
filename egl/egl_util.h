@@ -19,7 +19,7 @@
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 
-#include "VideoCommonDefs.h"
+#include "interface/VideoCommonDefs.h"
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */

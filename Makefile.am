@@ -1,8 +1,4 @@
 
-ACLOCAL_AMFLAGS = -I m4 ${ACLOCAL_FLAGS}
-
-AUTOMAKE_OPTIONS = foreign
-
 # Extra clean files so that maintainer-clean removes *everything*
 DISTCLEANFILES = \
 	aclocal.m4 autom4te.cache compile config.guess config.sub \
@@ -22,7 +18,7 @@ endif
 SUBDIRS += .
 
 if ENABLE_V4L2
-SUBDIRS += v4l2
+SUBDIRS +=  v4l2
 endif
 
 lib_LTLIBRARIES = libyami.la

@@ -1,10 +1,3 @@
-INCLUDES = -I$(top_srcdir) \
-	-I$(top_srcdir)/interface \
-	-I$(top_srcdir)/common \
-	-I$(top_srcdir)/vaapi \
-	-I$(top_srcdir)/codecparsers \
-	$(NULL)
-
 libyami_encoder_source_c = \
 	vaapicodedbuffer.cpp \
 	vaapiencpicture.cpp \
@@ -86,51 +79,7 @@ libyami_encoder_la_LDFLAGS     = $(libyami_encoder_ldflags)
 libyami_encoder_la_CPPFLAGS    = $(libyami_encoder_cppflags)
 
 if ENABLE_UNITTESTS
-noinst_PROGRAMS = unittest
-
-unittest_SOURCES = \
-	$(top_builddir)/common/unittest_main.cpp \
-	$(NULL)
-
-if BUILD_H264_ENCODER
-unittest_SOURCES += vaapiencoder_h264_unittest.cpp
-endif
-
-if BUILD_H265_ENCODER
-unittest_SOURCES += vaapiencoder_hevc_unittest.cpp
-endif
-
-if BUILD_JPEG_ENCODER
-unittest_SOURCES += vaapiencoder_jpeg_unittest.cpp
-endif
-
-if BUILD_VP8_ENCODER
-unittest_SOURCES += vaapiencoder_vp8_unittest.cpp
-endif
-
-unittest_LDFLAGS = \
-	$(GTEST_LDFLAGS) \
-	$(NULL)
-
-unittest_LDADD = \
-	libyami_encoder.la \
-	$(top_builddir)/common/libyami_common.la \
-	$(top_builddir)/vaapi/libyami_vaapi.la \
-	$(top_builddir)/codecparsers/libyami_codecparser.la \
-	$(GTEST_LIBS) \
-	$(NULL)
-
-unittest_CPPFLAGS = \
-	$(GTEST_CPPFLAGS) \
-	$(LIBVA_CFLAGS) \
-	$(NULL)
-
-unittest_CXXFLAGS = \
-	$(GTEST_CXXFLAGS) \
-	$(NULL)
-
-check-local: unittest
-	$(builddir)/unittest
+include Makefile.unittest
 endif
 
 DISTCLEANFILES = \

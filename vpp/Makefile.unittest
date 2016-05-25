@@ -1,0 +1,26 @@
+noinst_PROGRAMS = unittest
+
+unittest_SOURCES = \
+	unittest_main.cpp \
+	$(NULL)
+
+unittest_LDFLAGS = \
+	$(GTEST_LDFLAGS) \
+	$(NULL)
+
+unittest_LDADD = \
+	libyami_vpp.la \
+	$(GTEST_LIBS) \
+	$(NULL)
+
+unittest_CPPFLAGS = \
+	$(GTEST_CPPFLAGS) \
+	$(NULL)
+
+unittest_CXXFLAGS = \
+	$(GTEST_CXXFLAGS) \
+	$(NULL)
+
+check-local: unittest
+	$(builddir)/unittest
+

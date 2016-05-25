@@ -1,5 +1,3 @@
-INCLUDES = -I$(top_srcdir)
-
 libyami_codecparser_source_c = \
 	bitReader.cpp \
 	bitWriter.cpp \
@@ -82,7 +80,7 @@ libyami_codecparser_source_h_priv += \
 	$(NULL)
 endif
 
-libyami_codecparser_source_h_priv = \
+libyami_codecparser_source_h_priv += \
 	dboolhuff.h \
 	$(NULL)
 EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
@@ -125,70 +123,7 @@ libyami_codecparser_la_LDFLAGS     = $(libyami_codecparser_ldflags)
 libyami_codecparser_la_CPPFLAGS    = $(libyami_codecparser_cppflags)
 
 if ENABLE_UNITTESTS
-noinst_PROGRAMS = unittest
-
-unittest_SOURCES = \
-	$(top_builddir)/common/unittest_main.cpp \
-	bitReader_unittest.cpp \
-	bitWriter_unittest.cpp \
-	$(NULL)
-
-if BUILD_VP8_DECODER
-unittest_SOURCES += \
-        vp8_bool_decoder_unittest.cpp \
-        $(NULL)
-endif
-
-if BUILD_JPEG_PARSER
-unittest_SOURCES += \
-        jpegParser_unittest.cpp \
-        $(NULL)
-endif
-
-if BUILD_H264_DECODER
-unittest_SOURCES += \
-        h264Parser_unittest.cpp \
-        $(NULL)
-endif
-
-if BUILD_H265_DECODER
-unittest_SOURCES += \
-        h265Parser_unittest.cpp \
-        $(NULL)
-endif
-
-if BUILD_MPEG2_DECODER
-unittest_SOURCES += \
-        mpeg2_parser_unittest.cpp \
-        $(NULL)
-endif
-
-if BUILD_VC1_DECODER
-unittest_SOURCES += \
-        vc1Parser_unittest.cpp \
-        $(NULL)
-endif
-
-unittest_LDFLAGS = \
-	$(GTEST_LDFLAGS) \
-	$(NULL)
-
-unittest_LDADD = \
-	libyami_codecparser.la \
-	$(top_builddir)/common/libyami_common.la \
-	$(GTEST_LIBS) \
-	$(NULL)
-
-unittest_CPPFLAGS = \
-	$(GTEST_CPPFLAGS) \
-	$(NULL)
-
-unittest_CXXFLAGS = \
-	$(GTEST_CXXFLAGS) \
-	$(NULL)
-
-check-local: unittest
-	$(builddir)/unittest
+include Makefile.unittest
 endif
 
 DISTCLEANFILES = \

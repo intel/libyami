@@ -22,7 +22,7 @@
 #include <EGL/eglext.h>
 #include <va/va.h>
 
-#include "VideoCommonDefs.h"
+#include "interface/VideoCommonDefs.h"
 
 namespace YamiMediaCodec {
 

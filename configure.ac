@@ -32,8 +32,8 @@ AC_INIT([libyami],
 AC_CONFIG_SRCDIR([common/common_def.h])
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_AUX_DIR([aux])
-AM_INIT_AUTOMAKE([foreign])
+AC_CONFIG_AUX_DIR([build-aux])
+AM_INIT_AUTOMAKE([foreign subdir-objects])
 AM_SILENT_RULES([yes])
 
 LIBYAMI_LT_VERSION="libyami_major_version:libyami_minor_version:libyami_micro_version"
@@ -308,7 +308,6 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
-AC_PROG_RANLIB
 AC_PROG_LIBTOOL
 #LT_INIT
 # Checks for libraries.
