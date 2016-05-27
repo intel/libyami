@@ -14,9 +14,6 @@ if ENABLE_CAPI
 SUBDIRS += capi
 endif
 
-#generate libyami.la for ENABLE_TESTS and ENABLE_V4L2
-SUBDIRS += .
-
 if ENABLE_V4L2
 SUBDIRS +=  v4l2
 endif
@@ -51,4 +48,19 @@ endif
 if ENABLE_X11
 libyami_la_LDFLAGS += $(LIBVA_X11_LIBS) $(X11_LIBS)
 libyami_la_CPPFLAGS += $(LIBVA_X11_CFLAGS)
+endif
+
+if ENABLE_V4L2
+lib_LTLIBRARIES += libyami_v4l2.la
+libyami_v4l2_la_SOURCES =
+# Dummy C++ source to cause C++ linking
+nodist_EXTRA_libyami_v4l2_la_SOURCES = dummy.cxx
+# for library version
+libyami_v4l2_la_LDFLAGS = \
+	$(LIBYAMI_LT_LDFLAGS) \
+	$(NULL)
+
+libyami_v4l2_la_LIBADD = libyami.la \
+	v4l2/libyamiv4l2.la \
+	$(NULL)
 endif
