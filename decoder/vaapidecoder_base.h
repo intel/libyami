@@ -90,11 +90,6 @@ class VaapiDecoderBase:public IVideoDecoder {
 
     bool m_VAStarted;
 
-    /* hold serveral decoded picture coming from the dpb,
-     * and rearrange the picture output order according to
-     * customer required, for example, when output
-     */
-    //VideoSurfaceBuffer *outputList;
     uint64_t m_currentPTS;
 
   private:

@@ -25,21 +25,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-// format specific data, for future extension.
-typedef struct {
-    int32_t extType;
-    int32_t extSize;
-    uint8_t *extData;
-}VideoExtensionBuffer;
-
-typedef enum {
-    PACKED_FRAME_TYPE,
-} VIDEO_EXTENSION_TYPE;
-
-typedef struct {
-    int64_t timestamp;
-    int32_t offSet;
-}PackedFrameData;
 
 // flags for VideoDecodeBuffer, VideoConfigBuffer and VideoRenderBuffer
 typedef enum {
@@ -101,7 +86,6 @@ typedef struct {
     size_t size;
     int64_t timeStamp;
     uint32_t flag;
-    VideoExtensionBuffer *ext;
 }VideoDecodeBuffer;
 
 typedef struct {
@@ -126,16 +110,6 @@ typedef struct {
     int64_t timeStamp;          // presentation time stamp
 }VideoRenderBuffer;
 
-typedef struct SurfaceBuffer{
-    VideoRenderBuffer renderBuffer;
-    int32_t pictureOrder;       // picture order count, valid only for AVC format
-    bool referenceFrame;        // indicated whether frame associated with this surface is a reference I/P frame
-    bool asReferernce;          // indicated wheter frame is used as reference (as a result surface can not be used for decoding)
-    VideoFrameRawData *mappedData;
-    struct SurfaceBuffer *next;
-    uint32_t status;
-}VideoSurfaceBuffer;
-
 typedef struct {
     bool valid;                 // indicates whether format info is valid. MimeType is always valid.
     char *mimeType;
@@ -144,7 +118,6 @@ typedef struct {
     int32_t surfaceWidth;
     int32_t surfaceHeight;
     int32_t surfaceNumber;
-    VASurfaceID *ctxSurfaces;
     int32_t aspectX;
     int32_t aspectY;
     int32_t cropLeft;
@@ -156,7 +129,6 @@ typedef struct {
     int32_t bitrate;
     int32_t framerateNom;
     int32_t framerateDenom;
-    VideoExtensionBuffer *ext;
 }VideoFormatInfo;
 
 // TODO: categorize the follow errors as fatal and non-fatal.
@@ -183,23 +155,6 @@ typedef enum {
 } VIDEO_DECODE_STATUS;
 
 typedef int32_t Decode_Status;
-
-#ifndef NULL
-#define NULL 0
-#endif
-
-inline bool checkFatalDecoderError(Decode_Status status)
-{
-    if (status == DECODE_NOT_STARTED ||
-        status == DECODE_NEED_RESTART ||
-        status == DECODE_NO_PARSER ||
-        status == DECODE_INVALID_DATA ||
-        status == DECODE_MEMORY_FAIL || status == DECODE_FAIL) {
-        return true;
-    } else {
-        return false;
-    }
-}
 
 #ifdef __cplusplus
 }
