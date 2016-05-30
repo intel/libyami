@@ -87,8 +87,6 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
     m_videoFormatInfo.surfaceWidth = buffer->surfaceWidth;
     m_videoFormatInfo.surfaceHeight = buffer->surfaceHeight;
     m_videoFormatInfo.surfaceNumber = buffer->surfaceNumber;
-    m_lowDelay = buffer->flag & WANT_LOW_DELAY;
-    m_rawOutput = buffer->flag & WANT_RAW_OUTPUT;
 
     status = setupVA(buffer->surfaceNumber, buffer->profile);
     if (status != DECODE_SUCCESS)
@@ -133,9 +131,6 @@ void VaapiDecoderBase::stop(void)
     terminateVA();
 
     m_currentPTS = INVALID_PTS;
-
-    m_lowDelay = false;
-    m_rawOutput = false;
 
     m_videoFormatInfo.valid = false;
 }

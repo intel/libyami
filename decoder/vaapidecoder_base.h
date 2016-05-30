@@ -98,8 +98,6 @@ class VaapiDecoderBase:public IVideoDecoder {
     uint64_t m_currentPTS;
 
   private:
-    bool m_lowDelay;
-    bool m_rawOutput;
 #ifdef __ENABLE_DEBUG__
     int renderPictureCount;
 #endif
