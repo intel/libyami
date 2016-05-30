@@ -42,7 +42,6 @@ VaapiEncoderBase::VaapiEncoderBase():
 
     memset(&m_videoParamCommon, 0, sizeof(m_videoParamCommon));
     m_videoParamCommon.size = sizeof(m_videoParamCommon);
-    m_videoParamCommon.rawFormat = RAW_FORMAT_NV12;
     m_videoParamCommon.frameRate.frameRateNum = 30;
     m_videoParamCommon.frameRate.frameRateDenom = 1;
     m_videoParamCommon.intraPeriod = 15;
@@ -56,9 +55,6 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.rcParams.targetPercentage= 70;
     m_videoParamCommon.rcParams.windowSize = 500;
     m_videoParamCommon.rcParams.disableBitsStuffing = 1;
-    m_videoParamCommon.cyclicFrameInterval = 30;
-    m_videoParamCommon.refreshType = VIDEO_ENC_NONIR;
-    m_videoParamCommon.airParams.airAuto = 1;
     m_videoParamCommon.leastInputCount = 0;
 
     updateMaxOutputBufferCount();

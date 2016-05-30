@@ -63,17 +63,6 @@ typedef enum {
 }VideoOutputFormat;
 
 typedef enum {
-    // TODO, USE VA Fourcc here
-    RAW_FORMAT_NONE = 0,
-    RAW_FORMAT_YUV420 = 1,
-    RAW_FORMAT_YUV422 = 2,
-    RAW_FORMAT_YUV444 = 4,
-    RAW_FORMAT_NV12 = 8,
-    RAW_FORMAT_PROTECTED = 0x80000000,
-    RAW_FORMAT_LAST
-}VideoRawFormat;
-
-typedef enum {
     RATE_CONTROL_NONE = VA_RC_NONE,
     RATE_CONTROL_CBR = VA_RC_CBR,
     RATE_CONTROL_VBR = VA_RC_VBR,
@@ -104,30 +93,6 @@ typedef enum {
     PROFILE_H265_MAIN,
     PROFILE_H265_MAIN10,
 } VideoProfile;
-
-typedef enum {
-    AVC_DELIMITER_LENGTHPREFIX = 0,
-    AVC_DELIMITER_ANNEXB
-}AVCDelimiterType;
-
-typedef enum {
-    VIDEO_ENC_NONIR,            // Non intra refresh
-    VIDEO_ENC_CIR,              // Cyclic intra refresh
-    VIDEO_ENC_AIR,              // Adaptive intra refresh
-    VIDEO_ENC_BOTH,
-    VIDEO_ENC_LAST
-}VideoIntraRefreshType;
-
-typedef enum {
-    BUFFER_SHARING_NONE = 1,    //Means non shared buffer mode
-    BUFFER_SHARING_CI = 2,
-    BUFFER_SHARING_V4L2 = 4,
-    BUFFER_SHARING_SURFACE = 8,
-    BUFFER_SHARING_USRPTR = 16,
-    BUFFER_SHARING_GFXHANDLE = 32,
-    BUFFER_SHARING_KBUFHANDLE = 64,
-    BUFFER_LAST
-}VideoBufferSharingMode;
 
 typedef enum {
     AVC_STREAM_FORMAT_AVCC,
@@ -217,16 +182,6 @@ typedef struct VideoEncSurfaceBuffer {
 #endif
 }VideoEncSurfaceBuffer;
 
-typedef struct AirParams {
-    uint32_t airMBs;
-    uint32_t airThreshold;
-    uint32_t airAuto;
-#ifndef __ENABLE_CAPI__
-     AirParams():airMBs(0), airThreshold(0), airAuto(0) {
-    };
-#endif
-}AirParams;
-
 typedef struct VideoFrameRate {
     uint32_t frameRateNum;
     uint32_t frameRateDenom;
@@ -271,26 +226,6 @@ typedef struct SliceNum {
 #endif
 }SliceNum;
 
-typedef struct ExternalBufferAttrib {
-    uint32_t realWidth;
-    uint32_t realHeight;
-    uint32_t lumaStride;
-    uint32_t chromStride;
-    uint32_t format;
-} ExternalBufferAttrib;
-
-typedef struct Cropping {
-    uint32_t LeftOffset;
-    uint32_t RightOffset;
-    uint32_t TopOffset;
-    uint32_t BottomOffset;
-#ifndef __ENABLE_CAPI__
-     Cropping():LeftOffset(0), RightOffset(0),
-        TopOffset(0), BottomOffset(0) {
-    };
-#endif
-}Cropping;
-
 typedef struct SamplingAspectRatio {
     uint16_t SarWidth;
     uint16_t SarHeight;
@@ -307,17 +242,11 @@ typedef enum {
     VideoParamsTypeH263,
     VideoParamsTypeMP4,
     VideoParamsTypeVC1,
-    VideoParamsTypeUpSteamBuffer,
-    VideoParamsTypeUsrptrBuffer,
     VideoParamsTypeHRD,
-    VideoParamsTypeStoreMetaDataInBuffers,
 
     VideoConfigTypeFrameRate,
     VideoConfigTypeBitRate,
     VideoConfigTypeResolution,
-    VideoConfigTypeIntraRefreshType,
-    VideoConfigTypeAIR,
-    VideoConfigTypeCyclicFrameInterval,
     VideoConfigTypeNALSize,
     VideoConfigTypeIDRRequest,
     VideoConfigTypeSliceNum,
@@ -336,7 +265,6 @@ typedef struct VideoParamsCommon {
     uint32_t size;
     VAProfile profile;
     uint8_t level;
-    VideoRawFormat rawFormat;
     VideoResolution resolution;
     VideoFrameRate frameRate;
     uint32_t intraPeriod;
@@ -344,11 +272,6 @@ typedef struct VideoParamsCommon {
     uint32_t numRefFrames;
     VideoRateControl rcMode;
     VideoRateControlParams rcParams;
-    VideoIntraRefreshType refreshType;
-    int32_t cyclicFrameInterval;
-    AirParams airParams;
-    uint32_t disableDeblocking;
-    bool syncEncMode;
     uint32_t leastInputCount;
 }VideoParamsCommon;
 
@@ -359,45 +282,14 @@ typedef struct VideoParamsAVC {
     int32_t maxSliceSize;
     uint32_t idrInterval;    //How many Intra frames will have an IDR frame
     SliceNum sliceNum;
-    AVCDelimiterType delimiterType;
-    Cropping crop;
     SamplingAspectRatio SAR;
 }VideoParamsAVC;
-
-typedef struct VideoParamsUpstreamBuffer {
-    uint32_t size;
-    VideoBufferSharingMode bufferMode;
-    uint32_t *bufList;
-    uint32_t bufCnt;
-    ExternalBufferAttrib *bufAttrib;
-    void *display;
-}VideoParamsUpstreamBuffer;
-
-typedef struct VideoParamsUsrptrBuffer {
-    uint32_t size;
-
-    //input
-    uint32_t width;
-    uint32_t height;
-    uint32_t format;
-    uint32_t expectedSize;
-
-    //output
-    uint32_t actualSize;
-    uint32_t stride;
-    uint8_t *usrPtr;
-}VideoParamsUsrptrBuffer;
 
 typedef struct VideoParamsHRD {
     uint32_t size;
     uint32_t bufferSize;
     uint32_t initBufferFullness;
 }VideoParamsHRD;
-
-typedef struct VideoParamsStoreMetaDataInBuffers {
-    uint32_t size;
-    bool isEnabled;
-}VideoParamsStoreMetaDataInBuffers;
 
 typedef struct VideoConfigFrameRate {
     uint32_t size;
@@ -418,21 +310,6 @@ typedef struct VideoConfigResoltuion {
     uint32_t size;
     VideoResolution resolution;
 }VideoConfigResoltuion;
-
-typedef struct VideoConfigIntraRefreshType {
-    uint32_t size;
-    VideoIntraRefreshType refreshType;
-}VideoConfigIntraRefreshType;
-
-typedef struct VideoConfigCyclicFrameInterval {
-    uint32_t size;
-    int32_t cyclicFrameInterval;
-}VideoConfigCyclicFrameInterval;
-
-struct VideoConfigAIR {
-    uint32_t size;
-    AirParams airParams;
-};
 
 struct VideoConfigSliceNum {
     uint32_t size;
