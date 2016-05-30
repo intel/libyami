@@ -919,7 +919,6 @@ Decode_Status VaapiDecoderH265::ensureContext(const SPS* const sps)
         m_configBuffer.surfaceHeight =sps->height;
         m_configBuffer.flag |= HAS_SURFACE_NUMBER;
         m_configBuffer.profile = VAProfileHEVCMain;
-        m_configBuffer.flag &= ~USE_NATIVE_GRAPHIC_BUFFER;
         m_configBuffer.surfaceNumber = surfaceNumber;
         status = VaapiDecoderBase::start(&m_configBuffer);
         if (status != DECODE_SUCCESS)

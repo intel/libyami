@@ -276,8 +276,6 @@ Decode_Status VaapiDecoderMPEG2::start(VideoConfigBuffer* buffer)
         return DECODE_SUCCESS;
     }
 
-    // no NATIVE_GRAPHIC_BUFFER support
-    buffer->flag &= ~USE_NATIVE_GRAPHIC_BUFFER;
     m_stream->data = buffer->data;
     m_stream->streamSize = buffer->size;
     NalReader nalReader(m_stream->data, m_stream->streamSize);

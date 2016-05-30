@@ -55,7 +55,6 @@ Decode_Status VaapiDecoderVP9::start(VideoConfigBuffer * buffer)
 
 
     DEBUG("disable native graphics buffer");
-    buffer->flag &= ~USE_NATIVE_GRAPHIC_BUFFER;
     m_configBuffer = *buffer;
     m_configBuffer.data = NULL;
     m_configBuffer.size = 0;

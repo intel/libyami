@@ -1488,7 +1488,6 @@ Decode_Status VaapiDecoderH264::ensureContext(const SharedPtr<SPS> sps)
         m_configBuffer.flag |= HAS_SURFACE_NUMBER;
         m_configBuffer.profile
             = VAProfileH264High; // FIXME: set different profile later
-        m_configBuffer.flag &= ~USE_NATIVE_GRAPHIC_BUFFER;
         status = VaapiDecoderBase::start(&m_configBuffer);
         if (status != DECODE_SUCCESS)
             return status;

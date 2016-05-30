@@ -101,13 +101,6 @@ Decode_Status VaapiDecoderVP8::ensureContext()
         m_configBuffer.height = m_frameHdr.height;
         m_configBuffer.surfaceWidth = m_configBuffer.width;
         m_configBuffer.surfaceHeight = m_configBuffer.height;
-        DEBUG("USE_NATIVE_GRAPHIC_BUFFER: %d",
-              m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER);
-        if (m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER) {
-            m_configBuffer.graphicBufferWidth = m_configBuffer.width;
-            m_configBuffer.graphicBufferHeight = m_configBuffer.height;
-        }
-
         if (m_hasContext)
             status = VaapiDecoderBase::terminateVA();
         m_hasContext = false;
@@ -483,7 +476,6 @@ Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
 
 
     DEBUG("disable native graphics buffer");
-    buffer->flag &= ~USE_NATIVE_GRAPHIC_BUFFER;
     m_configBuffer = *buffer;
     m_configBuffer.data = NULL;
     m_configBuffer.size = 0;

@@ -44,7 +44,6 @@ Decode_Status VaapiDecoderFake::start(VideoConfigBuffer * buffer)
     config = *buffer;
     config.profile = VAProfileH264Main;
     config.surfaceNumber = FAKE_EXTRA_SURFACE_NUMBER;
-    config.flag &= ~USE_NATIVE_GRAPHIC_BUFFER;
     config.width = m_width;
     config.height = m_height;
     config.surfaceWidth = m_width;

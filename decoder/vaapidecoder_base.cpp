@@ -84,13 +84,8 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
 
     m_videoFormatInfo.width = buffer->width;
     m_videoFormatInfo.height = buffer->height;
-    if (buffer->flag & USE_NATIVE_GRAPHIC_BUFFER) {
-        m_videoFormatInfo.surfaceWidth = buffer->graphicBufferWidth;
-        m_videoFormatInfo.surfaceHeight = buffer->graphicBufferHeight;
-    } else {
-        m_videoFormatInfo.surfaceWidth = buffer->surfaceWidth;
-        m_videoFormatInfo.surfaceHeight = buffer->surfaceHeight;
-    }
+    m_videoFormatInfo.surfaceWidth = buffer->surfaceWidth;
+    m_videoFormatInfo.surfaceHeight = buffer->surfaceHeight;
     m_videoFormatInfo.surfaceNumber = buffer->surfaceNumber;
     m_lowDelay = buffer->flag & WANT_LOW_DELAY;
     m_rawOutput = buffer->flag & WANT_RAW_OUTPUT;
@@ -268,11 +263,8 @@ Decode_Status
         WARNING("set rotation failed");
     }
 
-
-    if (!(m_configBuffer.flag & USE_NATIVE_GRAPHIC_BUFFER)) {
-        m_videoFormatInfo.surfaceWidth = m_videoFormatInfo.width;
-        m_videoFormatInfo.surfaceHeight = m_videoFormatInfo.height;
-    }
+    m_videoFormatInfo.surfaceWidth = m_videoFormatInfo.width;
+    m_videoFormatInfo.surfaceHeight = m_videoFormatInfo.height;
 
     m_VAStarted = true;
     return DECODE_SUCCESS;
