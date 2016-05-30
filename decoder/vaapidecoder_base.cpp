@@ -259,10 +259,6 @@ Decode_Status
         return DECODE_FAIL;
     }
 
-    if (!m_display->setRotation(m_configBuffer.rotationDegrees)) {
-        WARNING("set rotation failed");
-    }
-
     m_videoFormatInfo.surfaceWidth = m_videoFormatInfo.width;
     m_videoFormatInfo.surfaceHeight = m_videoFormatInfo.height;
 

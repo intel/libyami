@@ -104,9 +104,6 @@ typedef struct {
     VideoExtensionBuffer *ext;
 }VideoDecodeBuffer;
 
-
-#define MAX_GRAPHIC_BUFFER_NUM  (16 + 1 + 11)   // max DPB + 1 + AVC_EXTRA_NUM
-
 typedef struct {
     uint8_t *data;
     int32_t size;
@@ -121,16 +118,6 @@ typedef struct {
     int32_t surfaceNumber;
     VAProfile profile;
     uint32_t flag;
-    void *graphicBufferHandler[MAX_GRAPHIC_BUFFER_NUM];
-    uint32_t graphicBufferStride;
-    uint32_t graphicBufferColorFormat;
-    uint32_t graphicBufferWidth;
-    uint32_t graphicBufferHeight;
-    VideoExtensionBuffer *ext;
-    void *nativeWindow;
-    uint32_t rotationDegrees;
-
-    void *parser_handle;
 }VideoConfigBuffer;
 
 typedef struct {
