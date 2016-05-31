@@ -347,7 +347,8 @@ Decode_Status VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
     }
     size = buffer->size;
     data = buffer->data;
-    m_parser.parseFrameHeader(data, size);
+    if (!m_parser.parseFrameHeader(data, size))
+        return DECODE_FAIL;
     return decode(data, size, buffer->timeStamp);
 }
 

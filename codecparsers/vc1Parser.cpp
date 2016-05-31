@@ -197,6 +197,10 @@ namespace VC1 {
                 if ((offset < 0) || (data[-1] == 0xD))
                     break;
             }
+            if (offset < 0) {
+                size = 0;
+                return false;
+            }
         }
         m_rbdu.clear();
         /*extraction of rbdu from ebdu*/
@@ -399,7 +403,7 @@ namespace VC1 {
             else {
                 memset(data, 0, width);
             }
-            data += width;
+            data += m_mbWidth;
         }
     }
 
@@ -410,11 +414,11 @@ namespace VC1 {
         for (i = 0; i < width; i++) {
             if (br->read(1)) {
                 for (j = 0; j < height; j++)
-                    data[j * width] = br->read(1);
+                    data[j * m_mbWidth] = br->read(1);
             }
             else {
                 for (j = 0; j < height; j++)
-                    data[j * width] = 0;
+                    data[j * m_mbWidth] = 0;
             }
             data++;
         }
