@@ -114,18 +114,65 @@ typedef struct VideoFrameRawData{
 #define VIDEO_FRAME_FLAGS_KEY 1
 
 typedef enum {
-    YAMI_SUCCESS = 0,
-    /* need more input to get output frame*/
-    YAMI_MORE_DATA,
-    YAMI_NOT_IMPLEMENT,
-    YAMI_INVALID_PARAM,
-    YAMI_OUT_MEMORY,
+    YAMI_FATAL_ERROR = -1024,
+    /* encoder fatal */
 
-    YAMI_FATAL_ERROR = 128,
+    /* decoder fatal */
+    YAMI_DECODE_NO_SURFACE,
+    YAMI_DECODE_PARSER_FAIL,
+
+    /* common fatal */
     YAMI_FAIL,
     YAMI_NO_CONFIG,
     YAMI_DRIVER_FAIL,
+    /* yami unimplemented */
+    YAMI_NOT_IMPLEMENT,
+    /* driver or yami unspported*/
+    YAMI_UNSUPPORTED,
+    YAMI_INVALID_PARAM,
+    YAMI_OUT_MEMORY,
+
+
+    YAMI_SUCCESS = 0,
+    /* recoverable error */
+    /* need more input to get output frame*/
+    YAMI_MORE_DATA,
+
+    /* decoder no fatal */
+    YAMI_DECODE_INVALID_DATA,
+    YAMI_DECODE_FORMAT_CHANGE,
+
+    /* encoder no fatal */
+    YAMI_ENCODE_BUFFER_TOO_SMALL, // The buffer passed to encode is too small to contain encoded data
+    YAMI_ENCODE_BUFFER_NO_MORE,   //No more output buffers.
+    YAMI_ENCODE_IS_BUSY, // driver is busy, there are too many buffers under encoding in parallel.
+    YAMI_ENCODE_NO_REQUEST_DATA,
+
 } YamiStatus;
+
+
+typedef YamiStatus Encode_Status;
+typedef YamiStatus Decode_Status;
+
+/* following code just for compatible, do not use it in new code*/
+#define DECODE_INVALID_DATA YAMI_DECODE_INVALID_DATA
+#define DECODE_PARSER_FAIL YAMI_DECODE_PARSER_FAIL
+#define DECODE_SUCCESS YAMI_SUCCESS
+#define DECODE_FORMAT_CHANGE YAMI_DECODE_FORMAT_CHANGE
+#define DECODE_FAIL YAMI_FAIL
+#define DECODE_NO_SURFACE YAMI_DECODE_NO_SURFACE
+#define DECODE_MEMORY_FAIL YAMI_OUT_MEMORY
+#define DECODE_NOT_STARTED YAMI_FAIL
+
+#define ENCODE_SUCCESS YAMI_SUCCESS
+#define ENCODE_FAIL YAMI_FAIL
+#define ENCODE_INVALID_PARAMS YAMI_INVALID_PARAM
+#define ENCODE_BUFFER_TOO_SMALL YAMI_ENCODE_BUFFER_TOO_SMALL
+#define ENCODE_BUFFER_NO_MORE YAMI_ENCODE_BUFFER_NO_MORE
+#define ENCODE_IS_BUSY YAMI_ENCODE_IS_BUSY
+#define ENCODE_NO_REQUEST_DATA YAMI_ENCODE_NO_REQUEST_DATA
+#define ENCODE_NO_MEMORY YAMI_OUT_MEMORY
+/*compatible code end*/
 
 typedef struct {
     //in

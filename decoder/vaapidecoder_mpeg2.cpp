@@ -514,11 +514,10 @@ Decode_Status VaapiDecoderMPEG2::processSlice()
 
     if (m_parser->parseSlice(m_stream.get())) {
         slice = m_parser->getMPEG2Slice();
-        status = m_currentPicture->newSlice(
-            mpeg2SliceParams, slice->sliceData, slice->sliceDataSize);
-        if (status != DECODE_SUCCESS) {
+        if (!m_currentPicture->newSlice(mpeg2SliceParams,
+                slice->sliceData, slice->sliceDataSize)) {
             DEBUG("picture->newSlice failed");
-            return status;
+            return DECODE_FAIL;
         }
         fillSliceParams(mpeg2SliceParams, slice);
         status = DECODE_SUCCESS;
@@ -693,10 +692,9 @@ Decode_Status VaapiDecoderMPEG2::createPicture()
     m_currentPicture->m_progressiveFrame_
         = m_pictureCodingExtension->progressive_frame;
 
-    status = m_currentPicture->editPicture(mpeg2PictureParams);
-    if (status != DECODE_SUCCESS) {
+    if (!m_currentPicture->editPicture(mpeg2PictureParams)) {
         ERROR("picture->editPicture failed");
-        return status;
+        return DECODE_FAIL;
     }
 
     fillPictureParams(mpeg2PictureParams, m_currentPicture);
@@ -714,9 +712,9 @@ Decode_Status VaapiDecoderMPEG2::decodePicture()
 {
     Decode_Status status;
 
-    status = m_currentPicture->decode();
-    if (status != DECODE_SUCCESS) {
+    if (!m_currentPicture->decode()) {
         DEBUG("picture->decode failed");
+        return DECODE_FAIL;
     }
     // put full picture into the dpb
     status = m_DPB.insertPicture(m_currentPicture);

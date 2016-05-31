@@ -745,7 +745,7 @@ void VaapiEncoderH264::resetParams ()
         m_numBFrames = ipPeriod() - 1;
 
     assert(intraPeriod() > ipPeriod());
-	
+
     m_keyPeriod = intraPeriod() * (m_videoParamAVC.idrInterval + 1);
 
     if (m_keyPeriod > MAX_IDR_PERIOD)
@@ -981,7 +981,7 @@ Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t tim
 Encode_Status VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer * outBuffer)
 {
     if (!outBuffer) {
-        return ENCODE_NULL_PTR;
+        return ENCODE_INVALID_PARAMS;
     }
 
     ASSERT((outBuffer->flag == OUTPUT_CODEC_DATA) || outBuffer->flag == OUTPUT_EVERYTHING);

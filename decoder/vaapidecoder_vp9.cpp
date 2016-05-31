@@ -277,9 +277,8 @@ Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* dat
         return DECODE_FAIL;
     if (!ensureSlice(picture, data, size))
         return DECODE_FAIL;
-    ret = picture->decode();
-    if (ret != DECODE_SUCCESS)
-        return ret;
+    if (!picture->decode())
+        return DECODE_FAIL;
     updateReference(picture, hdr);
     if (hdr->show_frame)
         return outputPicture(picture);

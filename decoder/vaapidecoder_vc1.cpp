@@ -324,9 +324,8 @@ Decode_Status VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts
     if (!ensureSlice(picture, data, size)) {
         return DECODE_FAIL;
     }
-    ret = picture->decode();
-    if (ret != DECODE_SUCCESS) {
-        return ret;
+    if (!picture->decode()) {
+        return DECODE_FAIL;
     }
 
     if ((m_parser.m_frameHdr.picture_type == FRAME_I)

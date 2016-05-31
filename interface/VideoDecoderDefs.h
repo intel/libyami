@@ -131,31 +131,6 @@ typedef struct {
     int32_t framerateDenom;
 }VideoFormatInfo;
 
-// TODO: categorize the follow errors as fatal and non-fatal.
-typedef enum {
-    RENDER_INVALID_PARAMETER = -21,
-    RENDER_FAIL = -20,
-    DECODE_NOT_STARTED = -10,
-    DECODE_NEED_RESTART = -9,
-    DECODE_NO_CONFIG = -8,
-    DECODE_NO_SURFACE = -7,
-    DECODE_NO_REFERENCE = -6,
-    DECODE_NO_PARSER = -5,
-    DECODE_INVALID_DATA = -4,
-    DECODE_DRIVER_FAIL = -3,
-    DECODE_PARSER_FAIL = -2,
-    DECODE_MEMORY_FAIL = -1,
-    DECODE_FAIL = 0,
-    DECODE_SUCCESS = 1,
-    DECODE_FORMAT_CHANGE = 2,
-    DECODE_FRAME_DROPPED = 3,
-    DECODE_MULTIPLE_FRAME = 4,
-    RENDER_SUCCESS = 20,
-    RENDER_NO_AVAILABLE_FRAME = 21,
-} VIDEO_DECODE_STATUS;
-
-typedef int32_t Decode_Status;
-
 #ifdef __cplusplus
 }
 #endif

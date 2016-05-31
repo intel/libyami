@@ -30,27 +30,7 @@
 extern "C" {
 #endif
 
-typedef int32_t Encode_Status;
 typedef void * Yami_PTR;
-// Video encode error code
-enum {
-    ENCODE_NO_REQUEST_DATA = -10,
-    ENCODE_WRONG_STATE = -9,
-    ENCODE_NOTIMPL = -8,
-    ENCODE_NO_MEMORY = -7,
-    ENCODE_NOT_INIT = -6,
-    ENCODE_DRIVER_FAIL = -5,
-    ENCODE_INVALID_PARAMS = -4,
-    ENCODE_NOT_SUPPORTED = -3,
-    ENCODE_NULL_PTR = -2,
-    ENCODE_FAIL = -1,
-    ENCODE_SUCCESS = 0,
-    ENCODE_ALREADY_INIT = 1,
-    ENCODE_SLICESIZE_OVERFLOW = 2,
-    ENCODE_BUFFER_TOO_SMALL = 3, // The buffer passed to encode is too small to contain encoded data
-    ENCODE_BUFFER_NO_MORE = 4,   //No more output buffers.
-    ENCODE_IS_BUSY = 5, // driver is busy, there are too many buffers under encoding in parallel.
-};
 
 typedef enum {
     OUTPUT_EVERYTHING = 0,      //Output whatever driver generates
