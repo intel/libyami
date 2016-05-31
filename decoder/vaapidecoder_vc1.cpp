@@ -35,7 +35,7 @@ VaapiDecoderVC1::~VaapiDecoderVC1()
     stop();
 }
 
-Decode_Status VaapiDecoderVC1::start(VideoConfigBuffer* buffer)
+YamiStatus VaapiDecoderVC1::start(VideoConfigBuffer* buffer)
 {
     buffer->profile = VAProfileVC1Main;
     buffer->surfaceNumber = 4;
@@ -43,8 +43,8 @@ Decode_Status VaapiDecoderVC1::start(VideoConfigBuffer* buffer)
     m_parser.m_seqHdr.coded_width = m_configBuffer.width;
     m_parser.m_seqHdr.coded_height = m_configBuffer.height;
     if (!m_parser.parseCodecData(m_configBuffer.data, m_configBuffer.size))
-        return DECODE_FAIL;
-    return DECODE_SUCCESS;
+        return YAMI_FAIL;
+    return YAMI_SUCCESS;
 }
 
 void VaapiDecoderVC1::stop(void)
@@ -59,20 +59,20 @@ void VaapiDecoderVC1::flush(void)
     VaapiDecoderBase::flush();
 }
 
-Decode_Status VaapiDecoderVC1::ensureContext()
+YamiStatus VaapiDecoderVC1::ensureContext()
 {
-    Decode_Status status;
+    YamiStatus status;
     if ((m_videoFormatInfo.width != m_configBuffer.width)
         || (m_videoFormatInfo.height != m_configBuffer.height)) {
 
         m_configBuffer.surfaceWidth = m_configBuffer.width;
         m_configBuffer.surfaceHeight = m_configBuffer.height;
         status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
-        return DECODE_FORMAT_CHANGE;
+        return YAMI_DECODE_FORMAT_CHANGE;
     }
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 bool VaapiDecoderVC1::makeBitPlanes(PicturePtr& picture, VAPictureParameterBufferVC1* param)
@@ -306,26 +306,26 @@ bool VaapiDecoderVC1::ensureSlice(PicturePtr& picture, void* data, int size)
     return true;
 }
 
-Decode_Status VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
+YamiStatus VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
 {
-    Decode_Status ret;
+    YamiStatus ret;
     ret = ensureContext();
-    if (ret != DECODE_SUCCESS)
+    if (ret != YAMI_SUCCESS)
         return ret;
 
     PicturePtr picture = createPicture(pts);
     if (!picture) {
-        return DECODE_MEMORY_FAIL;
+        return YAMI_OUT_MEMORY;
     }
 
     if (!ensurePicture(picture)) {
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
     if (!ensureSlice(picture, data, size)) {
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
     if (!picture->decode()) {
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if ((m_parser.m_frameHdr.picture_type == FRAME_I)
@@ -336,13 +336,13 @@ Decode_Status VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts
     return outputPicture(picture);
 }
 
-Decode_Status VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
+YamiStatus VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
 {
     uint8_t* data;
     uint32_t size;
     if (!buffer || !(buffer->data) || !(buffer->size)) {
         m_forwardPicture.reset();
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
     size = buffer->size;
     data = buffer->data;

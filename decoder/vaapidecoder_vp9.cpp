@@ -43,8 +43,7 @@ VaapiDecoderVP9::~VaapiDecoderVP9()
     stop();
 }
 
-
-Decode_Status VaapiDecoderVP9::start(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderVP9::start(VideoConfigBuffer* buffer)
 {
     DEBUG("VP9: start() buffer size: %d x %d", buffer->width,
           buffer->height);
@@ -62,15 +61,15 @@ Decode_Status VaapiDecoderVP9::start(VideoConfigBuffer * buffer)
     if (m_configBuffer.width && m_configBuffer.height) {
         m_configBuffer.surfaceWidth = ALIGN8(m_configBuffer.width);
         m_configBuffer.surfaceHeight = ALIGN32(m_configBuffer.height);
-        Decode_Status status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != DECODE_SUCCESS)
+        YamiStatus status = VaapiDecoderBase::start(&m_configBuffer);
+        if (status != YAMI_SUCCESS)
             return status;
     }
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderVP9::reset(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderVP9::reset(VideoConfigBuffer* buffer)
 {
     DEBUG("VP9: reset()");
     return VaapiDecoderBase::reset(buffer);
@@ -91,25 +90,24 @@ void VaapiDecoderVP9::flush(void)
     VaapiDecoderBase::flush();
 }
 
-
-Decode_Status VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
+YamiStatus VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
 {
     // only reset va context when there is a larger frame
     if (m_configBuffer.width < hdr->width
         || m_configBuffer.height <  hdr->height) {
         INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d",
                 m_configBuffer.width, m_configBuffer.height, hdr->width, hdr->height);
-        Decode_Status status = VaapiDecoderBase::terminateVA();
-        if (status != DECODE_SUCCESS)
+        YamiStatus status = VaapiDecoderBase::terminateVA();
+        if (status != YAMI_SUCCESS)
             return status;
         m_configBuffer.width = hdr->width;
         m_configBuffer.height = hdr->height;
         m_configBuffer.surfaceWidth = ALIGN8(hdr->width);
         m_configBuffer.surfaceHeight = ALIGN32(hdr->height);
         status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
-        return DECODE_FORMAT_CHANGE;
+        return YAMI_DECODE_FORMAT_CHANGE;
     } else if ((m_videoFormatInfo.width != hdr->width
         || m_videoFormatInfo.height != hdr->height) &&
         (!hdr->show_existing_frame)) {
@@ -117,10 +115,9 @@ Decode_Status VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
             INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d\n", m_videoFormatInfo.width, m_videoFormatInfo.height, hdr->width, hdr->height);
             m_videoFormatInfo.width = hdr->width;
             m_videoFormatInfo.height = hdr->height;
-            return DECODE_FORMAT_CHANGE;
+            return YAMI_DECODE_FORMAT_CHANGE;
     }
-    return DECODE_SUCCESS;
-
+    return YAMI_SUCCESS;
 }
 
 bool VaapiDecoderVP9::fillReference(VADecPictureParameterBufferVP9* param, const Vp9FrameHdr* hdr)
@@ -245,24 +242,23 @@ bool VaapiDecoderVP9::ensureSlice(const PicturePtr& picture, const void* data, i
     return true;
 }
 
-Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* data, uint32_t size, uint64_t timeStamp)
+YamiStatus VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* data, uint32_t size, uint64_t timeStamp)
 {
 
-
-    Decode_Status ret;
+    YamiStatus ret;
     ret = ensureContext(hdr);
-    if (ret != DECODE_SUCCESS)
+    if (ret != YAMI_SUCCESS)
         return ret;
 
     PicturePtr picture = createPicture(timeStamp);
     if (!picture)
-        return DECODE_MEMORY_FAIL;
+        return YAMI_OUT_MEMORY;
 
     if (hdr->show_existing_frame) {
         SurfacePtr& surface = m_reference[hdr->frame_to_show];
         if (!surface) {
             ERROR("frame to show is invalid, idx = %d", hdr->frame_to_show);
-            return DECODE_SUCCESS;
+            return YAMI_SUCCESS;
         }
         picture->setSurface(surface);
         return outputPicture(picture);
@@ -270,19 +266,19 @@ Decode_Status VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* dat
 
     if (!picture->getSurface()->setCrop(0, 0, hdr->width, hdr->height)) {
         ERROR("resize to %dx%d failed", hdr->width, hdr->height);
-        return DECODE_MEMORY_FAIL;
+        return YAMI_OUT_MEMORY;
     }
 
     if (!ensurePicture(picture, hdr))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     if (!ensureSlice(picture, data, size))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     if (!picture->decode())
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     updateReference(picture, hdr);
     if (hdr->show_frame)
         return outputPicture(picture);
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 static bool parse_super_frame(std::vector<uint32_t>& frameSize, const uint8_t* data, const size_t size)
@@ -314,39 +310,38 @@ static bool parse_super_frame(std::vector<uint32_t>& frameSize, const uint8_t* d
     return true;
 }
 
-Decode_Status VaapiDecoderVP9::decode(VideoDecodeBuffer * buffer)
+YamiStatus VaapiDecoderVP9::decode(VideoDecodeBuffer* buffer)
 {
-    Decode_Status status;
+    YamiStatus status;
     if (!buffer)
-        return DECODE_INVALID_DATA;
+        return YAMI_DECODE_INVALID_DATA;
     uint8_t* data = buffer->data;
     size_t  size = buffer->size;
     uint8_t* end = data + size;
     std::vector<uint32_t> frameSize;
     if (!parse_super_frame(frameSize, data, size))
-        return DECODE_INVALID_DATA;
+        return YAMI_DECODE_INVALID_DATA;
     for (size_t i = 0; i < frameSize.size(); i++) {
         uint32_t sz = frameSize[i];
         if (data + sz > end)
-            return DECODE_INVALID_DATA;
+            return YAMI_DECODE_INVALID_DATA;
         status = decode(data, sz, buffer->timeStamp);
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
         data += sz;
     }
-    return DECODE_SUCCESS;
-
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderVP9::decode(const uint8_t* data, uint32_t size, uint64_t timeStamp)
+YamiStatus VaapiDecoderVP9::decode(const uint8_t* data, uint32_t size, uint64_t timeStamp)
 {
     Vp9FrameHdr hdr;
     if (!m_parser)
-        return DECODE_MEMORY_FAIL;
+        return YAMI_OUT_MEMORY;
     if (vp9_parse_frame_header(m_parser.get(), &hdr, data, size) != VP9_PARSER_OK)
-        return DECODE_INVALID_DATA;
+        return YAMI_DECODE_INVALID_DATA;
     if (hdr.first_partition_size + hdr.frame_header_length_in_bytes > size)
-        return DECODE_INVALID_DATA;
+        return YAMI_DECODE_INVALID_DATA;
     return decode(&hdr, data, size, timeStamp);
 }
 

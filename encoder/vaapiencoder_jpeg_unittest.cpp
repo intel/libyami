@@ -275,13 +275,13 @@ VAAPIENCODER_JPEG_TEST_SIMPLE_DATA(Encode)
     parameters.resolution.height = 10;
     encoder.setParameters(VideoParamsTypeCommon, &parameters);
 
-    ASSERT_EQ(ENCODE_SUCCESS, encoder.start());
+    ASSERT_EQ(YAMI_SUCCESS, encoder.start());
 
     VideoFrameRawData frame = { };
 
     ASSERT_TRUE(fillFrameRawData(&frame, fourcc, 10, 10, data));
 
-    ASSERT_EQ(ENCODE_SUCCESS, encoder.encode(&frame));
+    ASSERT_EQ(YAMI_SUCCESS, encoder.encode(&frame));
 
     uint32_t size;
     encoder.getMaxOutSize(&size);
@@ -291,7 +291,7 @@ VAAPIENCODER_JPEG_TEST_SIMPLE_DATA(Encode)
     output.bufferSize = buffer.size();
     output.format = OUTPUT_EVERYTHING;
 
-    EXPECT_EQ(ENCODE_SUCCESS, encoder.getOutput(&output, false));
+    EXPECT_EQ(YAMI_SUCCESS, encoder.getOutput(&output, false));
 }
 
 INSTANTIATE_TEST_CASE_P(

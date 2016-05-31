@@ -35,7 +35,7 @@ VaapiDecoderFake::~VaapiDecoderFake()
     stop();
 }
 
-Decode_Status VaapiDecoderFake::start(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderFake::start(VideoConfigBuffer* buffer)
 {
     DEBUG("VP9: start() buffer size: %d x %d", buffer->width,
           buffer->height);
@@ -51,15 +51,15 @@ Decode_Status VaapiDecoderFake::start(VideoConfigBuffer * buffer)
     return VaapiDecoderBase::start(&config);
 }
 
-Decode_Status VaapiDecoderFake::decode(VideoDecodeBuffer *buffer)
+YamiStatus VaapiDecoderFake::decode(VideoDecodeBuffer* buffer)
 {
     if (m_first) {
         m_first = false;
-        return DECODE_FORMAT_CHANGE;
+        return YAMI_DECODE_FORMAT_CHANGE;
     }
     PicturePtr picture = createPicture(buffer->timeStamp);
     if (!picture)
-        return DECODE_MEMORY_FAIL;
+        return YAMI_OUT_MEMORY;
     return outputPicture(picture);
 }
 

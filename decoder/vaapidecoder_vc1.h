@@ -26,17 +26,17 @@ class VaapiDecoderVC1 : public VaapiDecoderBase {
 public:
     VaapiDecoderVC1();
     virtual ~VaapiDecoderVC1();
-    virtual Decode_Status start(VideoConfigBuffer*);
+    virtual YamiStatus start(VideoConfigBuffer*);
     virtual void stop(void);
     virtual void flush(void);
-    virtual Decode_Status decode(VideoDecodeBuffer*);
+    virtual YamiStatus decode(VideoDecodeBuffer*);
 
 private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderVC1>;
     friend class VaapiDecoderVC1Test;
     int32_t searchStartCode(uint8_t*, uint32_t);
-    Decode_Status ensureContext();
-    Decode_Status decode(uint8_t*, uint32_t, uint64_t);
+    YamiStatus ensureContext();
+    YamiStatus decode(uint8_t*, uint32_t, uint64_t);
     bool ensureSlice(PicturePtr&, void*, int);
     bool ensurePicture(PicturePtr&);
     bool makeBitPlanes(PicturePtr&, VAPictureParameterBufferVC1*);

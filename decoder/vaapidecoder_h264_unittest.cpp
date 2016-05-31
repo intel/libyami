@@ -151,11 +151,11 @@ VAAPIDECODER_H264_TEST(Decode_Simple)
     buffer.size = g_SimpleH264.size();
     buffer.timeStamp = 0;
 
-    ASSERT_EQ(DECODE_SUCCESS, decoder.start(&configBuffer));
-    ASSERT_EQ(DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
-    ASSERT_EQ(DECODE_SUCCESS, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.start(&configBuffer));
+    ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
     /* pass a NULL buffer to flush output */
-    ASSERT_EQ(DECODE_SUCCESS, decoder.decode(NULL));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.decode(NULL));
 
     EXPECT_TRUE(decoder.getOutput());
 }

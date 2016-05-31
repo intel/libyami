@@ -132,7 +132,6 @@ typedef enum {
     YAMI_INVALID_PARAM,
     YAMI_OUT_MEMORY,
 
-
     YAMI_SUCCESS = 0,
     /* recoverable error */
     /* need more input to get output frame*/
@@ -144,15 +143,14 @@ typedef enum {
 
     /* encoder no fatal */
     YAMI_ENCODE_BUFFER_TOO_SMALL, // The buffer passed to encode is too small to contain encoded data
-    YAMI_ENCODE_BUFFER_NO_MORE,   //No more output buffers.
+    YAMI_ENCODE_BUFFER_NO_MORE, //No more output buffers.
     YAMI_ENCODE_IS_BUSY, // driver is busy, there are too many buffers under encoding in parallel.
     YAMI_ENCODE_NO_REQUEST_DATA,
 
 } YamiStatus;
 
-
-typedef YamiStatus Encode_Status;
 typedef YamiStatus Decode_Status;
+typedef YamiStatus Encode_Status;
 
 /* following code just for compatible, do not use it in new code*/
 #define DECODE_INVALID_DATA YAMI_DECODE_INVALID_DATA

@@ -252,11 +252,11 @@ VaapiEncoderJpeg::VaapiEncoderJpeg():
     m_entrypoint = VAEntrypointEncPicture;
 }
 
-Encode_Status VaapiEncoderJpeg::getMaxOutSize(uint32_t *maxSize)
+YamiStatus VaapiEncoderJpeg::getMaxOutSize(uint32_t* maxSize)
 {
     FUNC_ENTER();
     *maxSize = m_maxCodedbufSize;
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 void VaapiEncoderJpeg::resetParams()
@@ -264,7 +264,7 @@ void VaapiEncoderJpeg::resetParams()
     m_maxCodedbufSize = width()*height()*3/2;
 }
 
-Encode_Status VaapiEncoderJpeg::start()
+YamiStatus VaapiEncoderJpeg::start()
 {
     FUNC_ENTER();
     resetParams();
@@ -277,18 +277,18 @@ void VaapiEncoderJpeg::flush()
     VaapiEncoderBase::flush();
 }
 
-Encode_Status VaapiEncoderJpeg::stop()
+YamiStatus VaapiEncoderJpeg::stop()
 {
     flush();
     return VaapiEncoderBase::stop();
 }
 
-Encode_Status VaapiEncoderJpeg::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus VaapiEncoderJpeg::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
-    Encode_Status status = ENCODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     FUNC_ENTER();
     if (!videoEncParams)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
 
     switch (type) {
     default:
@@ -298,29 +298,29 @@ Encode_Status VaapiEncoderJpeg::setParameters(VideoParamConfigType type, Yami_PT
     return status;
 }
 
-Encode_Status VaapiEncoderJpeg::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus VaapiEncoderJpeg::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     FUNC_ENTER();
     if (!videoEncParams)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
 
     return VaapiEncoderBase::getParameters(type, videoEncParams);
 }
 
-Encode_Status VaapiEncoderJpeg::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
+YamiStatus VaapiEncoderJpeg::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
 {
     FUNC_ENTER();
-    Encode_Status ret;
+    YamiStatus ret;
     CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
     PicturePtr picture(new VaapiEncPictureJPEG(m_context, surface, timeStamp));
     picture->m_codedBuffer = codedBuffer;
     ret = encodePicture(picture);
-    if (ret != ENCODE_SUCCESS)
+    if (ret != YAMI_SUCCESS)
         return ret;
     INFO();
     if (!output(picture))
-        return ENCODE_INVALID_PARAMS;
-    return ENCODE_SUCCESS;
+        return YAMI_INVALID_PARAM;
+    return YAMI_SUCCESS;
 }
 
 bool VaapiEncoderJpeg::fill(VAEncPictureParameterBufferJPEG * picParam, const PicturePtr &picture,
@@ -484,9 +484,9 @@ bool VaapiEncoderJpeg::addSliceHeaders (const PicturePtr& picture) const
     return true;
 }
 
-Encode_Status VaapiEncoderJpeg::encodePicture(const PicturePtr &picture)
+YamiStatus VaapiEncoderJpeg::encodePicture(const PicturePtr& picture)
 {
-    Encode_Status ret = ENCODE_FAIL;
+    YamiStatus ret = YAMI_FAIL;
     SurfacePtr reconstruct = createSurface();
     if (!reconstruct)
         return ret;
@@ -508,7 +508,7 @@ Encode_Status VaapiEncoderJpeg::encodePicture(const PicturePtr &picture)
     
     if (!picture->encode())
         return ret;
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 const bool VaapiEncoderJpeg::s_registered =

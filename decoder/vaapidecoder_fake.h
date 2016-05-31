@@ -31,8 +31,8 @@ class VaapiDecoderFake:public VaapiDecoderBase {
     typedef SharedPtr<VaapiDecPicture> PicturePtr;
     VaapiDecoderFake(int32_t width, int32_t height);
     virtual ~ VaapiDecoderFake();
-    virtual Decode_Status start(VideoConfigBuffer * );
-    virtual Decode_Status decode(VideoDecodeBuffer *);
+    virtual YamiStatus start(VideoConfigBuffer*);
+    virtual YamiStatus decode(VideoDecodeBuffer*);
 
   private:
     int32_t m_width;

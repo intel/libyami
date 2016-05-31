@@ -488,17 +488,17 @@ public:
             generateCodecConfigAnnexB();
     }
 
-    Encode_Status getCodecConfig(VideoEncOutputBuffer *outBuffer)
+    YamiStatus getCodecConfig(VideoEncOutputBuffer* outBuffer)
     {
         ASSERT(outBuffer && ((outBuffer->format == OUTPUT_CODEC_DATA) || (outBuffer->format == OUTPUT_EVERYTHING)));
         if (outBuffer->bufferSize < m_headers.size())
-            return ENCODE_BUFFER_TOO_SMALL;
+            return YAMI_ENCODE_BUFFER_TOO_SMALL;
         if (m_headers.empty())
-            return ENCODE_NO_REQUEST_DATA;
+            return YAMI_ENCODE_NO_REQUEST_DATA;
         std::copy(m_headers.begin(), m_headers.end(), outBuffer->data);
         outBuffer->dataSize = m_headers.size();
         outBuffer->flag |= ENCODE_BUFFERFLAG_CODECCONFIG;
-        return ENCODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 private:
     static void bsToHeader(Header& param, BitWriter& bs)
@@ -593,15 +593,15 @@ class VaapiEncPictureH264:public VaapiEncPicture
     friend class VaapiEncoderH264;
     friend class VaapiEncoderH264Ref;
 #ifdef ANDROID
-    typedef std::function<Encode_Status ()> Function;
+    typedef std::function<YamiStatus()> Function;
 #else
-    typedef std::tr1::function<Encode_Status ()> Function;
+    typedef std::tr1::function<YamiStatus()> Function;
 #endif
 
 public:
     virtual ~VaapiEncPictureH264() {}
 
-    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer)
+    virtual YamiStatus getOutput(VideoEncOutputBuffer* outBuffer)
     {
         ASSERT(outBuffer);
         VideoOutputFormat format = outBuffer->format;
@@ -614,8 +614,8 @@ public:
             functions.push_back(Bind(&VaapiEncStreamHeaderH264::getCodecConfig, m_headers,&out));
         if (format == OUTPUT_EVERYTHING || format == OUTPUT_FRAME_DATA)
             functions.push_back(Bind(getOutputHelper, this, &out));
-        Encode_Status ret = getOutput(&out, functions);
-        if (ret == ENCODE_SUCCESS) {
+        YamiStatus ret = getOutput(&out, functions);
+        if (ret == YAMI_SUCCESS) {
             outBuffer->dataSize = out.data - outBuffer->data;
             outBuffer->flag = out.flag;
         }
@@ -635,26 +635,26 @@ private:
     }
 
     //getOutput is a virutal function, we need this to help bind
-    static Encode_Status getOutputHelper(VaapiEncPictureH264* p, VideoEncOutputBuffer* out)
+    static YamiStatus getOutputHelper(VaapiEncPictureH264* p, VideoEncOutputBuffer* out)
     {
         return p->VaapiEncPicture::getOutput(out);
     }
 
-    Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, std::vector<Function>& functions)
+    YamiStatus getOutput(VideoEncOutputBuffer* outBuffer, std::vector<Function>& functions)
     {
         ASSERT(outBuffer);
 
         outBuffer->dataSize = 0;
 
-        Encode_Status ret;
+        YamiStatus ret;
         for (size_t i = 0; i < functions.size(); i++) {
             ret = functions[i]();
-            if (ret != ENCODE_SUCCESS)
+            if (ret != YAMI_SUCCESS)
                 return ret;
             outBuffer->bufferSize -= outBuffer->dataSize;
             outBuffer->data += outBuffer->dataSize;
         }
-        return ENCODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 
     uint32_t m_frameNum;
@@ -781,7 +781,7 @@ void VaapiEncoderH264::resetParams ()
     resetGopStart();
 }
 
-Encode_Status VaapiEncoderH264::getMaxOutSize(uint32_t *maxSize)
+YamiStatus VaapiEncoderH264::getMaxOutSize(uint32_t* maxSize)
 {
     FUNC_ENTER();
 
@@ -790,19 +790,19 @@ Encode_Status VaapiEncoderH264::getMaxOutSize(uint32_t *maxSize)
     else
         *maxSize = 0;
 
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 #ifdef __BUILD_GET_MV__
-Encode_Status VaapiEncoderH264::getMVBufferSize(uint32_t *Size)
+YamiStatus VaapiEncoderH264::getMVBufferSize(uint32_t* Size)
 {
     FUNC_ENTER();
     *Size = sizeof(VAMotionVectorIntel)*16*m_mbWidth*m_mbHeight;
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 #endif
 
-Encode_Status VaapiEncoderH264::start()
+YamiStatus VaapiEncoderH264::start()
 {
     FUNC_ENTER();
     resetParams();
@@ -819,26 +819,26 @@ void VaapiEncoderH264::flush()
     VaapiEncoderBase::flush();
 }
 
-Encode_Status VaapiEncoderH264::stop()
+YamiStatus VaapiEncoderH264::stop()
 {
     flush();
     return VaapiEncoderBase::stop();
 }
 
-Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
-    Encode_Status status = ENCODE_INVALID_PARAMS;
+    YamiStatus status = YAMI_INVALID_PARAM;
     AutoLock locker(m_paramLock);
 
     FUNC_ENTER();
     if (!videoEncParams)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
     switch (type) {
     case VideoParamsTypeAVC: {
             VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
             if (avc->size == sizeof(VideoParamsAVC)) {
                 PARAMETER_ASSIGN(m_videoParamAVC, *avc);
-                status = ENCODE_SUCCESS;
+                status = YAMI_SUCCESS;
             }
         }
         break;
@@ -846,7 +846,7 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PT
             VideoConfigAVCStreamFormat* format = (VideoConfigAVCStreamFormat*)videoEncParams;
             if (format->size == sizeof(VideoConfigAVCStreamFormat)) {
                 m_streamFormat = format->streamFormat;
-                status = ENCODE_SUCCESS;
+                status = YAMI_SUCCESS;
             }
         }
         break;
@@ -857,9 +857,9 @@ Encode_Status VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PT
     return status;
 }
 
-Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
-    Encode_Status status = ENCODE_INVALID_PARAMS;
+    YamiStatus status = YAMI_INVALID_PARAM;
     AutoLock locker(m_paramLock);
 
     FUNC_ENTER();
@@ -870,7 +870,7 @@ Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PT
             VideoParamsAVC* avc = (VideoParamsAVC*)videoEncParams;
             if (avc->size == sizeof(VideoParamsAVC)) {
                 PARAMETER_ASSIGN(*avc, m_videoParamAVC);
-                status = ENCODE_SUCCESS;
+                status = YAMI_SUCCESS;
             }
         }
         break;
@@ -878,7 +878,7 @@ Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PT
             VideoConfigAVCStreamFormat* format = (VideoConfigAVCStreamFormat*)videoEncParams;
             if (format->size == sizeof(VideoConfigAVCStreamFormat)) {
                 format->streamFormat = m_streamFormat;
-                status = ENCODE_SUCCESS;
+                status = YAMI_SUCCESS;
             }
         }
         break;
@@ -893,10 +893,10 @@ Encode_Status VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PT
     return status;
 }
 
-Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
+YamiStatus VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
 {
     if (!surface)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
 
     PicturePtr picture(new VaapiEncPictureH264(m_context, surface, timeStamp));
 
@@ -933,18 +933,18 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
 
     picture->m_poc = ((m_frameIndex * 2) % m_maxPicOrderCnt);
     m_frameIndex++;
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 // calls immediately after reorder,
 // it makes sure I frame are encoded immediately, so P frames can be pushed to the front of the m_reorderFrameList.
 // it also makes sure input thread and output thread runs in parallel
-Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
+YamiStatus VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
 {
     FUNC_ENTER();
-    Encode_Status ret;
+    YamiStatus ret;
     ret = reorder(surface, timeStamp, forceKeyFrame);
-    if (ret != ENCODE_SUCCESS)
+    if (ret != YAMI_SUCCESS)
         return ret;
 
     while (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
@@ -952,7 +952,7 @@ Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t tim
             ensureCodedBufferSize();
         CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
         if (!codedBuffer)
-            return ENCODE_NO_MEMORY;
+            return YAMI_OUT_MEMORY;
         PicturePtr picture = m_reorderFrameList.front();
         m_reorderFrameList.pop_front();
         picture->m_codedBuffer = codedBuffer;
@@ -961,7 +961,7 @@ Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t tim
             m_reorderState = VAAPI_ENC_REORD_WAIT_FRAMES;
 
         ret =  encodePicture(picture);
-        if (ret != ENCODE_SUCCESS) {
+        if (ret != YAMI_SUCCESS) {
             return ret;
         }
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_ENDOFFRAME);
@@ -971,23 +971,23 @@ Encode_Status VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t tim
         }
 
         if (!output(picture))
-            return ENCODE_INVALID_PARAMS;
+            return YAMI_INVALID_PARAM;
     }
 
     INFO();
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Encode_Status VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer * outBuffer)
+YamiStatus VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer* outBuffer)
 {
     if (!outBuffer) {
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
     }
 
     ASSERT((outBuffer->flag == OUTPUT_CODEC_DATA) || outBuffer->flag == OUTPUT_EVERYTHING);
     AutoLock locker(m_paramLock);
     if (!m_headers)
-        return ENCODE_NO_REQUEST_DATA;
+        return YAMI_ENCODE_NO_REQUEST_DATA;
     return m_headers->getCodecConfig(outBuffer);
 }
 
@@ -1338,9 +1338,9 @@ bool VaapiEncoderH264::ensureSlices(const PicturePtr& picture)
     return true;
 }
 
-Encode_Status VaapiEncoderH264::encodePicture(const PicturePtr& picture)
+YamiStatus VaapiEncoderH264::encodePicture(const PicturePtr& picture)
 {
-    Encode_Status ret = ENCODE_FAIL;
+    YamiStatus ret = YAMI_FAIL;
 
     SurfacePtr reconstruct = createSurface();
     if (!reconstruct)
@@ -1370,7 +1370,7 @@ Encode_Status VaapiEncoderH264::encodePicture(const PicturePtr& picture)
     if (!referenceListUpdate (picture, reconstruct))
         return ret;
 
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 const bool VaapiEncoderH264::s_registered =

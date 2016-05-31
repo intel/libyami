@@ -137,10 +137,10 @@ VAAPIDECODER_JPEG_TEST(Decode_Simple)
     buffer.size = g_SimpleJPEG.size();
     buffer.timeStamp = 0;
 
-    ASSERT_EQ(DECODE_SUCCESS, decoder.start(&config));
-    ASSERT_EQ(DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
-    ASSERT_EQ(DECODE_SUCCESS, decoder.decode(&buffer));
-    ASSERT_EQ(DECODE_SUCCESS, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.start(&config));
+    ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
 
     EXPECT_TRUE(decoder.getOutput());
 }
@@ -150,7 +150,7 @@ VAAPIDECODER_JPEG_TEST(Decode_SimpleMulti)
     /*
      * Test MJPEG decoding.  VaapiDecoderJPEG::decode will only accept
      * one JPEG buffer at a time (i.e. the buffer must start at one SOI marker
-     * and end at one EOI marker.  Otherwise it will indicate DECODE_FAIL.  It
+     * and end at one EOI marker.  Otherwise it will indicate YAMI_FAIL.  It
      * is up to the caller to ensure the MJPEG is divided on single JPEG images
      * for each call to decode.
      */
@@ -171,14 +171,14 @@ VAAPIDECODER_JPEG_TEST(Decode_SimpleMulti)
     buffer.size = 844; // Length of first jpeg image data
     buffer.timeStamp = 0;
 
-    ASSERT_EQ(DECODE_SUCCESS, decoder.start(&config));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.start(&config));
 
     // Decode returns format change after it decodes the SOF segment.
-    ASSERT_EQ(DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
 
     // Resume decoding.  The decoder will continue where it left off (after the
     // SOF segment) when we pass the same buffer as previous call.
-    ASSERT_EQ(DECODE_SUCCESS, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
 
     EXPECT_TRUE(decoder.getOutput());
 
@@ -188,11 +188,11 @@ VAAPIDECODER_JPEG_TEST(Decode_SimpleMulti)
     buffer.timeStamp = 1;
 
     // Decode returns format change after it decodes the SOF segment.
-    ASSERT_EQ(DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
 
     // Resume decoding.  The decoder will continue where it left off (after the
     // SOF segment) when we pass the same buffer as previous call.
-    ASSERT_EQ(DECODE_SUCCESS, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
 
     EXPECT_TRUE(decoder.getOutput());
 
@@ -202,13 +202,13 @@ VAAPIDECODER_JPEG_TEST(Decode_SimpleMulti)
     buffer.timeStamp = 3;
 
     // Decode returns format change after it decodes the first SOF segment.
-    ASSERT_EQ(DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
 
     // Resume decoding.  The decoder will continue where it left off (after the
     // SOF segment) when we pass the same buffer as previous call.  In this
     // case, the decode should fail since it encounters a second image in the
     // buffer.
-    ASSERT_EQ(DECODE_FAIL, decoder.decode(&buffer));
+    ASSERT_EQ(YAMI_FAIL, decoder.decode(&buffer));
 }
 
 VAAPIDECODER_JPEG_TEST(Decode_SimpleTruncated)
@@ -226,16 +226,16 @@ VAAPIDECODER_JPEG_TEST(Decode_SimpleTruncated)
         buffer.size = i;
         buffer.timeStamp = 0;
 
-        ASSERT_EQ(DECODE_SUCCESS, decoder.start(&config));
+        ASSERT_EQ(YAMI_SUCCESS, decoder.start(&config));
         if (i > 176) { // Has full SOF0 segment
-            ASSERT_EQ(DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
+            ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
         }
 
-        EXPECT_EQ(DECODE_FAIL, decoder.decode(&buffer));
-        EXPECT_EQ(DECODE_FAIL, decoder.decode(&buffer));
+        EXPECT_EQ(YAMI_FAIL, decoder.decode(&buffer));
+        EXPECT_EQ(YAMI_FAIL, decoder.decode(&buffer));
 
         if (i < 160) { // No SOF0 segment
-            EXPECT_EQ(DECODE_FAIL, decoder.start(&config));
+            EXPECT_EQ(YAMI_FAIL, decoder.start(&config));
         }
     }
 }

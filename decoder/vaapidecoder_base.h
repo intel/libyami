@@ -49,10 +49,10 @@ class VaapiDecoderBase:public IVideoDecoder {
     virtual ~ VaapiDecoderBase();
 
     virtual PicturePtr createPicture(int64_t timeStamp /* , VaapiPictureStructure structure = VAAPI_PICTURE_STRUCTURE_FRAME */);
-    virtual Decode_Status start(VideoConfigBuffer * buffer);
-    virtual Decode_Status reset(VideoConfigBuffer * buffer);
+    virtual YamiStatus start(VideoConfigBuffer* buffer);
+    virtual YamiStatus reset(VideoConfigBuffer* buffer);
     virtual void stop(void);
-    //virtual Decode_Status decode(VideoDecodeBuffer *buffer);
+    //virtual YamiStatus decode(VideoDecodeBuffer *buffer);
     virtual void flush(void);
     virtual const VideoFormatInfo *getFormatInfo(void);
     virtual SharedPtr<VideoFrame> getOutput();
@@ -66,10 +66,10 @@ class VaapiDecoderBase:public IVideoDecoder {
     //do not use this, we will remove this in near future
     virtual VADisplay getDisplayID();
   protected:
-    Decode_Status setupVA(uint32_t numSurface, VAProfile profile);
-    Decode_Status terminateVA(void);
-    Decode_Status updateReference(void);
-    Decode_Status outputPicture(const PicturePtr& picture);
+      YamiStatus setupVA(uint32_t numSurface, VAProfile profile);
+      YamiStatus terminateVA(void);
+      YamiStatus updateReference(void);
+      YamiStatus outputPicture(const PicturePtr& picture);
     SurfacePtr createSurface();
 
     NativeDisplay   m_externalDisplay;

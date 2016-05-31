@@ -74,13 +74,13 @@ void VaapiEncoderBase::setNativeDisplay(NativeDisplay * nativeDisplay)
     m_externalDisplay = *nativeDisplay;
 }
 
-Encode_Status VaapiEncoderBase::start(void)
+YamiStatus VaapiEncoderBase::start(void)
 {
     FUNC_ENTER();
     if (!initVA())
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 void VaapiEncoderBase::flush(void)
@@ -89,11 +89,11 @@ void VaapiEncoderBase::flush(void)
     m_output.clear();
 }
 
-Encode_Status VaapiEncoderBase::stop(void)
+YamiStatus VaapiEncoderBase::stop(void)
 {
     FUNC_ENTER();
     cleanupVA();
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 bool VaapiEncoderBase::isBusy()
@@ -102,21 +102,20 @@ bool VaapiEncoderBase::isBusy()
     return m_output.size() >= m_maxOutputBuffer;
 }
 
-
-Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
+YamiStatus VaapiEncoderBase::encode(VideoEncRawBuffer* inBuffer)
 {
     FUNC_ENTER();
 
     if (!inBuffer)
-        return ENCODE_SUCCESS;
+        return YAMI_SUCCESS;
     if (!inBuffer->data && !inBuffer->size) {
         // XXX handle EOS when there is B frames
         inBuffer->bufAvailable = true;
-        return ENCODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
     VideoFrameRawData frame;
     if (!fillFrameRawData(&frame, inBuffer->fourcc, width(), height(), inBuffer->data))
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
     inBuffer->bufAvailable = true;
     if (inBuffer->forceKeyFrame)
         frame.flags |= VIDEO_FRAME_FLAGS_KEY;
@@ -124,37 +123,37 @@ Encode_Status VaapiEncoderBase::encode(VideoEncRawBuffer *inBuffer)
     return encode(&frame);
 }
 
-Encode_Status VaapiEncoderBase::encode(VideoFrameRawData* frame)
+YamiStatus VaapiEncoderBase::encode(VideoFrameRawData* frame)
 {
     if (!frame || !frame->width || !frame->height || !frame->fourcc)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
 
     FUNC_ENTER();
 
     if (isBusy())
-        return ENCODE_IS_BUSY;
+        return YAMI_ENCODE_IS_BUSY;
     SurfacePtr surface = createSurface(frame);
     if (!surface)
-        return ENCODE_NO_MEMORY;
+        return YAMI_OUT_MEMORY;
     return doEncode(surface, frame->timeStamp, frame->flags & VIDEO_FRAME_FLAGS_KEY);
 }
 
-Encode_Status VaapiEncoderBase::encode(const SharedPtr<VideoFrame>& frame)
+YamiStatus VaapiEncoderBase::encode(const SharedPtr<VideoFrame>& frame)
 {
     if (!frame)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
     if (isBusy())
-        return ENCODE_IS_BUSY;
+        return YAMI_ENCODE_IS_BUSY;
     SurfacePtr surface = createSurface(frame);
     if (!surface)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
     return doEncode(surface, frame->timeStamp, frame->flags & VIDEO_FRAME_FLAGS_KEY);
 }
 
-Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     FUNC_ENTER();
-    Encode_Status ret = ENCODE_INVALID_PARAMS;
+    YamiStatus ret = YAMI_INVALID_PARAM;
     if (!videoEncParams)
         return ret;
 
@@ -164,21 +163,21 @@ Encode_Status VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PT
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             PARAMETER_ASSIGN(*common, m_videoParamCommon);
-            ret = ENCODE_SUCCESS;
+            ret = YAMI_SUCCESS;
         }
         break;
     }
     default:
-        ret = ENCODE_SUCCESS;
+        ret = YAMI_SUCCESS;
         break;
     }
     return ret;
 }
 
-Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     FUNC_ENTER();
-    Encode_Status ret = ENCODE_SUCCESS;
+    YamiStatus ret = YAMI_SUCCESS;
     if (!videoEncParams)
         return ret;
 
@@ -194,7 +193,7 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PT
             if (m_videoParamCommon.rcMode != RATE_CONTROL_CBR)
                 m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
         } else
-            ret = ENCODE_INVALID_PARAMS;
+            ret = YAMI_INVALID_PARAM;
         m_maxCodedbufSize = 0; // resolution may change, recalculate max codec buffer size when it is requested
         break;
     }
@@ -203,7 +202,7 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PT
         if (frameRateConfig->size == sizeof(VideoConfigFrameRate)) {
             m_videoParamCommon.frameRate = frameRateConfig->frameRate;
         } else
-            ret = ENCODE_INVALID_PARAMS;
+            ret = YAMI_INVALID_PARAM;
         }
         break;
     case VideoConfigTypeBitRate: {
@@ -211,43 +210,43 @@ Encode_Status VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PT
         if (rcParamsConfig->size == sizeof(VideoConfigBitRate)) {
             m_videoParamCommon.rcParams = rcParamsConfig->rcParams;
         } else
-            ret = ENCODE_INVALID_PARAMS;
+            ret = YAMI_INVALID_PARAM;
         }
         break;
     default:
-        ret = ENCODE_INVALID_PARAMS;
+        ret = YAMI_INVALID_PARAM;
         break;
     }
     INFO("bitrate: %d", bitRate());
     return ret;
 }
 
-Encode_Status VaapiEncoderBase::setConfig(VideoParamConfigType type, Yami_PTR videoEncConfig)
+YamiStatus VaapiEncoderBase::setConfig(VideoParamConfigType type, Yami_PTR videoEncConfig)
 {
     FUNC_ENTER();
     DEBUG("type = %d", type);
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Encode_Status VaapiEncoderBase::getConfig(VideoParamConfigType type, Yami_PTR videoEncConfig)
+YamiStatus VaapiEncoderBase::getConfig(VideoParamConfigType type, Yami_PTR videoEncConfig)
 {
     FUNC_ENTER();
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Encode_Status VaapiEncoderBase::getMaxOutSize(uint32_t *maxSize)
+YamiStatus VaapiEncoderBase::getMaxOutSize(uint32_t* maxSize)
 {
     FUNC_ENTER();
     *maxSize = 0;
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 #ifdef __BUILD_GET_MV__
-Encode_Status VaapiEncoderBase::getMVBufferSize(uint32_t *Size)
+YamiStatus VaapiEncoderBase::getMVBufferSize(uint32_t* Size)
 {
     FUNC_ENTER();
     *Size = 0;
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 #endif
 
@@ -516,12 +515,12 @@ bool VaapiEncoderBase::initVA()
     return true;
 }
 
-Encode_Status VaapiEncoderBase::checkEmpty(VideoEncOutputBuffer *outBuffer, bool *outEmpty)
+YamiStatus VaapiEncoderBase::checkEmpty(VideoEncOutputBuffer* outBuffer, bool* outEmpty)
 {
     bool isEmpty;
     FUNC_ENTER();
     if (!outBuffer)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
 
     AutoLock l(m_lock);
     isEmpty = m_output.empty();
@@ -532,9 +531,9 @@ Encode_Status VaapiEncoderBase::checkEmpty(VideoEncOutputBuffer *outBuffer, bool
     if (isEmpty) {
         if (outBuffer->format == OUTPUT_CODEC_DATA)
            return getCodecConfig(outBuffer);
-        return ENCODE_BUFFER_NO_MORE;
+        return YAMI_ENCODE_BUFFER_NO_MORE;
     }
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 void VaapiEncoderBase::getPicture(PicturePtr &outPicture)
@@ -543,21 +542,21 @@ void VaapiEncoderBase::getPicture(PicturePtr &outPicture)
     outPicture->sync();
 }
 
-Encode_Status VaapiEncoderBase::checkCodecData(VideoEncOutputBuffer * outBuffer)
+YamiStatus VaapiEncoderBase::checkCodecData(VideoEncOutputBuffer* outBuffer)
 {
     if (outBuffer->format != OUTPUT_CODEC_DATA) {
         AutoLock l(m_lock);
         m_output.pop_front();
     }
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 #ifndef __BUILD_GET_MV__
-Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, bool withWait)
+YamiStatus VaapiEncoderBase::getOutput(VideoEncOutputBuffer* outBuffer, bool withWait)
 {
     bool isEmpty;
     PicturePtr picture;
-    Encode_Status ret;
+    YamiStatus ret;
     FUNC_ENTER();
     ret = checkEmpty(outBuffer, &isEmpty);
     if (isEmpty)
@@ -565,22 +564,22 @@ Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, bool
 
     getPicture(picture);
     ret = picture->getOutput(outBuffer);
-    if (ret != ENCODE_SUCCESS)
+    if (ret != YAMI_SUCCESS)
         return ret;
 
     checkCodecData(outBuffer);
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 #else
 
-Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, VideoEncMVBuffer * MVBuffer, bool withWait)
+YamiStatus VaapiEncoderBase::getOutput(VideoEncOutputBuffer* outBuffer, VideoEncMVBuffer* MVBuffer, bool withWait)
 {
     void *data = NULL;
     uint32_t mappedSize;
     bool isEmpty;
     PicturePtr picture;
-    Encode_Status ret;
+    YamiStatus ret;
     FUNC_ENTER();
 
     ret = checkEmpty(outBuffer, &isEmpty);
@@ -589,23 +588,23 @@ Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, Vide
     getPicture(picture);
 
     ret = picture->getOutput(outBuffer);
-    if (ret != ENCODE_SUCCESS)
+    if (ret != YAMI_SUCCESS)
         return ret;
     if (!picture->editMVBuffer(data, &mappedSize))
         return ret;
     if (data)
         memcpy(MVBuffer->data, data, mappedSize);
     checkCodecData(outBuffer);
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 #endif
 
-Encode_Status VaapiEncoderBase::getCodecConfig(VideoEncOutputBuffer * outBuffer)
+YamiStatus VaapiEncoderBase::getCodecConfig(VideoEncOutputBuffer* outBuffer)
 {
     ASSERT(outBuffer && (outBuffer->format == OUTPUT_CODEC_DATA));
     outBuffer->dataSize  = 0;
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 }

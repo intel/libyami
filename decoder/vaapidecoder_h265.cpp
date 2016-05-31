@@ -375,7 +375,7 @@ bool VaapiDecoderH265::DPB::output(const PicturePtr& picture)
 {
     picture->m_picOutputFlag = false;
 
-    return m_output(picture) == DECODE_SUCCESS;
+    return m_output(picture) == YAMI_SUCCESS;
 }
 
 bool VaapiDecoderH265::DPB::bump()
@@ -440,12 +440,12 @@ VaapiDecoderH265::~VaapiDecoderH265()
     stop();
 }
 
-Decode_Status VaapiDecoderH265::start(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderH265::start(VideoConfigBuffer* buffer)
 {
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderH265::decodeParamSet(NalUnit *nalu)
+YamiStatus VaapiDecoderH265::decodeParamSet(NalUnit* nalu)
 {
     bool res = true;
 
@@ -460,18 +460,18 @@ Decode_Status VaapiDecoderH265::decodeParamSet(NalUnit *nalu)
         res = m_parser->parsePps(nalu);
     }
 
-    return res ? DECODE_SUCCESS : DECODE_INVALID_DATA;
+    return res ? YAMI_SUCCESS : YAMI_DECODE_INVALID_DATA;
 }
 
-Decode_Status VaapiDecoderH265::outputPicture(const PicturePtr& picture)
+YamiStatus VaapiDecoderH265::outputPicture(const PicturePtr& picture)
 {
     VaapiDecoderBase::PicturePtr base = std::tr1::static_pointer_cast<VaapiDecPicture>(picture);
     return VaapiDecoderBase::outputPicture(base);
 }
 
-Decode_Status VaapiDecoderH265::decodeCurrent()
+YamiStatus VaapiDecoderH265::decodeCurrent()
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     if (!m_current)
         return status;
     if (!m_current->decode()) {
@@ -480,7 +480,7 @@ Decode_Status VaapiDecoderH265::decodeCurrent()
         return status;
     }
     if (!m_dpb.add(m_current, m_prevSlice.get()))
-        return DECODE_INVALID_DATA;
+        return YAMI_DECODE_INVALID_DATA;
     m_current.reset();
     m_newStream = false;
     return status;
@@ -902,7 +902,7 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     return true;
 }
 
-Decode_Status VaapiDecoderH265::ensureContext(const SPS* const sps)
+YamiStatus VaapiDecoderH265::ensureContext(const SPS* const sps)
 {
     uint8_t surfaceNumber = sps->sps_max_dec_pic_buffering_minus1[0] + 1 + H265_EXTRA_SURFACE_NUMBER;
     if (m_configBuffer.surfaceWidth < sps->width
@@ -910,8 +910,8 @@ Decode_Status VaapiDecoderH265::ensureContext(const SPS* const sps)
         || m_configBuffer.surfaceNumber < surfaceNumber) {
         INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d",
                 m_configBuffer.width, m_configBuffer.height, sps->width, sps->height);
-        Decode_Status status = VaapiDecoderBase::terminateVA();
-        if (status != DECODE_SUCCESS)
+        YamiStatus status = VaapiDecoderBase::terminateVA();
+        if (status != YAMI_SUCCESS)
             return status;
         m_configBuffer.width = sps->conformance_window_flag ? sps->croppedWidth : sps->width;
         m_configBuffer.height = sps->conformance_window_flag ? sps->croppedHeight : sps->height;
@@ -921,11 +921,11 @@ Decode_Status VaapiDecoderH265::ensureContext(const SPS* const sps)
         m_configBuffer.profile = VAProfileHEVCMain;
         m_configBuffer.surfaceNumber = surfaceNumber;
         status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
-        return DECODE_FORMAT_CHANGE;
+        return YAMI_DECODE_FORMAT_CHANGE;
     }
-    return (m_context) ? DECODE_SUCCESS : DECODE_FAIL;
+    return (m_context) ? YAMI_SUCCESS : YAMI_FAIL;
 }
 
 /* 8.3.1 */
@@ -985,56 +985,56 @@ PicturePtr VaapiDecoderH265::createPicture(const SliceHeader* const slice,
     return picture;
 }
 
-Decode_Status VaapiDecoderH265::decodeSlice(NalUnit *nalu)
+YamiStatus VaapiDecoderH265::decodeSlice(NalUnit* nalu)
 {
     SharedPtr<SliceHeader> currSlice(new SliceHeader());
     SliceHeader* slice = currSlice.get();
-    Decode_Status status;
+    YamiStatus status;
 
     if (!m_parser->parseSlice(nalu, slice))
-        return DECODE_INVALID_DATA;
+        return YAMI_DECODE_INVALID_DATA;
 
     status = ensureContext(slice->pps->sps.get());
-    if (status != DECODE_SUCCESS) {
+    if (status != YAMI_SUCCESS) {
         return status;
     }
     if (slice->first_slice_segment_in_pic_flag) {
         status = decodeCurrent();
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
         m_current = createPicture(slice, nalu);
         if (m_noRaslOutputFlag && isRasl(nalu))
-            return DECODE_SUCCESS;
+            return YAMI_SUCCESS;
         if (!m_current || !m_dpb.init(m_current, slice, nalu, m_newStream))
-            return DECODE_INVALID_DATA;
+            return YAMI_DECODE_INVALID_DATA;
         if (!fillPicture(m_current, slice) || !fillIqMatrix(m_current, slice))
-            return DECODE_FAIL;
+            return YAMI_FAIL;
     }
     if (!m_current)
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     if (!fillSlice(m_current, slice, nalu))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     if (!slice->dependent_slice_segment_flag)
         std::swap(currSlice, m_prevSlice);
     return status;
 
 }
 
-Decode_Status VaapiDecoderH265::decodeNalu(NalUnit *nalu)
+YamiStatus VaapiDecoderH265::decodeNalu(NalUnit* nalu)
 {
     uint8_t type = nalu->nal_unit_type;
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     if (NalUnit::TRAIL_N <= type && type <= NalUnit::CRA_NUT) {
         status = decodeSlice(nalu);
-        if (status == DECODE_INVALID_DATA) {
+        if (status == YAMI_DECODE_INVALID_DATA) {
             //ignore invalid data while decoding slice
             m_current.reset();
-            status = DECODE_SUCCESS;
+            status = YAMI_SUCCESS;
         }
     } else {
         status = decodeCurrent();
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
         switch (type) {
             case NalUnit::VPS_NUT:
@@ -1060,7 +1060,7 @@ Decode_Status VaapiDecoderH265::decodeNalu(NalUnit *nalu)
     return status;
 }
 
-Decode_Status VaapiDecoderH265::decode(VideoDecodeBuffer *buffer)
+YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
 {
     if (!buffer || !buffer->data) {
         decodeCurrent();
@@ -1069,23 +1069,23 @@ Decode_Status VaapiDecoderH265::decode(VideoDecodeBuffer *buffer)
         m_prevPicOrderCntLsb = 0;
         m_newStream = true;
         m_endOfSequence = false;
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
     m_currentPTS = buffer->timeStamp;
 
     NalReader nr(buffer->data, buffer->size);
     const uint8_t* nal;
     int32_t size;
-    Decode_Status status;
+    YamiStatus status;
     while (nr.read(nal, size)) {
         NalUnit nalu;
         if (nalu.parseNaluHeader(nal, size)) {
             status = decodeNalu(&nalu);
-            if (status != DECODE_SUCCESS)
+            if (status != YAMI_SUCCESS)
                 return status;
         }
     }
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 const bool VaapiDecoderH265::s_registered =

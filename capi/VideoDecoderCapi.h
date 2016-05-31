@@ -33,15 +33,15 @@ DecodeHandler createDecoder(const char *mimeType);
 
 void decodeSetNativeDisplay(DecodeHandler p, NativeDisplay* display);
 
-Decode_Status decodeStart(DecodeHandler p, VideoConfigBuffer *buffer);
+YamiStatus decodeStart(DecodeHandler p, VideoConfigBuffer* buffer);
 
-Decode_Status decodeReset(DecodeHandler p, VideoConfigBuffer *buffer);
+YamiStatus decodeReset(DecodeHandler p, VideoConfigBuffer* buffer);
 
 void decodeStop(DecodeHandler p);
 
 void decodeFlush(DecodeHandler p);
 
-Decode_Status decodeDecode(DecodeHandler p, VideoDecodeBuffer* buffer);
+YamiStatus decodeDecode(DecodeHandler p, VideoDecodeBuffer* buffer);
 
 VideoFrame* decodeGetOutput(DecodeHandler p);
 

@@ -72,10 +72,10 @@ void VaapiDecoderMPEG2::DPB::flush()
     m_referencePictures.clear();
 }
 
-Decode_Status
+YamiStatus
 VaapiDecoderMPEG2::DPB::outputPreviousPictures(const PicturePtr& picture, bool empty)
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     std::list<PicturePtr>::iterator it = m_referencePictures.begin();
 
     if (picture->m_pictureCodingType_ == YamiParser::MPEG2::kIFrame)
@@ -91,7 +91,7 @@ VaapiDecoderMPEG2::DPB::outputPreviousPictures(const PicturePtr& picture, bool e
             && (*it)->m_sentToOutput_ == false) {
 
             status = callOutputPicture((*it));
-            if (status != DECODE_SUCCESS)
+            if (status != YAMI_SUCCESS)
                 return status;
 
             (*it)->m_sentToOutput_ = true;
@@ -102,11 +102,11 @@ VaapiDecoderMPEG2::DPB::outputPreviousPictures(const PicturePtr& picture, bool e
     return status;
 }
 
-Decode_Status
+YamiStatus
 VaapiDecoderMPEG2::DPB::insertPictureToReferences(const PicturePtr& picture)
 {
     PicturePtr outputPicture;
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     if (picture->m_pictureCodingType_ != YamiParser::MPEG2::kBFrame)
     {
@@ -126,17 +126,17 @@ VaapiDecoderMPEG2::DPB::insertPictureToReferences(const PicturePtr& picture)
         DEBUG("Send B frame picture to the output %d",
               picture->m_temporalReference_);
         status = callOutputPicture(picture);
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
     }
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::DPB::insertPicture(const PicturePtr& picture)
+YamiStatus VaapiDecoderMPEG2::DPB::insertPicture(const PicturePtr& picture)
 {
     INFO("insertPicture to DPB size %lu", m_referencePictures.size());
 
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     DEBUG("temporalReference %d", picture->m_temporalReference_);
     DEBUG("pictureCodingType %d", picture->m_pictureCodingType_);
@@ -144,7 +144,7 @@ Decode_Status VaapiDecoderMPEG2::DPB::insertPicture(const PicturePtr& picture)
     DEBUG("progressiveFrame %d", picture->m_progressiveFrame_);
 
     status = outputPreviousPictures(picture);
-    if (status != DECODE_SUCCESS)
+    if (status != YAMI_SUCCESS)
         return status;
 
     if (picture->m_progressiveFrame_
@@ -156,7 +156,7 @@ Decode_Status VaapiDecoderMPEG2::DPB::insertPicture(const PicturePtr& picture)
         // output if temporalReference matches PTS
 
         status = insertPictureToReferences(picture);
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
 
     } else if (!picture->m_progressiveFrame_
@@ -167,7 +167,7 @@ Decode_Status VaapiDecoderMPEG2::DPB::insertPicture(const PicturePtr& picture)
         INFO("This is a field picture");
         if (!picture->m_isFirstField_) {
             status = insertPictureToReferences(picture);
-            if (status != DECODE_SUCCESS)
+            if (status != YAMI_SUCCESS)
                 return status;
         }
     }
@@ -176,10 +176,10 @@ Decode_Status VaapiDecoderMPEG2::DPB::insertPicture(const PicturePtr& picture)
     return status;
 }
 
-Decode_Status
+YamiStatus
 VaapiDecoderMPEG2::DPB::getReferencePictures(const PicturePtr& current_picture,
-                                             PicturePtr& previousPicture,
-                                             PicturePtr& nextPicture)
+    PicturePtr& previousPicture,
+    PicturePtr& nextPicture)
 {
     // m_referencePictures can have 0,1 or 2 reference pictures to comply with
     // the amount of reference frames needed by picture coding type
@@ -200,7 +200,7 @@ VaapiDecoderMPEG2::DPB::getReferencePictures(const PicturePtr& current_picture,
         previousPicture = m_referencePictures.back();
     }
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 VaapiDecoderMPEG2::VaapiDecoderMPEG2()
@@ -219,10 +219,10 @@ VaapiDecoderMPEG2::VaapiDecoderMPEG2()
 
 VaapiDecoderMPEG2::~VaapiDecoderMPEG2() { stop(); }
 
-Decode_Status VaapiDecoderMPEG2::convertToVAProfile(
+YamiStatus VaapiDecoderMPEG2::convertToVAProfile(
     const YamiParser::MPEG2::ProfileType& profile)
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     switch (profile) {
     case YamiParser::MPEG2::MPEG2_PROFILE_MAIN:
@@ -233,13 +233,13 @@ Decode_Status VaapiDecoderMPEG2::convertToVAProfile(
         break;
     default:
         m_VAProfile = VAProfileNone;
-        status = DECODE_PARSER_FAIL;
+        status = YAMI_DECODE_PARSER_FAIL;
         break;
     }
     return status;
 }
 
-Decode_Status
+YamiStatus
 VaapiDecoderMPEG2::checkLevel(const YamiParser::MPEG2::LevelType& level)
 {
     switch (level) {
@@ -247,33 +247,33 @@ VaapiDecoderMPEG2::checkLevel(const YamiParser::MPEG2::LevelType& level)
     case YamiParser::MPEG2::MPEG2_LEVEL_HIGH_1440:
     case YamiParser::MPEG2::MPEG2_LEVEL_MAIN:
     case YamiParser::MPEG2::MPEG2_LEVEL_LOW:
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
         break;
     default:
-        return DECODE_PARSER_FAIL;
+        return YAMI_DECODE_PARSER_FAIL;
         break;
     }
 }
 
-Decode_Status VaapiDecoderMPEG2::start(VideoConfigBuffer* buffer)
+YamiStatus VaapiDecoderMPEG2::start(VideoConfigBuffer* buffer)
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     YamiParser::MPEG2::StartCodeType next_code;
 
     if (NULL == buffer) {
         ERROR("Cannot start codec without config buffer");
-        return DECODE_NOT_STARTED;
+        return YAMI_FAIL;
     }
 
     m_configBuffer = *buffer;
 
     if (buffer->data == NULL || buffer->size == 0) {
         // no information provided in the buffer
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 
     if (m_VAStart) {
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 
     m_stream->data = buffer->data;
@@ -286,20 +286,20 @@ Decode_Status VaapiDecoderMPEG2::start(VideoConfigBuffer* buffer)
         m_parser->nextStartCode(m_stream.get(), next_code);
         DEBUG("start Next start_code %x", next_code);
         status = processConfigBuffer();
-        if (status == DECODE_FORMAT_CHANGE) {
-            status = DECODE_SUCCESS;
+        if (status == YAMI_DECODE_FORMAT_CHANGE) {
+            status = YAMI_SUCCESS;
         }
     }
 
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::processConfigBuffer()
+YamiStatus VaapiDecoderMPEG2::processConfigBuffer()
 {
     // buffer can contain one startcode of the mpeg2 sequence
     // or several, but they will be processed one by one
 
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     YamiParser::MPEG2::StartCodeType next_code;
 
     m_parser->nextStartCode(m_stream.get(), next_code);
@@ -309,7 +309,7 @@ Decode_Status VaapiDecoderMPEG2::processConfigBuffer()
     case YamiParser::MPEG2::MPEG2_SEQUENCE_HEADER_CODE:
         INFO("parseSeqHdr");
         if (!m_parser->parseSequenceHeader(m_stream.get())) {
-            return DECODE_PARSER_FAIL;
+            return YAMI_DECODE_PARSER_FAIL;
         }
         m_sequenceHeader = m_parser->getSequenceHeader();
         m_previousStartCode = m_nextStartCode;
@@ -319,21 +319,22 @@ Decode_Status VaapiDecoderMPEG2::processConfigBuffer()
         INFO("parseSeqExt");
         if (!m_VAStart) {
             if (!m_parser->parseSequenceExtension(m_stream.get())) {
-                return DECODE_PARSER_FAIL;
+                return YAMI_DECODE_PARSER_FAIL;
             }
             m_sequenceExtension = m_parser->getSequenceExtension();
             m_previousStartCode = m_nextStartCode;
             m_nextStartCode = YamiParser::MPEG2::MPEG2_GROUP_START_CODE;
             // ready to fillConfigBuffer
-            // this should be returning DECODE_SUCCESS if
+            // this should be returning YAMI_SUCCESS if
             // application
             // has not allocated output port earlier
 
             status = fillConfigBuffer();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
-            } else if (status == DECODE_SUCCESS) {
-                status = DECODE_FORMAT_CHANGE;
+            }
+            else if (status == YAMI_SUCCESS) {
+                status = YAMI_DECODE_FORMAT_CHANGE;
             }
         }
         break;
@@ -341,7 +342,7 @@ Decode_Status VaapiDecoderMPEG2::processConfigBuffer()
         status = processDecodeBuffer();
         INFO("Calling processDecodeBuffer from "
              "processConfigBuffer");
-        if (status != DECODE_SUCCESS) {
+        if (status != YAMI_SUCCESS) {
             return status;
         }
         break;
@@ -349,11 +350,11 @@ Decode_Status VaapiDecoderMPEG2::processConfigBuffer()
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
+YamiStatus VaapiDecoderMPEG2::processDecodeBuffer()
 {
     // buffer can contain only one nal of the mpeg2 sequence
 
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     YamiParser::MPEG2::StartCodeType next_code;
 
     m_parser->nextStartCode(m_stream.get(), next_code);
@@ -365,7 +366,7 @@ Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
 
         if (m_isParsingSlices) {
             status = decodePicture();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
             }
             m_isParsingSlices = false;
@@ -373,7 +374,7 @@ Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
         }
 
         if (!m_parser->parseGOPHeader(m_stream.get())) {
-            return DECODE_PARSER_FAIL;
+            return YAMI_DECODE_PARSER_FAIL;
         }
         m_GOPHeader = m_parser->getGOPHeader();
         m_previousStartCode = m_nextStartCode;
@@ -383,7 +384,7 @@ Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
         INFO("picture start code");
         if (m_isParsingSlices) {
             status = decodePicture();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
             }
             m_isParsingSlices = false;
@@ -392,7 +393,7 @@ Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
         m_nextStartCode = YamiParser::MPEG2::MPEG2_PICTURE_START_CODE;
         INFO("parsePictureHeader size %ld", m_stream->streamSize);
         if (!m_parser->parsePictureHeader(m_stream.get())) {
-            return DECODE_PARSER_FAIL;
+            return YAMI_DECODE_PARSER_FAIL;
         }
         m_pictureHeader = m_parser->getPictureHeader();
         m_previousStartCode = m_nextStartCode;
@@ -402,12 +403,12 @@ Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
         DEBUG("picture coding extension start code");
         if (m_nextStartCode == next_code) {
             if (!m_parser->parsePictureCodingExtension(m_stream.get())) {
-                return DECODE_PARSER_FAIL;
+                return YAMI_DECODE_PARSER_FAIL;
             }
             m_pictureCodingExtension = m_parser->getPictureCodingExtension();
 
             status = createPicture();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
             }
             m_previousStartCode = m_nextStartCode;
@@ -418,11 +419,11 @@ Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
     case YamiParser::MPEG2::MPEG2_SEQUENCE_END_CODE:
         INFO("End of sequence received");
         status = decodePicture();
-        if (status != DECODE_SUCCESS) {
+        if (status != YAMI_SUCCESS) {
             return status;
         }
         status = m_DPB.outputPreviousPictures(m_currentPicture, true);
-        if (status != DECODE_SUCCESS) {
+        if (status != YAMI_SUCCESS) {
             return status;
         }
         break;
@@ -431,7 +432,7 @@ Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
         if (isSliceCode(next_code)) {
             INFO("processSlice on next_code %x", next_code);
             status = processSlice();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
             }
         }
@@ -440,10 +441,10 @@ Decode_Status VaapiDecoderMPEG2::processDecodeBuffer()
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::fillConfigBuffer()
+YamiStatus VaapiDecoderMPEG2::fillConfigBuffer()
 {
 
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     YamiParser::MPEG2::ProfileType profile;
     YamiParser::MPEG2::LevelType level;
 
@@ -453,12 +454,12 @@ Decode_Status VaapiDecoderMPEG2::fillConfigBuffer()
         m_sequenceExtension->profile_and_level_indication & 0xF);
 
     status = checkLevel(level);
-    if (status != DECODE_SUCCESS) {
+    if (status != YAMI_SUCCESS) {
         return status;
     }
 
     status = convertToVAProfile(profile);
-    if (status != DECODE_SUCCESS) {
+    if (status != YAMI_SUCCESS) {
         return status;
     }
 
@@ -488,7 +489,7 @@ Decode_Status VaapiDecoderMPEG2::fillConfigBuffer()
 
     // ready to start libva
     status = VaapiDecoderBase::start(&m_configBuffer);
-    if (status != DECODE_SUCCESS) {
+    if (status != YAMI_SUCCESS) {
         return status;
     }
 
@@ -507,20 +508,20 @@ bool VaapiDecoderMPEG2::isSliceCode(YamiParser::MPEG2::StartCodeType next_code)
     return false;
 }
 
-Decode_Status VaapiDecoderMPEG2::processSlice()
+YamiStatus VaapiDecoderMPEG2::processSlice()
 {
     const Slice* slice;
-    Decode_Status status = DECODE_PARSER_FAIL;
+    YamiStatus status = YAMI_DECODE_PARSER_FAIL;
 
     if (m_parser->parseSlice(m_stream.get())) {
         slice = m_parser->getMPEG2Slice();
         if (!m_currentPicture->newSlice(mpeg2SliceParams,
                 slice->sliceData, slice->sliceDataSize)) {
             DEBUG("picture->newSlice failed");
-            return DECODE_FAIL;
+            return YAMI_FAIL;
         }
         fillSliceParams(mpeg2SliceParams, slice);
-        status = DECODE_SUCCESS;
+        status = YAMI_SUCCESS;
     }
 
     return status;
@@ -532,15 +533,15 @@ inline bool findTempReference(const PicturePtr& picture,
     return picture->m_temporalReference_ == temporalReference;
 }
 
-Decode_Status VaapiDecoderMPEG2::assignSurface()
+YamiStatus VaapiDecoderMPEG2::assignSurface()
 {
     SurfacePtr surface;
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     surface = VaapiDecoderBase::createSurface();
 
     if (!surface) {
-        status = DECODE_MEMORY_FAIL;
+        status = YAMI_OUT_MEMORY;
     } else {
         m_currentPicture.reset(
             new VaapiDecPictureMpeg2(m_context, surface, m_currentPTS));
@@ -550,8 +551,8 @@ Decode_Status VaapiDecoderMPEG2::assignSurface()
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::findReusePicture(std::list<PicturePtr>& list,
-                                                  bool& reuse)
+YamiStatus VaapiDecoderMPEG2::findReusePicture(std::list<PicturePtr>& list,
+    bool& reuse)
 {
     std::list<PicturePtr>::iterator it;
     it = std::find_if(list.begin(), list.end(),
@@ -564,12 +565,12 @@ Decode_Status VaapiDecoderMPEG2::findReusePicture(std::list<PicturePtr>& list,
         list.erase(it);
         reuse = true;
     }
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderMPEG2::assignPicture()
+YamiStatus VaapiDecoderMPEG2::assignPicture()
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     bool reuseSurface = false;
 
     // reuse surface/picture when decoding a field picture, only complete
@@ -589,7 +590,7 @@ Decode_Status VaapiDecoderMPEG2::assignPicture()
             DEBUG("Create Top Field Picture");
 
             status = assignSurface();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
             }
 
@@ -599,19 +600,19 @@ Decode_Status VaapiDecoderMPEG2::assignPicture()
             // bottom field picture
             if (!m_bottomFieldPictures.empty()) {
                 findReusePicture(m_bottomFieldPictures, reuseSurface);
-                if (status != DECODE_SUCCESS) {
+                if (status != YAMI_SUCCESS) {
                     return status;
                 }
             } else if (!m_topFieldPictures.empty()) {
                 findReusePicture(m_topFieldPictures, reuseSurface);
-                if (status != DECODE_SUCCESS) {
+                if (status != YAMI_SUCCESS) {
                     return status;
                 }
             }
         }
         if (!reuseSurface) {
             status = assignSurface();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
             }
             m_bottomFieldPictures.push_back(m_currentPicture);
@@ -620,23 +621,23 @@ Decode_Status VaapiDecoderMPEG2::assignPicture()
 
         DEBUG("Create a Frame Picture");
         status = assignSurface();
-        if (status != DECODE_SUCCESS) {
+        if (status != YAMI_SUCCESS) {
             return status;
         }
     }
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::loadIQMatrix()
+YamiStatus VaapiDecoderMPEG2::loadIQMatrix()
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     VAIQMatrixBufferMPEG2* IQMatrix = NULL;
 
     // IQMatrix_ is loaded once
 
     if (!m_currentPicture->editIqMatrix(IQMatrix)) {
         ERROR("picture->editIqMatrix failed");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (m_sequenceHeader->load_intra_quantiser_matrix) {
@@ -655,13 +656,13 @@ Decode_Status VaapiDecoderMPEG2::loadIQMatrix()
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::createPicture()
+YamiStatus VaapiDecoderMPEG2::createPicture()
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     VAPictureParameterBufferMPEG2* mpeg2PictureParams;
 
     status = assignPicture();
-    if (status != DECODE_SUCCESS) {
+    if (status != YAMI_SUCCESS) {
         return status;
     }
 
@@ -694,13 +695,13 @@ Decode_Status VaapiDecoderMPEG2::createPicture()
 
     if (!m_currentPicture->editPicture(mpeg2PictureParams)) {
         ERROR("picture->editPicture failed");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     fillPictureParams(mpeg2PictureParams, m_currentPicture);
 
     status = loadIQMatrix();
-    if (status != DECODE_SUCCESS) {
+    if (status != YAMI_SUCCESS) {
         ERROR("loadIQMatrix failed");
         return status;
     }
@@ -708,9 +709,9 @@ Decode_Status VaapiDecoderMPEG2::createPicture()
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::decodePicture()
+YamiStatus VaapiDecoderMPEG2::decodePicture()
 {
-    Decode_Status status;
+    YamiStatus status;
 
     if (!m_currentPicture->decode()) {
         DEBUG("picture->decode failed");
@@ -718,14 +719,14 @@ Decode_Status VaapiDecoderMPEG2::decodePicture()
     }
     // put full picture into the dpb
     status = m_DPB.insertPicture(m_currentPicture);
-    if (status != DECODE_SUCCESS) {
+    if (status != YAMI_SUCCESS) {
         ERROR("insertPicture to DPB failed");
     }
 
     return status;
 }
 
-Decode_Status VaapiDecoderMPEG2::outputPicture(const PicturePtr& picture)
+YamiStatus VaapiDecoderMPEG2::outputPicture(const PicturePtr& picture)
 {
     VaapiDecoderBase::PicturePtr basePicture
         = std::tr1::static_pointer_cast<VaapiDecPicture>(picture);
@@ -733,19 +734,19 @@ Decode_Status VaapiDecoderMPEG2::outputPicture(const PicturePtr& picture)
     return VaapiDecoderBase::outputPicture(basePicture);
 }
 
-Decode_Status VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
+YamiStatus VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
 {
     YamiParser::MPEG2::StartCodeType next_code;
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     // safe check, client can retry if this happens
     if (!buffer) {
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 
     if (buffer->data == NULL || buffer->size == 0) {
         // no information provided in the buffer
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 
     m_stream->data = buffer->data;
@@ -757,7 +758,7 @@ Decode_Status VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
 
     if (m_stream->streamSize < YamiParser::MPEG2::kStartCodeSize) {
         // not enough buffer, client to provide more input
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 
     NalReader nalReader(m_stream->data, m_stream->streamSize);
@@ -773,14 +774,14 @@ Decode_Status VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
             DEBUG("decode tries for a sequence_header");
             if (!m_VAStart) {
                 status = processConfigBuffer();
-                if (status != DECODE_SUCCESS
-                    && status != DECODE_FORMAT_CHANGE) {
+                if (status != YAMI_SUCCESS
+                    && status != YAMI_DECODE_FORMAT_CHANGE) {
                     return status;
                 }
             } else {
                 INFO("processDecodeBuffer is called");
                 status = processDecodeBuffer();
-                if (status != DECODE_SUCCESS) {
+                if (status != YAMI_SUCCESS) {
                     return status;
                 }
             }
@@ -789,7 +790,7 @@ Decode_Status VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
         case YamiParser::MPEG2::MPEG2_PICTURE_START_CODE:
         case YamiParser::MPEG2::MPEG2_SEQUENCE_END_CODE:
             status = processDecodeBuffer();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
             }
             break;
@@ -797,19 +798,19 @@ Decode_Status VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
             if (m_previousStartCode
                 == YamiParser::MPEG2::MPEG2_SEQUENCE_HEADER_CODE)
                 status = processConfigBuffer();
-            if (status != DECODE_SUCCESS && status != DECODE_FORMAT_CHANGE) {
+            if (status != YAMI_SUCCESS && status != YAMI_DECODE_FORMAT_CHANGE) {
                 return status;
             } else if (m_previousStartCode
                        == YamiParser::MPEG2::MPEG2_PICTURE_START_CODE)
                 status = processDecodeBuffer();
-            if (status != DECODE_SUCCESS) {
+            if (status != YAMI_SUCCESS) {
                 return status;
             }
             break;
         default:
             if (isSliceCode(next_code)) {
                 status = processDecodeBuffer();
-                if (status != DECODE_SUCCESS) {
+                if (status != YAMI_SUCCESS) {
                     return status;
                 }
             }
@@ -817,7 +818,7 @@ Decode_Status VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
         }
     }
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 void VaapiDecoderMPEG2::fillPictureParams(VAPictureParameterBufferMPEG2* param,
@@ -905,7 +906,7 @@ VaapiDecoderMPEG2::fillSliceParams(VASliceParameterBufferMPEG2* slice_param,
     slice_param->intra_slice_flag = slice->intra_slice_flag;
 }
 
-Decode_Status VaapiDecoderMPEG2::reset(VideoConfigBuffer* buffer)
+YamiStatus VaapiDecoderMPEG2::reset(VideoConfigBuffer* buffer)
 {
     DEBUG("MPEG2: reset()");
     return VaapiDecoderBase::reset(buffer);

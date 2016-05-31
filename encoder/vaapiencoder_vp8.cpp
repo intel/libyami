@@ -62,11 +62,11 @@ VaapiEncoderVP8::~VaapiEncoderVP8()
 {
 }
 
-Encode_Status VaapiEncoderVP8::getMaxOutSize(uint32_t *maxSize)
+YamiStatus VaapiEncoderVP8::getMaxOutSize(uint32_t* maxSize)
 {
     FUNC_ENTER();
     *maxSize = m_maxCodedbufSize;
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 void VaapiEncoderVP8::resetParams()
@@ -75,7 +75,7 @@ void VaapiEncoderVP8::resetParams()
     m_maxCodedbufSize = width() * height() * 3 / 2;
 }
 
-Encode_Status VaapiEncoderVP8::start()
+YamiStatus VaapiEncoderVP8::start()
 {
     FUNC_ENTER();
     resetParams();
@@ -90,18 +90,18 @@ void VaapiEncoderVP8::flush()
     VaapiEncoderBase::flush();
 }
 
-Encode_Status VaapiEncoderVP8::stop()
+YamiStatus VaapiEncoderVP8::stop()
 {
     flush();
     return VaapiEncoderBase::stop();
 }
 
-Encode_Status VaapiEncoderVP8::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus VaapiEncoderVP8::setParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
-    Encode_Status status = ENCODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     FUNC_ENTER();
     if (!videoEncParams)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
 
     switch (type) {
     default:
@@ -111,21 +111,21 @@ Encode_Status VaapiEncoderVP8::setParameters(VideoParamConfigType type, Yami_PTR
     return status;
 }
 
-Encode_Status VaapiEncoderVP8::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus VaapiEncoderVP8::getParameters(VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     FUNC_ENTER();
     if (!videoEncParams)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
 
     // TODO, update video resolution basing on hw requirement
     return VaapiEncoderBase::getParameters(type, videoEncParams);
 }
 
-Encode_Status VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
+YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
 {
-    Encode_Status ret;
+    YamiStatus ret;
     if (!surface)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
 
     PicturePtr picture(new VaapiEncPictureVP8(m_context, surface, timeStamp));
 
@@ -137,7 +137,7 @@ Encode_Status VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t time
 
     CodedBufferPtr codedBuffer = VaapiCodedBuffer::create(m_context, m_maxCodedbufSize);
     if (!codedBuffer)
-        return ENCODE_NO_MEMORY;
+        return YAMI_OUT_MEMORY;
     picture->m_codedBuffer = codedBuffer;
     codedBuffer->setFlag(ENCODE_BUFFERFLAG_ENDOFFRAME);
     INFO("picture->m_type: 0x%x\n", picture->m_type);
@@ -145,11 +145,11 @@ Encode_Status VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t time
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
     }
     ret = encodePicture(picture);
-    if (ret != ENCODE_SUCCESS) {
+    if (ret != YAMI_SUCCESS) {
         return ret;
     }
     output(picture);
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 
@@ -267,9 +267,9 @@ bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfaceP
     return true;
 }
 
-Encode_Status VaapiEncoderVP8::encodePicture(const PicturePtr& picture)
+YamiStatus VaapiEncoderVP8::encodePicture(const PicturePtr& picture)
 {
-    Encode_Status ret = ENCODE_FAIL;
+    YamiStatus ret = YAMI_FAIL;
     SurfacePtr reconstruct = createSurface();
     if (!reconstruct)
         return ret;
@@ -292,7 +292,7 @@ Encode_Status VaapiEncoderVP8::encodePicture(const PicturePtr& picture)
     if (!referenceListUpdate (picture, reconstruct))
         return ret;
 
-    return ENCODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 const bool VaapiEncoderVP8::s_registered =

@@ -34,12 +34,12 @@ void encodeSetNativeDisplay(EncodeHandler p, NativeDisplay * display)
         ((IVideoEncoder*)p)->setNativeDisplay(display);
 }
 
-Encode_Status encodeStart(EncodeHandler p)
+YamiStatus encodeStart(EncodeHandler p)
 {
     if(p)
         return ((IVideoEncoder*)p)->start();
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }
 
 void encodeStop(EncodeHandler p)
@@ -55,52 +55,52 @@ static void freeFrame(VideoFrame* frame)
     }
 }
 
-Encode_Status encodeEncode(EncodeHandler p, VideoFrame* frame)
+YamiStatus encodeEncode(EncodeHandler p, VideoFrame* frame)
 {
     if (!p)
-        return ENCODE_INVALID_PARAMS;
+        return YAMI_INVALID_PARAM;
     SharedPtr<VideoFrame> f(frame, freeFrame);
     return ((IVideoEncoder*)p)->encode(f);
 }
 
-Encode_Status encodeEncodeRawData(EncodeHandler p, VideoFrameRawData* inBuffer)
+YamiStatus encodeEncodeRawData(EncodeHandler p, VideoFrameRawData* inBuffer)
 {
     if(p)
         return ((IVideoEncoder*)p)->encode(inBuffer);
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }
 
-Encode_Status encodeGetOutput(EncodeHandler p, VideoEncOutputBuffer * outBuffer, bool withWait)
+YamiStatus encodeGetOutput(EncodeHandler p, VideoEncOutputBuffer* outBuffer, bool withWait)
 {
     if(p)
         return ((IVideoEncoder*)p)->getOutput(outBuffer, withWait);
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }
 
-Encode_Status encodeGetParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus encodeGetParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     if(p)
         return ((IVideoEncoder*)p)->getParameters(type, videoEncParams);
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }
 
-Encode_Status encodeSetParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams)
+YamiStatus encodeSetParameters(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncParams)
 {
     if(p)
         return ((IVideoEncoder*)p)->setParameters(type, videoEncParams);
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }
 
-Encode_Status encodeGetMaxOutSize(EncodeHandler p, uint32_t* maxSize)
+YamiStatus encodeGetMaxOutSize(EncodeHandler p, uint32_t* maxSize)
 {
     if(p)
         return ((IVideoEncoder*)p)->getMaxOutSize(maxSize);
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }
 
 void releaseEncoder(EncodeHandler p)
@@ -109,26 +109,26 @@ void releaseEncoder(EncodeHandler p)
         releaseVideoEncoder((IVideoEncoder*)p);
 }
 
-Encode_Status getStatistics(EncodeHandler p, VideoStatistics * videoStat)
+YamiStatus getStatistics(EncodeHandler p, VideoStatistics* videoStat)
 {
     if(p)
         return ((IVideoEncoder*)p)->getStatistics(videoStat);
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }
 
-Encode_Status getConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig)
+YamiStatus getConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig)
 {
     if(p)
         return ((IVideoEncoder*)p)->getConfig(type, videoEncConfig);
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }
 
-Encode_Status setConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig)
+YamiStatus setConfig(EncodeHandler p, VideoParamConfigType type, Yami_PTR videoEncConfig)
 {
     if(p)
         return ((IVideoEncoder*)p)->setConfig(type, videoEncConfig);
     else
-        return ENCODE_FAIL;
+        return YAMI_FAIL;
 }

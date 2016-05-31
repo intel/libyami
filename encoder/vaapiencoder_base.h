@@ -47,40 +47,41 @@ public:
     virtual ~VaapiEncoderBase();
 
     virtual void  setNativeDisplay(NativeDisplay * nativeDisplay);
-    virtual Encode_Status start(void) = 0;
+    virtual YamiStatus start(void) = 0;
     virtual void flush(void) = 0;
-    virtual Encode_Status stop(void) = 0;
-    virtual Encode_Status encode(VideoEncRawBuffer *inBuffer);
-    virtual Encode_Status encode(VideoFrameRawData* frame);
-    virtual Encode_Status encode(const SharedPtr<VideoFrame>& frame);
+    virtual YamiStatus stop(void) = 0;
+    virtual YamiStatus encode(VideoEncRawBuffer* inBuffer);
+    virtual YamiStatus encode(VideoFrameRawData* frame);
+    virtual YamiStatus encode(const SharedPtr<VideoFrame>& frame);
 
-    /*
+/*
     * getOutput can be called several time for a frame (such as first time  codec data, and second time others)
     * encode will provide encoded data according to the format (whole frame, codec_data, sigle NAL etc)
-    * If the buffer passed to encoded is not big enough, this API call will return ENCODE_BUFFER_TOO_SMALL
+    * If the buffer passed to encoded is not big enough, this API call will return YAMI_ENCODE_BUFFER_TOO_SMALL
     * and caller should provide a big enough buffer and call again
     */
 #ifndef __BUILD_GET_MV__
-    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, bool withWait = false);
+    virtual YamiStatus getOutput(VideoEncOutputBuffer* outBuffer, bool withWait = false);
 #else
-    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer, VideoEncMVBuffer* MVBuffer, bool withWait = false);
+    virtual YamiStatus getOutput(VideoEncOutputBuffer* outBuffer, VideoEncMVBuffer* MVBuffer, bool withWait = false);
 #endif
-    virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR);
-    virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR);
-    virtual Encode_Status setConfig(VideoParamConfigType type, Yami_PTR);
-    virtual Encode_Status getConfig(VideoParamConfigType type, Yami_PTR);
+    virtual YamiStatus getParameters(VideoParamConfigType type, Yami_PTR);
+    virtual YamiStatus setParameters(VideoParamConfigType type, Yami_PTR);
+    virtual YamiStatus setConfig(VideoParamConfigType type, Yami_PTR);
+    virtual YamiStatus getConfig(VideoParamConfigType type, Yami_PTR);
 
-    virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
+    virtual YamiStatus getMaxOutSize(uint32_t* maxSize);
 
 #ifdef __BUILD_GET_MV__
     /// get MV buffer size.
-    virtual Encode_Status getMVBufferSize(uint32_t * Size);
+    virtual YamiStatus getMVBufferSize(uint32_t* Size);
 #endif
     virtual void getPicture(PicturePtr &outPicture);
-    virtual Encode_Status checkCodecData(VideoEncOutputBuffer * outBuffer);
-    virtual Encode_Status checkEmpty(VideoEncOutputBuffer * outBuffer, bool *outEmpty);
-    virtual Encode_Status getStatistics(VideoStatistics *videoStat) {
-        return ENCODE_SUCCESS;
+    virtual YamiStatus checkCodecData(VideoEncOutputBuffer* outBuffer);
+    virtual YamiStatus checkEmpty(VideoEncOutputBuffer* outBuffer, bool* outEmpty);
+    virtual YamiStatus getStatistics(VideoStatistics* videoStat)
+    {
+        return YAMI_SUCCESS;
     };
 
 protected:
@@ -92,10 +93,10 @@ protected:
 
     template <class Pic>
     bool output(const SharedPtr<Pic>&);
-    virtual Encode_Status getCodecConfig(VideoEncOutputBuffer * outBuffer);
+    virtual YamiStatus getCodecConfig(VideoEncOutputBuffer* outBuffer);
 
     //virtual functions
-    virtual Encode_Status doEncode(const SurfacePtr& , uint64_t timeStamp, bool forceKeyFrame = false) = 0;
+    virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false) = 0;
 
     //rate control related things
     void fill(VAEncMiscParameterHRD*) const ;

@@ -50,8 +50,8 @@ public:
     typedef std::vector<VaapiDecPictureH265*> RefSet;
     VaapiDecoderH265();
     virtual ~VaapiDecoderH265();
-    virtual Decode_Status start(VideoConfigBuffer* );
-    virtual Decode_Status decode(VideoDecodeBuffer*);
+    virtual YamiStatus start(VideoConfigBuffer*);
+    virtual YamiStatus decode(VideoDecodeBuffer*);
 
 private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderH265>;
@@ -59,7 +59,7 @@ private:
 
     class DPB {
         typedef VaapiDecoderH265::RefSet     RefSet;
-        typedef std::tr1::function<Decode_Status (const PicturePtr&)> OutputCallback;
+        typedef std::tr1::function<YamiStatus(const PicturePtr&)> OutputCallback;
         typedef std::tr1::function<void (const PicturePtr&)> ForEachFunction;
     public:
         typedef VaapiDecoderH265::PicturePtr PicturePtr;
@@ -113,11 +113,11 @@ private:
         OutputCallback  m_output;
         PicturePtr      m_dummy;
     };
-    Decode_Status decodeNalu(NalUnit*);
-    Decode_Status decodeParamSet(NalUnit*);
-    Decode_Status decodeSlice(NalUnit*);
+    YamiStatus decodeNalu(NalUnit*);
+    YamiStatus decodeParamSet(NalUnit*);
+    YamiStatus decodeSlice(NalUnit*);
 
-    Decode_Status ensureContext(const SPS* const);
+    YamiStatus ensureContext(const SPS* const);
     bool fillPicture(const PicturePtr& , const SliceHeader* const );
     bool fillSlice(const PicturePtr&, const SliceHeader* const, const NalUnit* const );
     bool fillIqMatrix(const PicturePtr&, const SliceHeader* const);
@@ -138,8 +138,8 @@ private:
     PicturePtr createPicture(const SliceHeader* const, const NalUnit* const nalu);
     void getPoc(const PicturePtr&, const SliceHeader* const,
             const NalUnit* const);
-    Decode_Status decodeCurrent();
-    Decode_Status outputPicture(const PicturePtr&);
+    YamiStatus decodeCurrent();
+    YamiStatus outputPicture(const PicturePtr&);
 
     SharedPtr<Parser> m_parser;
     PicturePtr  m_current;

@@ -40,19 +40,19 @@ static const uint8_t keyFrameUVModeProbs[3] = { 142, 114, 183 };
 static const uint8_t nonKeyFrameDefaultYModeProbs[4] = { 112, 86, 140, 37 };
 static const uint8_t nonKeyFrameDefaultUVModeProbs[3] = { 162, 101, 204 };
 
-static Decode_Status getStatus(Vp8ParserResult result)
+static YamiStatus getStatus(Vp8ParserResult result)
 {
-    Decode_Status status;
+    YamiStatus status;
 
     switch (result) {
     case YamiParser::VP8_PARSER_OK:
-        status = DECODE_SUCCESS;
+        status = YAMI_SUCCESS;
         break;
     case YamiParser::VP8_PARSER_ERROR:
-        status = DECODE_PARSER_FAIL;
+        status = YAMI_DECODE_PARSER_FAIL;
         break;
     default:
-        status = DECODE_FAIL;
+        status = YAMI_FAIL;
         break;
     }
     return status;
@@ -60,13 +60,13 @@ static Decode_Status getStatus(Vp8ParserResult result)
 
 /////////////////////////////////////////////////////
 
-Decode_Status VaapiDecoderVP8::ensureContext()
+YamiStatus VaapiDecoderVP8::ensureContext()
 {
     bool resetContext = false;
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     if (m_frameHdr.key_frame != Vp8FrameHeader::KEYFRAME) {
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 
     /*
@@ -105,7 +105,7 @@ Decode_Status VaapiDecoderVP8::ensureContext()
             status = VaapiDecoderBase::terminateVA();
         m_hasContext = false;
 
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             return status;
     } else if (m_videoFormatInfo.width != m_frameHdr.width
         || m_videoFormatInfo.height != m_frameHdr.height) {
@@ -114,24 +114,24 @@ Decode_Status VaapiDecoderVP8::ensureContext()
             m_videoFormatInfo.width = m_frameHdr.width;
             m_videoFormatInfo.height = m_frameHdr.height;
             // XXX, assume graphicBufferWidth/graphicBufferHeight are hw resolution, needn't update here
-            return DECODE_FORMAT_CHANGE;
+            return YAMI_DECODE_FORMAT_CHANGE;
     }
 
     if (m_hasContext)
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
 
     DEBUG("Start VA context");
     status = VaapiDecoderBase::start(&m_configBuffer);
 
-    if (status != DECODE_SUCCESS)
+    if (status != YAMI_SUCCESS)
         return status;
 
     m_hasContext = true;
 
     if (resetContext)
-        return DECODE_FORMAT_CHANGE;
+        return YAMI_DECODE_FORMAT_CHANGE;
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 bool VaapiDecoderVP8::fillSliceParam(VASliceParameterBufferVP8* sliceParam)
@@ -402,26 +402,26 @@ bool VaapiDecoderVP8::allocNewPicture()
     return true;
 }
 
-Decode_Status VaapiDecoderVP8::decodePicture()
+YamiStatus VaapiDecoderVP8::decodePicture()
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     if (!allocNewPicture())
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     if (!ensureQuantMatrix(m_currentPicture)) {
         ERROR("failed to reset quantizer matrix");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (!ensureProbabilityTable(m_currentPicture)) {
         ERROR("failed to reset probability table");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (!fillPictureParam(m_currentPicture)) {
         ERROR("failed to fill picture parameters");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     VASliceParameterBufferVP8* sliceParam = NULL;
@@ -430,12 +430,12 @@ Decode_Status VaapiDecoderVP8::decodePicture()
 DEBUG("sliceData %p sliceSize %d", sliceData, sliceSize);
 
     if (!m_currentPicture->newSlice(sliceParam, sliceData, sliceSize))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     if (!fillSliceParam(sliceParam))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     if (!m_currentPicture->decode())
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     DEBUG("VaapiDecoderVP8::decodePicture success");
     return status;
@@ -461,8 +461,7 @@ VaapiDecoderVP8::~VaapiDecoderVP8()
     stop();
 }
 
-
-Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderVP8::start(VideoConfigBuffer* buffer)
 {
     DEBUG("VP8: start() buffer size: %d x %d", buffer->width,
           buffer->height);
@@ -487,10 +486,10 @@ Decode_Status VaapiDecoderVP8::start(VideoConfigBuffer * buffer)
 #if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
     m_isFirstFrame = true;
 #endif
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderVP8::reset(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderVP8::reset(VideoConfigBuffer* buffer)
 {
     DEBUG("VP8: reset()");
     return VaapiDecoderBase::reset(buffer);
@@ -515,9 +514,9 @@ void VaapiDecoderVP8::flush(void)
     VaapiDecoderBase::flush();
 }
 
-Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
+YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
 {
-    Decode_Status status;
+    YamiStatus status;
     Vp8ParserResult result;
 
     m_currentPTS = buffer->timeStamp;
@@ -530,20 +529,20 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
 
     do {
         if (m_frameSize == 0) {
-            status = DECODE_FAIL;
+            status = YAMI_FAIL;
             break;
         }
 
         memset(&m_frameHdr, 0, sizeof(m_frameHdr));
         result = m_parser.ParseFrame(m_buffer,m_frameSize,&m_frameHdr);
         status = getStatus(result);
-        if (status != DECODE_SUCCESS) {
+        if (status != YAMI_SUCCESS) {
             break;
         }
 
         if (m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME) {
             status = ensureContext();
-            if (status != DECODE_SUCCESS)
+            if (status != YAMI_SUCCESS)
                 return status;
         }
 #if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
@@ -557,13 +556,13 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
 
         do {
             status = decodePicture();
-        } while (status == DECODE_SUCCESS && ++ii < decodeCount);
+        } while (status == YAMI_SUCCESS && ++ii < decodeCount);
 
 #else
         status = decodePicture();
 #endif
 
-        if (status != DECODE_SUCCESS)
+        if (status != YAMI_SUCCESS)
             break;
 
         if (m_frameHdr.show_frame) {
@@ -578,7 +577,7 @@ Decode_Status VaapiDecoderVP8::decode(VideoDecodeBuffer * buffer)
 
     } while (0);
 
-    if (status != DECODE_SUCCESS) {
+    if (status != YAMI_SUCCESS) {
         DEBUG("decode fail!!");
     }
 

@@ -34,25 +34,25 @@ public:
     /** \brief configure decoder before decode the first frame
     * @param[in] buffer     stream information to initialize decoder
     * if the configuration in @param buffer doesn't match the information in coming stream,
-    * future #decode will return DECODE_FORMAT_CHANGE (#VIDEO_DECODE_STATUS), it will trigger
+    * future #decode will return YAMI_DECODE_FORMAT_CHANGE (#VIDEO_DECODE_STATUS), it will trigger
     * a reconfiguration from client. (yami will not reconfigure decoder internally to avoid mismatch between client and libyami)
     */
-    virtual Decode_Status start(VideoConfigBuffer *buffer) = 0;
+    virtual YamiStatus start(VideoConfigBuffer* buffer) = 0;
     /// \brief reset decoder with new configuration before decoding a new stream
     /// @param[in] buffer     new stream information to reset decoder. cached data (input data or decoded video frames) are discarded.
-    virtual Decode_Status reset(VideoConfigBuffer *buffer) = 0;
+    virtual YamiStatus reset(VideoConfigBuffer* buffer) = 0;
     /// stop decoding and destroy sw/hw decoder context.
     virtual void stop(void) = 0;
     /// discard cached data (input data or decoded video frames), it is usually required during seek
     virtual void flush(void) = 0;
     /// continue decoding with new data in @param[in] buffer; send empty data (buffer.data=NULL, buffer.size=0) to indicate EOS
-    virtual Decode_Status decode(VideoDecodeBuffer *buffer) = 0;
+    virtual YamiStatus decode(VideoDecodeBuffer* buffer) = 0;
 
     ///get decoded frame from decoder.
     virtual SharedPtr<VideoFrame> getOutput() = 0;
 
-   /** \brief retrieve updated stream information after decoder has parsed the video stream.
-    * client usually calls it when libyami return DECODE_FORMAT_CHANGE in decode().
+    /** \brief retrieve updated stream information after decoder has parsed the video stream.
+    * client usually calls it when libyami return YAMI_DECODE_FORMAT_CHANGE in decode().
     */
     virtual const VideoFormatInfo* getFormatInfo(void) = 0;
 

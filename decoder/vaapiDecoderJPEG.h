@@ -33,22 +33,22 @@ public:
 
     virtual ~VaapiDecoderJPEG() { }
 
-    virtual Decode_Status start(VideoConfigBuffer*);
-    virtual Decode_Status reset(VideoConfigBuffer*);
-    virtual Decode_Status decode(VideoDecodeBuffer*);
+    virtual YamiStatus start(VideoConfigBuffer*);
+    virtual YamiStatus reset(VideoConfigBuffer*);
+    virtual YamiStatus decode(VideoDecodeBuffer*);
 
 private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderJPEG>;
     friend class VaapiDecoderJPEGTest;
     class Impl;
 
-    Decode_Status fillPictureParam();
-    Decode_Status fillSliceParam();
+    YamiStatus fillPictureParam();
+    YamiStatus fillSliceParam();
 
-    Decode_Status loadQuantizationTables();
-    Decode_Status loadHuffmanTables();
+    YamiStatus loadQuantizationTables();
+    YamiStatus loadHuffmanTables();
 
-    Decode_Status finish();
+    YamiStatus finish();
 
     std::auto_ptr<VaapiDecoderJPEG::Impl> m_impl;
     PicturePtr m_picture;

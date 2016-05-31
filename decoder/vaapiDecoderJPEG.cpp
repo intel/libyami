@@ -58,7 +58,7 @@ struct Slice {
 class VaapiDecoderJPEG::Impl
 {
 public:
-    typedef function<Decode_Status (void)> DecodeHandler;
+    typedef function<YamiStatus(void)> DecodeHandler;
 
     Impl(const DecodeHandler& start, const DecodeHandler& finish)
         : m_startHandler(start)
@@ -68,22 +68,22 @@ public:
         , m_acHuffmanTables(Defaults::instance().acHuffTables())
         , m_quantizationTables(Defaults::instance().quantTables())
         , m_slice()
-        , m_decodeStatus(DECODE_SUCCESS)
+        , m_decodeStatus(YAMI_SUCCESS)
     {
     }
 
-    Decode_Status decode(const uint8_t* data, const uint32_t size)
+    YamiStatus decode(const uint8_t* data, const uint32_t size)
     {
         using namespace ::YamiParser::JPEG;
 
         if (!data || !size)
-            return DECODE_FAIL;
+            return YAMI_FAIL;
 
         /*
          * Reset the parser if we have a new data pointer; this is common for
          * MJPEG. If the data pointer is the same, then the assumption is that
          * we are continuing after previously suspending due to an SOF
-         * DECODE_FORMAT_CHANGE.
+         * YAMI_DECODE_FORMAT_CHANGE.
          */
         if (m_slice.data != data)
             m_parser.reset();
@@ -104,7 +104,7 @@ public:
         }
 
         if (!m_parser->parse())
-            m_decodeStatus = DECODE_FAIL;
+            m_decodeStatus = YAMI_FAIL;
 
         return m_decodeStatus;
     }
@@ -134,7 +134,7 @@ private:
     {
         using namespace ::YamiParser::JPEG;
 
-        m_decodeStatus = DECODE_SUCCESS;
+        m_decodeStatus = YAMI_SUCCESS;
 
         switch(m_parser->current().marker) {
         case M_SOI:
@@ -157,10 +157,10 @@ private:
             m_acHuffmanTables = m_parser->acHuffTables();
             break;
         default:
-            m_decodeStatus = DECODE_FAIL;
+            m_decodeStatus = YAMI_FAIL;
         }
 
-        if (m_decodeStatus != DECODE_SUCCESS)
+        if (m_decodeStatus != YAMI_SUCCESS)
             return Parser::ParseSuspend;
         return Parser::ParseContinue;
     }
@@ -168,7 +168,7 @@ private:
     Parser::CallbackResult onStartOfFrame()
     {
         m_decodeStatus = m_startHandler();
-        if (m_decodeStatus != DECODE_SUCCESS)
+        if (m_decodeStatus != YAMI_SUCCESS)
             return Parser::ParseSuspend;
         return Parser::ParseContinue;
     }
@@ -183,7 +183,7 @@ private:
 
     Slice m_slice;
 
-    Decode_Status m_decodeStatus;
+    YamiStatus m_decodeStatus;
 };
 
 VaapiDecoderJPEG::VaapiDecoderJPEG()
@@ -194,19 +194,19 @@ VaapiDecoderJPEG::VaapiDecoderJPEG()
     return;
 }
 
-Decode_Status VaapiDecoderJPEG::fillPictureParam()
+YamiStatus VaapiDecoderJPEG::fillPictureParam()
 {
     const FrameHeader::Shared frame = m_impl->frameHeader();
 
     const size_t numComponents = frame->components.size();
 
     if (numComponents > 4)
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     VAPictureParameterBufferJPEGBaseline* vaPicParam(NULL);
 
     if (!m_picture->editPicture(vaPicParam))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     for (size_t i(0); i < numComponents; ++i) {
         const Component::Shared& component = frame->components[i];
@@ -221,10 +221,10 @@ Decode_Status VaapiDecoderJPEG::fillPictureParam()
     vaPicParam->picture_height = frame->imageHeight;
     vaPicParam->num_components = frame->components.size();
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderJPEG::fillSliceParam()
+YamiStatus VaapiDecoderJPEG::fillSliceParam()
 {
     const ScanHeader::Shared scan = m_impl->scanHeader();
     const FrameHeader::Shared frame = m_impl->frameHeader();
@@ -232,7 +232,7 @@ Decode_Status VaapiDecoderJPEG::fillSliceParam()
     VASliceParameterBufferJPEGBaseline *sliceParam(NULL);
 
     if (!m_picture->newSlice(sliceParam, slice.data + slice.start, slice.length))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     for (size_t i(0); i < scan->numComponents; ++i) {
         sliceParam->components[i].component_selector =
@@ -272,17 +272,17 @@ Decode_Status VaapiDecoderJPEG::fillSliceParam()
 
     sliceParam->num_mcus = codedWidth * codedHeight;
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderJPEG::loadQuantizationTables()
+YamiStatus VaapiDecoderJPEG::loadQuantizationTables()
 {
     using namespace ::YamiParser::JPEG;
 
     VAIQMatrixBufferJPEGBaseline* vaIqMatrix(NULL);
 
     if (!m_picture->editIqMatrix(vaIqMatrix))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     size_t numTables = std::min(
         N_ELEMENTS(vaIqMatrix->quantiser_table), size_t(NUM_QUANT_TBLS));
@@ -297,17 +297,17 @@ Decode_Status VaapiDecoderJPEG::loadQuantizationTables()
             vaIqMatrix->quantiser_table[i][j] = quantTable->values[j];
     }
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderJPEG::loadHuffmanTables()
+YamiStatus VaapiDecoderJPEG::loadHuffmanTables()
 {
     using namespace ::YamiParser::JPEG;
 
     VAHuffmanTableBufferJPEGBaseline* vaHuffmanTable(NULL);
 
     if (!m_picture->editHufTable(vaHuffmanTable))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     size_t numTables = std::min(
         N_ELEMENTS(vaHuffmanTable->huffman_table), size_t(NUM_HUFF_TBLS));
@@ -340,13 +340,13 @@ Decode_Status VaapiDecoderJPEG::loadHuffmanTables()
                 0, sizeof(vaHuffmanTable->huffman_table[i].pad));
     }
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderJPEG::decode(VideoDecodeBuffer* buffer)
+YamiStatus VaapiDecoderJPEG::decode(VideoDecodeBuffer* buffer)
 {
     if (!buffer)
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     m_currentPTS = buffer->timeStamp;
 
@@ -358,7 +358,7 @@ Decode_Status VaapiDecoderJPEG::decode(VideoDecodeBuffer* buffer)
     return m_impl->decode(buffer->data, buffer->size);
 }
 
-Decode_Status VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
+YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
 {
     DEBUG("%s", __func__);
 
@@ -368,7 +368,7 @@ Decode_Status VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
 
     /* We can't start until decoding has started */
     if (!m_impl.get())
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
 
     const FrameHeader::Shared frame = m_impl->frameHeader();
 
@@ -379,11 +379,11 @@ Decode_Status VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
      * frame header might not be.
      */
     if (!frame)
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     if (!frame->isBaseline) {
         ERROR("Unsupported JPEG profile. Only JPEG Baseline is supported.");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     m_configBuffer.width = frame->imageWidth;
@@ -393,61 +393,61 @@ Decode_Status VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
 
     /* Now we can actually start */
     if (!VaapiDecoderBase::start(&m_configBuffer))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
-    return DECODE_FORMAT_CHANGE;
+    return YAMI_DECODE_FORMAT_CHANGE;
 }
 
-Decode_Status VaapiDecoderJPEG::finish()
+YamiStatus VaapiDecoderJPEG::finish()
 {
     if (!m_impl->frameHeader()) {
         ERROR("Start of Frame (SOF) not found");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (!m_impl->scanHeader()) {
         ERROR("Start of Scan (SOS) not found");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     m_picture = createPicture(m_currentPTS);
     if (!m_picture) {
         ERROR("Could not create a VAAPI picture.");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     m_picture->m_timeStamp = m_currentPTS;
 
     if (!fillSliceParam()) {
         ERROR("Failed to load VAAPI slice parameters.");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (!fillPictureParam()) {
         ERROR("Failed to load VAAPI picture parameters");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (!loadQuantizationTables()) {
         ERROR("Failed to load VAAPI quantization tables");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (!loadHuffmanTables()) {
         ERROR("Failed to load VAAPI huffman tables");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (!m_picture->decode())
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
     if (!outputPicture(m_picture))
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderJPEG::reset(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderJPEG::reset(VideoConfigBuffer* buffer)
 {
     DEBUG("%s", __func__);
 

@@ -68,14 +68,14 @@ PicturePtr VaapiDecoderBase::createPicture(int64_t timeStamp /* , VaapiPictureSt
     return picture;
 }
 
-Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderBase::start(VideoConfigBuffer* buffer)
 {
-    Decode_Status status;
+    YamiStatus status;
 
     INFO("base: start()");
 
     if (buffer == NULL) {
-        return DECODE_INVALID_DATA;
+        return YAMI_DECODE_INVALID_DATA;
     }
 
     m_configBuffer = *buffer;
@@ -89,7 +89,7 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
     m_videoFormatInfo.surfaceNumber = buffer->surfaceNumber;
 
     status = setupVA(buffer->surfaceNumber, buffer->profile);
-    if (status != DECODE_SUCCESS)
+    if (status != YAMI_SUCCESS)
         return status;
 
     DEBUG
@@ -100,29 +100,29 @@ Decode_Status VaapiDecoderBase::start(VideoConfigBuffer * buffer)
 #ifdef __ENABLE_DEBUG__
     renderPictureCount = 0;
 #endif
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderBase::reset(VideoConfigBuffer * buffer)
+YamiStatus VaapiDecoderBase::reset(VideoConfigBuffer* buffer)
 {
-    Decode_Status status;
+    YamiStatus status;
 
     INFO("base: reset()");
     if (buffer == NULL) {
-        return DECODE_INVALID_DATA;
+        return YAMI_DECODE_INVALID_DATA;
     }
 
     flush();
 
     status = terminateVA();
-    if (status != DECODE_SUCCESS)
+    if (status != YAMI_SUCCESS)
         return status;
 
     status = start(buffer);
-    if (status != DECODE_SUCCESS)
+    if (status != YAMI_SUCCESS)
         return status;
 
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 void VaapiDecoderBase::stop(void)
@@ -195,25 +195,25 @@ const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
     return &m_videoFormatInfo;
 }
 
-Decode_Status
-    VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
+YamiStatus
+VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
 {
     INFO("base: setup VA");
 
     if (m_VAStarted) {
-        return DECODE_SUCCESS;
+        return YAMI_SUCCESS;
     }
 
     if (m_display) {
         WARNING("VA is partially started.");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     m_display = VaapiDisplay::create(m_externalDisplay);
 
     if (!m_display) {
         ERROR("failed to create display");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     VAConfigAttrib attrib;
@@ -224,7 +224,7 @@ Decode_Status
     ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD,&attrib, 1);
     if (!config) {
         ERROR("failed to create config");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     if (!m_externalAllocator) {
@@ -238,11 +238,11 @@ Decode_Status
     m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_configBuffer, m_allocator);
     DEBUG("surface pool is created");
     if (!m_surfacePool)
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     std::vector<VASurfaceID> surfaces;
     m_surfacePool->getSurfaceIDs(surfaces);
     if (surfaces.empty())
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     int size = surfaces.size();
     m_context = VaapiContext::create(config,
                                        m_videoFormatInfo.width,
@@ -251,17 +251,17 @@ Decode_Status
 
     if (!m_context) {
         ERROR("create context failed");
-        return DECODE_FAIL;
+        return YAMI_FAIL;
     }
 
     m_videoFormatInfo.surfaceWidth = m_videoFormatInfo.width;
     m_videoFormatInfo.surfaceHeight = m_videoFormatInfo.height;
 
     m_VAStarted = true;
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
-Decode_Status VaapiDecoderBase::terminateVA(void)
+YamiStatus VaapiDecoderBase::terminateVA(void)
 {
     INFO("base: terminate VA");
     m_surfacePool.reset();
@@ -271,7 +271,7 @@ Decode_Status VaapiDecoderBase::terminateVA(void)
     m_display.reset();
 
     m_VAStarted = false;
-    return DECODE_SUCCESS;
+    return YAMI_SUCCESS;
 }
 
 void VaapiDecoderBase::setNativeDisplay(NativeDisplay * nativeDisplay)
@@ -304,11 +304,13 @@ SurfacePtr VaapiDecoderBase::createSurface()
     return surface;
 }
 
-Decode_Status VaapiDecoderBase::outputPicture(const PicturePtr& picture)
+YamiStatus VaapiDecoderBase::outputPicture(const PicturePtr& picture)
 {
     //TODO: reorder poc
     return m_surfacePool->output(picture->getSurface(),
-        picture->m_timeStamp)?DECODE_SUCCESS:DECODE_FAIL;
+               picture->m_timeStamp)
+        ? YAMI_SUCCESS
+        : YAMI_FAIL;
 }
 
 VADisplay VaapiDecoderBase::getDisplayID()

@@ -33,19 +33,19 @@ class VaapiDecoderVP9:public VaapiDecoderBase {
     typedef SharedPtr<VaapiDecPicture> PicturePtr;
     VaapiDecoderVP9();
     virtual ~ VaapiDecoderVP9();
-    virtual Decode_Status start(VideoConfigBuffer * );
-    virtual Decode_Status reset(VideoConfigBuffer * );
+    virtual YamiStatus start(VideoConfigBuffer*);
+    virtual YamiStatus reset(VideoConfigBuffer*);
     virtual void stop(void);
     virtual void flush(void);
-    virtual Decode_Status decode(VideoDecodeBuffer *);
+    virtual YamiStatus decode(VideoDecodeBuffer*);
 
   private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderVP9>;
     friend class VaapiDecoderVP9Test;
 
-    Decode_Status ensureContext(const Vp9FrameHdr* );
-    Decode_Status decode(const uint8_t* data, uint32_t size, uint64_t timeStamp);
-    Decode_Status decode(const Vp9FrameHdr* hdr, const uint8_t* data, uint32_t size, uint64_t timeStamp);
+    YamiStatus ensureContext(const Vp9FrameHdr*);
+    YamiStatus decode(const uint8_t* data, uint32_t size, uint64_t timeStamp);
+    YamiStatus decode(const Vp9FrameHdr* hdr, const uint8_t* data, uint32_t size, uint64_t timeStamp);
     bool ensureSlice(const PicturePtr& , const void* data, int size);
     bool ensurePicture(const PicturePtr& , const Vp9FrameHdr* );
     //reference related

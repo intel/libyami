@@ -30,23 +30,23 @@ public:
 
     VaapiEncoderJpeg();
     virtual ~VaapiEncoderJpeg() { }
-    virtual Encode_Status start();
+    virtual YamiStatus start();
     virtual void flush();
-    virtual Encode_Status stop();
+    virtual YamiStatus stop();
 
-    virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR videoEncParams);
-    virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR videoEncParams);
-    virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
+    virtual YamiStatus getParameters(VideoParamConfigType type, Yami_PTR videoEncParams);
+    virtual YamiStatus setParameters(VideoParamConfigType type, Yami_PTR videoEncParams);
+    virtual YamiStatus getMaxOutSize(uint32_t* maxSize);
 
 protected:
-    virtual Encode_Status doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame);
+    virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame);
     virtual bool isBusy() { return false;};
 
 private:
     friend class FactoryTest<IVideoEncoder, VaapiEncoderJpeg>;
     friend class VaapiEncoderJpegTest;
 
-    Encode_Status encodePicture(const PicturePtr &);
+    YamiStatus encodePicture(const PicturePtr&);
     bool addSliceHeaders (const PicturePtr&) const;
     bool fill(VAEncPictureParameterBufferJPEG * picParam, const PicturePtr &, const SurfacePtr &) const;
     bool fill(VAQMatrixBufferJPEG * qMatrix) const;

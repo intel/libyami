@@ -38,8 +38,8 @@ public:
 
     VaapiDecoderH264();
     virtual ~VaapiDecoderH264();
-    virtual Decode_Status start(VideoConfigBuffer*);
-    virtual Decode_Status decode(VideoDecodeBuffer*);
+    virtual YamiStatus start(VideoConfigBuffer*);
+    virtual YamiStatus decode(VideoDecodeBuffer*);
 
 private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderH264>;
@@ -47,7 +47,7 @@ private:
 
     class DPB {
         typedef VaapiDecoderH264::RefSet RefSet;
-        typedef std::tr1::function<Decode_Status(const PicturePtr&)>
+        typedef std::tr1::function<YamiStatus(const PicturePtr&)>
             OutputCallback;
         typedef std::tr1::function<void(const PicturePtr&)> ForEachFunction;
 
@@ -124,12 +124,12 @@ private:
         YamiParser::H264::DecRefPicMarking m_decRefPicMarking;
     };
 
-    Decode_Status decodeNalu(NalUnit*);
-    Decode_Status decodeSps(NalUnit*);
-    Decode_Status decodePps(NalUnit*);
-    Decode_Status decodeSlice(NalUnit*);
+    YamiStatus decodeNalu(NalUnit*);
+    YamiStatus decodeSps(NalUnit*);
+    YamiStatus decodePps(NalUnit*);
+    YamiStatus decodeSlice(NalUnit*);
 
-    Decode_Status ensureContext(const SharedPtr<SPS> sps);
+    YamiStatus ensureContext(const SharedPtr<SPS> sps);
     bool fillPicture(const PicturePtr&, const SliceHeader* const);
     bool fillSlice(const PicturePtr&, const SliceHeader* const,
                    const NalUnit* const);
@@ -145,10 +145,10 @@ private:
                                    RefSet& refSet, bool isList0);
     bool isDecodeContextChanged(const SharedPtr<SPS> sps);
 
-    Decode_Status createPicture(const SliceHeader* const,
-                                const NalUnit* const nalu);
-    Decode_Status decodeCurrent();
-    Decode_Status outputPicture(const PicturePtr&);
+    YamiStatus createPicture(const SliceHeader* const,
+        const NalUnit* const nalu);
+    YamiStatus decodeCurrent();
+    YamiStatus outputPicture(const PicturePtr&);
 
     YamiParser::H264::Parser m_parser;
     PicturePtr m_currPic;

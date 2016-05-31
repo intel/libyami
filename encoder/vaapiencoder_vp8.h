@@ -35,22 +35,22 @@ public:
 
     VaapiEncoderVP8();
     ~VaapiEncoderVP8();
-    virtual Encode_Status start();
+    virtual YamiStatus start();
     virtual void flush();
-    virtual Encode_Status stop();
+    virtual YamiStatus stop();
 
-    virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR);
-    virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR);
-    virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
+    virtual YamiStatus getParameters(VideoParamConfigType type, Yami_PTR);
+    virtual YamiStatus setParameters(VideoParamConfigType type, Yami_PTR);
+    virtual YamiStatus getMaxOutSize(uint32_t* maxSize);
 
 protected:
-    virtual Encode_Status doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
+    virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
 
 private:
     friend class FactoryTest<IVideoEncoder, VaapiEncoderVP8>;
     friend class VaapiEncoderVP8Test;
 
-    Encode_Status encodePicture(const PicturePtr&);
+    YamiStatus encodePicture(const PicturePtr&);
     bool fill(VAEncSequenceParameterBufferVP8*) const;
     bool fill(VAEncPictureParameterBufferVP8*, const PicturePtr&, const SurfacePtr&) const ;
     bool fill(VAQMatrixBufferVP8* qMatrix) const;

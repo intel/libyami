@@ -56,7 +56,7 @@ class VaapiEncPicture:public VaapiPicture {
     // give subclass a chance to convert codec buffer to they wanted format.
     // vp8 hybrid driver may need entropy code the coded buffer
     // h264 encoder may need convert annexb to avcC
-    virtual Encode_Status getOutput(VideoEncOutputBuffer * outBuffer);
+    virtual YamiStatus getOutput(VideoEncOutputBuffer* outBuffer);
 
 #ifdef __BUILD_GET_MV__
     virtual bool editMVBuffer(void*& buffer, uint32_t *size);

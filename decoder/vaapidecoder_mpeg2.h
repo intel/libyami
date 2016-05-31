@@ -44,16 +44,16 @@ public:
     typedef SharedPtr<VaapiDecPictureMpeg2> PicturePtr;
     VaapiDecoderMPEG2();
     virtual ~VaapiDecoderMPEG2();
-    virtual Decode_Status start(VideoConfigBuffer*);
-    virtual Decode_Status reset(VideoConfigBuffer*);
+    virtual YamiStatus start(VideoConfigBuffer*);
+    virtual YamiStatus reset(VideoConfigBuffer*);
     virtual void stop(void);
     virtual void flush(void);
-    virtual Decode_Status decode(VideoDecodeBuffer*);
+    virtual YamiStatus decode(VideoDecodeBuffer*);
 
 private:
     // mpeg2 DPB class
     class DPB {
-        typedef std::tr1::function<Decode_Status(const PicturePtr&)>
+        typedef std::tr1::function<YamiStatus(const PicturePtr&)>
             OutputCallback;
 
     public:
@@ -64,19 +64,19 @@ private:
         }
 
         void flush();
-        Decode_Status insertPicture(const PicturePtr& picture);
-        Decode_Status insertPictureToReferences(const PicturePtr& picture);
+        YamiStatus insertPicture(const PicturePtr& picture);
+        YamiStatus insertPictureToReferences(const PicturePtr& picture);
 
-        Decode_Status getReferencePictures(const PicturePtr& current_picture,
-                                           PicturePtr& previous_picture,
-                                           PicturePtr& next_picture);
-        Decode_Status callOutputPicture(const PicturePtr& picture)
+        YamiStatus getReferencePictures(const PicturePtr& current_picture,
+            PicturePtr& previous_picture,
+            PicturePtr& next_picture);
+        YamiStatus callOutputPicture(const PicturePtr& picture)
         {
             return m_outputPicture(picture);
         }
 
-        Decode_Status outputPreviousPictures(const PicturePtr& picture,
-                                             bool empty = false);
+        YamiStatus outputPreviousPictures(const PicturePtr& picture,
+            bool empty = false);
 
     private:
         // set to minimum number of surfaces required to operate
@@ -98,25 +98,25 @@ private:
     void fillPictureParams(VAPictureParameterBufferMPEG2* param,
                            const PicturePtr& picture);
 
-    Decode_Status fillConfigBuffer();
-    Decode_Status
+    YamiStatus fillConfigBuffer();
+    YamiStatus
     convertToVAProfile(const YamiParser::MPEG2::ProfileType& profile);
-    Decode_Status checkLevel(const YamiParser::MPEG2::LevelType& level);
+    YamiStatus checkLevel(const YamiParser::MPEG2::LevelType& level);
     bool isSliceCode(YamiParser::MPEG2::StartCodeType next_code);
 
-    Decode_Status processConfigBuffer();
-    Decode_Status processDecodeBuffer();
+    YamiStatus processConfigBuffer();
+    YamiStatus processDecodeBuffer();
 
-    Decode_Status preDecode(StreamHdrPtr shdr);
-    Decode_Status processSlice();
-    Decode_Status decodeGOP();
-    Decode_Status assignSurface();
-    Decode_Status assignPicture();
-    Decode_Status createPicture();
-    Decode_Status loadIQMatrix();
-    Decode_Status decodePicture();
-    Decode_Status outputPicture(const PicturePtr& picture);
-    Decode_Status findReusePicture(std::list<PicturePtr>& list, bool& reuse);
+    YamiStatus preDecode(StreamHdrPtr shdr);
+    YamiStatus processSlice();
+    YamiStatus decodeGOP();
+    YamiStatus assignSurface();
+    YamiStatus assignPicture();
+    YamiStatus createPicture();
+    YamiStatus loadIQMatrix();
+    YamiStatus decodePicture();
+    YamiStatus outputPicture(const PicturePtr& picture);
+    YamiStatus findReusePicture(std::list<PicturePtr>& list, bool& reuse);
 
     ParserPtr m_parser;
     StreamHdrPtr m_stream;

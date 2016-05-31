@@ -56,28 +56,28 @@ public:
 
     VaapiEncoderHEVC();
     ~VaapiEncoderHEVC();
-    virtual Encode_Status start();
+    virtual YamiStatus start();
     virtual void flush();
-    virtual Encode_Status stop();
+    virtual YamiStatus stop();
 
-    virtual Encode_Status getParameters(VideoParamConfigType type, Yami_PTR);
-    virtual Encode_Status setParameters(VideoParamConfigType type, Yami_PTR);
-    virtual Encode_Status getMaxOutSize(uint32_t *maxSize);
+    virtual YamiStatus getParameters(VideoParamConfigType type, Yami_PTR);
+    virtual YamiStatus setParameters(VideoParamConfigType type, Yami_PTR);
+    virtual YamiStatus getMaxOutSize(uint32_t* maxSize);
 #ifdef __BUILD_GET_MV__
     // get MV buffer size.
-    virtual Encode_Status getMVBufferSize(uint32_t * Size);
+    virtual YamiStatus getMVBufferSize(uint32_t* Size);
 #endif
 
 protected:
-    virtual Encode_Status doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame);
-    virtual Encode_Status getCodecConfig(VideoEncOutputBuffer *outBuffer);
+    virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame);
+    virtual YamiStatus getCodecConfig(VideoEncOutputBuffer* outBuffer);
 
 private:
     friend class FactoryTest<IVideoEncoder, VaapiEncoderHEVC>;
     friend class VaapiEncoderHEVCTest;
 
     //following code is a template for other encoder implementation
-    Encode_Status encodePicture(const PicturePtr&);
+    YamiStatus encodePicture(const PicturePtr&);
     bool fill(VAEncSequenceParameterBufferHEVC*) const;
     bool fill(VAEncPictureParameterBufferHEVC*, const PicturePtr&, const SurfacePtr&) const ;
     bool fillReferenceList(VAEncSliceParameterBufferHEVC* slice) const;
@@ -93,7 +93,7 @@ private:
     bool ensureCodedBufferSize();
 
     //reference list related
-    Encode_Status reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame);
+    YamiStatus reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame);
     bool referenceListUpdate (const PicturePtr&, const SurfacePtr&);
     bool pictureReferenceListSet (const PicturePtr&);
 

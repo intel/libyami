@@ -68,11 +68,11 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     typedef SharedPtr<VaapiDecPicture> PicturePtr;
     VaapiDecoderVP8();
     virtual ~ VaapiDecoderVP8();
-    virtual Decode_Status start(VideoConfigBuffer * buffer);
-    virtual Decode_Status reset(VideoConfigBuffer * buffer);
+    virtual YamiStatus start(VideoConfigBuffer* buffer);
+    virtual YamiStatus reset(VideoConfigBuffer* buffer);
     virtual void stop(void);
     virtual void flush(void);
-    virtual Decode_Status decode(VideoDecodeBuffer * buffer);
+    virtual YamiStatus decode(VideoDecodeBuffer* buffer);
 
   private:
     bool allocNewPicture();
@@ -82,9 +82,9 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     bool ensureProbabilityTable(const PicturePtr& pic);
     bool fillSliceParam(VASliceParameterBufferVP8* sliceParam);
     /* check the context reset senerios */
-    Decode_Status ensureContext();
+    YamiStatus ensureContext();
     /* decoding functions */
-    Decode_Status decodePicture();
+    YamiStatus decodePicture();
     void updateReferencePictures();
 
   private:

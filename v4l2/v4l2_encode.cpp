@@ -50,7 +50,7 @@ V4l2Encoder::V4l2Encoder()
 
 bool V4l2Encoder::start()
 {
-    Encode_Status status = ENCODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     ASSERT(m_encoder);
 
     VideoConfigAVCStreamFormat streamFormat;
@@ -59,7 +59,7 @@ bool V4l2Encoder::start()
     m_encoder->setParameters(VideoConfigTypeAVCStreamFormat, &streamFormat);
 
     status = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
-    ASSERT(status == ENCODE_SUCCESS);
+    ASSERT(status == YAMI_SUCCESS);
 
     NativeDisplay nativeDisplay;
 #if ANDROID
@@ -72,25 +72,25 @@ bool V4l2Encoder::start()
     m_encoder->setNativeDisplay(&nativeDisplay);
 
     status = m_encoder->start();
-    ASSERT(status == ENCODE_SUCCESS);
+    ASSERT(status == YAMI_SUCCESS);
     status = m_encoder->getParameters(VideoParamsTypeCommon, &m_videoParams);
-    ASSERT(status == ENCODE_SUCCESS);
+    ASSERT(status == YAMI_SUCCESS);
 
     return true;
 }
 
 bool V4l2Encoder::stop()
 {
-    Encode_Status encodeStatus = ENCODE_SUCCESS;
+    YamiStatus encodeStatus = YAMI_SUCCESS;
     if (m_encoder)
         encodeStatus = m_encoder->stop();
-    return encodeStatus == ENCODE_SUCCESS;
+    return encodeStatus == YAMI_SUCCESS;
 }
 
 
 bool V4l2Encoder::UpdateVideoParameters(bool isInputThread)
 {
-    Encode_Status status = ENCODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     AutoLock locker(m_videoParamsLock); // make sure the caller has released m_videoParamsLock
 
     if (!m_videoParamsChanged)
@@ -98,15 +98,15 @@ bool V4l2Encoder::UpdateVideoParameters(bool isInputThread)
 
     if (isInputThread || !m_streamOn[INPUT]) {
         status = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
-        ASSERT(status == ENCODE_SUCCESS);
+        ASSERT(status == YAMI_SUCCESS);
         m_videoParamsChanged = false;
     }
 
-    return status == ENCODE_SUCCESS;
+    return status == YAMI_SUCCESS;
 }
 bool V4l2Encoder::inputPulse(uint32_t index)
 {
-    Encode_Status status = ENCODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     if(m_videoParamsChanged )
         UpdateVideoParameters(true);
@@ -123,7 +123,7 @@ bool V4l2Encoder::inputPulse(uint32_t index)
         ASSERT(m_inputFrames[index].bufAvailable); // check it at a later time when yami does encode in async
     }
 
-    if (status != ENCODE_SUCCESS)
+    if (status != YAMI_SUCCESS)
         return false;
 
     return true;
@@ -131,7 +131,7 @@ bool V4l2Encoder::inputPulse(uint32_t index)
 
 bool V4l2Encoder::outputPulse(uint32_t &index)
 {
-    Encode_Status status = ENCODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     VideoEncOutputBuffer *outputBuffer = &(m_outputFrames[index]);
     if (m_separatedStreamHeader) {
@@ -144,7 +144,7 @@ bool V4l2Encoder::outputPulse(uint32_t &index)
 
     status = m_encoder->getOutput(outputBuffer, false);
 
-    if (status != ENCODE_SUCCESS)
+    if (status != YAMI_SUCCESS)
         return false;
 
     ASSERT(m_maxOutputBufferSize > 0); // update m_maxOutputBufferSize after VIDIOC_S_FMT
@@ -215,7 +215,7 @@ bool V4l2Encoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 
 int32_t V4l2Encoder::ioctl(int command, void* arg)
 {
-    Encode_Status encodeStatus = ENCODE_SUCCESS;
+    YamiStatus encodeStatus = YAMI_SUCCESS;
     int32_t ret = 0;
 
     DEBUG("fd: %d, ioctl command: %s", m_fd[0], IoctlCommandString(command));
@@ -347,10 +347,10 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
                     }
                     m_videoParams.size = sizeof(m_videoParams);
                     encodeStatus = m_encoder->getParameters(VideoParamsTypeCommon, &m_videoParams);
-                    ASSERT(encodeStatus == ENCODE_SUCCESS);
+                    ASSERT(encodeStatus == YAMI_SUCCESS);
                     m_videoParams.profile = VAProfileH264Main;
                     encodeStatus = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
-                    ASSERT(encodeStatus == ENCODE_SUCCESS);
+                    ASSERT(encodeStatus == YAMI_SUCCESS);
                 }
                 break;
                 case V4L2_PIX_FMT_VP8:
@@ -395,9 +395,9 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
             m_videoParams.resolution.width = format->fmt.pix_mp.width;
             m_videoParams.resolution.height= format->fmt.pix_mp.height;
             encodeStatus = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
-            ASSERT(encodeStatus == ENCODE_SUCCESS);
+            ASSERT(encodeStatus == YAMI_SUCCESS);
             encodeStatus = m_encoder->getMaxOutSize(&m_maxOutputBufferSize);
-            ASSERT(encodeStatus == ENCODE_SUCCESS);
+            ASSERT(encodeStatus == YAMI_SUCCESS);
             INFO("resolution: %d x %d, m_maxOutputBufferSize: %d", m_videoParams.resolution.width,
                 m_videoParams.resolution.height, m_maxOutputBufferSize);
         } else {

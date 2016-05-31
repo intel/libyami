@@ -52,20 +52,20 @@ void decodeSetNativeDisplay(DecodeHandler p, NativeDisplay* display)
         ((IVideoDecoder*)p)->setNativeDisplay(display);
 }
 
-Decode_Status decodeStart(DecodeHandler p, VideoConfigBuffer *buffer)
+YamiStatus decodeStart(DecodeHandler p, VideoConfigBuffer* buffer)
 {
     if(p)
         return ((IVideoDecoder*)p)->start(buffer);
     else
-        return DECODE_FAIL;
+        return YAMI_FAIL;
 }
 
-Decode_Status decodeReset(DecodeHandler p, VideoConfigBuffer *buffer)
+YamiStatus decodeReset(DecodeHandler p, VideoConfigBuffer* buffer)
 {
      if(p)
         return ((IVideoDecoder*)p)->reset(buffer);
      else
-        return DECODE_FAIL;
+         return YAMI_FAIL;
 }
 
 void decodeStop(DecodeHandler p)
@@ -80,12 +80,12 @@ void decodeFlush(DecodeHandler p)
         ((IVideoDecoder*)p)->flush();
 }
 
-Decode_Status decodeDecode(DecodeHandler p, VideoDecodeBuffer* buffer)
+YamiStatus decodeDecode(DecodeHandler p, VideoDecodeBuffer* buffer)
 {
      if(p)
         return ((IVideoDecoder*)p)->decode(buffer);
      else
-        return DECODE_FAIL;
+         return YAMI_FAIL;
 }
 
 VideoFrame* decodeGetOutput(DecodeHandler p)

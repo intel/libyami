@@ -96,7 +96,7 @@ void V4l2Decoder::releaseCodecLock(bool lockable)
 
 bool V4l2Decoder::start()
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
     if (m_started)
         return true;
     ASSERT(m_decoder);
@@ -129,7 +129,7 @@ bool V4l2Decoder::start()
         configBuffer.size = m_codecData.size();
     }
     status = m_decoder->start(&configBuffer);
-    ASSERT(status == DECODE_SUCCESS);
+    ASSERT(status == YAMI_SUCCESS);
 
     m_started = true;
 
@@ -147,7 +147,7 @@ bool V4l2Decoder::stop()
 
 bool V4l2Decoder::inputPulse(uint32_t index)
 {
-    Decode_Status status = DECODE_SUCCESS;
+    YamiStatus status = YAMI_SUCCESS;
 
     VideoDecodeBuffer *inputBuffer = &m_inputFrames[index];
 
@@ -158,7 +158,7 @@ bool V4l2Decoder::inputPulse(uint32_t index)
 
     status = m_decoder->decode(inputBuffer);
 
-    if (status == DECODE_FORMAT_CHANGE) {
+    if (status == YAMI_DECODE_FORMAT_CHANGE) {
         setCodecEvent();
         // we can continue decoding no matter what client does reconfiguration now. otherwise, a tri-state ret is required
         status = m_decoder->decode(inputBuffer);
