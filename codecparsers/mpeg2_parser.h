@@ -136,6 +136,20 @@ namespace MPEG2 {
         uint64_t time_stamp;
     };
 
+    struct QuantMatrices {
+        QuantMatrices();
+
+        bool load_intra_quantiser_matrix;
+        uint8_t intra_quantiser_matrix[64];
+        bool load_non_intra_quantiser_matrix;
+        uint8_t non_intra_quantiser_matrix[64];
+        bool load_chroma_intra_quantiser_matrix;
+        uint8_t chroma_intra_quantiser_matrix[64];
+        bool load_chroma_non_intra_quantiser_matrix;
+        uint8_t chroma_non_intra_quantiser_matrix[64];
+
+    };
+
     // ISO/IEC spec section 6.2.2.1
     struct SeqHeader {
         SeqHeader();
@@ -148,10 +162,7 @@ namespace MPEG2 {
         bool marker_bit;
         uint32_t vbv_buffer_size_value;
         bool constrained_params_flag;
-        bool load_intra_quantiser_matrix;
-        uint8_t intra_quantiser_matrix[64];
-        bool load_non_intra_quantiser_matrix;
-        uint8_t non_intra_quantiser_matrix[64];
+        QuantMatrices quantizationMatrices;
     };
 
     // ISO/IEC spec section 6.2.2.3
@@ -228,6 +239,14 @@ namespace MPEG2 {
         uint32_t sub_carrier_phase;
     };
 
+    // ISO/IEC spec section 6.2.3.2
+    struct QuantMatrixExtension {
+        QuantMatrixExtension();
+
+        uint32_t extension_start_code_identifier;
+        QuantMatrices quantizationMatrices;
+    };
+
     struct Slice {
         Slice();
 
@@ -292,6 +311,11 @@ namespace MPEG2 {
         // and updating the position to the last bit parsed.
         bool parsePictureCodingExtension(const StreamHeader* shdr);
 
+        // parseQuantMatrixExtension will parse a Quant Matrix Extension ID
+	// within a Extension Start Code and keep it on the quantization
+	// Extension structure for later use
+        bool parseQuantMatrixExtension(const StreamHeader* shdr);
+
         // parseSlice will parse a Slice according to the spec storing the
         // information
         // in the Slice structure and updating the position to the last
@@ -314,11 +338,19 @@ namespace MPEG2 {
         {
             return &m_pictureCodingExtension;
         }
+        const QuantMatrixExtension* getQuantMatrixExtension()
+        {
+            return &m_quantMatrixExtension;
+        }
         const Slice* getMPEG2Slice() { return &m_slice; }
 
     private:
         friend class MPEG2ParserTest;
 
+        void readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
+                                      const uint8_t defaultMatrix[]);
+
+        void readQuantMatrix(bool& loadMatrix, uint8_t matrix[]);
         void calculateMBColumn();
 
         // bitReader functions
@@ -383,6 +415,7 @@ namespace MPEG2 {
         GOPHeader m_GOPHeader;
         PictureHeader m_pictureHeader;
         PictureCodingExtension m_pictureCodingExtension;
+        QuantMatrixExtension m_quantMatrixExtension;
         Slice m_slice;
 
         DISALLOW_COPY_AND_ASSIGN(Parser);

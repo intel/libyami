@@ -89,7 +89,21 @@ namespace MPEG2 {
             29, 29, 27, 27, 29, 29, 32, 32, 34, 34, 37, 38, 37, 35, 35, 34,
             35, 38, 38, 40, 40, 40, 48, 48, 46, 46, 56, 56, 58, 69, 69, 83 };
 
+    // default matrix for non-intra blocks
+    const static std::tr1::array<const uint8_t, 64> kDefaultNonIntraBlockMatrix
+        = { 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+            16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+            16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
+            16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16 };
+
     Slice::Slice() { memset(this, 0, sizeof(*this)); }
+
+    QuantMatrices::QuantMatrices() { memset(this, 0, sizeof(*this)); }
+
+    QuantMatrixExtension::QuantMatrixExtension()
+    {
+        memset(this, 0, sizeof(*this));
+    }
 
     PictureCodingExtension::PictureCodingExtension()
     {
@@ -356,9 +370,92 @@ namespace MPEG2 {
         DEBUG("time_code_minutes  : %x", m_GOPHeader.time_code_minutes);
         DEBUG("time_code_seconds  : %x", m_GOPHeader.time_code_seconds);
         DEBUG("time_code_pictures : %x", m_GOPHeader.time_code_pictures);
+        DEBUG("closed_gop 	  : %x", m_GOPHeader.closed_gop);
 
         bitReaderDeInit();
 
+        return true;
+    }
+
+    void Parser::readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
+                                          const uint8_t defaultMatrix[])
+    {
+        readQuantMatrix(loadMatrix, matrix);
+        if (!loadMatrix) {
+            memcpy(matrix, defaultMatrix, 64);
+            loadMatrix = true;
+        }
+    }
+
+    void Parser::readQuantMatrix(bool& loadMatrix, uint8_t matrix[])
+    {
+
+        bitReaderReadFlag(&loadMatrix);
+
+        if (loadMatrix) {
+            // read 8 bits *64 from the stream
+            uint32_t value;
+            for (uint8_t i(0); i < 64; ++i) {
+                bitReaderReadBits(8, &value);
+                matrix[i] = value;
+            }
+        }
+    }
+
+    bool Parser::parseQuantMatrixExtension(const StreamHeader* shdr)
+    {
+        ExtensionIdentifierType extID;
+        const uint8_t* nalData = shdr->nalData;
+        int32_t nalSize = shdr->nalSize;
+        QuantMatrices *quantMatrices = &m_quantMatrixExtension.quantizationMatrices;
+        nalData += kStartCodePrefixSize;
+        nalSize -= kStartCodePrefixSize;
+        BitReader bitReader(nalData, nalSize);
+        bitReaderInit(&bitReader);
+        skipByte(); // skip start_sequence_code
+
+        if (nalSize < kStartCodeSize) {
+            ERROR("Incomplete Quant Extension Header");
+            return false;
+        }
+
+        memset(&m_quantMatrixExtension, 0, sizeof(QuantMatrixExtension));
+
+        // extension_start_code_identifier
+        bitReaderReadBits(
+            4, &(m_quantMatrixExtension.extension_start_code_identifier));
+
+        extID = static_cast<ExtensionIdentifierType>(
+            m_quantMatrixExtension.extension_start_code_identifier);
+
+        if (extID != kQuantizationMatrix) {
+            ERROR("Wrong extension id type");
+            bitReaderDeInit();
+            return false;
+        }
+
+        readQuantMatrix(quantMatrices->load_intra_quantiser_matrix,
+                        quantMatrices->intra_quantiser_matrix);
+
+        readQuantMatrix(quantMatrices->load_non_intra_quantiser_matrix,
+                        quantMatrices->non_intra_quantiser_matrix);
+
+        readQuantMatrix(quantMatrices->load_chroma_intra_quantiser_matrix,
+                        quantMatrices->chroma_intra_quantiser_matrix);
+
+        readQuantMatrix(quantMatrices->load_chroma_non_intra_quantiser_matrix,
+                        quantMatrices->chroma_non_intra_quantiser_matrix);
+
+        DEBUG("load_intra_quantiser_matrix             : %x",
+              quantMatrices->load_intra_quantiser_matrix);
+        DEBUG("load_non_intra_quantiser_matrix         : %x",
+              quantMatrices->load_non_intra_quantiser_matrix);
+        DEBUG("load_chroma_intra_quantiser_matrix      : %x",
+              quantMatrices->load_chroma_intra_quantiser_matrix);
+        DEBUG("load_chroma_non_intra_quantiser_matrix  : %x",
+              quantMatrices->load_chroma_non_intra_quantiser_matrix);
+
+        bitReaderDeInit();
         return true;
     }
 
@@ -536,8 +633,9 @@ namespace MPEG2 {
 
     bool Parser::parseSequenceHeader(const StreamHeader* shdr)
     {
-	const uint8_t *nalData= shdr->nalData;
-	int32_t nalSize = shdr->nalSize;
+        const uint8_t* nalData = shdr->nalData;
+        int32_t nalSize = shdr->nalSize;
+        QuantMatrices* quantMatrices = &m_sequenceHdr.quantizationMatrices;
 
         if (nalSize < (kStartCodeSize + 7)) {
             ERROR("Incomplete Sequence Header");
@@ -568,37 +666,13 @@ namespace MPEG2 {
         bitReaderReadBits(10, &(m_sequenceHdr.vbv_buffer_size_value));
         bitReaderReadFlag(&(m_sequenceHdr.constrained_params_flag));
 
-        bitReaderReadFlag(&(m_sequenceHdr.load_intra_quantiser_matrix));
+        readQuantMatrixOrDefault(quantMatrices->load_intra_quantiser_matrix,
+                                 quantMatrices->intra_quantiser_matrix,
+                                 &kDefaultIntraBlockMatrix[0]);
 
-        if (m_sequenceHdr.load_intra_quantiser_matrix) {
-            // read 8 bits *64 from the stream
-            uint32_t value;
-            for (uint8_t i(0); i < 64; ++i) {
-                bitReaderReadBits(8, &value);
-                m_sequenceHdr.intra_quantiser_matrix[i] = value;
-            }
-        } else {
-            // use kDefaultIntraBlockMatrix
-            memcpy(m_sequenceHdr.intra_quantiser_matrix,
-                   &kDefaultIntraBlockMatrix[0],
-                   kDefaultIntraBlockMatrix.size());
-            m_sequenceHdr.load_intra_quantiser_matrix = true;
-        }
-
-        bitReaderReadFlag(&(m_sequenceHdr.load_non_intra_quantiser_matrix));
-
-        if (m_sequenceHdr.load_non_intra_quantiser_matrix) {
-            // read 8 bits * 64 from the stream
-            uint32_t value;
-            for (uint8_t i(0); i < 64; ++i) {
-                bitReaderReadBits(8, &value);
-                m_sequenceHdr.non_intra_quantiser_matrix[i] = value;
-            }
-        } else {
-            // use kDefaultNonIntraBlockMatrix all set to 16
-            memset(m_sequenceHdr.non_intra_quantiser_matrix, 16, 64);
-            m_sequenceHdr.load_non_intra_quantiser_matrix = true;
-        }
+        readQuantMatrixOrDefault(quantMatrices->load_non_intra_quantiser_matrix,
+                                 quantMatrices->non_intra_quantiser_matrix,
+                                 &kDefaultNonIntraBlockMatrix[0]);
 
         DEBUG("horizontal_size_value            : %x",
               m_sequenceHdr.horizontal_size_value);
@@ -615,9 +689,9 @@ namespace MPEG2 {
         DEBUG("constrained_params_flag          : %x",
               m_sequenceHdr.constrained_params_flag);
         DEBUG("load_intra_quantiser_matrix      : %x",
-              m_sequenceHdr.load_intra_quantiser_matrix);
+              quantMatrices->load_intra_quantiser_matrix);
         DEBUG("load_non_intra_quantiser_matrix  : %x",
-              m_sequenceHdr.load_non_intra_quantiser_matrix);
+              quantMatrices->load_non_intra_quantiser_matrix);
 
         bitReaderDeInit();
 

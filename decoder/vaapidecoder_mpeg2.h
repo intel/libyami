@@ -37,6 +37,15 @@ enum {
     MPEG2_MAX_REFERENCE_PICTURES = 2,
 };
 
+struct IQMatricesRefs {
+    IQMatricesRefs();
+
+    const uint8_t* intra_quantiser_matrix;
+    const uint8_t* non_intra_quantiser_matrix;
+    const uint8_t* chroma_intra_quantiser_matrix;
+    const uint8_t* chroma_non_intra_quantiser_matrix;
+};
+
 class VaapiDecPictureMpeg2;
 
 class VaapiDecoderMPEG2 : public VaapiDecoderBase {
@@ -114,6 +123,8 @@ private:
     YamiStatus assignPicture();
     YamiStatus createPicture();
     YamiStatus loadIQMatrix();
+    void updateIQMatrix(const YamiParser::MPEG2::QuantMatrices* refIQMatrix,
+                        bool reset = false);
     YamiStatus decodePicture();
     YamiStatus outputPicture(const PicturePtr& picture);
     YamiStatus findReusePicture(std::list<PicturePtr>& list, bool& reuse);
@@ -126,14 +137,18 @@ private:
     const YamiParser::MPEG2::GOPHeader* m_GOPHeader; //check what's the use here
     const YamiParser::MPEG2::PictureHeader* m_pictureHeader;
     const YamiParser::MPEG2::PictureCodingExtension* m_pictureCodingExtension;
+    const YamiParser::MPEG2::QuantMatrixExtension* m_quantMatrixExtension;
     DPB m_DPB;
     VASliceParameterBufferMPEG2* mpeg2SliceParams;
 
     bool m_VAStart;
     bool m_isParsingSlices;
+    bool m_loadNewIQMatrix;
+    bool m_canCreatePicture;
     PicturePtr m_currentPicture;
     YamiParser::MPEG2::StartCodeType m_previousStartCode;
     YamiParser::MPEG2::StartCodeType m_nextStartCode;
+    IQMatricesRefs m_IQMatrices;
     VAProfile m_VAProfile;
     uint64_t m_currentPTS;
 
