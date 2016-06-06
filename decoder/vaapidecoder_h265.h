@@ -22,6 +22,7 @@
 #include <tr1/functional>
 #include <set>
 #include <map>
+#include <va/va_dec_hevc.h>
 
 namespace YamiParser {
 namespace H265 {
