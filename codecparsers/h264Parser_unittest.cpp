@@ -136,8 +136,8 @@ namespace H264 {
             EXPECT_EQ(0, sps->pic_order_cnt_type);
             EXPECT_FALSE(sps->gaps_in_frame_num_value_allowed_flag);
 
-            EXPECT_EQ(21, sps->pic_width_in_mbs_minus1);
-            EXPECT_EQ(17, sps->pic_height_in_map_units_minus1);
+            EXPECT_EQ(21u, sps->pic_width_in_mbs_minus1);
+            EXPECT_EQ(17u, sps->pic_height_in_map_units_minus1);
             EXPECT_TRUE(sps->frame_mbs_only_flag);
             EXPECT_FALSE(sps->frame_cropping_flag);
             EXPECT_TRUE(sps->vui_parameters_present_flag);
@@ -157,7 +157,7 @@ namespace H264 {
             EXPECT_EQ(0, pps->sps_id);
 
             EXPECT_TRUE(pps->entropy_coding_mode_flag);
-            EXPECT_EQ(0, pps->num_slice_groups_minus1);
+            EXPECT_EQ(0u, pps->num_slice_groups_minus1);
             EXPECT_FALSE(pps->num_ref_idx_l0_active_minus1);
             EXPECT_FALSE(pps->num_ref_idx_l1_active_minus1);
             EXPECT_FALSE(pps->weighted_pred_flag);
@@ -179,8 +179,8 @@ namespace H264 {
 
             ASSERT_EQ(NAL_SLICE_IDR, nalu->nal_unit_type);
             ASSERT_TRUE(slice->parseHeader(&parser, nalu));
-            EXPECT_EQ(0, slice->first_mb_in_slice);
-            EXPECT_EQ(2, slice->slice_type);
+            EXPECT_EQ(0u, slice->first_mb_in_slice);
+            EXPECT_EQ(2u, slice->slice_type);
             EXPECT_EQ(0, slice->frame_num);
             EXPECT_EQ(0, slice->slice_qp_delta);
             EXPECT_EQ(2, slice->slice_alpha_c0_offset_div2);

@@ -631,7 +631,7 @@ namespace VC1 {
             EXPECT_EQ(0x0, parser.m_frameHdr.lumscale2);
             EXPECT_EQ(0x0, parser.m_frameHdr.lumshift2);
             EXPECT_EQ(0x0, parser.m_frameHdr.intcompfield);
-            EXPECT_EQ(0x14, parser.m_frameHdr.macroblock_offset);
+            EXPECT_EQ(0x14u, parser.m_frameHdr.macroblock_offset);
         }
     };
 
