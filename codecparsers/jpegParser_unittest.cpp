@@ -156,16 +156,16 @@ protected:
 
         EXPECT_TRUE(parser.m_input.end());
         EXPECT_EQ(M_EOI, parser.m_current.marker);
-        EXPECT_EQ(0, parser.restartInterval());
+        EXPECT_EQ(0u, parser.restartInterval());
 
         ASSERT_TRUE(parser.m_frameHeader.get() != NULL);
-        EXPECT_EQ(10, parser.m_frameHeader->imageWidth);
-        EXPECT_EQ(10, parser.m_frameHeader->imageHeight);
+        EXPECT_EQ(10u, parser.m_frameHeader->imageWidth);
+        EXPECT_EQ(10u, parser.m_frameHeader->imageHeight);
         EXPECT_EQ(8, parser.m_frameHeader->dataPrecision);
         EXPECT_TRUE(parser.m_frameHeader->isBaseline);
         EXPECT_FALSE(parser.m_frameHeader->isProgressive);
         EXPECT_FALSE(parser.m_frameHeader->isArithmetic);
-        ASSERT_EQ(3, parser.m_frameHeader->components.size());
+        ASSERT_EQ(3u, parser.m_frameHeader->components.size());
         EXPECT_TRUE(parser.m_frameHeader->components[0].get() != NULL);
         EXPECT_TRUE(parser.m_frameHeader->components[1].get() != NULL);
         EXPECT_TRUE(parser.m_frameHeader->components[2].get() != NULL);
@@ -218,12 +218,12 @@ JPEG_PARSER_TEST(Construct_Defaults)
     EXPECT_EQ(m_arithDCU(parser).size(), NUM_ARITH_TBLS);
     EXPECT_EQ(m_arithACK(parser).size(), NUM_ARITH_TBLS);
 
-    EXPECT_EQ(m_callbacks(parser).size(), 0);
+    EXPECT_EQ(m_callbacks(parser).size(), 0u);
 
     EXPECT_FALSE(m_sawSOI(parser));
     EXPECT_FALSE(m_sawEOI(parser));
 
-    EXPECT_EQ(m_restartInterval(parser), 0);
+    EXPECT_EQ(m_restartInterval(parser), 0u);
 }
 
 JPEG_PARSER_TEST(Construct_InvalidParams)
@@ -312,11 +312,11 @@ JPEG_PARSER_TEST(ParseSOS_InvalidLength)
     m_frameHeader(parser).reset(new FrameHeader);
 
     ASSERT_FALSE(m_input(parser).end());
-    ASSERT_EQ(m_current(parser).length, 0);
+    ASSERT_EQ(m_current(parser).length, 0u);
 
     EXPECT_FALSE(parseSOS(parser));
     EXPECT_TRUE(m_input(parser).end());
-    EXPECT_EQ(m_current(parser).length, 6);
+    EXPECT_EQ(m_current(parser).length, 6u);
 
     data[0] = 0x00;
     data[1] = 0x0c;
@@ -325,14 +325,14 @@ JPEG_PARSER_TEST(ParseSOS_InvalidLength)
     m_frameHeader(parser).reset(new FrameHeader);
 
     ASSERT_FALSE(m_input(parser).end());
-    ASSERT_EQ(m_current(parser).length, 0);
+    ASSERT_EQ(m_current(parser).length, 0u);
 
     EXPECT_FALSE(parseSOS(parser));
     EXPECT_TRUE(m_input(parser).end());
-    EXPECT_EQ(m_current(parser).length, 12);
+    EXPECT_EQ(m_current(parser).length, 12u);
 
     int nComponents = MAX_COMPS_IN_SCAN + 1;
-    int length = nComponents * 2 + 6;
+    unsigned length = nComponents * 2 + 6;
 
     ASSERT_LT(length, std::numeric_limits<uint8_t>::max());
 
@@ -343,7 +343,7 @@ JPEG_PARSER_TEST(ParseSOS_InvalidLength)
     m_frameHeader(parser).reset(new FrameHeader);
 
     ASSERT_FALSE(m_input(parser).end());
-    ASSERT_EQ(m_current(parser).length, 0);
+    ASSERT_EQ(m_current(parser).length, 0u);
 
     EXPECT_FALSE(parseSOS(parser));
     EXPECT_TRUE(m_input(parser).end());
@@ -363,7 +363,7 @@ JPEG_PARSER_TEST(ParseSOS_BadComponentDescriptor)
     EXPECT_FALSE(parseSOS(parser));
     EXPECT_TRUE(m_input(parser).end());
     ASSERT_TRUE(m_scanHeader(parser).get() != NULL);
-    EXPECT_EQ(m_scanHeader(parser)->numComponents, 3);
+    EXPECT_EQ(m_scanHeader(parser)->numComponents, 3u);
 }
 
 JPEG_PARSER_TEST(ParseSOS)
@@ -386,14 +386,14 @@ JPEG_PARSER_TEST(ParseSOS)
 
     ASSERT_FALSE(m_input(parser).end());
     ASSERT_TRUE(m_scanHeader(parser).get() == NULL);
-    ASSERT_EQ(m_current(parser).length, 0);
+    ASSERT_EQ(m_current(parser).length, 0u);
 
     EXPECT_TRUE(parseSOS(parser));
     EXPECT_TRUE(m_input(parser).end());
-    EXPECT_EQ(m_current(parser).length, 12);
+    EXPECT_EQ(m_current(parser).length, 12u);
 
     ASSERT_TRUE(m_scanHeader(parser).get() != NULL);
-    EXPECT_EQ(m_scanHeader(parser)->numComponents, 3);
+    EXPECT_EQ(m_scanHeader(parser)->numComponents, 3u);
     ASSERT_TRUE(m_scanHeader(parser)->components[0].get() != NULL);
     ASSERT_TRUE(m_scanHeader(parser)->components[1].get() != NULL);
     ASSERT_TRUE(m_scanHeader(parser)->components[2].get() != NULL);
@@ -462,51 +462,51 @@ JPEG_PARSER_TEST(Parse_SimpleWithCallbacks)
     EXPECT_TRUE(parser.parse());
 
     ASSERT_EQ(g_SimpleJPEG[1], M_SOI);
-    ASSERT_EQ(results[M_SOI].size(), 1);
-    EXPECT_EQ(results[M_SOI][0].position, 1);
-    EXPECT_EQ(results[M_SOI][0].length, 0);
+    ASSERT_EQ(results[M_SOI].size(), 1u);
+    EXPECT_EQ(results[M_SOI][0].position, 1u);
+    EXPECT_EQ(results[M_SOI][0].length, 0u);
 
     ASSERT_EQ(g_SimpleJPEG[843], M_EOI);
-    ASSERT_EQ(results[M_EOI].size(), 1);
-    EXPECT_EQ(results[M_EOI][0].position, 843);
-    EXPECT_EQ(results[M_EOI][0].length, 0);
+    ASSERT_EQ(results[M_EOI].size(), 1u);
+    EXPECT_EQ(results[M_EOI][0].position, 843u);
+    EXPECT_EQ(results[M_EOI][0].length, 0u);
 
     ASSERT_EQ(g_SimpleJPEG[3], M_APP0);
-    ASSERT_EQ(results[M_APP0].size(), 1);
-    EXPECT_EQ(results[M_APP0][0].position, 3);
-    EXPECT_EQ(results[M_APP0][0].length, 16);
+    ASSERT_EQ(results[M_APP0].size(), 1u);
+    EXPECT_EQ(results[M_APP0][0].position, 3u);
+    EXPECT_EQ(results[M_APP0][0].length, 16u);
 
     ASSERT_EQ(g_SimpleJPEG[159], M_SOF0);
-    ASSERT_EQ(results[M_SOF0].size(), 1);
-    EXPECT_EQ(results[M_SOF0][0].position, 159);
-    EXPECT_EQ(results[M_SOF0][0].length, 17);
+    ASSERT_EQ(results[M_SOF0].size(), 1u);
+    EXPECT_EQ(results[M_SOF0][0].position, 159u);
+    EXPECT_EQ(results[M_SOF0][0].length, 17u);
 
     ASSERT_EQ(g_SimpleJPEG[610], M_SOS);
-    ASSERT_EQ(results[M_SOS].size(), 1);
-    EXPECT_EQ(results[M_SOS][0].position, 610);
-    EXPECT_EQ(results[M_SOS][0].length, 12);
+    ASSERT_EQ(results[M_SOS].size(), 1u);
+    EXPECT_EQ(results[M_SOS][0].position, 610u);
+    EXPECT_EQ(results[M_SOS][0].length, 12u);
 
     ASSERT_EQ(g_SimpleJPEG[21], M_DQT);
     ASSERT_EQ(g_SimpleJPEG[90], M_DQT);
-    ASSERT_EQ(results[M_DQT].size(), 2);
-    EXPECT_EQ(results[M_DQT][0].position, 21);
-    EXPECT_EQ(results[M_DQT][0].length, 67);
-    EXPECT_EQ(results[M_DQT][1].position, 90);
-    EXPECT_EQ(results[M_DQT][1].length, 67);
+    ASSERT_EQ(results[M_DQT].size(), 2u);
+    EXPECT_EQ(results[M_DQT][0].position, 21u);
+    EXPECT_EQ(results[M_DQT][0].length, 67u);
+    EXPECT_EQ(results[M_DQT][1].position, 90u);
+    EXPECT_EQ(results[M_DQT][1].length, 67u);
 
     ASSERT_EQ(g_SimpleJPEG[178], M_DHT);
     ASSERT_EQ(g_SimpleJPEG[211], M_DHT);
     ASSERT_EQ(g_SimpleJPEG[394], M_DHT);
     ASSERT_EQ(g_SimpleJPEG[427], M_DHT);
-    ASSERT_EQ(results[M_DHT].size(), 4);
-    EXPECT_EQ(results[M_DHT][0].position, 178);
-    EXPECT_EQ(results[M_DHT][0].length, 31);
-    EXPECT_EQ(results[M_DHT][1].position, 211);
-    EXPECT_EQ(results[M_DHT][1].length, 181);
-    EXPECT_EQ(results[M_DHT][2].position, 394);
-    EXPECT_EQ(results[M_DHT][2].length, 31);
-    EXPECT_EQ(results[M_DHT][3].position, 427);
-    EXPECT_EQ(results[M_DHT][3].length, 181);
+    ASSERT_EQ(results[M_DHT].size(), 4u);
+    EXPECT_EQ(results[M_DHT][0].position, 178u);
+    EXPECT_EQ(results[M_DHT][0].length, 31u);
+    EXPECT_EQ(results[M_DHT][1].position, 211u);
+    EXPECT_EQ(results[M_DHT][1].length, 181u);
+    EXPECT_EQ(results[M_DHT][2].position, 394u);
+    EXPECT_EQ(results[M_DHT][2].length, 31u);
+    EXPECT_EQ(results[M_DHT][3].position, 427u);
+    EXPECT_EQ(results[M_DHT][3].length, 181u);
 
     checkSimpleJPEG(parser);
     ASSERT_FALSE(HasFailure());

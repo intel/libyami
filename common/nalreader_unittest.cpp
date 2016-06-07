@@ -77,7 +77,7 @@ NALREADER_TEST(ReadAsWhole) {
     NalReader reader(&g_data[0], g_data.size(), true);
 
     EXPECT_TRUE(reader.read(nal, size));
-    EXPECT_EQ(size, g_data.size());
+    EXPECT_EQ((size_t)size, g_data.size());
 
     for (int32_t i(0); i < size; ++i)
         EXPECT_EQ(nal[i], g_data[i]);

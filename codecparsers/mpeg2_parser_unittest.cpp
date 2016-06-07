@@ -78,12 +78,12 @@ namespace MPEG2 {
 
         void checkParamsSeqHeader(const Parser& parser)
         {
-            EXPECT_EQ(0x200, parser.m_sequenceHdr.horizontal_size_value);
-            EXPECT_EQ(0x120, parser.m_sequenceHdr.vertical_size_value);
-            EXPECT_EQ(3, parser.m_sequenceHdr.aspect_ratio_info);
-            EXPECT_EQ(4, parser.m_sequenceHdr.frame_rate_code);
-            EXPECT_EQ(0x3ffff, parser.m_sequenceHdr.bit_rate_value);
-            EXPECT_EQ(3, parser.m_sequenceHdr.vbv_buffer_size_value);
+            EXPECT_EQ(0x200u, parser.m_sequenceHdr.horizontal_size_value);
+            EXPECT_EQ(0x120u, parser.m_sequenceHdr.vertical_size_value);
+            EXPECT_EQ(3u, parser.m_sequenceHdr.aspect_ratio_info);
+            EXPECT_EQ(4u, parser.m_sequenceHdr.frame_rate_code);
+            EXPECT_EQ(0x3ffffu, parser.m_sequenceHdr.bit_rate_value);
+            EXPECT_EQ(3u, parser.m_sequenceHdr.vbv_buffer_size_value);
         }
 
         void checkParamsSeqExtension(const Parser& parser)
@@ -91,26 +91,26 @@ namespace MPEG2 {
             EXPECT_EQ(
                 kSequence,
                 parser.m_sequenceExtension.extension_start_code_identifier);
-            EXPECT_EQ(0x48,
+            EXPECT_EQ(0x48u,
                       parser.m_sequenceExtension.profile_and_level_indication);
             EXPECT_EQ(1, parser.m_sequenceExtension.progressive_sequence);
-            EXPECT_EQ(1, parser.m_sequenceExtension.chroma_format);
+            EXPECT_EQ(1u, parser.m_sequenceExtension.chroma_format);
         }
 
         void checkParamsPictureHeader(const Parser& parser)
         {
-            EXPECT_EQ(1, parser.m_pictureHeader.picture_coding_type);
-            EXPECT_EQ(0xffff, parser.m_pictureHeader.vbv_delay);
+            EXPECT_EQ(1u, parser.m_pictureHeader.picture_coding_type);
+            EXPECT_EQ(0xffffu, parser.m_pictureHeader.vbv_delay);
         }
 
         void checkParamsPictureCodingExtension(const Parser& parser)
         {
-            EXPECT_EQ(0xf, parser.m_pictureCodingExtension.f_code[0][0]);
-            EXPECT_EQ(0xf, parser.m_pictureCodingExtension.f_code[0][1]);
-            EXPECT_EQ(0xf, parser.m_pictureCodingExtension.f_code[1][0]);
-            EXPECT_EQ(0xf, parser.m_pictureCodingExtension.f_code[1][1]);
-            EXPECT_EQ(0, parser.m_pictureCodingExtension.intra_dc_precision);
-            EXPECT_EQ(3, parser.m_pictureCodingExtension.picture_structure);
+            EXPECT_EQ(0xfu, parser.m_pictureCodingExtension.f_code[0][0]);
+            EXPECT_EQ(0xfu, parser.m_pictureCodingExtension.f_code[0][1]);
+            EXPECT_EQ(0xfu, parser.m_pictureCodingExtension.f_code[1][0]);
+            EXPECT_EQ(0xfu, parser.m_pictureCodingExtension.f_code[1][1]);
+            EXPECT_EQ(0u, parser.m_pictureCodingExtension.intra_dc_precision);
+            EXPECT_EQ(3u, parser.m_pictureCodingExtension.picture_structure);
             EXPECT_EQ(1, parser.m_pictureCodingExtension.frame_pred_frame_dct);
             EXPECT_EQ(1, parser.m_pictureCodingExtension.chrome_420_type);
             EXPECT_EQ(1, parser.m_pictureCodingExtension.progressive_frame);
@@ -118,9 +118,9 @@ namespace MPEG2 {
 
         void checkParamsSlice(const Parser& parser)
         {
-            EXPECT_EQ(38, parser.m_slice.sliceHeaderSize);
-            EXPECT_EQ(0, parser.m_slice.macroblockRow);
-            EXPECT_EQ(0, parser.m_slice.macroblockColumn);
+            EXPECT_EQ(38u, parser.m_slice.sliceHeaderSize);
+            EXPECT_EQ(0u, parser.m_slice.macroblockRow);
+            EXPECT_EQ(0u, parser.m_slice.macroblockColumn);
         }
     };
 

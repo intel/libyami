@@ -31,28 +31,28 @@
 using namespace YamiMediaCodec;
 
 UTILS_TEST(guessFourcc) {
-    EXPECT_EQ(guessFourcc("test.i420"), VA_FOURCC_I420);
-    EXPECT_EQ(guessFourcc("test.nv12"), VA_FOURCC_NV12);
-    EXPECT_EQ(guessFourcc("test.yv12"), VA_FOURCC_YV12);
-    EXPECT_EQ(guessFourcc("test.yuy2"), VA_FOURCC_YUY2);
-    EXPECT_EQ(guessFourcc("test.uyvy"), VA_FOURCC_UYVY);
-    EXPECT_EQ(guessFourcc("test.rgbx"), VA_FOURCC_RGBX);
-    EXPECT_EQ(guessFourcc("test.bgrx"), VA_FOURCC_BGRX);
-    EXPECT_EQ(guessFourcc("test.xrgb"), VA_FOURCC_XRGB);
-    EXPECT_EQ(guessFourcc("test.xbgr"), VA_FOURCC_XBGR);
+    EXPECT_EQ(guessFourcc("test.i420"), (uint32_t)VA_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test.nv12"), (uint32_t)VA_FOURCC_NV12);
+    EXPECT_EQ(guessFourcc("test.yv12"), (uint32_t)VA_FOURCC_YV12);
+    EXPECT_EQ(guessFourcc("test.yuy2"), (uint32_t)VA_FOURCC_YUY2);
+    EXPECT_EQ(guessFourcc("test.uyvy"), (uint32_t)VA_FOURCC_UYVY);
+    EXPECT_EQ(guessFourcc("test.rgbx"), (uint32_t)VA_FOURCC_RGBX);
+    EXPECT_EQ(guessFourcc("test.bgrx"), (uint32_t)VA_FOURCC_BGRX);
+    EXPECT_EQ(guessFourcc("test.xrgb"), (uint32_t)VA_FOURCC_XRGB);
+    EXPECT_EQ(guessFourcc("test.xbgr"), (uint32_t)VA_FOURCC_XBGR);
 
-    EXPECT_EQ(guessFourcc("test.txt"), VA_FOURCC_I420);
-    EXPECT_EQ(guessFourcc("test"), VA_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test.txt"), (uint32_t)VA_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test"), (uint32_t)VA_FOURCC_I420);
 
-    EXPECT_EQ(guessFourcc("test.I420"), VA_FOURCC_I420);
-    EXPECT_EQ(guessFourcc("test.NV12"), VA_FOURCC_NV12);
-    EXPECT_EQ(guessFourcc("test.YV12"), VA_FOURCC_YV12);
-    EXPECT_EQ(guessFourcc("test.YUY2"), VA_FOURCC_YUY2);
-    EXPECT_EQ(guessFourcc("test.UYVY"), VA_FOURCC_UYVY);
-    EXPECT_EQ(guessFourcc("test.RGBX"), VA_FOURCC_RGBX);
-    EXPECT_EQ(guessFourcc("test.BGRX"), VA_FOURCC_BGRX);
-    EXPECT_EQ(guessFourcc("test.XRGB"), VA_FOURCC_XRGB);
-    EXPECT_EQ(guessFourcc("test.XBGR"), VA_FOURCC_XBGR);
+    EXPECT_EQ(guessFourcc("test.I420"), (uint32_t)VA_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test.NV12"), (uint32_t)VA_FOURCC_NV12);
+    EXPECT_EQ(guessFourcc("test.YV12"), (uint32_t)VA_FOURCC_YV12);
+    EXPECT_EQ(guessFourcc("test.YUY2"), (uint32_t)VA_FOURCC_YUY2);
+    EXPECT_EQ(guessFourcc("test.UYVY"), (uint32_t)VA_FOURCC_UYVY);
+    EXPECT_EQ(guessFourcc("test.RGBX"), (uint32_t)VA_FOURCC_RGBX);
+    EXPECT_EQ(guessFourcc("test.BGRX"), (uint32_t)VA_FOURCC_BGRX);
+    EXPECT_EQ(guessFourcc("test.XRGB"), (uint32_t)VA_FOURCC_XRGB);
+    EXPECT_EQ(guessFourcc("test.XBGR"), (uint32_t)VA_FOURCC_XBGR);
 }
 
 UTILS_TEST(guessResolutionBasic) {

@@ -154,7 +154,7 @@ namespace H265 {
             EXPECT_EQ(352, sps->pic_width_in_luma_samples);
             EXPECT_EQ(288, sps->pic_height_in_luma_samples);
             EXPECT_EQ(true, sps->vui_parameters_present_flag);
-            EXPECT_EQ(30, sps->vui_params.vui_time_scale);
+            EXPECT_EQ(30u, sps->vui_params.vui_time_scale);
         }
 
         void checkH265Pps(Parser& parser, const NalUnit* nalu)

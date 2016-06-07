@@ -40,7 +40,7 @@ BITWriter_TEST(Writer_Simple)
 {
     BitWriter Writer;
 
-    EXPECT_EQ(0, Writer.getCodedBitsCount());
+    EXPECT_EQ(0u, Writer.getCodedBitsCount());
     EXPECT_EQ(NULL, Writer.getBitWriterData());
 
     uint32_t i, bitsSum;

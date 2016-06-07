@@ -48,12 +48,12 @@ BITREADER_TEST(NoOverflow)
     std::vector<uint8_t>& data = largeData();
     const uint32_t nBytes = data.size();
 
-    ASSERT_EQ(0, nBytes % (1024 * 1024 * 512));
+    ASSERT_EQ(0u, nBytes % (1024 * 1024 * 512));
 
     BitReader reader(&data[0], nBytes);
 
     EXPECT_FALSE(reader.end());
-    EXPECT_EQ(0, reader.getPos());
+    EXPECT_EQ(0u, reader.getPos());
     EXPECT_EQ(static_cast<uint64_t>(nBytes) << 3,
         reader.getRemainingBitsCount());
 
@@ -66,7 +66,7 @@ BITREADER_TEST(NoOverflow)
 
     EXPECT_EQ(static_cast<uint64_t>(nBytes) << 3, reader.getPos());
     EXPECT_TRUE(reader.end());
-    EXPECT_EQ(0, reader.getRemainingBitsCount());
+    EXPECT_EQ(0u, reader.getRemainingBitsCount());
 }
 
 } // namespace YamiParser
