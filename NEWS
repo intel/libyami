@@ -1,7 +1,18 @@
-libyami NEWS -- summary of changes.  2015-12-17
+libyami NEWS -- summary of changes.  2016-6-8
 Copyright (c) 2010, The WebM Project authors.
 Copyright (C) 2011-2016 Intel Corporation
 Copyright (C) 2015-2016 Alibaba
+
+libyami 0.4.0 release, work with libva 2016Q2 release
+=====================
+We relicensed entire project from LGPL to Apache V2
++add mpeg2 decoder
++add vc1 decoder
++merge all so to single libyami.so
+-mpeg2/vc1 pass conformance rate is 70%
+    fix patch should ready in near future.
+
+
 
 libyami 0.3.1 release, work with libva 2015Q4 release
 =====================

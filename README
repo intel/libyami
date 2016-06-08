@@ -4,8 +4,7 @@ It is YUMMY to your video experience on Linux like platform.
 
 Yami is core building block for media solution. it parses video stream
 and decodes them leverage hardware acceleration.
-one usage is to encapsulate yami into openMAX component,
-to be used on Chromeos, Android or Linux (by gst-omx).
+
 
 Copyright (c) 2010, The WebM Project authors.
 Copyright (C) 2011-2016 Intel Corporation
@@ -30,7 +29,7 @@ libyami consists of several libraries:
 
 Features
 --------
-  * H.264, H.265, VP8, VP9, JPEG ad-hoc decoder
+  * MPEG2, VC1, H.264, H.265, VP8, VP9, JPEG ad-hoc decoder
   * H.264, H.265, VP8, JPEG ad-hoc encoder
   * CSC and scaling
 
