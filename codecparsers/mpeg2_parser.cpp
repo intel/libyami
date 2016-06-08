@@ -150,8 +150,6 @@ namespace MPEG2 {
         m_slice.sliceData = nalData;
         m_slice.sliceDataSize = nalSize;
 
-        nalData += kStartCodePrefixSize;
-        nalSize -= kStartCodePrefixSize;
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
         m_slice.verticalPosition = nalData[0];
@@ -205,8 +203,7 @@ namespace MPEG2 {
         // as long as the first macroblock_icrement is known
 
         // sliceHeaderSize is given in bits
-        m_slice.sliceHeaderSize = bitReaderCurrentPosition()
-                                        + (kStartCodePrefixSize << 3);
+        m_slice.sliceHeaderSize = bitReaderCurrentPosition();
 
         calculateMBColumn();
 
@@ -274,9 +271,6 @@ namespace MPEG2 {
             return false;
         }
 
-        nalData += kStartCodePrefixSize;
-	nalSize -= kStartCodePrefixSize;
-
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
         skipByte();
@@ -337,8 +331,6 @@ namespace MPEG2 {
             return false;
         }
 
-        nalData += kStartCodePrefixSize;
-        nalSize -= kStartCodePrefixSize;
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
 
@@ -408,8 +400,6 @@ namespace MPEG2 {
         const uint8_t* nalData = shdr->nalData;
         int32_t nalSize = shdr->nalSize;
         QuantMatrices *quantMatrices = &m_quantMatrixExtension.quantizationMatrices;
-        nalData += kStartCodePrefixSize;
-        nalSize -= kStartCodePrefixSize;
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
         skipByte(); // skip start_sequence_code
@@ -470,8 +460,6 @@ namespace MPEG2 {
             return false;
         }
 
-        nalData += kStartCodePrefixSize;
-        nalSize -= kStartCodePrefixSize;
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
         skipByte(); // skip start_sequence_code
@@ -566,8 +554,6 @@ namespace MPEG2 {
             return false;
         }
 
-        nalData += kStartCodePrefixSize;
-        nalSize -= kStartCodePrefixSize;
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
         skipByte();
@@ -644,8 +630,6 @@ namespace MPEG2 {
 
         memset(&m_sequenceHdr, 0, sizeof(SeqHeader));
 
-        nalData += kStartCodePrefixSize;
-        nalSize -= kStartCodePrefixSize;
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
 
