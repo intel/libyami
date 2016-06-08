@@ -1,7 +1,12 @@
-libyami NEWS -- summary of changes.  2015-12-17
+libyami NEWS -- summary of changes.  2016-6-8
 Copyright (C) 2010-2011 Splitted-Desktop Systems
 Copyright (C) 2011 Collabora
 Copyright (C) 2011-2015 Intel Corporation
+
+libyami 0.3.2 release, work with libva 2016Q2 release
+=====================
+this is last release under LGPL, we relicense the project to Apache.
+We suggest you try appache version.
 
 libyami 0.3.1 release, work with libva 2015Q4 release
 =====================

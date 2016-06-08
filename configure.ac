@@ -16,7 +16,7 @@ m4_define([yami_api_version],
 m4_define([libyami_major_version], 0)
 m4_define([libyami_minor_version], 3)
 # even number of micro_version means a release after full validation cycle
-m4_define([libyami_micro_version], 1)
+m4_define([libyami_micro_version], 2)
 m4_define([libyami_version],
                     [libyami_major_version.libyami_minor_version.libyami_micro_version])
 
