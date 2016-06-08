@@ -34,6 +34,10 @@
 
 // This file is taken from Chromium Project and adapted to libyami
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "vp8_bool_decoder.h"
 
 #include <stddef.h>

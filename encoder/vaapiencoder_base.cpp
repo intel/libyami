@@ -17,6 +17,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include "vaapiencoder_base.h"
 #include <assert.h>
 #include <stdint.h>

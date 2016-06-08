@@ -14,11 +14,25 @@
  * limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
+//
+// The unittest header must be included before va_x11.h (which might be included
+// indirectly).  The va_x11.h includes Xlib.h and X.h.  And the X headers
+// define 'Bool' and 'None' preprocessor types.  Gtest uses the same names
+// to define some struct placeholders.  Thus, this creates a compile conflict
+// if X defines them before gtest.  Hence, the include order requirement here
+// is the only fix for this right now.
+//
+// See bug filed on gtest at https://github.com/google/googletest/issues/371
+// for more details.
+//
+#include "common/factory_unittest.h"
+
 // primary header
 #include "vaapidecoder_h264.h"
-
-// library headers
-#include "common/factory_unittest.h"
 
 // system headers
 #include <tr1/array>
