@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include "vaapiencoder_vp8.h"
 #include "scopedlogger.h"
 #include "common/common_def.h"

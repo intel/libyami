@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "common/log.h"
 #include "interface/VideoEncoderHost.h"
 #include "vaapiencoder_factory.h"

@@ -17,6 +17,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include "vaapiencoder_jpeg.h"
 #include "codecparsers/jpegParser.h"
 #include "common/common_def.h"

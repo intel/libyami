@@ -25,6 +25,7 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
 #include "bitReader.h"
 #include "vp9quant.h"
 #include "vp9parser.h"

@@ -14,12 +14,15 @@
  * limitations under the License.
  */
 
-// primary header
+#ifdef HAVE_CONFIG_H
 #include "config.h"
-#include "common/log.h"
+#endif
+
+// primary header
 #include "mpeg2_parser.h"
 
 // library headers
+#include "common/log.h"
 #include "common/unittest.h"
 
 // system headers
