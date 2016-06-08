@@ -392,7 +392,7 @@ YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
     m_configBuffer.surfaceHeight = frame->imageHeight;
 
     /* Now we can actually start */
-    if (!VaapiDecoderBase::start(&m_configBuffer))
+    if (VaapiDecoderBase::start(&m_configBuffer) != YAMI_SUCCESS)
         return YAMI_FAIL;
 
     return YAMI_DECODE_FORMAT_CHANGE;
@@ -418,31 +418,39 @@ YamiStatus VaapiDecoderJPEG::finish()
 
     m_picture->m_timeStamp = m_currentPTS;
 
-    if (!fillSliceParam()) {
+    YamiStatus status;
+
+    status = fillSliceParam();
+    if (status !=  YAMI_SUCCESS) {
         ERROR("Failed to load VAAPI slice parameters.");
-        return YAMI_FAIL;
+        return status;
     }
 
-    if (!fillPictureParam()) {
+    status = fillPictureParam();
+    if (status !=  YAMI_SUCCESS) {
         ERROR("Failed to load VAAPI picture parameters");
-        return YAMI_FAIL;
+        return status;
     }
 
-    if (!loadQuantizationTables()) {
+    status = loadQuantizationTables();
+    if (status !=  YAMI_SUCCESS) {
         ERROR("Failed to load VAAPI quantization tables");
-        return YAMI_FAIL;
+        return status;
     }
 
-    if (!loadHuffmanTables()) {
+    status = loadHuffmanTables();
+
+    if (status != YAMI_SUCCESS) {
         ERROR("Failed to load VAAPI huffman tables");
-        return YAMI_FAIL;
+        return status;
     }
 
     if (!m_picture->decode())
         return YAMI_FAIL;
 
-    if (!outputPicture(m_picture))
-        return YAMI_FAIL;
+    status = outputPicture(m_picture);
+    if (status != YAMI_SUCCESS)
+        return status;
 
     return YAMI_SUCCESS;
 }
