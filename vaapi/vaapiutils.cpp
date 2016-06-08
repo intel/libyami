@@ -267,4 +267,27 @@ uint32_t toVaapiRotation(uint32_t value)
     ERROR("unsupported VA-API rotation value %d", value);
     return VAAPI_ROTATION_0;
 }
+
+/*  Query Video Proc Filter Capability */
+bool
+vaapiQueryVideoProcFilterCaps(
+    VADisplay           dpy,
+    VAContextID         context,
+    VAProcFilterType    type,
+    void               *filter_caps,
+    unsigned int       *num_filter_caps)
+{
+    VAStatus status;
+    status = vaQueryVideoProcFilterCaps(dpy,
+                                        context,
+                                        type,
+                                        filter_caps,
+                                        num_filter_caps);
+    if (!checkVaapiStatus(status, "vaQueryVideoProcFilterCaps()")) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 }

@@ -48,6 +48,10 @@ class VaapiBufObject {
                                uint32_t size,
                                const void *data = 0,
                                void **mapped_data = 0);
+    static bool query(const ContextPtr& context,
+                      VAProcFilterType buf_type,
+                      void *filter_caps,
+                      unsigned int *num_filter_caps);
 
   private:
     VaapiBufObject(const DisplayPtr&, VABufferID, void *buf, uint32_t size);

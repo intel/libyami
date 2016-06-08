@@ -32,9 +32,47 @@ VaapiVppPicture::VaapiVppPicture(const ContextPtr& context,
 {
 }
 
-bool VaapiVppPicture::editVppParam(VAProcPipelineParameterBuffer*& vppParm)
+bool VaapiVppPicture::editVppParam(VAProcPipelineParameterBuffer*& vppParam)
 {
-    return editObject(m_vppParam, VAProcPipelineParameterBufferType, vppParm);
+    uint32_t size = sizeof(VAProcPipelineParameterBuffer);
+    void *data = (void *)vppParam;
+    m_vppParam = createBufferObject(VAProcPipelineParameterBufferType,
+                                    size, 
+                                    data,
+                                    (void **)vppParam);	
+	
+    return m_vppParam ? true:false;
+}
+
+VABufferID VaapiVppPicture::editProcFilterParam(VAProcFilterParameterBuffer* &vppParam)
+{
+    uint32_t size = sizeof(VAProcFilterParameterBuffer);
+    void *data = (void *)vppParam;
+
+    BufObjectPtr proc = createBufferObject(VAProcFilterParameterBufferType,
+                                           size, 
+                                           data,
+                                           (void **)vppParam);
+    addObject(m_procFilterParam, proc);
+ 
+    return proc->getID();
+}
+
+VABufferID VaapiVppPicture::editDeinterlaceParam(VAProcFilterParameterBufferDeinterlacing*& vppParam)
+{
+    uint32_t size = sizeof(VAProcFilterParameterBufferDeinterlacing);
+    void *data = (void *)vppParam;
+    m_deinterlaceParam = createBufferObject(VAProcFilterParameterBufferType,
+                                            size, 
+                                            data,
+                                            (void **)vppParam);
+ 
+    return m_deinterlaceParam->getID();
+}
+
+bool  VaapiVppPicture::queryProcFilter(VAProcFilterType buf_type, void *filter_caps, unsigned int *num_filter_caps)
+{
+    return queryProcFilterCaps(buf_type, filter_caps, num_filter_caps);
 }
 
 bool VaapiVppPicture::process()

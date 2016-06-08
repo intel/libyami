@@ -56,6 +56,14 @@ uint32_t fromVaapiRotation(uint32_t value);
 
 uint32_t toVaapiRotation(uint32_t value);
 
+bool
+vaapiQueryVideoProcFilterCaps(
+    VADisplay           dpy,
+    VAContextID         context,
+    VAProcFilterType    type,
+    void               *filter_caps,
+    unsigned int       *num_filter_caps);
+
 static inline bool checkVaapiStatus(VAStatus status, const char *msg)
 {
     if (status != VA_STATUS_SUCCESS) {

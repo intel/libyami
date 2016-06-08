@@ -73,6 +73,7 @@ protected:
     BufObjectPtr createBufferObject(VABufferType, T*& bufPtr);
     inline BufObjectPtr createBufferObject(VABufferType bufType,
                                            uint32_t size,const void *data, void **mapped_data);
+    inline bool queryProcFilterCaps(VAProcFilterType buf_type, void *filter_caps, unsigned int *num_filter_caps);
     VaapiPicture();
 };
 
@@ -89,6 +90,11 @@ BufObjectPtr VaapiPicture::createBufferObject(VABufferType bufType,
                                           uint32_t size,const void *data, void **mapped_data)
 {
     return VaapiBufObject::create(m_context, bufType, size, data, mapped_data);
+}
+
+bool VaapiPicture::queryProcFilterCaps(VAProcFilterType buf_type, void *filter_caps, unsigned int *num_filter_caps)
+{
+    return VaapiBufObject::query(m_context, buf_type, filter_caps, num_filter_caps);
 }
 
 template<class T>
