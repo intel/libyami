@@ -566,7 +566,7 @@ private:
                 seq->vui_fields.bits.vui_timing_info_present_flag, 1);
             if (seq->vui_fields.bits.vui_timing_info_present_flag) {
                 bit_writer_put_bits_uint32(bitwriter, seq->vui_num_units_in_tick, 32);
-                bit_writer_put_bits_uint32(bitwriter, seq->vui_time_scale / 2, 32);
+                bit_writer_put_bits_uint32(bitwriter, seq->vui_time_scale, 32);
                 /* vui_poc_proportional_to_timing_flag */
                 bit_writer_put_bits_uint32(bitwriter, 0, 1);
                 /* set hrd_parameters */
@@ -1370,7 +1370,8 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     seqParam->vui_parameters_present_flag = TRUE;
     seqParam->vui_fields.bits.vui_timing_info_present_flag = TRUE;
     seqParam->vui_num_units_in_tick = frameRateDenom();
-    seqParam->vui_time_scale = frameRateNum() * 2;
+    /* Fps of hevc is equal to  vui_time_scale/vui_time_scale. It is differenet from h264 */
+    seqParam->vui_time_scale = frameRateNum();
 
     return true;
 }
