@@ -50,6 +50,9 @@ libyami_la_LDFLAGS += $(LIBVA_X11_LIBS) $(X11_LIBS)
 libyami_la_CPPFLAGS += $(LIBVA_X11_CFLAGS)
 endif
 
+libyami_la_LDFLAGS += $(AM_LDFLAGS)
+libyami_la_CPPFLAGS += $(AM_CPPFLAGS)
+
 if ENABLE_V4L2
 lib_LTLIBRARIES += libyami_v4l2.la
 libyami_v4l2_la_SOURCES =
@@ -58,6 +61,7 @@ nodist_EXTRA_libyami_v4l2_la_SOURCES = dummy.cxx
 # for library version
 libyami_v4l2_la_LDFLAGS = \
 	$(LIBYAMI_LT_LDFLAGS) \
+	$(AM_LDFLAGS) \
 	$(NULL)
 
 libyami_v4l2_la_LIBADD = libyami.la \

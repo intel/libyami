@@ -77,8 +77,8 @@ libyami_vppincludedir       = $(includedir)/libyami
 libyami_vppinclude_HEADERS  = $(libyami_vpp_source_h)
 noinst_HEADERS              = $(libyami_vpp_source_h_priv)
 libyami_vpp_la_SOURCES      = $(libyami_vpp_source_c)
-libyami_vpp_la_LDFLAGS      = $(libyami_vpp_ldflags)
-libyami_vpp_la_CPPFLAGS     = $(libyami_vpp_cppflags)
+libyami_vpp_la_LDFLAGS      = $(libyami_vpp_ldflags) $(AM_LDFLAGS)
+libyami_vpp_la_CPPFLAGS     = $(libyami_vpp_cppflags) $(AM_CPPFLAGS)
 
 if ENABLE_UNITTESTS
 include Makefile.unittest

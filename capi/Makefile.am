@@ -24,8 +24,8 @@ libyami_capiincludedir      = $(includedir)/libyami
 libyami_capiinclude_HEADERS = $(libyami_capi_source_h)
 noinst_HEADERS              = $(libyami_capi_source_h_priv)
 libyami_capi_la_SOURCES     = $(libyami_capi_source_c)
-libyami_capi_la_LDFLAGS     = $(libyami_capi_ldflags)
-libyami_capi_la_CPPFLAGS    = $(libyami_capi_cppflags)
+libyami_capi_la_LDFLAGS     = $(libyami_capi_ldflags) $(AM_LDFLAGS)
+libyami_capi_la_CPPFLAGS    = $(libyami_capi_cppflags) $(AM_CPPFLAGS)
 
 if ENABLE_UNITTESTS
 -include Makefile.unittest

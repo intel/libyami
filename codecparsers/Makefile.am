@@ -119,8 +119,8 @@ libyami_codecparserincludedir      = ${includedir}/libyami
 libyami_codecparserinclude_HEADERS = $(libyami_codecparser_source_h)
 noinst_HEADERS                     = $(libyami_codecparser_source_h_priv)
 libyami_codecparser_la_SOURCES     = $(libyami_codecparser_source_c)
-libyami_codecparser_la_LDFLAGS     = $(libyami_codecparser_ldflags)
-libyami_codecparser_la_CPPFLAGS    = $(libyami_codecparser_cppflags)
+libyami_codecparser_la_LDFLAGS     = $(libyami_codecparser_ldflags) $(AM_LDFLAGS)
+libyami_codecparser_la_CPPFLAGS    = $(libyami_codecparser_cppflags) $(AM_CPPFLAGS)
 
 if ENABLE_UNITTESTS
 include Makefile.unittest

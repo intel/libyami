@@ -35,13 +35,13 @@ endif
 
 libyamiv4l2_cppflags += $(LIBEGL_CFLAGS)
 
-noinst_LTLIBRARIES             = libyamiv4l2.la
+noinst_LTLIBRARIES         = libyamiv4l2.la
 libyamiv4l2includedir      = $(includedir)/libyami
 libyamiv4l2include_HEADERS = $(libyamiv4l2_source_h)
-noinst_HEADERS              = $(libyamiv4l2_source_h_priv)
+noinst_HEADERS             = $(libyamiv4l2_source_h_priv)
 libyamiv4l2_la_SOURCES     = $(libyamiv4l2_source_c)
-libyamiv4l2_la_LDFLAGS     = $(libyamiv4l2_ldflags)
-libyamiv4l2_la_CPPFLAGS    = $(libyamiv4l2_cppflags)
+libyamiv4l2_la_LDFLAGS     = $(libyamiv4l2_ldflags) $(AM_LDFLAGS)
+libyamiv4l2_la_CPPFLAGS    = $(libyamiv4l2_cppflags) $(AM_CPPFLAGS)
 
 if ENABLE_UNITTESTS
 -include Makefile.unittest

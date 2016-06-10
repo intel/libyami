@@ -34,23 +34,26 @@ endif
 
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
+	$(AM_LDFLAGS) \
 	$(NULL)
 
 unittest_LDADD = \
 	libyami_decoder.la \
-        $(top_builddir)/codecparsers/libyami_codecparser.la \
-        $(top_builddir)/vaapi/libyami_vaapi.la \
-        $(top_builddir)/common/libyami_common.la \
+	$(top_builddir)/codecparsers/libyami_codecparser.la \
+	$(top_builddir)/vaapi/libyami_vaapi.la \
+	$(top_builddir)/common/libyami_common.la \
 	$(GTEST_LIBS) \
 	$(NULL)
 
 unittest_CPPFLAGS = \
 	$(GTEST_CPPFLAGS) \
 	$(LIBVA_CFLAGS) \
+	$(AM_CPPFLAGS) \
 	$(NULL)
 
 unittest_CXXFLAGS = \
 	$(GTEST_CXXFLAGS) \
+	$(AM_CXXFLAGS) \
 	$(NULL)
 
 check-local: unittest

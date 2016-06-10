@@ -9,6 +9,7 @@ unittest_SOURCES = \
 
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
+	$(AM_LDFLAGS) \
 	$(NULL)
 
 unittest_LDADD = \
@@ -19,10 +20,12 @@ unittest_LDADD = \
 unittest_CPPFLAGS = \
 	$(GTEST_CPPFLAGS) \
 	$(LIBVA_CFLAGS) \
+	$(AM_CPPFLAGS) \
 	$(NULL)
 
 unittest_CXXFLAGS = \
 	$(GTEST_CXXFLAGS) \
+	$(AM_CXXFLAGS) \
 	$(NULL)
 
 check-local: unittest

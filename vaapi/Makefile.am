@@ -36,8 +36,8 @@ noinst_LTLIBRARIES           = libyami_vaapi.la
 libyami_vaapiincludedir      = ${includedir}/libyami
 libyami_vaapiinclude_HEADERS = $(libyami_vaapi_source_h)
 libyami_vaapi_la_SOURCES     = $(libyami_vaapi_source_c)
-libyami_vaapi_la_LDFLAGS     = $(libyami_vaapi_ldflags)
-libyami_vaapi_la_CPPFLAGS    = $(libyami_vaapi_cppflags)
+libyami_vaapi_la_LDFLAGS     = $(libyami_vaapi_ldflags) $(AM_LDFLAGS)
+libyami_vaapi_la_CPPFLAGS    = $(libyami_vaapi_cppflags) $(AM_CPPFLAGS)
 
 if ENABLE_UNITTESTS
 include Makefile.unittest

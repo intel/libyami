@@ -107,8 +107,8 @@ libyami_decoderincludedir      = $(includedir)/libyami
 libyami_decoderinclude_HEADERS = $(libyami_decoder_source_h)
 noinst_HEADERS                 = $(libyami_decoder_source_h_priv)
 libyami_decoder_la_SOURCES     = $(libyami_decoder_source_c)
-libyami_decoder_la_LDFLAGS     = $(libyami_decoder_ldflags)
-libyami_decoder_la_CPPFLAGS    = $(libyami_decoder_cppflags)
+libyami_decoder_la_LDFLAGS     = $(libyami_decoder_ldflags) $(AM_LDFLAGS)
+libyami_decoder_la_CPPFLAGS    = $(libyami_decoder_cppflags) $(AM_CPPFLAGS)
 
 if ENABLE_UNITTESTS
 include Makefile.unittest

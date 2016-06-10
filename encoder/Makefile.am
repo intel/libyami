@@ -75,8 +75,8 @@ libyami_encoderincludedir      = $(includedir)/libyami
 libyami_encoderinclude_HEADERS = $(libyami_encoder_source_h)
 noinst_HEADERS                 = $(libyami_encoder_source_h_priv)
 libyami_encoder_la_SOURCES     = $(libyami_encoder_source_c)
-libyami_encoder_la_LDFLAGS     = $(libyami_encoder_ldflags)
-libyami_encoder_la_CPPFLAGS    = $(libyami_encoder_cppflags)
+libyami_encoder_la_LDFLAGS     = $(libyami_encoder_ldflags) $(AM_LDFLAGS)
+libyami_encoder_la_CPPFLAGS    = $(libyami_encoder_cppflags) $(AM_CPPFLAGS)
 
 if ENABLE_UNITTESTS
 include Makefile.unittest
