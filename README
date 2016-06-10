@@ -50,7 +50,7 @@ Git repository for work-in-progress changes is available at:
 
 Simple api demo application
 ---------------------------
-https://github.com/01org/libyami/blob/master/examples/simpleplayer.cpp
+https://github.com/01org/libyami-utils/blob/master/examples/simpleplayer.cpp
 
 
 Build instructions
