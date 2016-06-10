@@ -478,13 +478,16 @@ YamiStatus VaapiDecoderMPEG2::processDecodeBuffer()
         break;
     case YamiParser::MPEG2::MPEG2_SEQUENCE_END_CODE:
         INFO("End of sequence received");
-        status = decodePicture();
-        if (status != YAMI_SUCCESS) {
-            return status;
-        }
-        status = m_DPB.outputPreviousPictures(m_currentPicture, true);
-        if (status != YAMI_SUCCESS) {
-            return status;
+        if (m_isParsingSlices) {
+            status = decodePicture();
+            if (status != YAMI_SUCCESS) {
+                return status;
+            }
+            status = m_DPB.outputPreviousPictures(m_currentPicture, true);
+            if (status != YAMI_SUCCESS) {
+                return status;
+            }
+            m_isParsingSlices = false;
         }
         break;
     default:
