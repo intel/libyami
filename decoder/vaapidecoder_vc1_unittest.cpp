@@ -460,6 +460,6 @@ VAAPIDECODER_VC1_TEST(Decode_Simple)
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(NULL));
 
     EXPECT_TRUE(decoder.getOutput());
-    delete configBuffer.data;
+    delete[] configBuffer.data;
 }
 }
