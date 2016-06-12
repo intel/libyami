@@ -527,7 +527,7 @@ Encode_Status VaapiEncoderBase::getOutput(VideoEncOutputBuffer * outBuffer, bool
     ret = picture->getOutput(outBuffer);
     if (ret != ENCODE_SUCCESS)
         return ret;
-
+    outBuffer->timeStamp = picture->m_timeStamp;
     checkCodecData(outBuffer);
     return ENCODE_SUCCESS;
 }

@@ -136,6 +136,7 @@ private:
     void getPoc(const PicturePtr&, const H265SliceHdr* const,
             const H265NalUnit* const);
     Decode_Status decodeCurrent();
+    bool decodeCodecData(uint8_t * buf, uint32_t bufSize);
     Decode_Status outputPicture(const PicturePtr&);
 
     H265Parser* m_parser;
@@ -147,6 +148,9 @@ private:
     bool        m_newStream;
     bool        m_endOfSequence;
     DPB         m_dpb;
+    bool        m_isnalff;
+    uint32_t    m_nalLengthSize;
+    bool        m_resetContext;
     std::map<int32_t, uint8_t> m_pocToIndex;
     SharedPtr<H265SliceHdr> m_prevSlice;
 
