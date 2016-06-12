@@ -128,7 +128,7 @@ private:
     uint32_t m_log2MaxFrameNum;
     uint32_t m_maxPicOrderCnt;
     uint32_t m_log2MaxPicOrderCnt;
-    uint32_t m_idrNum;
+    uint16_t m_idrNum; //used to set idr_pic_id, max value is 65535 as spec
 
     StreamHeaderPtr m_headers;
     Lock m_paramLock; // locker for parameters update, for example: m_sps/m_pps/m_maxCodedbufSize (width/height etc)

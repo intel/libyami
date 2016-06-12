@@ -696,12 +696,14 @@ public:
 };
 
 VaapiEncoderH264::VaapiEncoderH264():
+    m_numBFrames(0),
     m_useCabac(true),
     m_useDct8x8(false),
     m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
     m_streamFormat(AVC_STREAM_FORMAT_ANNEXB),
     m_frameIndex(0),
-    m_keyPeriod(30)
+    m_keyPeriod(30),
+    m_idrNum(0)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;
@@ -758,12 +760,20 @@ void VaapiEncoderH264::resetParams ()
     DEBUG("resetParams, ensureCodedBufferSize");
     ensureCodedBufferSize();
 
+    if (intraPeriod() == 0){
+        ERROR("intra period must larger than 0");
+        assert(0);
+    }
+
+    if (intraPeriod() <= ipPeriod()){
+        WARNING("intra period is not larger than ip period");
+        m_videoParamCommon.ipPeriod = intraPeriod() - 1;
+    }
+
     if (ipPeriod() == 0)
         m_videoParamCommon.intraPeriod = 1;
     else
         m_numBFrames = ipPeriod() - 1;
-
-    assert(intraPeriod() > ipPeriod());
 	
     m_keyPeriod = intraPeriod() * (m_videoParamAVC.idrInterval + 1);
 
@@ -950,7 +960,7 @@ Encode_Status VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t time
         m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
     }
 
-    picture->m_poc = ((m_frameIndex * 2) % m_maxPicOrderCnt);
+    picture->m_poc = m_frameIndex * 2;
     m_frameIndex++;
     return ENCODE_SUCCESS;
 }
@@ -1013,7 +1023,6 @@ Encode_Status VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer * outBuffer)
 /* Handle new GOP starts */
 void VaapiEncoderH264::resetGopStart ()
 {
-    m_idrNum = 0;
     m_frameIndex = 0;
     m_curFrameNum = 0;
 }
@@ -1046,6 +1055,7 @@ void VaapiEncoderH264::setIdrFrame (const PicturePtr& pic)
     pic->m_type = VAAPI_PICTURE_TYPE_I;
     pic->m_frameNum = 0;
     pic->m_poc = 0;
+    m_idrNum++;
 }
 
 bool VaapiEncoderH264::
@@ -1288,7 +1298,7 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
         sliceParam->slice_type = h264_get_slice_type (picture->m_type);
         assert (sliceParam->slice_type != -1);
         sliceParam->idr_pic_id = m_idrNum;
-        sliceParam->pic_order_cnt_lsb = picture->m_poc;
+        sliceParam->pic_order_cnt_lsb = picture->m_poc % m_maxPicOrderCnt;
 
         sliceParam->num_ref_idx_active_override_flag = 1;
         if (picture->m_type != VAAPI_PICTURE_TYPE_I && m_refList0.size() > 0)

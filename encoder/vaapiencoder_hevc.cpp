@@ -930,12 +930,20 @@ void VaapiEncoderHEVC::resetParams ()
         m_confWinBottomOffset = 0;
     }
 
+    if (intraPeriod() == 0){
+        ERROR("intra period must larger than 0");
+        assert(0);
+    }
+
+    if (intraPeriod() <= ipPeriod()){
+        WARNING("intra period is not larger than ip period");
+        m_videoParamCommon.ipPeriod = intraPeriod() - 1;
+    }
+
     if (ipPeriod() == 0)
         m_videoParamCommon.intraPeriod = 1;
     else if (ipPeriod() >= 1)
         m_numBFrames = ipPeriod() - 1;
-
-    assert(intraPeriod() > ipPeriod());
 
     m_keyPeriod = intraPeriod() * (m_videoParamAVC.idrInterval + 1);
 
@@ -1084,7 +1092,7 @@ Encode_Status VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t time
     }
 
     DEBUG("m_frameIndex is %d\n", m_frameIndex);
-    picture->m_poc = ((m_frameIndex) % m_maxPicOrderCnt);
+    picture->m_poc = m_frameIndex;
     m_frameIndex++;
     return ENCODE_SUCCESS;
 }
@@ -1145,7 +1153,6 @@ Encode_Status VaapiEncoderHEVC::getCodecConfig(VideoEncOutputBuffer * outBuffer)
 /* Handle new GOP starts */
 void VaapiEncoderHEVC::resetGopStart ()
 {
-    m_idrNum = 0;
     m_frameIndex = 0;
 }
 
