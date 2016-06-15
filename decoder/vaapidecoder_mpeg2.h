@@ -73,6 +73,7 @@ private:
         }
 
         void flush();
+        bool isEmpty() { return m_referencePictures.empty(); }
         YamiStatus insertPicture(const PicturePtr& picture);
         YamiStatus insertPictureToReferences(const PicturePtr& picture);
 

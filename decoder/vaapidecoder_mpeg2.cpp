@@ -320,6 +320,8 @@ YamiStatus VaapiDecoderMPEG2::processConfigBuffer()
         m_nextStartCode = YamiParser::MPEG2::MPEG2_EXTENSION_START_CODE;
         updateIQMatrix(&m_sequenceHeader->quantizationMatrices, true);
         m_loadNewIQMatrix = true;
+        if (!m_DPB.isEmpty())
+            m_DPB.flush();
         break;
     case YamiParser::MPEG2::MPEG2_EXTENSION_START_CODE:
         INFO("parseSeqExt");
