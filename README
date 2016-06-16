@@ -48,6 +48,14 @@ Git repository for work-in-progress changes is available at:
 <https://github.com/01org/libyami>
 
 
+Demos, Examples and Test Applications
+---------------------------------------------------
+The libyami-utils project provides various example, test and demo
+applications that use libyami.  For more details, please refer to
+
+    https://github.com/01org/libyami-utils
+
+
 Simple api demo application
 ---------------------------
 https://github.com/01org/libyami-utils/blob/master/examples/simpleplayer.cpp
