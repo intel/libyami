@@ -21,6 +21,10 @@ if BUILD_H265_ENCODER
 libyami_encoder_source_c += vaapiencoder_hevc.cpp
 endif
 
+if BUILD_VP9_ENCODER
+libyami_encoder_source_c += vaapiencoder_vp9.cpp
+endif
+
 libyami_encoder_source_h = \
 	../interface/VideoCommonDefs.h      \
 	../interface/VideoEncoderDefs.h      \
@@ -48,6 +52,10 @@ endif
 
 if BUILD_H265_ENCODER
 libyami_encoder_source_h_priv += vaapiencoder_hevc.h
+endif
+
+if BUILD_VP9_ENCODER
+libyami_encoder_source_h_priv += vaapiencoder_vp9.h
 endif
 
 libyami_encoder_ldflags = \

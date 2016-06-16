@@ -20,6 +20,10 @@ if BUILD_VP8_ENCODER
 unittest_SOURCES += vaapiencoder_vp8_unittest.cpp
 endif
 
+if BUILD_VP9_ENCODER
+unittest_SOURCES += vaapiencoder_vp9_unittest.cpp
+endif
+
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
 	$(AM_LDFLAGS) \

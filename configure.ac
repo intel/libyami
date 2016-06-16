@@ -245,6 +245,15 @@ AC_ARG_ENABLE(vp8enc,
 AM_CONDITIONAL(BUILD_VP8_ENCODER,
     [test "x$enable_vp8enc" = "xyes"])
 
+dnl vp9 encoder
+AC_ARG_ENABLE(vp9enc,
+    [AC_HELP_STRING([--enable-vp9enc],
+        [build with vp9 encoder support @<:@default=no@:>@])],
+    [], [enable_vp9enc="no"])
+
+AM_CONDITIONAL(BUILD_VP9_ENCODER,
+    [test "x$enable_vp9enc" = "xyes"])
+
 dnl h265 encoder
 AC_ARG_ENABLE(h265enc,
     [AC_HELP_STRING([--enable-h265enc],
@@ -336,6 +345,7 @@ AS_IF([test x$enable_vp9dec = xyes], [VA_API_VERSION="0.37"])
 AS_IF([test x$enable_jpegenc = xyes], [VA_API_VERSION="0.37"])
 AS_IF([test x$enable_h265enc = xyes], [VA_API_VERSION="0.38"])
 AS_IF([test x$enable_vp8enc = xyes], [VA_API_VERSION="0.38"])
+AS_IF([test x$enable_vp9enc = xyes], [VA_API_VERSION="0.39"])
 LIBVA_PKG_REQ="libva >= $VA_API_VERSION"
 PKG_CHECK_MODULES([LIBVA], [$LIBVA_PKG_REQ])
 AC_SUBST(LIBVA_VERSION)
@@ -408,6 +418,7 @@ AS_IF([test x$enable_h265enc = xyes], [ENCODERS="$ENCODERS h265"])
 AS_IF([test x$enable_h264enc = xyes], [ENCODERS="$ENCODERS h264"])
 AS_IF([test x$enable_jpegenc = xyes], [ENCODERS="$ENCODERS jpeg"])
 AS_IF([test x$enable_vp8enc = xyes], [ENCODERS="$ENCODERS vp8"])
+AS_IF([test x$enable_vp9enc = xyes], [ENCODERS="$ENCODERS vp9"])
 
 VPPS=" scaler"
 AS_IF([test x$enable_oclblender = xyes], [VPPS="$VPPS oclblender"])
