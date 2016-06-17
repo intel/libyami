@@ -694,9 +694,6 @@ public:
 };
 
 VaapiEncoderH264::VaapiEncoderH264():
-    m_enableCabac(true),
-    m_enableDct8x8(false),
-    m_enableDeblockFilter(true),
     m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
     m_streamFormat(AVC_STREAM_FORMAT_ANNEXB),
     m_frameIndex(0),
@@ -709,6 +706,11 @@ VaapiEncoderH264::VaapiEncoderH264():
 
     memset(&m_videoParamAVC, 0, sizeof(m_videoParamAVC));
     m_videoParamAVC.idrInterval = 0;
+    m_videoParamAVC.enableCabac = true;
+    m_videoParamAVC.enableDct8x8 = false;
+    m_videoParamAVC.enableDeblockFilter = true;
+    m_videoParamAVC.deblockAlphaOffset = 0;
+    m_videoParamAVC.deblockBetaOffset = 0;
 }
 
 VaapiEncoderH264::~VaapiEncoderH264()
@@ -867,9 +869,6 @@ YamiStatus VaapiEncoderH264::setParameters(VideoParamConfigType type, Yami_PTR v
                 PARAMETER_ASSIGN(m_videoParamAVC, *avc);
                 status = YAMI_SUCCESS;
             }
-            m_enableCabac = avc->enableCabac;
-            m_enableDct8x8 = avc->enableDct8x8;
-            m_enableDeblockFilter = avc->enableDeblockFilter;
         }
         break;
     case VideoConfigTypeAVCStreamFormat: {
@@ -1217,11 +1216,9 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
     /* set picture fields */
     picParam->pic_fields.bits.idr_pic_flag = picture->isIdr();
     picParam->pic_fields.bits.reference_pic_flag = (picture->m_type != VAAPI_PICTURE_B);
-    picParam->pic_fields.bits.entropy_coding_mode_flag = m_enableCabac;
-    picParam->pic_fields.bits.transform_8x8_mode_flag = m_enableDct8x8;
-
-    /* enable debloking */
-    picParam->pic_fields.bits.deblocking_filter_control_present_flag = m_enableDeblockFilter;
+    picParam->pic_fields.bits.entropy_coding_mode_flag = m_videoParamAVC.enableCabac;
+    picParam->pic_fields.bits.transform_8x8_mode_flag = m_videoParamAVC.enableDct8x8;
+    picParam->pic_fields.bits.deblocking_filter_control_present_flag = true;
 
     return TRUE;
 }
@@ -1313,9 +1310,10 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
         sliceParam->slice_qp_delta = initQP() - minQP();
         if (sliceParam->slice_qp_delta > 4)
             sliceParam->slice_qp_delta = 4;
-        sliceParam->slice_alpha_c0_offset_div2 = 2;
-        sliceParam->slice_beta_offset_div2 = 2;
 
+        sliceParam->disable_deblocking_filter_idc = !m_videoParamAVC.enableDeblockFilter;
+        sliceParam->slice_alpha_c0_offset_div2 = m_videoParamAVC.deblockAlphaOffset;
+        sliceParam->slice_beta_offset_div2 = m_videoParamAVC.deblockBetaOffset;
         /* set calculation for next slice */
         lastMbIndex += curSliceMbs;
     }
