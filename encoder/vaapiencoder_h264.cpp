@@ -147,8 +147,15 @@ static uint8_t h264_get_profile_idc(VideoProfile profile)
 {
     uint8_t idc;
     switch (profile) {
+    case PROFILE_H264_BASELINE:
+    case PROFILE_H264_CONSTRAINED_BASELINE:
+        idc = 66;
+        break;
     case PROFILE_H264_MAIN:
         idc =  77;
+        break;
+    case PROFILE_H264_HIGH:
+        idc = 100;
         break;
     default:
         assert(0);
@@ -763,6 +770,35 @@ bool VaapiEncoderH264::ensureCodedBufferSize()
     return true;
 }
 
+void VaapiEncoderH264::checkProfileLimitation()
+{
+    VAProfile& profile = m_videoParamCommon.profile;
+
+    switch (profile) {
+    case VAProfileH264Baseline:
+        // only Constrained Baseline supported right now
+        profile = VAProfileH264ConstrainedBaseline;
+    case VAProfileH264ConstrainedBaseline:
+        if (ipPeriod() > 1) {
+            WARNING("H264 baseline profile can not support B frame encoding");
+            m_videoParamCommon.ipPeriod = 1; // without B frame
+        }
+        assert(m_numBFrames == 0);
+
+        m_videoParamAVC.enableCabac = false; // don't support cabac
+        m_videoParamAVC.enableDct8x8 = false; // only high profile can support 8x8 dtc
+        break;
+    case VAProfileH264Main:
+        m_videoParamAVC.enableDct8x8 = false;
+        break;
+    case VAProfileH264High:
+        break;
+    default:
+        ERROR("unsupported profile");
+        assert(0);
+    }
+}
+
 void VaapiEncoderH264::resetParams ()
 {
 
@@ -770,6 +806,8 @@ void VaapiEncoderH264::resetParams ()
 
     DEBUG("resetParams, ensureCodedBufferSize");
     ensureCodedBufferSize();
+
+    checkProfileLimitation();
 
     if (intraPeriod() == 0) {
         ERROR("intra period must larger than 0");
@@ -816,7 +854,6 @@ void VaapiEncoderH264::resetParams ()
 
     assert(m_maxRefFrames <= m_maxOutputBuffer);
     INFO("m_maxRefFrames: %d", m_maxRefFrames);
-
 
     resetGopStart();
 }

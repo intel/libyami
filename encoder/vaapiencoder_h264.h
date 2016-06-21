@@ -89,6 +89,7 @@ private:
     void setIdrFrame(const PicturePtr&);
 
     void resetParams();
+    void checkProfileLimitation();
 
     VideoParamsAVC m_videoParamAVC;
 
