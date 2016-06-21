@@ -34,7 +34,8 @@ enum Mpeg2PictureStructureType {
 };
 
 enum {
-    MPEG2_MAX_REFERENCE_PICTURES = 2,
+    kMaxRefPictures = 2,
+    kMinSurfaces = 8,
 };
 
 struct IQMatricesRefs {
@@ -67,7 +68,7 @@ private:
 
     public:
         DPB(OutputCallback callback)
-            : m_numberSurfaces(MPEG2_MAX_REFERENCE_PICTURES)
+            : m_numberSurfaces(kMaxRefPictures)
             , m_outputPicture(callback)
         {
         }
