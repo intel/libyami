@@ -75,6 +75,10 @@ void VaapiEncoderVP8::resetParams()
 {
     //5 times compress ratio
     m_maxCodedbufSize = width() * height() * 3 / 2;
+    //when the resolution of video is very small such as 96x96 and buffer plus the header of vp8,
+    //the size of actual output buffer maybe be bigger the m_maxCodedbufSize.
+    //So plusing 4096 avoids the situation.
+    m_maxCodedbufSize += 0x1000;
 }
 
 YamiStatus VaapiEncoderVP8::start()
