@@ -135,6 +135,7 @@ private:
                        uint8_t numActive, bool modify, const uint32_t* modiList);
     uint8_t getIndex(int32_t poc);
 
+    bool decodeAvcRecordData(uint8_t* buf, int32_t bufSize);
 
     PicturePtr createPicture(const SliceHeader* const, const NalUnit* const nalu);
     void getPoc(const PicturePtr&, const SliceHeader* const,
@@ -146,6 +147,7 @@ private:
     PicturePtr  m_current;
     uint16_t    m_prevPicOrderCntMsb;
     int32_t     m_prevPicOrderCntLsb;
+    int32_t     m_nalLengthSize;
     bool        m_associatedIrapNoRaslOutputFlag;
     bool        m_noRaslOutputFlag;
     bool        m_newStream;

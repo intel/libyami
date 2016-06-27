@@ -427,6 +427,7 @@ void VaapiDecoderH265::DPB::flush()
 VaapiDecoderH265::VaapiDecoderH265():
     m_prevPicOrderCntMsb(0),
     m_prevPicOrderCntLsb(0),
+    m_nalLengthSize(0),
     m_newStream(true),
     m_endOfSequence(false),
     m_dpb(bind(&VaapiDecoderH265::outputPicture, this, _1))
@@ -442,6 +443,13 @@ VaapiDecoderH265::~VaapiDecoderH265()
 
 YamiStatus VaapiDecoderH265::start(VideoConfigBuffer* buffer)
 {
+    if (buffer->data && buffer->size > 0) {
+        if (!decodeAvcRecordData(buffer->data, buffer->size)) {
+            ERROR("decode record data failed");
+            return DECODE_FAIL;
+        }
+    }
+
     return YAMI_SUCCESS;
 }
 
@@ -1073,7 +1081,7 @@ YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
     }
     m_currentPTS = buffer->timeStamp;
 
-    NalReader nr(buffer->data, buffer->size);
+    NalReader nr(buffer->data, buffer->size, m_nalLengthSize);
     const uint8_t* nal;
     int32_t size;
     YamiStatus status;
@@ -1086,6 +1094,53 @@ YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
         }
     }
     return YAMI_SUCCESS;
+}
+
+bool VaapiDecoderH265::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
+{
+    if (buf == NULL || bufSize == 0) {
+        ERROR("invalid record data");
+        return false;
+    }
+    if (buf[0] != 1) {
+        VideoDecodeBuffer buffer;
+        memset(&buffer, 0, sizeof(buffer));
+        buffer.data = buf;
+        buffer.size = bufSize;
+        return (decode(&buffer) == YAMI_SUCCESS);
+    }
+    if (bufSize < 24) {
+        ERROR("invalid avcc record data");
+        return false;
+    }
+    NalUnit nalu;
+    const uint8_t* nalBuf;
+    int32_t i = 0, j, numNalu, nalBufSize;
+    nalBuf = &buf[21];
+    int32_t nalLengthSize = (*nalBuf & 0x03) + 1;
+    nalBuf++;
+    numNalu = *nalBuf & 0x1f;
+    nalBuf++;
+    for (i = 0; i < numNalu; i++) {
+        nalBuf++;
+        int cnt = *(nalBuf + 1) & 0xf;
+        nalBuf += 2;
+        for (j = 0; j < cnt; j++) {
+            int nalsize = *(nalBuf + 1) + 2;
+            if (buf + bufSize - nalBuf < nalsize)
+               return false;
+            NalReader nr(nalBuf, bufSize - (nalBuf - buf), nalLengthSize);
+            if (!nr.read(nalBuf, nalBufSize))
+                return false;
+            if (!nalu.parseNaluHeader(nalBuf, nalBufSize))
+                return false;
+            if (decodeNalu(&nalu) != YAMI_SUCCESS)
+                return false;
+            nalBuf += nalBufSize;
+        }
+    }
+    m_nalLengthSize = nalLengthSize;
+    return true;
 }
 
 const bool VaapiDecoderH265::s_registered =
