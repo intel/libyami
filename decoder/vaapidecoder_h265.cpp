@@ -444,7 +444,7 @@ VaapiDecoderH265::~VaapiDecoderH265()
 YamiStatus VaapiDecoderH265::start(VideoConfigBuffer* buffer)
 {
     if (buffer->data && buffer->size > 0) {
-        if (!decodeAvcRecordData(buffer->data, buffer->size)) {
+        if (!decodeHevcRecordData(buffer->data, buffer->size)) {
             ERROR("decode record data failed");
             return DECODE_FAIL;
         }
@@ -1096,13 +1096,17 @@ YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
     return YAMI_SUCCESS;
 }
 
-bool VaapiDecoderH265::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
+bool VaapiDecoderH265::decodeHevcRecordData(uint8_t* buf, int32_t bufSize)
 {
     if (buf == NULL || bufSize == 0) {
         ERROR("invalid record data");
         return false;
     }
-    if (buf[0] != 1) {
+    /*
+     * Some hvcC format don't used buf[0]==1 as flag, so now used the
+     * (buf[0] || buf[1] || buf[2] > 1) as hvcC condition. 
+     */
+    if (!(buf[0] || buf[1] || buf[2] > 1)) { //annexb format
         VideoDecodeBuffer buffer;
         memset(&buffer, 0, sizeof(buffer));
         buffer.data = buf;
@@ -1129,7 +1133,8 @@ bool VaapiDecoderH265::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
             int nalsize = *(nalBuf + 1) + 2;
             if (buf + bufSize - nalBuf < nalsize)
                return false;
-            NalReader nr(nalBuf, bufSize - (nalBuf - buf), nalLengthSize);
+            NalReader nr(nalBuf, nalsize, 2);
+            /*sps/pps/vps nal_length_size alway is 2 in hvcC format*/
             if (!nr.read(nalBuf, nalBufSize))
                 return false;
             if (!nalu.parseNaluHeader(nalBuf, nalBufSize))

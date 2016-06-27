@@ -135,7 +135,7 @@ private:
                        uint8_t numActive, bool modify, const uint32_t* modiList);
     uint8_t getIndex(int32_t poc);
 
-    bool decodeAvcRecordData(uint8_t* buf, int32_t bufSize);
+    bool decodeHevcRecordData(uint8_t* buf, int32_t bufSize);
 
     PicturePtr createPicture(const SliceHeader* const, const NalUnit* const nalu);
     void getPoc(const PicturePtr&, const SliceHeader* const,
