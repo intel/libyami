@@ -19,6 +19,11 @@
 
 #include "interface/VideoPostProcessInterface.h"
 #include "vaapi/vaapiptrs.h"
+#include <va/va.h>
+#include <va/va_vpp.h>
+
+template <class B, class C>
+class FactoryTest;
 
 namespace YamiMediaCodec{
 /**
@@ -42,6 +47,8 @@ protected:
     //NativeDisplay   m_externalDisplay;
     YamiStatus initVA(const NativeDisplay& display);
     void cleanupVA();
+
+    YamiStatus queryVideoProcFilterCaps(VAProcFilterType filterType, void* filterCaps, uint32_t* numFilterCaps = NULL);
 
     DisplayPtr m_display;
     ContextPtr m_context;

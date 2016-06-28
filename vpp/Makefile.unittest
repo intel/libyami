@@ -4,6 +4,8 @@ unittest_SOURCES = \
 	unittest_main.cpp \
 	$(NULL)
 
+unittest_SOURCES += vaapipostprocess_scaler_unittest.cpp
+
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
 	$(AM_LDFLAGS) \
@@ -11,11 +13,14 @@ unittest_LDFLAGS = \
 
 unittest_LDADD = \
 	libyami_vpp.la \
+	$(top_builddir)/vaapi/libyami_vaapi.la \
+	$(top_builddir)/common/libyami_common.la \
 	$(GTEST_LIBS) \
 	$(NULL)
 
 unittest_CPPFLAGS = \
 	$(GTEST_CPPFLAGS) \
+	$(LIBVA_CFLAGS) \
 	$(AM_CPPFLAGS) \
 	$(NULL)
 

@@ -65,6 +65,28 @@ void VaapiPostProcessBase::cleanupVA()
     m_display.reset();
 }
 
+YamiStatus VaapiPostProcessBase::queryVideoProcFilterCaps(
+    VAProcFilterType filterType, void* filterCaps, uint32_t* numFilterCaps)
+{
+    if (!filterCaps)
+        return YAMI_INVALID_PARAM;
+
+    if (!m_context) {
+        ERROR("no va context");
+        return YAMI_FAIL;
+    }
+
+    uint32_t tmp = 1;
+    if (!numFilterCaps)
+        numFilterCaps = &tmp;
+    VAStatus status = vaQueryVideoProcFilterCaps(m_display->getID(), m_context->getID(),
+        filterType, filterCaps, numFilterCaps);
+    if (!checkVaapiStatus(status, "vaQueryVideoProcFilterCaps") || !*numFilterCaps) {
+        return YAMI_UNSUPPORTED;
+    }
+    return YAMI_SUCCESS;
+}
+
 VaapiPostProcessBase::~VaapiPostProcessBase()
 {
     cleanupVA();

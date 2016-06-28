@@ -25,6 +25,9 @@ typedef enum {
     VppParamTypeOsd,
     VppParamTypeTransform,
     VppParamTypeMosaic,
+    VppParamTypeDenoise,
+    VppParamTypeSharpening,
+    VppParamTypeDeinterlace,
 } VppParamType;
 
 typedef struct VppParamOsd {
@@ -50,6 +53,35 @@ typedef struct VppParamMosaic {
     size_t size;
     uint32_t blockSize;
 } VppParamMosaic;
+
+#define DENOISE_LEVEL_MIN 0
+#define DENOISE_LEVEL_MAX 100
+#define DENOISE_LEVEL_NONE (DENOISE_LEVEL_MAX + 1)
+
+typedef struct VPPDenoiseParameters {
+    size_t size;
+    int32_t level;
+} VPPDenoiseParameters;
+
+#define SHARPENING_LEVEL_MIN 0
+#define SHARPENING_LEVEL_MAX 100
+#define SHARPENING_LEVEL_NONE (SHARPENING_LEVEL_MAX + 1)
+
+typedef struct VPPSharpeningParameters {
+    size_t size;
+    int32_t level;
+} VPPSharpeningParameters;
+
+typedef enum VppDeinterlaceMode {
+    DEINTERLACE_MODE_NONE,
+    DEINTERLACE_MODE_WEAVE = DEINTERLACE_MODE_NONE,
+    DEINTERLACE_MODE_BOB,
+} VppDeinterlaceMode;
+
+typedef struct VPPDeinterlaceParameters {
+    size_t size;
+    VppDeinterlaceMode mode;
+} VPPDeinterlaceParameters;
 
 #ifdef __cplusplus
 }
