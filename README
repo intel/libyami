@@ -87,6 +87,12 @@ Unit Tests
   The gtest documentation can be found in their source tree under `docs` (online
   or in the downloaded source archive).
 
+  To build gtest you need:
+     cd ${GTEST_DIR}
+     autoreconf -v --install
+     ./configure --disable-shared --enable-static
+     make
+
   To enable the unit tests, when configuring libyami you need to specify:
 
     --enable-gtest=${GTEST_DIR}
