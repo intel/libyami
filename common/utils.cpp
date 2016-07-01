@@ -22,6 +22,9 @@
 #include "common/common_def.h"
 #include "common/log.h"
 
+#define __STDC_FORMAT_MACROS
+#include <inttypes.h>
+
 #include <assert.h>
 #include <ctype.h>
 #include <string.h>
@@ -218,7 +221,7 @@ float CalcFps::fps(uint32_t frameCount)
 
     uint64_t sysTime = getSystemTime() - m_timeStart;
     float fps = frameCount*1000.0/sysTime;
-    fprintf(stdout, "rendered frame count: %d in %ld ms; fps=%.2f\n",
+    fprintf(stdout, "rendered frame count: %d in %" PRIu64 " ms; fps=%.2f\n",
             frameCount, sysTime, fps);
 
     return fps;
