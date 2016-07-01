@@ -83,14 +83,14 @@ namespace MPEG2 {
 
     // default matrix for intra blocks
     // section 6.3.7
-    const static std::tr1::array<const uint8_t, 64> kDefaultIntraBlockMatrix
+    const static uint8_t kDefaultIntraBlockMatrix[64]
         = { 8,  16, 16, 19, 16, 19, 22, 22, 22, 22, 22, 22, 26, 24, 26, 27,
             27, 27, 26, 26, 26, 26, 27, 27, 27, 29, 29, 29, 34, 34, 34, 29,
             29, 29, 27, 27, 29, 29, 32, 32, 34, 34, 37, 38, 37, 35, 35, 34,
             35, 38, 38, 40, 40, 40, 48, 48, 46, 46, 56, 56, 58, 69, 69, 83 };
 
     // default matrix for non-intra blocks
-    const static std::tr1::array<const uint8_t, 64> kDefaultNonIntraBlockMatrix
+    const static uint8_t kDefaultNonIntraBlockMatrix[64]
         = { 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
             16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,
             16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16,

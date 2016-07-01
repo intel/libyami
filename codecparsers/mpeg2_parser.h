@@ -36,7 +36,6 @@
 // system headers
 #include <stdio.h>
 #include <string.h>
-#include <tr1/array>
 
 namespace YamiParser {
 namespace MPEG2 {
