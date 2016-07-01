@@ -73,7 +73,7 @@ const uint8_t* NalReader::searchNalStart()
     if (!m_nalLengthSize)
         return searchStartCode();
 
-    if (m_end - m_begin > m_size + m_nalLengthSize) {
+    if (m_end > m_begin + m_size + m_nalLengthSize) {
         m_begin += m_size;
     } else {
         m_begin = m_next = m_end;
