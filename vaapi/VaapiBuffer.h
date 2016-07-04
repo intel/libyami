@@ -30,7 +30,13 @@ public:
     static BufObjectPtr create(const ContextPtr&,
         VABufferType,
         uint32_t size,
-        const void* data = 0);
+        const void* data = 0,
+        void** mapped = 0);
+
+    template <class T>
+    static BufObjectPtr create(const ContextPtr&,
+        VABufferType, T*& mapped);
+
     void* map();
     void unmap();
     uint32_t getSize();
@@ -46,6 +52,22 @@ private:
     DISALLOW_COPY_AND_ASSIGN(VaapiBuffer);
 };
 
+template <class T>
+BufObjectPtr VaapiBuffer::create(const ContextPtr& context,
+    VABufferType type, T*& mapped)
+{
+    BufObjectPtr p = create(context, type, sizeof(T), NULL, (void**)&mapped);
+    if (p) {
+        if (mapped) {
+            memset(mapped, 0, sizeof(T));
+        }
+        else {
+            //bug
+            p.reset();
+        }
+    }
+    return p;
+}
 }
 
 #endif //VaapiBuffer_h
