@@ -37,11 +37,6 @@ YamiStatus VaapiPostProcessBase::initVA(const NativeDisplay& display)
         ERROR("do not init va more than one time");
         return YAMI_FAIL;
     }
-    if (display.type != NATIVE_DISPLAY_VA
-        || !display.handle) {
-        ERROR("vpp only support va display as NativeDisplay");
-        return YAMI_FAIL;
-    }
     m_display = VaapiDisplay::create(display);
     if (!m_display) {
         ERROR("failed to create display");
