@@ -37,6 +37,7 @@ uint32_t guessFourcc(const char* fileName)
 {
     static const char *possibleFourcc[] = {
             "I420", "NV12", "YV12",
+            "P010", "I010",
             "YUY2", "UYVY",
             "RGBX", "BGRX", "XRGB", "XBGR"
         };
@@ -130,13 +131,24 @@ bool getPlaneResolution(uint32_t fourcc, uint32_t pixelWidth, uint32_t pixelHeig
     switch (fourcc) {
         case VA_FOURCC_NV12:
         case VA_FOURCC_I420:
+        case VA_FOURCC_P010:
+        case VA_FOURCC('I', '0', '1', '0'):
         case VA_FOURCC_YV12:{
             width[0] = w;
             height[0] = h;
             if (fourcc == VA_FOURCC_NV12) {
-                width[1]  = w + (w & 1);
+                width[1]  = w;
                 height[1] = (h + 1) >> 1;
                 planes = 2;
+            } else if (fourcc == VA_FOURCC_P010) {
+                width[0] = w * 2;
+                width[1]  = w * 2;
+                height[1] = (h + 1) >> 1;
+                planes = 2;
+            } else if (fourcc == VA_FOURCC('I', '0', '1', '0')) {
+                width[1] = width[2] = (w + 1) >> 1;
+                height[1] = height[2] = (h + 1) >> 1;
+                planes = 3;
             } else {
                 width[1] = width[2] = (w + 1) >> 1;
                 height[1] = height[2] = (h + 1) >> 1;
