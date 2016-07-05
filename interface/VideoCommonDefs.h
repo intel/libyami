@@ -84,6 +84,9 @@ extern "C" {
 #define YAMI_FOURCC_BGRX YAMI_FOURCC('B', 'G', 'R', 'X')
 #define YAMI_FOURCC_BGRA YAMI_FOURCC('B', 'G', 'R', 'A')
 
+//10bit
+#define YAMI_FOURCC_P010 YAMI_FOURCC('P', '0', '1', '0')
+
 typedef enum {
     NATIVE_DISPLAY_AUTO,    // decided by yami
     NATIVE_DISPLAY_X11,

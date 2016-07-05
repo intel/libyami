@@ -37,6 +37,7 @@ uint32_t guessFourcc(const char* fileName)
 {
     static const char* possibleFourcc[] = {
         "I420", "NV12", "YV12",
+        "P010", "I010",
         "YUY2", "UYVY",
         "RGBX", "BGRX", "XRGB", "XBGR",
         //for jpeg
@@ -126,6 +127,7 @@ bool guessResolution(const char* filename, int& w, int& h)
 struct ResolutionEntry {
     uint32_t fourcc;
     uint32_t planes;
+    uint32_t pixelWidthInByte;
     //multiple to half width
     //if it equals 1, you need divide width with 2
     //if it equals 4, you need multiple width with 2
@@ -134,26 +136,27 @@ struct ResolutionEntry {
 };
 
 const static ResolutionEntry resolutionEntrys[] = {
-    { VA_FOURCC_I420, 3, { 2, 1, 1 }, { 2, 1, 1 } },
-    { VA_FOURCC_YV12, 3, { 2, 1, 1 }, { 2, 1, 1 } },
-    { VA_FOURCC_IMC3, 3, { 2, 1, 1 }, { 2, 1, 1 } },
-    { VA_FOURCC_422H, 3, { 2, 1, 1 }, { 2, 2, 2 } },
-    { VA_FOURCC_422V, 3, { 2, 2, 2 }, { 2, 1, 1 } },
-    { VA_FOURCC_444P, 3, { 2, 2, 2 }, { 2, 2, 2 } },
-    { VA_FOURCC_YUY2, 1, { 4 }, { 2 } },
-    { VA_FOURCC_UYVY, 1, { 4 }, { 2 } },
-    { VA_FOURCC_RGBX, 1, { 8 }, { 2 } },
-    { VA_FOURCC_RGBA, 1, { 8 }, { 2 } },
-    { VA_FOURCC_BGRX, 1, { 8 }, { 2 } },
-    { VA_FOURCC_BGRA, 1, { 8 }, { 2 } },
+    { VA_FOURCC_I420, 3, 1, { 2, 1, 1 }, { 2, 1, 1 } },
+    { VA_FOURCC_P010, 2, 2, { 2, 2, 0 }, { 2, 1, 0 } },
+    { VA_FOURCC_YV12, 3, 1, { 2, 1, 1 }, { 2, 1, 1 } },
+    { VA_FOURCC_IMC3, 3, 1, { 2, 1, 1 }, { 2, 1, 1 } },
+    { VA_FOURCC_422H, 3, 1, { 2, 1, 1 }, { 2, 2, 2 } },
+    { VA_FOURCC_422V, 3, 1, { 2, 2, 2 }, { 2, 1, 1 } },
+    { VA_FOURCC_444P, 3, 1, { 2, 2, 2 }, { 2, 2, 2 } },
+    { VA_FOURCC_YUY2, 1, 1, { 4 }, { 2 } },
+    { VA_FOURCC_UYVY, 1, 1, { 4 }, { 2 } },
+    { VA_FOURCC_RGBX, 1, 1, { 8 }, { 2 } },
+    { VA_FOURCC_RGBA, 1, 1, { 8 }, { 2 } },
+    { VA_FOURCC_BGRX, 1, 1, { 8 }, { 2 } },
+    { VA_FOURCC_BGRA, 1, 1, { 8 }, { 2 } },
 };
 
 /* l is length in pixel*/
 /* length[] are length in each plane*/
-static void getPlaneLength(uint32_t l, uint32_t plane, const uint32_t multiple[3], uint32_t length[3])
+static void getPlaneLength(uint32_t l, uint32_t plane, uint32_t pixelWidthInByte, const uint32_t multiple[3], uint32_t length[3])
 {
     for (uint32_t i = 0; i < plane; i++) {
-        length[i] = (l * multiple[i] + 1) >> 1;
+        length[i] = (l * pixelWidthInByte * multiple[i] + 1) >> 1;
     }
 }
 
@@ -176,8 +179,8 @@ bool getPlaneResolution(uint32_t fourcc, uint32_t pixelWidth, uint32_t pixelHeig
         const ResolutionEntry& e = resolutionEntrys[i];
         if (e.fourcc == fourcc) {
             planes = e.planes;
-            getPlaneLength(pixelWidth, planes, e.widthMultiple, width);
-            getPlaneLength(pixelHeight, planes, e.heightMultiple, height);
+            getPlaneLength(pixelWidth, planes, e.pixelWidthInByte, e.widthMultiple, width);
+            getPlaneLength(pixelHeight, planes, 1, e.heightMultiple, height);
             return true;
         }
     }

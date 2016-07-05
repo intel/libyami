@@ -156,6 +156,7 @@ static uint8_t hevc_get_profile_idc(VideoProfile profile)
         break;
     case PROFILE_H265_MAIN10:
         idc = 2;
+        break;
     default:
         assert(0);
     }
@@ -1372,9 +1373,9 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     /* separate color plane_flag*/
     seqParam->seq_fields.bits.separate_colour_plane_flag = 0;
     /* bit_depth_luma_minus8. Only 0 is supported for main profile */
-    seqParam->seq_fields.bits.bit_depth_luma_minus8 = 0;
+    seqParam->seq_fields.bits.bit_depth_luma_minus8 = m_videoParamCommon.bitDepth - 8;
     /* bit_depth_chroma_minus8. Only 0 is supported for main profile*/
-    seqParam->seq_fields.bits.bit_depth_chroma_minus8 = 0;
+    seqParam->seq_fields.bits.bit_depth_chroma_minus8 = m_videoParamCommon.bitDepth - 8;
     /* scaling_list_enabled_flag. Use the default value  */
     seqParam->seq_fields.bits.scaling_list_enabled_flag = 0;
     /* strong_intra_smoothing_enabled_flag. Not use the bi-linear interpolation */
