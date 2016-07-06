@@ -17,6 +17,9 @@
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
+
+#define __STDC_FORMAT_MACROS
+
 #include <inttypes.h>
 #include <linux/videodev2.h>
 #include <unistd.h>
