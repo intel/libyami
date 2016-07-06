@@ -296,8 +296,8 @@ fi
 AM_CONDITIONAL(ENABLE_DOCS,
     [test "$enable_docs" = "yes"])
 
-AC_SUBST([AM_CFLAGS], ["-g -O2 -Wno-unused-function -Wno-cpp -Wall -Werror"])
-AC_SUBST([AM_CXXFLAGS], ["-g -O2 -Wno-unused-function -Wno-cpp -Wall -Werror"])
+AC_SUBST([AM_CFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Werror"])
+AC_SUBST([AM_CXXFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Wno-missing-braces -Werror"])
 
 # Checks for programs.
 AC_DISABLE_STATIC
