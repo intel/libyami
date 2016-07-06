@@ -1,3 +1,4 @@
+ACLOCAL_AMFLAGS = -I m4
 
 # Extra clean files so that maintainer-clean removes *everything*
 DISTCLEANFILES = \
