@@ -62,6 +62,21 @@ typedef enum {
   VAAPI_ENCODER_H264_NAL_PPS         = 8
 } GstVaapiEncoderH264NalType;
 
+/* Refer to H.264 spec Table A-1 l Level limits */
+struct H264LevelLimits {
+    uint32_t levelIdc;
+    uint32_t maxMBPS;
+    uint32_t minCR;
+};
+
+static const H264LevelLimits LevelLimits[] = {
+    {40, 245760, 4},
+    {41, 245760, 2},
+    {42, 522240, 2},
+    {50, 589824, 2},
+    {51, 983040, 2},
+};
+
 static inline bool
 _poc_greater_than (uint32_t poc1, uint32_t poc2, uint32_t max_poc)
 {
@@ -726,7 +741,17 @@ bool VaapiEncoderH264::ensureCodedBufferSize()
     /* As spec A.3.1, max coded buffer size should be:
      * 384 *( Max( PicSizeInMbs, fR * MaxMBPS ) + MaxMBPS / fps ) ÷ MinCR
      * The max level we support now is 5.1*/
-    m_maxCodedbufSize = 384 * (MAX(mbSize, LEVEL51_MAX_MBPS / H264_FRAME_FR) + LEVEL51_MAX_MBPS / fps()) / H264_MIN_CR;
+    uint32_t maxMBPS = LEVEL51_MAX_MBPS;
+    uint32_t minCR = H264_MIN_CR;
+    for (uint32_t i = 0; i < N_ELEMENTS(LevelLimits); i++) {
+        if (m_levelIdc <= LevelLimits[i].levelIdc) {
+            maxMBPS = LevelLimits[i].maxMBPS;
+            minCR = LevelLimits[i].minCR;
+            break;
+        }
+    }
+    m_maxCodedbufSize =
+        384 * (MAX(mbSize, maxMBPS / H264_FRAME_FR) + maxMBPS / fps()) / minCR;
 
     DEBUG("m_maxCodedbufSize: %u", m_maxCodedbufSize);
 
