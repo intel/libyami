@@ -1102,7 +1102,8 @@ bool VaapiDecoderH265::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
         ERROR("invalid record data");
         return false;
     }
-    if (!(buf[0] || buf[1] || buf[2] > 1)) {
+    if (!(buf[0] || buf[1] || buf[2] > 1)) { //annexb format
+        /*we can check buf[0] == 1 whether hvcC format after 14496-15 3rd is finalized*/
         VideoDecodeBuffer buffer;
         memset(&buffer, 0, sizeof(buffer));
         buffer.data = buf;
@@ -1130,6 +1131,7 @@ bool VaapiDecoderH265::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
             if (buf + bufSize - nalBuf < nalsize)
                return false;
             NalReader nr(nalBuf, nalsize, 2);
+            /*sps/pps/vps nal_length_size alway is 2 in hvcC format*/
             if (!nr.read(nalBuf, nalBufSize))
                 return false;
             if (!nalu.parseNaluHeader(nalBuf, nalBufSize))
