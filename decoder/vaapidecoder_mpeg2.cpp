@@ -903,6 +903,7 @@ YamiStatus VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
     m_stream->data = buffer->data;
     m_stream->streamSize = buffer->size;
     m_stream->time_stamp = buffer->timeStamp;
+    m_currentPTS = buffer->timeStamp;
 
     DEBUG("decode size %ld timeStamp %ld", m_stream->streamSize,
           m_stream->time_stamp);
