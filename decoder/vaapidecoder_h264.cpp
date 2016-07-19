@@ -1287,10 +1287,12 @@ void VaapiDecoderH264::fillReference(VAPictureH264* refs, size_t size)
     size_t i = 0;
     DPB::PictureList::iterator it = m_dpb.m_pictures.begin();
 
-    for (; it != m_dpb.m_pictures.end(); i++, it++) {
-        fillVAPictureH264(&refs[i], *it);
-        DEBUG("poc %d, isShortRef %d, isRef %d", (*it)->m_poc,
-              (*it)->m_shortTermRefFlag, (*it)->m_isReference);
+    for (; it != m_dpb.m_pictures.end(); it++) {
+        if (!isReference(*it))
+            continue;
+        fillVAPictureH264(&refs[i++], *it);
+        DEBUG("id %d, poc %d, isShortRef %d, isRef %d", (*it)->getSurfaceID(),
+              (*it)->m_poc, (*it)->m_shortTermRefFlag, (*it)->m_isReference);
     }
 
     for (; i < size; i++) {
