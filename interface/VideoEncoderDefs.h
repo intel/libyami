@@ -263,6 +263,11 @@ typedef struct VideoParamsAVC {
     uint32_t idrInterval;    //How many Intra frames will have an IDR frame
     SliceNum sliceNum;
     SamplingAspectRatio SAR;
+    bool  enableCabac;
+    bool  enableDct8x8;
+    bool  enableDeblockFilter;
+    int8_t deblockAlphaOffsetDiv2; //same as slice_alpha_c0_offset_div2 defined in h264 spec 7.4.3
+    int8_t deblockBetaOffsetDiv2; //same as slice_beta_offset_div2 defined in h264 spec 7.4.3
 }VideoParamsAVC;
 
 typedef struct VideoParamsHRD {
