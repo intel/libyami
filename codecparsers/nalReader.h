@@ -28,7 +28,9 @@ public:
     NalReader(const uint8_t *data, uint32_t size);
 
     /*parse Exp-Golomb coding*/
+    bool readUe(uint32_t& v);
     uint32_t readUe();
+    bool readSe(int32_t& v);
     int32_t readSe();
 
     bool moreRbspData() const;
