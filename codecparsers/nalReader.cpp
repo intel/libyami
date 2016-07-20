@@ -64,23 +64,45 @@ void NalReader::loadDataToCache(uint32_t nbytes)
 }
 
 /*according to 9.1 of h264 spec*/
-uint32_t NalReader::readUe()
+bool NalReader::readUe(uint32_t& v)
 {
     int32_t leadingZeroBits = -1;
 
-    for (uint32_t b = 0; !b; leadingZeroBits++)
-        b = read(1);
+    for (uint32_t b = 0; !b; leadingZeroBits++) {
+        if (!read(b, 1))
+            return false;
+    }
+    if (!read(v, leadingZeroBits))
+        return false;
+    v = (1 << leadingZeroBits) - 1 + v;
+    return true;
+}
 
-    return (1 << leadingZeroBits) - 1 + read(leadingZeroBits);
+uint32_t NalReader::readUe()
+{
+    uint32_t res;
+    if (!readUe(res))
+        res = 0;
+    return res;
+}
+
+bool NalReader::readSe(int32_t& v)
+{
+    uint32_t codeNum;
+    if (!readUe(codeNum))
+        return false;
+    uint32_t ceil = getHalfCeil(codeNum);
+    v = ((codeNum & 1) ? ceil : (-ceil));
+    return true;
 }
 
 /*according to 9.1.1*/
 int32_t NalReader::readSe()
 {
-    uint32_t codeNum = readUe();
-    uint32_t ceil = getHalfCeil(codeNum);
-
-    return ((codeNum & 1) ? ceil : (-ceil));
+    int32_t res;
+    if (!readSe(res))
+        res = 0;
+    return res;
 }
 
 bool NalReader::moreRbspData() const
