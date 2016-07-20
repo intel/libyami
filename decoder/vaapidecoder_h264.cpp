@@ -1201,7 +1201,7 @@ YamiStatus VaapiDecoderH264::decodeSps(NalUnit* nalu)
 
     memset(sps.get(), 0, sizeof(SPS));
     if (!m_parser.parseSps(sps, nalu)) {
-        return YAMI_FAIL;
+        return YAMI_DECODE_INVALID_DATA;
     }
 
     return YAMI_SUCCESS;
@@ -1213,7 +1213,7 @@ YamiStatus VaapiDecoderH264::decodePps(NalUnit* nalu)
 
     memset(pps.get(), 0, sizeof(PPS));
     if (!m_parser.parsePps(pps, nalu)) {
-        return YAMI_FAIL;
+        return YAMI_DECODE_INVALID_DATA;
     }
 
     return YAMI_SUCCESS;
@@ -1505,7 +1505,7 @@ YamiStatus VaapiDecoderH264::decodeCurrent()
     if (!m_currPic->decode()) {
         ERROR("decode %d failed", m_currPic->m_poc);
         // ignore it to let application continue to decode the next frame
-        return status;
+        return YAMI_DECODE_INVALID_DATA;
     } else
         DEBUG("decode %d done", m_currPic->m_poc);
 
@@ -1631,7 +1631,7 @@ YamiStatus VaapiDecoderH264::decodeSlice(NalUnit* nalu)
     memset(slice, 0, sizeof(SliceHeader));
 
     if (!slice->parseHeader(&m_parser, nalu))
-        return YAMI_FAIL;
+        return YAMI_DECODE_INVALID_DATA;
 
     status = ensureContext(slice->m_pps->m_sps);
     if (status != YAMI_SUCCESS) {
@@ -1658,7 +1658,7 @@ YamiStatus VaapiDecoderH264::decodeSlice(NalUnit* nalu)
     m_dpb.initReference(m_currPic, slice);
 
     if (!m_currPic)
-        return YAMI_FAIL;
+        return YAMI_DECODE_INVALID_DATA;
 
     if (!fillSlice(m_currPic, slice, nalu))
         return YAMI_FAIL;
