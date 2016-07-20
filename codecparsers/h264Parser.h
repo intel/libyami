@@ -130,24 +130,24 @@ enum NalUnitType {
 };
 
 struct NaluHeadMvcExt {
-    uint8_t non_idr_flag;
+    bool non_idr_flag;
     uint8_t priority_id;
     uint16_t view_id;
     uint8_t temporal_id;
-    uint8_t anchor_pic_flag;
-    uint8_t inter_view_flag;
+    bool anchor_pic_flag;
+    bool inter_view_flag;
 };
 
 struct NaluHeadSvcExt {
-    uint8_t idr_flag;
+    bool idr_flag;
     uint8_t priority_id;
-    uint8_t no_inter_layer_pred_flag;
+    bool no_inter_layer_pred_flag;
     uint8_t dependency_id;
     uint8_t quality_id;
     uint8_t temporal_id;
-    uint8_t use_ref_base_pic_flag;
-    uint8_t discardable_flag;
-    uint8_t output_flag;
+    bool use_ref_base_pic_flag;
+    bool discardable_flag;
+    bool output_flag;
     uint8_t reserved_three_2bits;
 };
 
@@ -171,7 +171,7 @@ public:
     uint16_t nal_unit_type;
 
     //calc value, used by other syntax structs
-    uint8_t m_idrPicFlag;
+    bool m_idrPicFlag;
     uint8_t m_nalUnitHeaderBytes;
 
     NaluHeadMvcExt m_mvc;
@@ -188,7 +188,7 @@ struct HRDParameters {
     uint8_t cpb_size_scale;
     uint32_t bit_rate_value_minus1[32];
     uint32_t cpb_size_value_minus1[32];
-    uint8_t cbr_flag[32];
+    bool cbr_flag[32];
     uint8_t initial_cpb_removal_delay_length_minus1;
     uint8_t cpb_removal_delay_length_minus1;
     uint8_t dpb_output_delay_length_minus1;
@@ -196,34 +196,34 @@ struct HRDParameters {
 };
 
 struct VUIParameters {
-    uint8_t aspect_ratio_info_present_flag;
+    bool aspect_ratio_info_present_flag;
     uint8_t aspect_ratio_idc;
     uint16_t sar_width;
     uint16_t sar_height;
-    uint8_t overscan_info_present_flag;
-    uint8_t overscan_appropriate_flag;
-    uint8_t video_signal_type_present_flag;
+    bool overscan_info_present_flag;
+    bool overscan_appropriate_flag;
+    bool video_signal_type_present_flag;
     uint8_t video_format;
-    uint8_t video_full_range_flag;
-    uint8_t colour_description_present_flag;
+    bool video_full_range_flag;
+    bool colour_description_present_flag;
     uint8_t colour_primaries;
     uint8_t transfer_characteristics;
     uint8_t matrix_coefficients;
-    uint8_t chroma_loc_info_present_flag;
+    bool chroma_loc_info_present_flag;
     uint8_t chroma_sample_loc_type_top_field;
     uint8_t chroma_sample_loc_type_bottom_field;
-    uint8_t timing_info_present_flag;
+    bool timing_info_present_flag;
     uint32_t num_units_in_tick;
     uint32_t time_scale;
-    uint8_t fixed_frame_rate_flag;
-    uint8_t nal_hrd_parameters_present_flag;
+    bool fixed_frame_rate_flag;
+    bool nal_hrd_parameters_present_flag;
     HRDParameters nal_hrd_parameters;
-    uint8_t vcl_hrd_parameters_present_flag;
+    bool vcl_hrd_parameters_present_flag;
     HRDParameters vcl_hrd_parameters;
-    uint8_t low_delay_hrd_flag;
-    uint8_t pic_struct_present_flag;
-    uint8_t bitstream_restriction_flag;
-    uint8_t motion_vectors_over_pic_boundaries_flag;
+    bool low_delay_hrd_flag;
+    bool pic_struct_present_flag;
+    bool bitstream_restriction_flag;
+    bool motion_vectors_over_pic_boundaries_flag;
     uint32_t max_bytes_per_pic_denom;
     uint32_t max_bits_per_mb_denom;
     uint32_t log2_max_mv_length_horizontal;
@@ -234,44 +234,44 @@ struct VUIParameters {
 
 struct SPS {
     uint8_t profile_idc;
-    uint8_t constraint_set0_flag;
-    uint8_t constraint_set1_flag;
-    uint8_t constraint_set2_flag;
-    uint8_t constraint_set3_flag;
-    uint8_t constraint_set4_flag;
-    uint8_t constraint_set5_flag;
+    bool constraint_set0_flag;
+    bool constraint_set1_flag;
+    bool constraint_set2_flag;
+    bool constraint_set3_flag;
+    bool constraint_set4_flag;
+    bool constraint_set5_flag;
     uint8_t level_idc;
     int32_t sps_id; //seq_parameter_set_id
     uint8_t chroma_format_idc;
-    uint8_t separate_colour_plane_flag;
+    bool separate_colour_plane_flag;
     uint8_t bit_depth_luma_minus8;
     uint8_t bit_depth_chroma_minus8;
-    uint8_t qpprime_y_zero_transform_bypass_flag;
-    uint8_t seq_scaling_matrix_present_flag;
-    uint8_t seq_scaling_list_present_flag[12];
+    bool qpprime_y_zero_transform_bypass_flag;
+    bool seq_scaling_matrix_present_flag;
+    bool seq_scaling_list_present_flag[12];
     uint8_t scaling_lists_4x4[6][16];
     uint8_t scaling_lists_8x8[6][64];
     uint8_t log2_max_frame_num_minus4;
     uint8_t pic_order_cnt_type;
     uint8_t log2_max_pic_order_cnt_lsb_minus4;
-    uint8_t delta_pic_order_always_zero_flag;
+    bool delta_pic_order_always_zero_flag;
     int32_t offset_for_non_ref_pic;
     int32_t offset_for_top_to_bottom_field;
     uint8_t num_ref_frames_in_pic_order_cnt_cycle;
     int32_t offset_for_ref_frame[255];
     uint32_t num_ref_frames;
-    uint8_t gaps_in_frame_num_value_allowed_flag;
+    bool gaps_in_frame_num_value_allowed_flag;
     uint32_t pic_width_in_mbs_minus1;
     uint32_t pic_height_in_map_units_minus1;
-    uint8_t frame_mbs_only_flag;
-    uint8_t mb_adaptive_frame_field_flag;
-    uint8_t direct_8x8_inference_flag;
-    uint8_t frame_cropping_flag;
+    bool frame_mbs_only_flag;
+    bool mb_adaptive_frame_field_flag;
+    bool direct_8x8_inference_flag;
+    bool frame_cropping_flag;
     uint32_t frame_crop_left_offset;
     uint32_t frame_crop_right_offset;
     uint32_t frame_crop_top_offset;
     uint32_t frame_crop_bottom_offset;
-    uint8_t vui_parameters_present_flag;
+    bool vui_parameters_present_flag;
     VUIParameters m_vui;
 
     //Because these variables calced from other variables instead of
@@ -295,29 +295,29 @@ struct PPS {
 
     SharedPtr<SPS> m_sps;
 
-    uint8_t entropy_coding_mode_flag;
-    uint8_t pic_order_present_flag;
+    bool entropy_coding_mode_flag;
+    bool pic_order_present_flag;
     uint32_t num_slice_groups_minus1;
     uint8_t slice_group_map_type;
     uint32_t run_length_minus1[8];
     uint32_t top_left[8];
     uint32_t bottom_right[8];
-    uint8_t slice_group_change_direction_flag;
+    bool slice_group_change_direction_flag;
     uint32_t slice_group_change_rate_minus1;
     uint32_t pic_size_in_map_units_minus1;
     uint8_t* slice_group_id;
     uint8_t num_ref_idx_l0_active_minus1;
     uint8_t num_ref_idx_l1_active_minus1;
-    uint8_t weighted_pred_flag;
+    bool weighted_pred_flag;
     uint8_t weighted_bipred_idc;
     int8_t pic_init_qp_minus26;
     int8_t pic_init_qs_minus26;
     int8_t chroma_qp_index_offset;
-    uint8_t deblocking_filter_control_present_flag;
-    uint8_t constrained_intra_pred_flag;
-    uint8_t redundant_pic_cnt_present_flag;
-    uint8_t transform_8x8_mode_flag;
-    uint8_t pic_scaling_list_present_flag[12];
+    bool deblocking_filter_control_present_flag;
+    bool constrained_intra_pred_flag;
+    bool redundant_pic_cnt_present_flag;
+    bool transform_8x8_mode_flag;
+    bool pic_scaling_list_present_flag[12];
     uint8_t scaling_lists_4x4[6][16];
     uint8_t scaling_lists_8x8[6][64];
     int8_t second_chroma_qp_index_offset;
@@ -333,17 +333,17 @@ struct RefPicListModification {
 struct PredWeightTable {
     uint8_t luma_log2_weight_denom;
     uint8_t chroma_log2_weight_denom;
-    uint8_t luma_weight_l0_flag;
+    bool luma_weight_l0_flag;
     //32 is the max of num_ref_idx_l0_active_minus1
     int8_t luma_weight_l0[32];
     int8_t luma_offset_l0[32];
-    uint8_t chroma_weight_l0_flag;
+    bool chroma_weight_l0_flag;
     int8_t chroma_weight_l0[32][2];
     int8_t chroma_offset_l0[32][2];
-    uint8_t luma_weight_l1_flag;
+    bool luma_weight_l1_flag;
     int8_t luma_weight_l1[32];
     int8_t luma_offset_l1[32];
-    uint8_t chroma_weight_l1_flag;
+    bool chroma_weight_l1_flag;
     int8_t chroma_weight_l1[32][2];
     int8_t chroma_offset_l1[32][2];
 };
@@ -357,9 +357,9 @@ struct RefPicMarking {
 };
 
 struct DecRefPicMarking {
-    uint8_t no_output_of_prior_pics_flag;
-    uint8_t long_term_reference_flag;
-    uint8_t adaptive_ref_pic_marking_mode_flag;
+    bool no_output_of_prior_pics_flag;
+    bool long_term_reference_flag;
+    bool adaptive_ref_pic_marking_mode_flag;
     RefPicMarking ref_pic_marking[10];
     uint8_t n_ref_pic_marking;
 };
@@ -381,28 +381,28 @@ public:
     SharedPtr<PPS> m_pps;
     uint8_t colour_plane_id;
     uint16_t frame_num;
-    uint8_t field_pic_flag;
-    uint8_t bottom_field_flag;
+    bool field_pic_flag;
+    bool bottom_field_flag;
     uint16_t idr_pic_id;
     uint16_t pic_order_cnt_lsb;
     int32_t delta_pic_order_cnt_bottom;
     int32_t delta_pic_order_cnt[2];
     uint8_t redundant_pic_cnt;
-    uint8_t direct_spatial_mv_pred_flag;
-    uint8_t num_ref_idx_active_override_flag;
+    bool direct_spatial_mv_pred_flag;
+    bool num_ref_idx_active_override_flag;
     uint8_t num_ref_idx_l0_active_minus1;
     uint8_t num_ref_idx_l1_active_minus1;
-    uint8_t ref_pic_list_modification_flag_l0;
+    bool ref_pic_list_modification_flag_l0;
     uint8_t n_ref_pic_list_modification_l0;
     RefPicListModification ref_pic_list_modification_l0[32];
-    uint8_t ref_pic_list_modification_flag_l1;
+    bool ref_pic_list_modification_flag_l1;
     uint8_t n_ref_pic_list_modification_l1;
     RefPicListModification ref_pic_list_modification_l1[32];
     PredWeightTable pred_weight_table;
     DecRefPicMarking dec_ref_pic_marking;
     uint8_t cabac_init_idc;
     int8_t slice_qp_delta;
-    uint8_t sp_for_switch_flag;
+    bool sp_for_switch_flag;
     int8_t slice_qs_delta;
     uint8_t disable_deblocking_filter_idc;
     int8_t slice_alpha_c0_offset_div2;
