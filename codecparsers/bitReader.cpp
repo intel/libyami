@@ -64,6 +64,14 @@ void BitReader::loadDataToCache(uint32_t nbytes)
     m_bitsInCache = nbytes << 3;
 }
 
+inline void BitReader::reload()
+{
+    assert(m_size >= m_loadBytes);
+    uint32_t remainingBytes = m_size - m_loadBytes;
+    if (remainingBytes > 0)
+        loadDataToCache(std::min(remainingBytes, CACHEBYTES));
+}
+
 inline uint32_t BitReader::extractBitsFromCache(uint32_t nbits)
 {
     if (!nbits)
@@ -74,35 +82,31 @@ inline uint32_t BitReader::extractBitsFromCache(uint32_t nbits)
     return tmp;
 }
 
-uint32_t BitReader::read(uint32_t nbits)
+bool BitReader::read(uint32_t& v, uint32_t nbits)
 {
     assert(nbits <= (CACHEBYTES << 3));
 
-    /* Firstly loading data to m_cache, only need to read aligned bytes.
-       So we can load 8 bytes which aligned with machine address in the next per time*/
-    if (!m_loadBytes) {
-        uint32_t alignedBytes = CACHEBYTES - ((uintptr_t)m_stream % CACHEBYTES);
-        uint32_t toBeLoadSize = std::min(alignedBytes, m_size);
-        loadDataToCache(toBeLoadSize);
-    }
-
-    uint32_t res = 0;
-
     if (nbits <= m_bitsInCache) {
-        res = extractBitsFromCache(nbits);
-    } else { /*not enough bits, need to save remaining bits
-               in current cache and then reload more bits*/
-        uint32_t toBeReadBits = nbits - m_bitsInCache;
-        uint32_t tmp = extractBitsFromCache(m_bitsInCache);
-        uint32_t remainingBytes = m_size - m_loadBytes;
-        uint32_t toBeLoadSize = std::min(remainingBytes, CACHEBYTES);
-        toBeReadBits = std::min(toBeReadBits, toBeLoadSize << 3);
-        tmp <<= toBeReadBits;
-        loadDataToCache(toBeLoadSize);
-        res = tmp | extractBitsFromCache(toBeReadBits);
+        v = extractBitsFromCache(nbits);
+        return true;
     }
+    /*not enough bits, need to save remaining bits
+      in current cache and then reload more bits*/
+    uint32_t toBeReadBits = nbits - m_bitsInCache;
+    uint32_t tmp = extractBitsFromCache(m_bitsInCache);
+    reload();
+    if (toBeReadBits > m_bitsInCache)
+        return false;
+    v = tmp << toBeReadBits | extractBitsFromCache(toBeReadBits);
+    return true;
+}
 
-    return res;
+uint32_t BitReader::read(uint32_t nbits)
+{
+    uint32_t res;
+    if (read(res, nbits))
+        return res;
+    return 0;
 }
 
 void BitReader::skip(uint32_t nbits)
