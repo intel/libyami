@@ -71,14 +71,15 @@ YamiStatus VaapiEncoderVP8::getMaxOutSize(uint32_t* maxSize)
     return YAMI_SUCCESS;
 }
 
+//if the context is very complex and the quantization value is very small,
+//the coded slice data will be very close to the limitation value width() * height() * 3 / 2.
+//And the coded bitstream (slice_data + frame headers) will more than width() * height() * 3 / 2.
+//so we add VP8_HEADER_MAX_SIZE to m_maxCodedbufSize to make sure it's not overflow.
+#define VP8_HEADER_MAX_SIZE 0x4000
+
 void VaapiEncoderVP8::resetParams()
 {
-    //5 times compress ratio
-    m_maxCodedbufSize = width() * height() * 3 / 2;
-    //when the resolution of video is very small such as 96x96 and buffer plus the header of vp8,
-    //the size of actual output buffer maybe be bigger the m_maxCodedbufSize.
-    //So plusing 4096 avoids the situation.
-    m_maxCodedbufSize += 0x1000;
+    m_maxCodedbufSize = width() * height() * 3 / 2 + VP8_HEADER_MAX_SIZE;
 }
 
 YamiStatus VaapiEncoderVP8::start()
