@@ -28,7 +28,11 @@ public:
     BitReader(const uint8_t* data, uint32_t size);
     virtual ~BitReader() {}
 
+    /* Read specified bits(<= 8*sizeof(uint32_t)) as a uint32_t to v */
+    /* if not enough data, it will return false, eat all data and keep v untouched */
+    bool read(uint32_t& v, uint32_t nbits);
     /* Read specified bits(<= 8*sizeof(uint32_t)) as a uint32_t return value */
+    /* will return 0 if not enough data*/
     uint32_t read(uint32_t nbits);
 
     /*read the next nbits bits from the bitstream but not advance the bitstream pointer*/
@@ -58,13 +62,15 @@ public:
 
 protected:
     virtual void loadDataToCache(uint32_t nbytes);
-    inline uint32_t extractBitsFromCache(uint32_t nbits);
 
     const uint8_t* m_stream; /*a pointer to source data*/
     uint32_t m_size; /*the size of source data in bytes*/
     unsigned long int m_cache; /*the buffer which load less than or equal to 8 bytes*/
     uint32_t m_loadBytes; /*the total bytes of data read from source data*/
     uint32_t m_bitsInCache; /*the remaining bits in cache*/
+private:
+    inline uint32_t extractBitsFromCache(uint32_t nbits);
+    inline void reload();
 };
 
 } /*namespace YamiParser*/
