@@ -3,6 +3,7 @@ noinst_PROGRAMS = unittest
 unittest_SOURCES = \
 	unittest_main.cpp \
 	bitReader_unittest.cpp \
+	nalReader_unittest.cpp \
 	bitWriter_unittest.cpp \
 	$(NULL)
 
