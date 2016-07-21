@@ -29,8 +29,10 @@ public:
 
     /*parse Exp-Golomb coding*/
     bool readUe(uint32_t& v);
+    inline bool readUe(uint8_t& v);
     uint32_t readUe();
     bool readSe(int32_t& v);
+    inline bool readSe(int8_t& v);
     int32_t readSe();
 
     bool moreRbspData() const;
@@ -42,6 +44,24 @@ private:
 
     uint32_t m_epb; /*the number of emulation prevention bytes*/
 };
+
+bool NalReader::readUe(uint8_t& v)
+{
+    uint32_t tmp;
+    if (!readUe(tmp))
+        return false;
+    v = tmp;
+    return true;
+}
+
+bool NalReader::readSe(int8_t& v)
+{
+    int32_t tmp;
+    if (!readSe(tmp))
+        return false;
+    v = tmp;
+    return true;
+}
 
 } /*namespace YamiParser*/
 
