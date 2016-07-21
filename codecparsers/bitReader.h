@@ -35,6 +35,15 @@ public:
     /* will return 0 if not enough data*/
     uint32_t read(uint32_t nbits);
 
+    /*TODO: change to this to read, and change read to readBits */
+    template <class T>
+    inline bool readT(T& v, uint32_t nbits);
+
+    template <class T>
+    inline bool readT(T& v);
+
+    inline bool readT(bool& v);
+
     /*read the next nbits bits from the bitstream but not advance the bitstream pointer*/
     uint32_t peek(uint32_t nbits) const;
 
@@ -72,6 +81,27 @@ private:
     inline uint32_t extractBitsFromCache(uint32_t nbits);
     inline void reload();
 };
+
+template <class T>
+bool BitReader::readT(T& v, uint32_t nbits)
+{
+    uint32_t tmp;
+    if (!read(tmp, nbits))
+        return false;
+    v = tmp;
+    return true;
+}
+
+template <class T>
+bool BitReader::readT(T& v)
+{
+    return readT(v, sizeof(v) << 3);
+}
+
+bool BitReader::readT(bool& v)
+{
+    return readT(v, 1);
+}
 
 } /*namespace YamiParser*/
 
