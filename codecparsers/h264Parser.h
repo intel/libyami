@@ -178,8 +178,8 @@ public:
     NaluHeadSvcExt m_svc;
 
 private:
-    void parseSvcExtension(BitReader& br);
-    void parseMvcExtension(BitReader& br);
+    bool parseSvcExtension(BitReader& br);
+    bool parseMvcExtension(BitReader& br);
 };
 
 struct HRDParameters {
@@ -241,7 +241,7 @@ struct SPS {
     bool constraint_set4_flag;
     bool constraint_set5_flag;
     uint8_t level_idc;
-    int32_t sps_id; //seq_parameter_set_id
+    uint32_t sps_id; //seq_parameter_set_id
     uint8_t chroma_format_idc;
     bool separate_colour_plane_flag;
     uint8_t bit_depth_luma_minus8;
@@ -290,8 +290,8 @@ struct SPS {
 struct PPS {
     ~PPS();
 
-    int32_t pps_id;
-    int32_t sps_id;
+    uint32_t pps_id;
+    uint32_t sps_id;
 
     SharedPtr<SPS> m_sps;
 
@@ -383,7 +383,7 @@ public:
     uint16_t frame_num;
     bool field_pic_flag;
     bool bottom_field_flag;
-    uint16_t idr_pic_id;
+    uint32_t idr_pic_id;
     uint16_t pic_order_cnt_lsb;
     int32_t delta_pic_order_cnt_bottom;
     int32_t delta_pic_order_cnt[2];
