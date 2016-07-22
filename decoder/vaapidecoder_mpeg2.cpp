@@ -289,9 +289,6 @@ YamiStatus VaapiDecoderMPEG2::start(VideoConfigBuffer* buffer)
         m_parser->nextStartCode(m_stream.get(), next_code);
         DEBUG("start Next start_code %x", next_code);
         status = processConfigBuffer();
-        if (status == YAMI_DECODE_FORMAT_CHANGE) {
-            status = YAMI_SUCCESS;
-        }
     }
 
     return status;
