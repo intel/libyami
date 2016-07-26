@@ -336,8 +336,7 @@ VaapiDecoderH264::DPB::DPB(OutputCallback output)
     , m_noOutputOfPriorPicsFlag(false)
     , m_maxFrameNum(0)
     , m_maxNumRefFrames(0)
-    , m_maxDecFrameBuffering(H264_MAX_REFRENCE_SURFACE_NUMBER) // should calc by
-// level_idc, fix it later
+    , m_maxDecFrameBuffering(H264_MAX_REFRENCE_SURFACE_NUMBER)
 {
 }
 
@@ -974,7 +973,8 @@ bool VaapiDecoderH264::DPB::init(const PicturePtr& picture,
                                  const PicturePtr& prevPicture,
                                  const SliceHeader* const slice,
                                  const NalUnit* const nalu, bool newStream,
-                                 bool contextChanged)
+                                 bool contextChanged,
+                                 uint32_t maxDecFrameBuffering)
 {
     const SharedPtr<PPS> pps = slice->m_pps;
     const SharedPtr<SPS> sps = pps->m_sps;
@@ -983,6 +983,7 @@ bool VaapiDecoderH264::DPB::init(const PicturePtr& picture,
     m_maxFrameNum = 1 << (sps->log2_max_frame_num_minus4 + 4);
     m_decRefPicMarking = slice->dec_ref_pic_marking;
     m_maxNumRefFrames = MAX(sps->num_ref_frames, 1);
+    m_maxDecFrameBuffering = maxDecFrameBuffering;
     if (isField(picture))
         m_maxNumRefFrames *= 2;
 
@@ -1520,15 +1521,89 @@ YamiStatus VaapiDecoderH264::decodeCurrent()
     return status;
 }
 
-bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS> sps)
+uint32_t calcMaxDecFrameBufferingNum(const SharedPtr<SPS>& sps)
 {
-    uint8_t surfaceNumber = H264_MAX_REFRENCE_SURFACE_NUMBER
-                            + H264_EXTRA_SURFACE_NUMBER;
+
+    if (sps->vui_parameters_present_flag
+        && sps->m_vui.bitstream_restriction_flag) {
+        return sps->m_vui.max_dec_frame_buffering;
+    }
+
+    uint32_t maxDpbMbs;
+
+    /*get MaxDpbMbs as Table A-1*/
+    switch (sps->level_idc) {
+    case 9:
+    case 10:
+        maxDpbMbs = 396;
+        break;
+    case 11:
+        maxDpbMbs = 900;
+        break;
+    case 12:
+    case 13:
+    case 20:
+        maxDpbMbs = 2376;
+        break;
+    case 21:
+        maxDpbMbs = 4752;
+        break;
+    case 22:
+    case 30:
+        maxDpbMbs = 8100;
+        break;
+    case 31:
+        maxDpbMbs = 18000;
+        break;
+    case 32:
+        maxDpbMbs = 20480;
+        break;
+    case 40:
+    case 41:
+        maxDpbMbs = 32768;
+        break;
+    case 42:
+        maxDpbMbs = 34816;
+        break;
+    case 50:
+        maxDpbMbs = 110400;
+        break;
+    case 51:
+    case 52:
+        maxDpbMbs = 184320;
+        break;
+    default:
+        ERROR("undefined level_idc");
+        maxDpbMbs = 184320;
+        break;
+    }
+
+    uint32_t picWidthInMbs, frameHeightInMbs, maxDpbFrames;
+
+    picWidthInMbs = sps->pic_width_in_mbs_minus1 + 1; //(7-12)
+    frameHeightInMbs = (2 - sps->frame_mbs_only_flag)
+                       * (sps->pic_height_in_map_units_minus1 + 1); //(7-17)
+
+    maxDpbFrames = maxDpbMbs / (picWidthInMbs * frameHeightInMbs);
+
+    return maxDpbFrames;
+}
+
+bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
+{
+    uint32_t maxDecFrameBuffering;
+
+    maxDecFrameBuffering = calcMaxDecFrameBufferingNum(sps);
+
+    if (maxDecFrameBuffering > H264_MAX_REFRENCE_SURFACE_NUMBER)
+        maxDecFrameBuffering = H264_MAX_REFRENCE_SURFACE_NUMBER;
+    else if (maxDecFrameBuffering < sps->num_ref_frames)
+        maxDecFrameBuffering = sps->num_ref_frames;
 
     if (m_configBuffer.surfaceWidth < sps->m_width
         || m_configBuffer.surfaceHeight < sps->m_height
-        || m_configBuffer.surfaceNumber < surfaceNumber) {
-        m_configBuffer.surfaceNumber = surfaceNumber;
+        || m_configBuffer.surfaceNumber < (int32_t)maxDecFrameBuffering) {
+        m_configBuffer.surfaceNumber = maxDecFrameBuffering;
         m_contextChanged = true;
     } else
         m_contextChanged = false;
@@ -1536,7 +1611,7 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS> sps)
     return m_contextChanged;
 }
 
-YamiStatus VaapiDecoderH264::ensureContext(const SharedPtr<SPS> sps)
+YamiStatus VaapiDecoderH264::ensureContext(const SharedPtr<SPS>& sps)
 {
     if (isDecodeContextChanged(sps)) {
         INFO("frame size changed, reconfig codec. orig size %d x %d, new size: "
@@ -1650,7 +1725,7 @@ YamiStatus VaapiDecoderH264::decodeSlice(NalUnit* nalu)
             return status;
         if (!m_currPic
             || !m_dpb.init(m_currPic, m_prevPic, slice, nalu, m_newStream,
-                           m_contextChanged))
+                           m_contextChanged, m_configBuffer.surfaceNumber))
             return YAMI_DECODE_INVALID_DATA;
         if (!fillPicture(m_currPic, slice) || !fillIqMatrix(m_currPic, slice))
             return YAMI_FAIL;
