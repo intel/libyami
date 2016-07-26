@@ -702,7 +702,6 @@ namespace VC1 {
         m_frameHdr.pqindex = br->read(5);
         if (m_frameHdr.pqindex <= 8)
             m_frameHdr.halfqp = br->read(1);
-        m_frameHdr.pquantizer = 1;
         if (m_seqHdr.quantizer == 0) {
             m_frameHdr.pquant = QuantizerTranslationTable[m_frameHdr.pqindex];
             m_frameHdr.pquantizer = (m_frameHdr.pqindex <= 8) ? 1 : 0;
@@ -711,6 +710,12 @@ namespace VC1 {
             m_frameHdr.pquant = m_frameHdr.pqindex;
             if (m_seqHdr.quantizer == 1)
                 m_frameHdr.pquantizer = br->read(1);
+            else if (m_seqHdr.quantizer == 2)
+                m_frameHdr.pquantizer = 0;
+            else if (m_seqHdr.quantizer == 3)
+                m_frameHdr.pquantizer = 1;
+            else
+                assert(0);
         }
 
         if (m_seqHdr.extended_mv == 1)
@@ -852,7 +857,6 @@ namespace VC1 {
         m_frameHdr.pqindex = br->read(5);
         if (m_frameHdr.pqindex <= 8)
             m_frameHdr.halfqp = br->read(1);
-        m_frameHdr.pquantizer = 1;
         if (m_entryPointHdr.quantizer == 0) {
             m_frameHdr.pquant = QuantizerTranslationTable[m_frameHdr.pqindex];
             m_frameHdr.pquantizer = (m_frameHdr.pqindex <= 8);
@@ -861,6 +865,12 @@ namespace VC1 {
             m_frameHdr.pquant = m_frameHdr.pqindex;
             if (m_entryPointHdr.quantizer == 1)
                 m_frameHdr.pquantizer = br->read(1);
+            else if (m_entryPointHdr.quantizer == 2)
+                m_frameHdr.pquantizer = 0;
+            else if (m_entryPointHdr.quantizer == 3)
+                m_frameHdr.pquantizer = 1;
+            else
+                assert(0);
         }
 
         if (m_seqHdr.postprocflag == 1)
