@@ -1085,8 +1085,10 @@ bool VaapiDecoderH264::DPB::add(const PicturePtr& picture)
         return output(picture);
     }
 
-    while (isFull())
-        bump();
+    while (isFull()) {
+        if (!bump())
+            return false;
+    }
 
     if (!isSecondField(picture))
         m_pictures.insert(picture);
