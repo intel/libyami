@@ -25,7 +25,7 @@
 
 namespace YamiMediaCodec {
 
-enum { H264_EXTRA_SURFACE_NUMBER = 3, H264_MAX_REFRENCE_SURFACE_NUMBER = 16 };
+#define H264_MAX_REFRENCE_SURFACE_NUMBER 16
 
 class VaapiDecPictureH264;
 class VaapiDecoderH264 : public VaapiDecoderBase {
@@ -62,7 +62,8 @@ private:
         DPB(OutputCallback output);
         bool init(const PicturePtr&, const PicturePtr&,
                   const SliceHeader* const, const NalUnit* const,
-                  bool newStream, bool contextChanged);
+                  bool newStream, bool contextChanged,
+                  uint32_t maxDecFrameBuffering);
         bool add(const PicturePtr&);
         void initReference(const PicturePtr&, const SliceHeader* const);
         void flush();
@@ -129,7 +130,7 @@ private:
     YamiStatus decodePps(NalUnit*);
     YamiStatus decodeSlice(NalUnit*);
 
-    YamiStatus ensureContext(const SharedPtr<SPS> sps);
+    YamiStatus ensureContext(const SharedPtr<SPS>& sps);
     bool fillPicture(const PicturePtr&, const SliceHeader* const);
     bool fillSlice(const PicturePtr&, const SliceHeader* const,
                    const NalUnit* const);
@@ -143,7 +144,7 @@ private:
     void fillReferenceIndexForList(VASliceParameterBufferH264* sliceParam,
                                    const SliceHeader* const slice,
                                    RefSet& refSet, bool isList0);
-    bool isDecodeContextChanged(const SharedPtr<SPS> sps);
+    bool isDecodeContextChanged(const SharedPtr<SPS>& sps);
     bool decodeAvcRecordData(uint8_t* buf, int32_t bufSize);
 
     YamiStatus createPicture(const SliceHeader* const,
