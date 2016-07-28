@@ -18,6 +18,7 @@ libyami_vpp_source_c += oclpostprocess_blender.cpp
 libyami_vpp_source_c += oclpostprocess_osd.cpp
 libyami_vpp_source_c += oclpostprocess_transform.cpp
 libyami_vpp_source_c += oclpostprocess_mosaic.cpp
+libyami_vpp_source_c += oclpostprocess_wireframe.cpp
 endif
 
 libyami_vpp_source_h = \
@@ -44,6 +45,7 @@ libyami_vpp_source_h_priv += oclpostprocess_blender.h
 libyami_vpp_source_h_priv += oclpostprocess_osd.h
 libyami_vpp_source_h_priv += oclpostprocess_transform.h
 libyami_vpp_source_h_priv += oclpostprocess_mosaic.h
+libyami_vpp_source_h_priv += oclpostprocess_wireframe.h
 endif
 
 libyami_vpp_ldflags = \
@@ -71,6 +73,7 @@ libyami_vpp_ocl_kernel = \
 	../ocl/kernels/osd.cl \
 	../ocl/kernels/transform.cl \
 	../ocl/kernels/mosaic.cl \
+	../ocl/kernels/wireframe.cl \
 	$(NULL)
 kerneldir             = $(datadir)/libyami/kernel
 kernel_DATA           = $(libyami_vpp_ocl_kernel)

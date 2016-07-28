@@ -268,6 +268,7 @@ typedef struct VideoFrame {
 #define YAMI_VPP_OCL_OSD "vpp/ocl_osd"
 #define YAMI_VPP_OCL_TRANSFORM "vpp/ocl_transform"
 #define YAMI_VPP_OCL_MOSAIC "vpp/ocl_mosaic"
+#define YAMI_VPP_OCL_WIREFRAME "vpp/ocl_wireframe"
 
 #ifdef __cplusplus
 }
