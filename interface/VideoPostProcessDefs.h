@@ -28,6 +28,7 @@ typedef enum {
     VppParamTypeDenoise,
     VppParamTypeSharpening,
     VppParamTypeDeinterlace,
+    VppParamTypeWireframe,
 } VppParamType;
 
 typedef struct VppParamOsd {
@@ -82,6 +83,14 @@ typedef struct VPPDeinterlaceParameters {
     size_t size;
     VppDeinterlaceMode mode;
 } VPPDeinterlaceParameters;
+
+typedef struct VppParamWireframe {
+    size_t size;
+    uint32_t borderWidth;
+    uint8_t colorY;
+    uint8_t colorU;
+    uint8_t colorV;
+} VppParamWireframe;
 
 #ifdef __cplusplus
 }

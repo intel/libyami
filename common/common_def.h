@@ -54,6 +54,10 @@
 #define ALIGN_POW2(a, b) ((a + (b - 1)) & ~(b - 1))
 #endif
 
+#ifndef ALIGN2
+#define ALIGN2(a) ALIGN_POW2(a, 2)
+#endif
+
 #ifndef ALIGN8
 #define ALIGN8(a) ALIGN_POW2(a, 8)
 #endif
