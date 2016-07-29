@@ -33,6 +33,7 @@
     #include "EGL/eglext.h"
 #endif
 #include "interface/VideoCommonDefs.h"
+#include "v4l2codec_device_ops.h"
 #if ANDROID
 #include <va/va_android.h>
 #endif

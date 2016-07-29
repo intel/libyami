@@ -226,6 +226,7 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
         struct v4l2_buffer* qbuf = static_cast<struct v4l2_buffer*>(arg);
         if (qbuf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
             if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE) {
+                ASSERT(qbuf->memory == V4L2_MEMORY_ANDROID_BUFFER_HANDLE);
                 // create vaapi surface if input is android buffer_handle_t (for camera kMetadataBufferTypeGrallocSource)
                 uint32_t i = 0;
                 buffer_handle_t handle = reinterpret_cast<buffer_handle_t>(qbuf->m.planes[0].m.userptr);

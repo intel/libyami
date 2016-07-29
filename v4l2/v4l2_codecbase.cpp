@@ -391,7 +391,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 ERROR("unknown request buffer type: %d", reqbufs->type);
                 break;
             }
-            ASSERT(port == INPUT || reqbufs->memory == m_memoryMode[port]);
+            // ASSERT(port == INPUT || reqbufs->memory == m_memoryMode[port]);
             m_memoryMode[port] = reqbufs->memory;
             {
                 AutoLock locker(m_frameLock[port]);
@@ -461,9 +461,11 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             struct v4l2_buffer *dqbuf = static_cast<struct v4l2_buffer *>(arg);
             GET_PORT_INDEX(port, dqbuf->type, ret);
             ASSERT(ret != -1);
+            ASSERT(dqbuf->memory == m_memoryMode[port]);
             if (port == OUTPUT) {
             #ifdef ANDROID
                 if (m_streamOn[port] == false) {
+                    // simple deque the unsed output buffer for android surface's cancelBuffer()
                     dqbuf->index = m_framesTodo[port].front();
                     m_framesTodo[port].pop_front();
                     break;
@@ -471,6 +473,8 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             #endif
             }
 
+            DEBUG("port: %d, m_framesDone[port].size(): %zu, m_reqBufState[port]: %d",
+                port, m_framesDone[port].size(), m_reqBufState[port]);
             {
                 AutoLock locker (m_frameLock[port]);
                 if (m_framesDone[port].empty() ||
@@ -481,7 +485,6 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                     break;
                 }
             }
-            // ASSERT(dqbuf->memory == m_memoryMode[port]);
             ASSERT(dqbuf->length == m_bufferPlaneCount[port]);
             dqbuf->index = m_framesDone[port].front();
             ASSERT(dqbuf->index < m_maxBufferCount[port]);
@@ -490,9 +493,9 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             if (port == OUTPUT) {
                 _ret = giveOutputBuffer(dqbuf);
             } else {
-                DEBUG();
                 _ret = recycleInputBuffer(dqbuf);
             }
+
             ASSERT(_ret);
             {
                 AutoLock locker (m_frameLock[port]);
