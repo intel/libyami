@@ -94,7 +94,7 @@ typedef enum {
     VIDEO_DATA_MEMORY_TYPE_DMA_BUF,      // share buffer with camera device etc
     VIDEO_DATA_MEMORY_TYPE_SURFACE_ID,  // it can be used for surface sharing of transcoding, benefits suppressed rendering as well.
                                         //it is discouraged to use it for video rendering.
-    VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER, // ANativeWindowBuffer for android
+    VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE, // buffer_handle_t for android
 } VideoDataMemoryType;
 
 typedef struct VideoFrameRawData{
