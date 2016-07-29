@@ -200,7 +200,7 @@ bool EncodeInputSurface::getOneFrameInput(VideoFrameRawData& inputBuffer)
 {
     ANativeWindowBuffer* anb = NULL;
     memset(&inputBuffer, 0, sizeof(inputBuffer));
-    inputBuffer.memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER;
+    inputBuffer.memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
 
     anb = mBufferInfo.front();
     mBufferInfo.pop();
@@ -218,7 +218,7 @@ bool EncodeInputSurface::getOneFrameInput(VideoFrameRawData& inputBuffer)
         return false;
     }
 
-    inputBuffer.handle = (intptr_t)anb;
+    inputBuffer.handle = (intptr_t)anb->handle;
     DEBUG("get ANativeWindowBuffer: %p from surface to encode\n", anb);
     // FIXME, push it to queue after finish encoding
     mBufferInfo.push(anb);

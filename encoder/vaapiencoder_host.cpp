@@ -29,8 +29,6 @@ using namespace YamiMediaCodec;
 extern "C" {
 
 IVideoEncoder* createVideoEncoder(const char* mimeType) {
-    yamiTraceInit();
-
     if (!mimeType) {
         ERROR("NULL mime type.");
         return NULL;

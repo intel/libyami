@@ -39,6 +39,7 @@
     #include "EGL/eglext.h"
 #endif
 #include "interface/VideoCommonDefs.h"
+#include "v4l2codec_device_ops.h"
 #if ANDROID
 #include <va/va_android.h>
 #endif
@@ -112,8 +113,8 @@ class V4l2CodecBase {
     virtual void releaseCodecLock(bool lockable) {};
     virtual void flush() {}
 #if ANDROID
-    SharedPtr<VideoFrame> createVaSurface(const ANativeWindowBuffer* buf);
-    bool mapVideoFrames();
+    SharedPtr<VideoFrame> createVaSurface(const buffer_handle_t buf_handle, int32_t width, int32_t height);
+    bool mapVideoFrames(int32_t width, int32_t height);
 #endif
 
     VideoDataMemoryType m_memoryType;
@@ -130,7 +131,7 @@ class V4l2CodecBase {
     SharedPtr<IVideoPostProcess> m_vpp;
     uint32_t m_reqBuffCnt;
     std::vector<SharedPtr<VideoFrame> > m_videoFrames;
-    std::vector<ANativeWindowBuffer*> m_winBuff;
+    std::vector<buffer_handle_t> m_bufferHandle;
     gralloc_module_t* m_pGralloc;
 #else
     #if __ENABLE_X11__

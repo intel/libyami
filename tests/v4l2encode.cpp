@@ -36,8 +36,11 @@
 #include "v4l2/v4l2_wrapper.h"
 #include "encodehelp.h"
 #include "encodeinput.h"
+#include "v4l2/v4l2codec_device_ops.h"
 
-static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
+static enum v4l2_memory inputMemoryType = V4L2_MEMORY_USERPTR;
+const static enum v4l2_memory outputMemoryType = V4L2_MEMORY_MMAP;
+
 uint32_t inputFramePlaneCount = 3; // I420(default) format has 3 planes
 uint32_t inputFrameSize = 0;
 
@@ -72,9 +75,9 @@ bool readOneFrameData(uint32_t index)
     return ret;
 }
 
-void fillV4L2Buffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
+void fillV4L2InputBuffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
 {
-    if (memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_POINTER) {
+    if (inputMemoryType == V4L2_MEMORY_USERPTR) {
         uint32_t width[3];
         uint32_t height[3];
         uint32_t planes;
@@ -88,12 +91,14 @@ void fillV4L2Buffer(struct v4l2_buffer& buf, const VideoFrameRawData& frame)
             buf.m.planes[i].m.userptr = data + frame.offset[i];
         }
     }
-    else if (memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER) {
+#if ANDROID
+    else if (inputMemoryType == V4L2_MEMORY_ANDROID_BUFFER_HANDLE) {
         // !!! FIXME, v4l2 use long for userptr. so bad
-        DEBUG("ANativeWindowBuffer, frame.handle: %p", (void*)frame.handle);
+        DEBUG("ANativeWindowBuffer->handle: %p", (void*)frame.handle);
         buf.m.planes[0].m.userptr = (long)((intptr_t)frame.handle);
         buf.m.planes[0].bytesused = sizeof(buf.m.planes[0].m.userptr);
     }
+#endif
     else
         ASSERT(0 && "unknown memory type");
 }
@@ -109,7 +114,7 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
     memset(planes, 0, sizeof(planes));
     buf.m.planes = planes;
     buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type
-    buf.memory = V4L2_MEMORY_USERPTR;
+    buf.memory = inputMemoryType;
     buf.length = inputFramePlaneCount;
 
     if (index == -1) {
@@ -138,7 +143,7 @@ bool feedOneInputFrame(int fd, int index = -1 /* if index is not -1, simple enqu
         buf.m.planes[0].m.userptr = buf.m.planes[1].m.userptr = buf.m.planes[2].m.userptr = 0;
         buf.m.planes[0].bytesused = buf.m.planes[1].bytesused = buf.m.planes[2].bytesused = 0;
     } else {
-        fillV4L2Buffer(buf, inputFrames[buf.index]);
+        fillV4L2InputBuffer(buf, inputFrames[buf.index]);
     }
 
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QBUF, &buf);
@@ -180,7 +185,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
     memset(&buf, 0, sizeof(buf));
     memset(planes, 0, sizeof(planes));
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE; //it indicates output buffer type
-    buf.memory = V4L2_MEMORY_MMAP; // chromeos v4l2vea uses this mode only
+    buf.memory = outputMemoryType; // chromeos v4l2vea uses this mode only
     buf.m.planes = planes;
     buf.length = 1;
 
@@ -217,15 +222,13 @@ int main(int argc, char** argv)
     uint32_t i = 0;
     int32_t ioctlRet = -1;
 
-    yamiTraceInit();
-
     // parse command line parameters
     if (!process_cmdline(argc, argv))
         return -1;
 
 #if ANDROID
     if (!inputFileName) {
-        memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER;
+        inputMemoryType = (enum v4l2_memory)V4L2_MEMORY_ANDROID_BUFFER_HANDLE;
         inputFourcc = VA_FOURCC_NV12;
     }
 #endif
@@ -281,7 +284,14 @@ int main(int argc, char** argv)
     ASSERT(ioctlRet != -1);
 
     // set input buffer type
+    {
+    VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_POINTER;
+#if ANDROID
+    if (inputMemoryType == V4L2_MEMORY_ANDROID_BUFFER_HANDLE)
+        memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
+#endif
     YamiV4L2_FrameMemoryType(fd, memoryType);
+    }
 
     // set framerate
     struct v4l2_streamparm parms;
@@ -329,16 +339,14 @@ int main(int argc, char** argv)
     struct v4l2_requestbuffers reqbufs;
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    reqbufs.memory = V4L2_MEMORY_USERPTR;
+    reqbufs.memory = inputMemoryType;
     reqbufs.count = 2;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
     ASSERT(reqbufs.count>0 && reqbufs.count <= kMaxFrameQueueLength);
     inputQueueCapacity = reqbufs.count;
 
-#if ANDROID
-    if (memoryType != VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER)
-#endif
+    if (inputMemoryType == V4L2_MEMORY_USERPTR)
     {
         for (i = 0; i < inputQueueCapacity; i++) {
             inputFrames[i].handle = reinterpret_cast<intptr_t>(malloc(inputFrameSize));
@@ -350,7 +358,7 @@ int main(int argc, char** argv)
     // setup output buffers
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    reqbufs.memory = V4L2_MEMORY_MMAP;
+    reqbufs.memory = outputMemoryType;
     reqbufs.count = 2;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
@@ -364,7 +372,7 @@ int main(int argc, char** argv)
         memset(planes, 0, sizeof(planes));
         buffer.index = i;
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-        buffer.memory = V4L2_MEMORY_MMAP;
+        buffer.memory = outputMemoryType;
         buffer.m.planes = planes;
         buffer.length = 1;
         ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_QUERYBUF, &buffer);
@@ -428,14 +436,14 @@ int main(int argc, char** argv)
     // release queued input/output buffer
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    reqbufs.memory = V4L2_MEMORY_USERPTR;
+    reqbufs.memory = inputMemoryType;
     reqbufs.count = 0;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
 
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    reqbufs.memory = V4L2_MEMORY_MMAP;
+    reqbufs.memory = outputMemoryType;
     reqbufs.count = 0;
     ioctlRet = YamiV4L2_Ioctl(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);

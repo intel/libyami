@@ -59,10 +59,36 @@
 #include "v4l2/v4l2_wrapper.h"
 #endif
 
+int videoWidth = 0;
+int videoHeight = 0;
+static const char* typeStrDrmName = "drm-name";
+static const char* typeStrDmaBuf = "dma-buf";
+static const char* typeStrRawData = "raw-data";
+#define IS_DRM_NAME()   (!strcmp(memoryTypeStr, typeStrDrmName))
+#define IS_DMA_BUF()   (!strcmp(memoryTypeStr, typeStrDmaBuf))
+#define IS_RAW_DATA()   (!strcmp(memoryTypeStr, typeStrRawData))
+#define IS_ANDROID_BUFFER_HANDLE()   (!strcmp(memoryTypeStr, typeStrAndroidBufferHandle))
+
+static enum v4l2_memory inputMemoryType = V4L2_MEMORY_MMAP;
+#if ANDROID
+static const char* typeStrAndroidBufferHandle = "android-buffer-handle";
+static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
+static enum v4l2_memory outputMemoryType = (enum v4l2_memory) V4L2_MEMORY_ANDROID_BUFFER_HANDLE;
+static const char* memoryTypeStr = typeStrAndroidBufferHandle;
+#else
+static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
+static enum v4l2_memory outputMemoryType = V4L2_MEMORY_MMAP;
+static const char* memoryTypeStr = typeStrDrmName;
+#endif
+
 #ifdef ANDROID
 
 #ifndef CHECK_EQ
-#define CHECK_EQ(a, b) assert((a) == (b))
+#define CHECK_EQ(a, b) do {                     \
+            if ((a) != (b)) {                   \
+                assert(0 && "assert fails");    \
+            }                                   \
+    } while (0)
 #endif
 
 sp<SurfaceComposerClient> mClient;
@@ -88,8 +114,6 @@ bool createNativeWindow(__u32 pixelformat)
     mSurface = mSurfaceCtl->getSurface();
     mNativeWindow = mSurface;
 
-    int bufWidth = 640;
-    int bufHeight = 480;
     CHECK_EQ(0,
              native_window_set_usage(
              mNativeWindow.get(),
@@ -101,11 +125,10 @@ bool createNativeWindow(__u32 pixelformat)
              mNativeWindow.get(),
              NATIVE_WINDOW_SCALING_MODE_SCALE_TO_WINDOW));
 
-    CHECK_EQ(0, native_window_set_buffers_geometry(
+    CHECK_EQ(0, native_window_set_buffers_dimensions(
                 mNativeWindow.get(),
-                bufWidth,
-                bufHeight,
-                pixelformat));
+                videoWidth,
+                videoHeight));
 
     return true;
 }
@@ -175,25 +198,12 @@ const uint32_t k_maxInputBufferSize = 1024*1024;
 const int k_inputPlaneCount = 1;
 const int k_maxOutputPlaneCount = 3;
 int outputPlaneCount = 2;
-int videoWidth = 0;
-int videoHeight = 0;
 
 uint32_t inputQueueCapacity = 0;
 uint32_t outputQueueCapacity = 0;
 uint32_t k_extraOutputFrameCount = 2;
 static std::vector<uint8_t*> inputFrames;
 static std::vector<struct RawFrameData> rawOutputFrames;
-
-static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
-static const char* typeStrDrmName = "drm-name";
-static const char* typeStrDmaBuf = "dma-buf";
-static const char* typeStrRawData = "raw-data";
-// static const char* typeStrAndroidNativeBuffer = "android-native-buffer";
-static const char* memoryTypeStr = typeStrDrmName;
-#define IS_DRM_NAME()   (!strcmp(memoryTypeStr, typeStrDrmName))
-#define IS_DMA_BUF()   (!strcmp(memoryTypeStr, typeStrDmaBuf))
-#define IS_RAW_DATA()   (!strcmp(memoryTypeStr, typeStrRawData))
-// #define IS_ANDROID_NATIVE_BUFFER()   (!strcmp(memoryTypeStr, typeStrAndroidNativeBuffer))
 
 static FILE* outfp = NULL;
 #ifndef ANDROID
@@ -224,7 +234,7 @@ bool feedOneInputFrame(DecodeInput * input, int fd, int index = -1 /* if index i
     memset(&buf, 0, sizeof(buf));
     memset(&planes, 0, sizeof(planes));
     buf.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE; // it indicates input buffer(raw frame) type
-    buf.memory = V4L2_MEMORY_MMAP;
+    buf.memory = inputMemoryType;
     buf.m.planes = planes;
     buf.length = k_inputPlaneCount;
 
@@ -353,7 +363,7 @@ bool takeOneOutputFrame(int fd, int index = -1/* if index is not -1, simple enqu
     memset(&buf, 0, sizeof(buf));
     memset(&planes, 0, sizeof(planes));
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE; //it indicates output buffer type
-    buf.memory = V4L2_MEMORY_MMAP; // chromeos v4l2vea uses this mode only
+    buf.memory = outputMemoryType;
     buf.m.planes = planes;
     buf.length = outputPlaneCount;
 
@@ -430,7 +440,6 @@ int main(int argc, char** argv)
     int32_t ioctlRet = -1;
     YamiMediaCodec::CalcFps calcFps;
 
-    yamiTraceInit();
 #if __ENABLE_X11__
     XInitThreads();
 #endif
@@ -544,7 +553,7 @@ int main(int argc, char** argv)
     struct v4l2_requestbuffers reqbufs;
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    reqbufs.memory = V4L2_MEMORY_MMAP;
+    reqbufs.memory = inputMemoryType;
     reqbufs.count = 2;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
@@ -559,7 +568,7 @@ int main(int argc, char** argv)
         memset(planes, 0, sizeof(planes));
         buffer.index = i;
         buffer.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-        buffer.memory = V4L2_MEMORY_MMAP;
+        buffer.memory = inputMemoryType;
         buffer.m.planes = planes;
         buffer.length = k_inputPlaneCount;
         ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QUERYBUF, &buffer);
@@ -632,7 +641,7 @@ int main(int argc, char** argv)
 
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    reqbufs.memory = V4L2_MEMORY_MMAP;
+    reqbufs.memory = outputMemoryType;
     reqbufs.count = minOutputFrameCount;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
@@ -659,7 +668,7 @@ int main(int argc, char** argv)
             memset(planes, 0, sizeof(planes));
             buffer.index = i;
             buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-            buffer.memory = V4L2_MEMORY_MMAP;
+            buffer.memory = outputMemoryType;
             buffer.m.planes = planes;
             buffer.length = outputPlaneCount;
             ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_QUERYBUF, &buffer);
@@ -740,7 +749,7 @@ int main(int argc, char** argv)
             return -1;
         }
 
-        buffer.m.userptr = (unsigned long)pbuf;
+        buffer.m.userptr = (unsigned long)pbuf->handle;
         buffer.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
         buffer.index = i;
 
@@ -799,14 +808,14 @@ int main(int argc, char** argv)
     // release queued input/output buffer
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE;
-    reqbufs.memory = V4L2_MEMORY_MMAP;
+    reqbufs.memory = inputMemoryType;
     reqbufs.count = 0;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);
 
     memset(&reqbufs, 0, sizeof(reqbufs));
     reqbufs.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
-    reqbufs.memory = V4L2_MEMORY_MMAP;
+    reqbufs.memory = outputMemoryType;
     reqbufs.count = 0;
     ioctlRet = SIMULATE_V4L2_OP(Ioctl)(fd, VIDIOC_REQBUFS, &reqbufs);
     ASSERT(ioctlRet != -1);

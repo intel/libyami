@@ -69,7 +69,6 @@ V4l2CodecPtr _findCodecFromFd(int fd)
 
 int32_t YamiV4L2_Open(const char* name, int32_t flags)
 {
-    yamiTraceInit();
     V4l2CodecPtr v4l2Codec = V4l2CodecBase::createCodec(name, flags);
     {
         YamiMediaCodec::AutoLock locker(s_codecMapLock);
@@ -214,8 +213,8 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
             memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
         } else if (!strcmp(value, "surface-id")) {
             memoryType = VIDEO_DATA_MEMORY_TYPE_SURFACE_ID;
-        } else if (!strcmp(value, "android-native-buffer")) {
-            memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER;
+        } else if (!strcmp(value, "android-buffer-handle")) {
+            memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
         } else {
             ERROR("unknow output frame memory type: %s\n", value);
             return -1;

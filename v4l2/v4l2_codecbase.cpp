@@ -395,7 +395,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 ERROR("unknown request buffer type: %d", reqbufs->type);
                 break;
             }
-            ASSERT(port == INPUT || reqbufs->memory == m_memoryMode[port]);
+            // ASSERT(port == INPUT || reqbufs->memory == m_memoryMode[port]);
             m_memoryMode[port] = reqbufs->memory;
             {
                 AutoLock locker(m_frameLock[port]);
@@ -463,9 +463,11 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             // ::Dequeue
             struct v4l2_buffer *dqbuf = static_cast<struct v4l2_buffer *>(arg);
             GET_PORT_INDEX(port, dqbuf->type, ret);
+            ASSERT(dqbuf->memory == m_memoryMode[port]);
             if (port == OUTPUT) {
             #ifdef ANDROID
                 if (m_streamOn[port] == false) {
+                    // simple deque the unsed output buffer for android surface's cancelBuffer()
                     dqbuf->index = m_framesTodo[port].front();
                     m_framesTodo[port].pop_front();
                     break;
@@ -473,6 +475,8 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             #endif
             }
 
+            DEBUG("port: %d, m_framesDone[port].size(): %zu, m_reqBufState[port]: %d",
+                port, m_framesDone[port].size(), m_reqBufState[port]);
             {
                 AutoLock locker (m_frameLock[port]);
                 if (m_framesDone[port].empty() ||
@@ -483,7 +487,6 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                     break;
                 }
             }
-            // ASSERT(dqbuf->memory == m_memoryMode[port]);
             ASSERT(dqbuf->length == m_bufferPlaneCount[port]);
             dqbuf->index = m_framesDone[port].front();
             ASSERT(dqbuf->index < m_maxBufferCount[port]);
@@ -492,9 +495,9 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             if (port == OUTPUT) {
                 _ret = giveOutputBuffer(dqbuf);
             } else {
-                DEBUG();
                 _ret = recycleInputBuffer(dqbuf);
             }
+
             ASSERT(_ret);
             {
                 AutoLock locker (m_frameLock[port]);
@@ -662,7 +665,7 @@ inline bool V4l2CodecBase::createVpp()
     m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
     return m_vpp->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
 }
-SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const ANativeWindowBuffer* buf)
+SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const buffer_handle_t buf_handle, int32_t width, int32_t height)
 {
     SharedPtr<VideoFrame> frame;
 
@@ -673,7 +676,7 @@ SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const ANativeWindowBuffer* 
     int err = 0;
     // it's better skip pitch attribute here, but vaapi driver retrieve the pitch by itself
     if (m_pGralloc)
-        err = m_pGralloc->perform(m_pGralloc, INTEL_UFO_GRALLOC_MODULE_PERFORM_GET_BO_INFO, (buffer_handle_t)buf->handle, &info);
+        err = m_pGralloc->perform(m_pGralloc, INTEL_UFO_GRALLOC_MODULE_PERFORM_GET_BO_INFO, buf_handle, &info);
 
     if (0 != err || !m_pGralloc) {
         fprintf(stderr, "create vaSurface failed\n");
@@ -687,12 +690,12 @@ SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const ANativeWindowBuffer* 
     memset(&external, 0, sizeof(external));
 
     external.pixel_format = VA_FOURCC_NV12;
-    external.width = buf->width;
-    external.height = buf->height;
+    external.width = width;
+    external.height = height;
     external.pitches[0] = info.pitch;
     external.num_planes = 2;
     external.num_buffers = 1;
-    uint8_t* handle = (uint8_t*)buf->handle;
+    uint8_t* handle = (uint8_t*)buf_handle;
     external.buffers = (long unsigned int*)&handle; //graphic handel
     external.flags = VA_SURFACE_ATTRIB_MEM_TYPE_ANDROID_GRALLOC;
 
@@ -703,7 +706,7 @@ SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const ANativeWindowBuffer* 
 
     VASurfaceID id;
     VAStatus vaStatus = vaCreateSurfaces(m_vaDisplay, VA_RT_FORMAT_YUV420,
-        buf->width, buf->height, &id, 1, &attrib, 1);
+        width, height, &id, 1, &attrib, 1);
     if (vaStatus != VA_STATUS_SUCCESS)
         return frame;
 
@@ -711,18 +714,19 @@ SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const ANativeWindowBuffer* 
     memset(frame.get(), 0, sizeof(VideoFrame));
 
     frame->surface = static_cast<intptr_t>(id);
-    frame->crop.width = buf->width;
-    frame->crop.height = buf->height;
+    frame->crop.width = width;
+    frame->crop.height = height;
 
     return frame;
 }
 
-bool V4l2CodecBase::mapVideoFrames()
+bool V4l2CodecBase::mapVideoFrames(int32_t width, int32_t height)
 {
     SharedPtr<VideoFrame> frame;
 
-    for (uint32_t i = 0; i < m_winBuff.size(); i++) {
-        frame = createVaSurface(m_winBuff[i]);
+    DEBUG("create_surface: %d x %d\n", width, height);
+    for (uint32_t i = 0; i < m_bufferHandle.size(); i++) {
+        frame = createVaSurface(m_bufferHandle[i], width, height);
         if (!frame)
             return false;
         m_videoFrames.push_back(frame);

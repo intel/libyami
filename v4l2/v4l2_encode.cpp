@@ -118,7 +118,7 @@ bool V4l2Encoder::inputPulse(uint32_t index)
         UpdateVideoParameters(true);
 
 #if ANDROID
-    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER) {
+    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE) {
         status = m_encoder->encode(m_videoFrames[index]);
     }
     else
@@ -170,7 +170,7 @@ bool V4l2Encoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
     uint32_t i;
     VideoEncRawBuffer *inputBuffer = &(m_inputFrames[qbuf->index]);
 #if ANDROID
-    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER)
+    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE)
         return true;
 #endif
     // XXX todo: add multiple planes support for yami
@@ -230,26 +230,29 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
 #if ANDROID
     {
         struct v4l2_buffer* qbuf = static_cast<struct v4l2_buffer*>(arg);
-        if (qbuf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE && m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_NATIVE_BUFFER) {
-            // create vaapi surface if input is ANativeWindowBuffer
-            uint32_t i = 0;
-            ANativeWindowBuffer* buf = reinterpret_cast<ANativeWindowBuffer*>(qbuf->m.planes[0].m.userptr);
-            DEBUG("ANativeWindowBuffer *buf: %p\n", buf);
-            if (buf) {
-                for (i = 0; i < m_winBuff.size(); i++) {
-                    if (m_winBuff[i] == buf)
-                        break;
-                }
-
-                if (i == m_winBuff.size() && buf) {
-                    SharedPtr<VideoFrame> frame;
-                    frame = createVaSurface(buf);
-                    if (!frame) {
-                        ERROR("fail to create va surface from ANativeWindowBuffer: %p\n", buf);
-                        return -1;
+        if (qbuf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+            if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE) {
+                ASSERT(qbuf->memory == V4L2_MEMORY_ANDROID_BUFFER_HANDLE);
+                // create vaapi surface if input is android buffer_handle_t (for camera kMetadataBufferTypeGrallocSource)
+                uint32_t i = 0;
+                buffer_handle_t handle = reinterpret_cast<buffer_handle_t>(qbuf->m.planes[0].m.userptr);
+                DEBUG("buffer_handle_t: 0x%x\n", handle);
+                if (handle) {
+                    for (i = 0; i < m_bufferHandle.size(); i++) {
+                        if (m_bufferHandle[i] == handle)
+                            break;
                     }
-                    m_winBuff.push_back(buf);
-                    m_videoFrames.push_back(frame);
+
+                    if (i == m_bufferHandle.size() && handle) {
+                        SharedPtr<VideoFrame> frame;
+                        frame = createVaSurface(handle, m_videoParams.resolution.width, m_videoParams.resolution.height);
+                        if (!frame) {
+                            ERROR("fail to create va surface from ANativeWindowBuffer: 0x%x\n", handle);
+                            return -1;
+                        }
+                        m_bufferHandle.push_back(handle);
+                        m_videoFrames.push_back(frame);
+                    }
                 }
             }
         }

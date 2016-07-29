@@ -40,6 +40,15 @@ FILE* yamiLogFn;
 int isInit = 0;
 static YamiMediaCodec::Lock g_traceLock;
 
+void yamiTraceInit();
+
+class TraceInitor {
+  public:
+    TraceInitor() { yamiTraceInit(); }
+    ~TraceInitor() {}
+};
+static class TraceInitor g_initor;
+
 void yamiTraceInit()
 {
     YamiMediaCodec::AutoLock locker(g_traceLock);
