@@ -124,6 +124,4 @@ extern int isInit;
 #define YAMI_LOG_INFO 0x3
 #define YAMI_LOG_DEBUG 0x4
 
-void yamiTraceInit();
-
 #endif                          //__LOG_H__

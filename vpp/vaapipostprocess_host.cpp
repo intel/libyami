@@ -28,8 +28,6 @@ extern "C" {
 
 IVideoPostProcess *createVideoPostProcess(const char *mimeType)
 {
-    yamiTraceInit();
-
     if (!mimeType) {
         ERROR("NULL mime type.");
         return NULL;

@@ -239,7 +239,6 @@ Parser::Parser(const uint8_t* data, const uint32_t size)
     , m_sawEOI(false)
     , m_restartInterval(0)
 {
-    yamiTraceInit();
 }
 
 bool Parser::skipBytes(const uint32_t nBytes)

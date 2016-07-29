@@ -109,7 +109,6 @@ protected:
     /* invoked by gtest before the test */
     virtual void SetUp()
     {
-        yamiTraceInit();
         return;
     }
 
