@@ -122,7 +122,6 @@ namespace MPEG2 {
 
     Parser::Parser()
     {
-        yamiTraceInit(); // enable logging
     }
 
     Parser::~Parser() {}

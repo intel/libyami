@@ -216,7 +216,6 @@ VaapiDecoderMPEG2::VaapiDecoderMPEG2()
     m_stream.reset(new StreamHeader());
     m_previousStartCode = YamiParser::MPEG2::MPEG2_INVALID_START_CODE;
     m_nextStartCode = YamiParser::MPEG2::MPEG2_SEQUENCE_HEADER_CODE;
-    yamiTraceInit(); // enabling debug
     INFO("VaapiDecoderMPEG2 constructor");
 }
 
