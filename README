@@ -61,6 +61,12 @@ Simple api demo application
 https://github.com/01org/libyami-utils/blob/master/examples/simpleplayer.cpp
 
 
+Ffmpeg integration
+--------------------------
+You can refer to https://github.com/01org/ffmpeg_libyami for  ffmpeg integration.
+You can report ffmpeg related issue to https://github.com/01org/ffmpeg_libyami/issues
+
+
 Build instructions
 ------------------
 https://github.com/01org/libyami/wiki/Build
