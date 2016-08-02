@@ -189,10 +189,14 @@ typedef struct VideoRateControlParams {
     uint32_t targetPercentage;
     uint32_t disableFrameSkip;
     uint32_t disableBitsStuffing;
+    int8_t diffQPIP;// P frame qp minus initQP
+    int8_t diffQPIB;// B frame qp minus initQP
+
 #ifndef __ENABLE_CAPI__
      VideoRateControlParams():bitRate(0), initQP(0), minQP(0)
     , windowSize(0), targetPercentage(0)
-    , disableFrameSkip(0), disableBitsStuffing(0) {
+    , disableFrameSkip(0), disableBitsStuffing(0)
+    , diffQPIP(0), diffQPIB(0) {
     };
 #endif
 }VideoRateControlParams;
