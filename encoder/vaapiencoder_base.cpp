@@ -57,6 +57,8 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.rcParams.windowSize = 500;
     m_videoParamCommon.rcParams.disableBitsStuffing = 1;
     m_videoParamCommon.leastInputCount = 0;
+    m_videoParamCommon.rcParams.diffQPIP = 0;
+    m_videoParamCommon.rcParams.diffQPIB = 0;
 
     updateMaxOutputBufferCount();
 }

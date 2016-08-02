@@ -1356,6 +1356,26 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
         fillReferenceList(sliceParam);
 
         sliceParam->slice_qp_delta = initQP() - minQP();
+        if(rateControlMode() == RATE_CONTROL_CQP){
+            switch (picture->m_type) {
+            case VAAPI_PICTURE_B:
+                sliceParam->slice_qp_delta += m_videoParamCommon.rcParams.diffQPIB;
+                break;
+            case VAAPI_PICTURE_P:
+                sliceParam->slice_qp_delta += m_videoParamCommon.rcParams.diffQPIP;
+                break;
+            case VAAPI_PICTURE_I:
+            default:
+                break;
+            }
+            if(initQP() + sliceParam->slice_qp_delta > maxQP()){
+                sliceParam->slice_qp_delta = maxQP() - initQP();
+            }
+            if(initQP() + sliceParam->slice_qp_delta < minQP()){
+                sliceParam->slice_qp_delta = minQP() - initQP();
+            }
+        }
+
         if (sliceParam->slice_qp_delta > 4)
             sliceParam->slice_qp_delta = 4;
 
