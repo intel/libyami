@@ -1635,7 +1635,7 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
         /* set calculation for next slice */
         lastCtuIndex += curSliceCtus;
 
-        sliceParam->slice_fields.bits.slice_deblocking_filter_disabled_flag = 1;
+        sliceParam->slice_fields.bits.slice_deblocking_filter_disabled_flag = 0;
 
         sliceParam->slice_fields.bits.last_slice_of_pic_flag = (lastCtuIndex == numCtus);
 
