@@ -40,17 +40,23 @@ YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
     uint32_t height = params->height;
     if (!width || !height || !size)
         return YAMI_INVALID_PARAM;
-    if (params->fourcc != YAMI_FOURCC_NV12) {
-        ERROR("fix me for 10 bits");
-        return YAMI_INVALID_PARAM;
+    uint32_t rtFormat = getRtFormat(params->fourcc);
+    if (!rtFormat) {
+        ERROR("unsupported format %x", params->fourcc);
+        return YAMI_UNSUPPORTED;
     }
 
     size += m_extraSize;
 
     std::vector<VASurfaceID> v(size);
+    VASurfaceAttrib attrib;
+    attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
+    attrib.type = VASurfaceAttribPixelFormat;
+    attrib.value.type = VAGenericValueTypeInteger;
+    attrib.value.value.i = params->fourcc;
     VAStatus status = vaCreateSurfaces(m_display,
-        VA_RT_FORMAT_YUV420, width, height,
-        &v[0], size, NULL, 0);
+        rtFormat, width, height,
+        &v[0], size, &attrib, 1);
     if (!checkVaapiStatus(status, "vaCreateSurfaces"))
         return YAMI_OUT_MEMORY;
     params->surfaces = new intptr_t[size];

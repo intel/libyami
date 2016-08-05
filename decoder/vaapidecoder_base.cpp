@@ -46,6 +46,7 @@ VaapiDecoderBase::VaapiDecoderBase()
     m_externalDisplay.type = NATIVE_DISPLAY_AUTO,
     memset(&m_videoFormatInfo, 0, sizeof(VideoFormatInfo));
     memset(&m_configBuffer, 0, sizeof(m_configBuffer));
+    m_configBuffer.fourcc = YAMI_FOURCC_NV12;
 }
 
 VaapiDecoderBase::~VaapiDecoderBase()
@@ -87,6 +88,23 @@ YamiStatus VaapiDecoderBase::start(VideoConfigBuffer* buffer)
     m_videoFormatInfo.surfaceWidth = buffer->surfaceWidth;
     m_videoFormatInfo.surfaceHeight = buffer->surfaceHeight;
     m_videoFormatInfo.surfaceNumber = buffer->surfaceNumber;
+    if (!m_configBuffer.fourcc) {
+        /* This just a workaround, user usually memset the VideoConfigBuffer to zero, and we will copy it to m_configBuffer.
+           We need remove fields only for internal user from VideoConfigBuffer
+           i.e., following thing should removed:
+            int32_t surfaceWidth;
+            int32_t surfaceHeight;
+            int32_t frameRate;
+            int32_t surfaceNumber;
+            VAProfile profile;
+            uint32_t flag;
+            uint32_t fourcc;
+        */
+        m_videoFormatInfo.fourcc = m_configBuffer.fourcc = YAMI_FOURCC_NV12;
+    }
+    else {
+        m_videoFormatInfo.fourcc = m_configBuffer.fourcc;
+    }
 
     status = setupVA(buffer->surfaceNumber, buffer->profile);
     if (status != YAMI_SUCCESS)
@@ -179,8 +197,7 @@ SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
         frame->crop.y = 0;
         frame->crop.width = m_videoFormatInfo.width;
         frame->crop.height = m_videoFormatInfo.height;
-        //TODO: get fourcc directly from surface allocator
-        frame->fourcc = YAMI_FOURCC_NV12;
+        frame->fourcc = m_videoFormatInfo.fourcc;
     }
     return frame;
 }
