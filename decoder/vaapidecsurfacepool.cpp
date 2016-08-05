@@ -44,7 +44,7 @@ bool VaapiDecSurfacePool::init(const DisplayPtr& display, VideoConfigBuffer* con
     m_allocator = allocator;
     m_allocParams.width = config->surfaceWidth;
     m_allocParams.height = config->surfaceHeight;
-    m_allocParams.fourcc = YAMI_FOURCC_NV12;
+    m_allocParams.fourcc = config->fourcc;
     m_allocParams.size = config->surfaceNumber;
     if (m_allocator->alloc(m_allocator.get(), &m_allocParams) != YAMI_SUCCESS) {
         ERROR("allocate surface failed (%dx%d), size = %d",

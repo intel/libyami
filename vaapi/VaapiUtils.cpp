@@ -18,6 +18,7 @@
 #include "config.h"
 #endif
 
+#include "interface/VideoCommonDefs.h"
 #include "VaapiUtils.h"
 
 namespace YamiMediaCodec {
@@ -40,5 +41,30 @@ void unmapImage(VADisplay display, const VAImage& image)
 {
     checkVaapiStatus(vaUnmapBuffer(display, image.buf), "vaUnmapBuffer");
     checkVaapiStatus(vaDestroyImage(display, image.image_id), "vaDestroyImage");
+}
+
+//return rt format, 0 for unsupported
+uint32_t getRtFormat(uint32_t fourcc)
+{
+    switch (fourcc) {
+    case YAMI_FOURCC_NV12:
+    case YAMI_FOURCC_I420:
+    case YAMI_FOURCC_YV12:
+    case YAMI_FOURCC_IMC3:
+        return VA_RT_FORMAT_YUV420;
+    case YAMI_FOURCC_422H:
+    case YAMI_FOURCC_422V:
+    case YAMI_FOURCC_YUY2:
+        return VA_RT_FORMAT_YUV422;
+    case YAMI_FOURCC_444P:
+        return VA_RT_FORMAT_YUV444;
+    case YAMI_FOURCC_RGBX:
+    case YAMI_FOURCC_RGBA:
+    case YAMI_FOURCC_BGRX:
+    case YAMI_FOURCC_BGRA:
+        return VA_RT_FORMAT_RGB32;
+    }
+    ERROR("get rt format for %.4s failed", (char*)&fourcc);
+    return 0;
 }
 }

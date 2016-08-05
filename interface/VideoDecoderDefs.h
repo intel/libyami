@@ -56,6 +56,7 @@ typedef struct {
     int32_t surfaceNumber;
     VAProfile profile;
     uint32_t flag;
+    uint32_t fourcc;
 }VideoConfigBuffer;
 
 typedef struct {
@@ -83,6 +84,7 @@ typedef struct {
     int32_t bitrate;
     int32_t framerateNom;
     int32_t framerateDenom;
+    uint32_t fourcc;
 }VideoFormatInfo;
 
 #ifdef __cplusplus

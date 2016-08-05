@@ -358,6 +358,46 @@ YamiStatus VaapiDecoderJPEG::decode(VideoDecodeBuffer* buffer)
     return m_impl->decode(buffer->data, buffer->size);
 }
 
+#define RETURN_FORMAT(f)                             \
+    do {                                             \
+        uint32_t fourcc = f;                         \
+        DEBUG("jpeg format %.4s", (char*) & fourcc); \
+        return fourcc;                               \
+    } while (0)
+
+//get frame fourcc, return 0 for unsupport format
+static uint32_t getFourcc(const FrameHeader::Shared& frame)
+{
+    if (frame->components.size() != 3) {
+        ERROR("unsupported compoent size %d", (int)frame->components.size());
+        return 0;
+    }
+    int h1 = frame->components[0]->hSampleFactor;
+    int h2 = frame->components[1]->hSampleFactor;
+    int h3 = frame->components[2]->hSampleFactor;
+    int v1 = frame->components[0]->vSampleFactor;
+    int v2 = frame->components[1]->vSampleFactor;
+    int v3 = frame->components[2]->vSampleFactor;
+    if (h2 != h3 || v2 != v3) {
+        ERROR("unsupported format h1 = %d, h2 = %d, h3 = %d, v1 = %d, v2 = %d, v3 = %d", h1, h2, h3, v1, v2, v3);
+        return 0;
+    }
+    if (h1 == h2) {
+        if (v1 == v2)
+            RETURN_FORMAT(YAMI_FOURCC_444P);
+        if (v1 == 2 * v2)
+            RETURN_FORMAT(YAMI_FOURCC_422V);
+    }
+    else if (h1 == 2 * h2) {
+        if (v1 == v2)
+            RETURN_FORMAT(YAMI_FOURCC_422H);
+        if (v1 == 2 * v2)
+            RETURN_FORMAT(YAMI_FOURCC_IMC3);
+    }
+    ERROR("unsupported format h1 = %d, h2 = %d, h3 = %d, v1 = %d, v2 = %d, v3 = %d", h1, h2, h3, v1, v2, v3);
+    return 0;
+}
+
 YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
 {
     DEBUG("%s", __func__);
@@ -390,6 +430,10 @@ YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
     m_configBuffer.height = frame->imageHeight;
     m_configBuffer.surfaceWidth = frame->imageWidth;
     m_configBuffer.surfaceHeight = frame->imageHeight;
+    m_configBuffer.fourcc = getFourcc(frame);
+    if (!m_configBuffer.fourcc) {
+        return YAMI_UNSUPPORTED;
+    }
 
     /* Now we can actually start */
     if (VaapiDecoderBase::start(&m_configBuffer) != YAMI_SUCCESS)
