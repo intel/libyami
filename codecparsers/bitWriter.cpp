@@ -109,11 +109,17 @@ bool BitWriter::writeBytes(uint8_t* data, uint32_t numBytes)
     return true;
 }
 
-void BitWriter::writeToBytesAligned()
+void BitWriter::writeToBytesAligned(bool bit)
 {
     uint8_t padBits = m_bitsInCache & 0x7;
-    if (padBits)
-        writeBits(0, 8 - padBits);
+    uint32_t value;
+    if (padBits) {
+        if (bit)
+            value = (1 << (8 - padBits)) - 1;
+        else
+            value = 0;
+        writeBits(value, 8 - padBits);
+    }
 }
 
 } /*namespace YamiParser*/

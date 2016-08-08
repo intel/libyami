@@ -42,6 +42,10 @@
 #define MAX(a, b)  (((a) > (b)) ? (a) : (b))
 #endif
 
+#define CLIP(a, min, max) do { \
+        a = (MIN(max, MAX(a, min)));      \
+} while (0)
+
 #ifndef N_ELEMENTS
 #define N_ELEMENTS(array) (sizeof(array)/sizeof(array[0]))
 #endif
