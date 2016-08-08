@@ -38,7 +38,7 @@ public:
     bool writeBytes(uint8_t* data, uint32_t numBytes);
 
     /* Pad some zeros to make sure bitsteam byte aligned */
-    void writeToBytesAligned();
+    void writeToBytesAligned(bool bit = false);
 
     /* get encoded bitstream buffer */
     uint8_t* getBitWriterData();

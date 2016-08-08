@@ -272,6 +272,8 @@ typedef struct VideoParamsAVC {
     bool  enableDeblockFilter;
     int8_t deblockAlphaOffsetDiv2; //same as slice_alpha_c0_offset_div2 defined in h264 spec 7.4.3
     int8_t deblockBetaOffsetDiv2; //same as slice_beta_offset_div2 defined in h264 spec 7.4.3
+    uint32_t temporalLayerNum;
+    uint32_t priorityId;
 }VideoParamsAVC;
 
 typedef struct VideoParamsHRD {
