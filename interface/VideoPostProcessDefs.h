@@ -56,7 +56,7 @@ typedef struct VppParamMosaic {
 
 #define DENOISE_LEVEL_MIN 0
 #define DENOISE_LEVEL_MAX 100
-#define DENOISE_LEVEL_NONE (DENOISE_LEVEL_MAX + 1)
+#define DENOISE_LEVEL_NONE (DENOISE_LEVEL_MIN - 1)
 
 typedef struct VPPDenoiseParameters {
     size_t size;
@@ -65,7 +65,7 @@ typedef struct VPPDenoiseParameters {
 
 #define SHARPENING_LEVEL_MIN 0
 #define SHARPENING_LEVEL_MAX 100
-#define SHARPENING_LEVEL_NONE (SHARPENING_LEVEL_MAX + 1)
+#define SHARPENING_LEVEL_NONE (SHARPENING_LEVEL_MIN - 1)
 
 typedef struct VPPSharpeningParameters {
     size_t size;
