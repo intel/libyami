@@ -28,57 +28,11 @@ extern "C" {
 
 // flags for VideoDecodeBuffer, VideoConfigBuffer and VideoRenderBuffer
 typedef enum {
-    // indicates if sample has discontinuity in time stamp (happen after seeking usually)
-    HAS_DISCONTINUITY = 0x01,
-
-    // indicates wheter the sample contains a complete frame or end of frame.
-    HAS_COMPLETE_FRAME = 0x02,
-
     // indicate whether surfaceNumber field  in the VideoConfigBuffer is valid
     HAS_SURFACE_NUMBER = 0x04,
 
     // indicate whether profile field in the VideoConfigBuffer is valid
     HAS_VA_PROFILE = 0x08,
-
-    // indicate whether output order will be the same as decoder order
-    WANT_LOW_DELAY = 0x10,      // make display order same as decoding order
-
-    // indicates whether error concealment algorithm should be enabled to automatically conceal error.
-    WANT_ERROR_CONCEALMENT = 0x20,
-
-    // indicate wheter raw data should be output.
-    WANT_RAW_OUTPUT = 0x40,
-
-    // indicate sample is decoded but should not be displayed.
-    WANT_DECODE_ONLY = 0x80,
-
-    // indicate surfaceNumber field is valid and it contains minimum surface number to allocate.
-    HAS_MINIMUM_SURFACE_NUMBER = 0x100,
-
-    // indicates surface created will be protected
-    WANT_SURFACE_PROTECTION = 0x400,
-
-    // indicates if extra data is appended at end of buffer
-    HAS_EXTRADATA = 0x800,
-
-    // indicates if buffer contains codec data
-    HAS_CODECDATA = 0x1000,
-
-    // indicate if it use graphic buffer.
-    USE_NATIVE_GRAPHIC_BUFFER = 0x2000,
-
-    // indicate whether it is a sync frame in container
-    IS_SYNC_FRAME = 0x4000,
-
-    // indicate whether video decoder buffer contains secure data
-    IS_SECURE_DATA = 0x8000,
-
-    // indicate the input data is a NAL unit for h264
-    IS_NAL_UNIT = IS_SECURE_DATA << 1, // 0x10000
-
-    // the input data is in avcC format (not byte stream)  for h264
-    IS_AVCC = IS_NAL_UNIT << 1, // 0x20000
-
 } VIDEO_BUFFER_FLAG;
 
 typedef struct {
