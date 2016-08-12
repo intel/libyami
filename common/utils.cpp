@@ -35,11 +35,13 @@ namespace YamiMediaCodec{
 
 uint32_t guessFourcc(const char* fileName)
 {
-    static const char *possibleFourcc[] = {
-            "I420", "NV12", "YV12",
-            "YUY2", "UYVY",
-            "RGBX", "BGRX", "XRGB", "XBGR"
-        };
+    static const char* possibleFourcc[] = {
+        "I420", "NV12", "YV12",
+        "YUY2", "UYVY",
+        "RGBX", "BGRX", "XRGB", "XBGR",
+        //for jpeg
+        "444P", "422V", "422H", "IMC3"
+    };
     const char* extension = strrchr(fileName, '.');
     if (extension) {
         extension++;
@@ -121,52 +123,67 @@ bool guessResolution(const char* filename, int& w, int& h)
     return w && h;
 }
 
+struct ResolutionEntry {
+    uint32_t fourcc;
+    uint32_t planes;
+    //multiple to half width
+    //if it equals 1, you need divide width with 2
+    //if it equals 4, you need wultiple width with 2
+    uint32_t widthMultiple[3];
+    uint32_t heightMultiple[3];
+};
+
+const static ResolutionEntry resolutionEntrys[] = {
+    { VA_FOURCC_I420, 3, { 2, 1, 1 }, { 2, 1, 1 } },
+    { VA_FOURCC_YV12, 3, { 2, 1, 1 }, { 2, 1, 1 } },
+    { VA_FOURCC_IMC3, 3, { 2, 1, 1 }, { 2, 1, 1 } },
+    { VA_FOURCC_422H, 3, { 2, 1, 1 }, { 2, 2, 2 } },
+    { VA_FOURCC_422V, 3, { 2, 2, 2 }, { 2, 1, 1 } },
+    { VA_FOURCC_444P, 3, { 2, 2, 2 }, { 2, 2, 2 } },
+    { VA_FOURCC_YUY2, 1, { 4 }, { 2 } },
+    { VA_FOURCC_UYVY, 1, { 4 }, { 2 } },
+    { VA_FOURCC_RGBX, 1, { 8 }, { 2 } },
+    { VA_FOURCC_RGBA, 1, { 8 }, { 2 } },
+    { VA_FOURCC_BGRX, 1, { 8 }, { 2 } },
+    { VA_FOURCC_BGRA, 1, { 8 }, { 2 } },
+};
+
+/* l is length in pixel*/
+/* length[] are length in each plane*/
+static void getPlaneLength(uint32_t l, uint32_t plane, const uint32_t multiple[3], uint32_t length[3])
+{
+    for (uint32_t i = 0; i < plane; i++) {
+        length[i] = (l * multiple[i] + 1) >> 1;
+    }
+}
+
 bool getPlaneResolution(uint32_t fourcc, uint32_t pixelWidth, uint32_t pixelHeight, uint32_t byteWidth[3], uint32_t byteHeight[3],  uint32_t& planes)
 {
     int w = pixelWidth;
     int h = pixelHeight;
     uint32_t* width = byteWidth;
     uint32_t* height = byteHeight;
-    switch (fourcc) {
-        case VA_FOURCC_NV12:
-        case VA_FOURCC_I420:
-        case VA_FOURCC_YV12:{
-            width[0] = w;
-            height[0] = h;
-            if (fourcc == VA_FOURCC_NV12) {
-                width[1]  = w + (w & 1);
-                height[1] = (h + 1) >> 1;
-                planes = 2;
-            } else {
-                width[1] = width[2] = (w + 1) >> 1;
-                height[1] = height[2] = (h + 1) >> 1;
-                planes = 3;
-            }
-            break;
-        }
-        case VA_FOURCC_YUY2:
-        case VA_FOURCC_UYVY: {
-            width[0] = w * 2;
-            height[0] = h;
-            planes = 1;
-            break;
-        }
-        case VA_FOURCC_RGBX:
-        case VA_FOURCC_RGBA:
-        case VA_FOURCC_BGRX:
-        case VA_FOURCC_BGRA: {
-            width[0] = w * 4;
-            height[0] = h;
-            planes = 1;
-            break;
-        }
-        default: {
-            assert(0 && "do not support this format");
-            planes = 0;
-            return false;
+    //NV12 is special since it  need add one for width[1] when w is odd
+    if (fourcc == VA_FOURCC_NV12) {
+        width[0] = w;
+        height[0] = h;
+        width[1] = w + (w & 1);
+        height[1] = (h + 1) >> 1;
+        planes = 2;
+        return true;
+    }
+    for (size_t i = 0; i < N_ELEMENTS(resolutionEntrys); i++) {
+        const ResolutionEntry& e = resolutionEntrys[i];
+        if (e.fourcc == fourcc) {
+            planes = e.planes;
+            getPlaneLength(pixelWidth, planes, e.widthMultiple, width);
+            getPlaneLength(pixelHeight, planes, e.heightMultiple, height);
+            return true;
         }
     }
-    return true;
+    ERROR("do not support this format, fourcc %.4s", (char*)&fourcc);
+    planes = 0;
+    return false;
 }
 
 /// return system clock in ms
