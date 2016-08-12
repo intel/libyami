@@ -23,6 +23,7 @@
 
 // library headers
 #include "common/unittest.h"
+#include "common/common_def.h"
 
 // system headers
 #include <limits>
@@ -130,14 +131,61 @@ UTILS_TEST(guessResolutionOverflow) {
     EXPECT_EQ(h, 0);
 }
 
-UTILS_TEST(getPlaneResolutionDeath) {
-    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+struct BppEntry {
+    uint32_t fourcc;
     uint32_t planes;
-    uint32_t w[3], h[3];
+    float bpp;
+};
 
-    // getPlaneResolution aborts program (via assert) if there is an invalid
-    // fourcc value
-    EXPECT_DEATH(
-        getPlaneResolution(0, 1920, 1080, w, h, planes),
-        "do not support this format");
+const static BppEntry bppEntrys[] = {
+    { VA_FOURCC_NV12, 2, 1.5 },
+    { VA_FOURCC_I420, 3, 1.5 },
+    { VA_FOURCC_YV12, 3, 1.5 },
+    { VA_FOURCC_IMC3, 3, 1.5 },
+    { VA_FOURCC_422H, 3, 2 },
+    { VA_FOURCC_422V, 3, 2 },
+    { VA_FOURCC_444P, 3, 3 },
+    { VA_FOURCC_YUY2, 1, 2 },
+    { VA_FOURCC_UYVY, 1, 2 },
+    { VA_FOURCC_RGBX, 1, 4 },
+    { VA_FOURCC_RGBA, 1, 4 },
+    { VA_FOURCC_BGRX, 1, 4 },
+    { VA_FOURCC_BGRA, 1, 4 },
+};
+
+//check selected unsupported format.
+//we do not want check all unsupported formats, it will introduce too many dependency on libva
+const static uint32_t unsupported[] = {
+    0,
+    VA_FOURCC_Y800,
+    VA_FOURCC_411P,
+    VA_FOURCC_ARGB,
+};
+
+UTILS_TEST(getPlaneResolution)
+{
+
+    uint32_t width = 1920;
+    uint32_t height = 1080;
+    uint32_t planes;
+    uint32_t w[3];
+    uint32_t h[3];
+
+    for (size_t i = 0; i < N_ELEMENTS(unsupported); i++) {
+        EXPECT_FALSE(getPlaneResolution(unsupported[i], 1920, 1080, w, h, planes));
+        EXPECT_EQ(0u, planes);
+    }
+    for (size_t i = 0; i < N_ELEMENTS(bppEntrys); i++) {
+        const BppEntry& e = bppEntrys[i];
+        EXPECT_TRUE(getPlaneResolution(e.fourcc, width, height, w, h, planes));
+        EXPECT_EQ(e.planes, planes);
+
+        float bpp;
+        uint32_t bytes = 0;
+        for (uint32_t p = 0; p < planes; p++) {
+            bytes += w[p] * h[p];
+        }
+        bpp = (float)bytes / (width * height);
+        EXPECT_FLOAT_EQ(e.bpp, bpp);
+    }
 }

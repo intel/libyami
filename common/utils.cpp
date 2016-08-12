@@ -128,7 +128,7 @@ struct ResolutionEntry {
     uint32_t planes;
     //multiple to half width
     //if it equals 1, you need divide width with 2
-    //if it equals 4, you need wultiple width with 2
+    //if it equals 4, you need multiple width with 2
     uint32_t widthMultiple[3];
     uint32_t heightMultiple[3];
 };
