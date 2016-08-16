@@ -76,8 +76,10 @@ public:
     {
         using namespace ::YamiParser::JPEG;
 
+        //this mainly for codec flush, jpeg/mjpeg do not have to flush.
+        //just return success for this
         if (!data || !size)
-            return YAMI_FAIL;
+            return YAMI_SUCCESS;
 
         /*
          * Reset the parser if we have a new data pointer; this is common for
