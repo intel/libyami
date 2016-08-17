@@ -148,6 +148,8 @@ protected:
         return m_videoParamCommon.rcParams.initQP;
     }
 
+    uint32_t& initQP() { return m_videoParamCommon.rcParams.initQP; }
+
     uint32_t minQP() const {
         return m_videoParamCommon.rcParams.minQP;
     }
