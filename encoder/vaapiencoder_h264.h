@@ -106,6 +106,7 @@ private:
     uint32_t m_frameIndex;
     uint32_t m_curFrameNum;
     uint32_t m_keyPeriod;
+    uint32_t m_ppsQp; /*pic_init_qp_minus26 + 26*/
 
     /* reference list */
     std::deque<ReferencePtr> m_refList;

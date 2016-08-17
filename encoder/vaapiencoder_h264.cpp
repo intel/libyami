@@ -700,13 +700,14 @@ public:
     SurfacePtr m_pic;
 };
 
-VaapiEncoderH264::VaapiEncoderH264():
-    m_numBFrames(0),
-    m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
-    m_streamFormat(AVC_STREAM_FORMAT_ANNEXB),
-    m_frameIndex(0),
-    m_keyPeriod(30),
-    m_idrNum(0)
+VaapiEncoderH264::VaapiEncoderH264()
+    : m_numBFrames(0)
+    , m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES)
+    , m_streamFormat(AVC_STREAM_FORMAT_ANNEXB)
+    , m_frameIndex(0)
+    , m_keyPeriod(30)
+    , m_ppsQp(26)
+    , m_idrNum(0)
 {
     m_videoParamCommon.profile = VAProfileH264Main;
     m_videoParamCommon.level = 40;
@@ -829,9 +830,13 @@ void VaapiEncoderH264::resetParams ()
     if (m_keyPeriod > MAX_IDR_PERIOD)
         m_keyPeriod = MAX_IDR_PERIOD;
 
-    if (minQP() > initQP() ||
-            (rateControlMode()== RATE_CONTROL_CQP && minQP() < initQP()))
-        minQP() = initQP();
+    if (initQP() < minQP())
+        initQP() = minQP();
+
+    if (initQP() > maxQP())
+        initQP() = maxQP();
+
+    m_ppsQp = initQP();
 
     if (m_numBFrames > (intraPeriod() + 1) / 2)
         m_numBFrames = (intraPeriod() + 1) / 2;
@@ -1253,7 +1258,7 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
     picParam->seq_parameter_set_id = 0;
     picParam->last_picture = 0;  /* means last encoding picture */
     picParam->frame_num = picture->m_frameNum;
-    picParam->pic_init_qp = initQP();
+    picParam->pic_init_qp = m_ppsQp;
     picParam->num_ref_idx_l0_active_minus1 =
         (m_maxRefList0Count ? (m_maxRefList0Count - 1) : 0);
     picParam->num_ref_idx_l1_active_minus1 =
@@ -1355,7 +1360,9 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
 
         fillReferenceList(sliceParam);
 
-        sliceParam->slice_qp_delta = initQP() - minQP();
+        sliceParam->slice_qp_delta = initQP() - m_ppsQp;
+        DEBUG("init qp is %d, pps qp is %d, maxQp is %d, minQp is %d", initQP(),
+              m_ppsQp, maxQP(), minQP());
         if(rateControlMode() == RATE_CONTROL_CQP){
             switch (picture->m_type) {
             case VAAPI_PICTURE_B:
@@ -1368,16 +1375,15 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
             default:
                 break;
             }
-            if(initQP() + sliceParam->slice_qp_delta > maxQP()){
+            if((int32_t)initQP() + sliceParam->slice_qp_delta > (int32_t)maxQP()){
                 sliceParam->slice_qp_delta = maxQP() - initQP();
             }
-            if(initQP() + sliceParam->slice_qp_delta < minQP()){
-                sliceParam->slice_qp_delta = minQP() - initQP();
+            if((int32_t)initQP() + sliceParam->slice_qp_delta < (int32_t)minQP()){
+                sliceParam->slice_qp_delta = (int32_t)minQP() - (int32_t)initQP();
             }
         }
 
-        if (sliceParam->slice_qp_delta > 4)
-            sliceParam->slice_qp_delta = 4;
+        DEBUG("slice_qp_delta is %d", sliceParam->slice_qp_delta);
 
         sliceParam->disable_deblocking_filter_idc = !m_videoParamAVC.enableDeblockFilter;
         sliceParam->slice_alpha_c0_offset_div2 = m_videoParamAVC.deblockAlphaOffsetDiv2;
