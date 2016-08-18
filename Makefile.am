@@ -63,6 +63,8 @@ nodist_EXTRA_libyami_v4l2_la_SOURCES = dummy.cxx
 libyami_v4l2_la_LDFLAGS = \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(AM_LDFLAGS) \
+	$(LIBVA_LIBS) \
+	$(LIBVA_DRM_LIBS) \
 	$(NULL)
 
 libyami_v4l2_la_LIBADD = libyami.la \

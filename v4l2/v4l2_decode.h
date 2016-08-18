@@ -36,7 +36,7 @@ class V4l2Decoder : public V4l2CodecBase
     virtual int32_t ioctl(int request, void* arg);
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset);
-#if !ANDROID
+#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image);
 #endif
 

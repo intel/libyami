@@ -149,6 +149,17 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length)
 }
 
 #if ANDROID
+#elif __ENABLE_WAYLAND__
+int32_t YamiV4L2_SetWaylandDisplay(int32_t fd, struct wl_display* wlDisplay)
+{
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+    bool ret = true;
+
+    ASSERT(v4l2Codec);
+    ret &= v4l2Codec->setWaylandDisplay(wlDisplay);
+
+    return ret;
+}
 #else
 #if __ENABLE_X11__
 int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
@@ -214,7 +225,14 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
             return -1;
         }
         ret = v4l2Codec->setFrameMemoryType(memoryType);
-    #if __ENABLE_X11__
+#ifdef __ENABLE_WAYLAND__
+    }
+    else if (!strcmp(key, "wayland-display")) {
+        uintptr_t ptr = (uintptr_t)atoll(value);
+        struct wl_display* wlDisplay = (struct wl_display*)ptr;
+        DEBUG("wlDisplay: %p", wlDisplay);
+        ret = v4l2Codec->setWaylandDisplay(wlDisplay);
+#elif __ENABLE_X11__
     } else if (!strcmp(key, "x11-display")) {
         uintptr_t ptr = (uintptr_t)atoll(value);
         Display* x11Display = (Display*)ptr;
@@ -256,7 +274,7 @@ bool v4l2codecOperationInit(V4l2CodecOps *opFuncs)
     V4L2_DLSYM_OR_RETURN_ON_ERROR(Mmap);
     V4L2_DLSYM_OR_RETURN_ON_ERROR(Munmap);
     V4L2_DLSYM_OR_RETURN_ON_ERROR(SetParameter);
-#ifndef ANDROID
+#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
     V4L2_DLSYM_OR_RETURN_ON_ERROR(UseEglImage);
 #endif
 #undef V4L2_DLSYM_OR_RETURN_ON_ERROR

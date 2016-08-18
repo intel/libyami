@@ -37,6 +37,8 @@
 #include <va/va_android.h>
 #include <ufo/gralloc.h>
 #include <ufo/graphics.h>
+#elif __ENABLE_WAYLAND__
+#include <va/va_wayland.h>
 #endif
 
 #if ANDROID
@@ -83,8 +85,8 @@ V4l2CodecBase::V4l2CodecBase()
     , m_started(false)
 #if ANDROID
     , m_reqBuffCnt(0)
-#elif __ENABLE_X11__
-    , m_x11Display(NULL)
+#elif(__ENABLE_WAYLAND__ || __ENABLE_X11__)
+    , m_Display(NULL)
 #else
     , m_drmfd(0)
 #endif
@@ -335,7 +337,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             ASSERT(ret != -1);
             if (port == INPUT) {
                 DEBUG("start decoding/encoding");
-            #ifdef ANDROID
+#if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
                 // FIXME, I remember cros flush uses STREAMON/STREAMOFF as well
                 if (!setVaDisplay()) {
                     ERROR("fail to set up VADisplay");
@@ -434,8 +436,10 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             ASSERT(ret != -1);
 
             // ::EnqueueInputRecord/EnqueueOutputRecord
+#ifndef __ENABLE_WAYLAND__
             ASSERT(qbuf->memory == m_memoryMode[port]);
             ASSERT (qbuf->length == m_bufferPlaneCount[port]);
+#endif
             if (port == INPUT) {
                 bool _ret = acceptInputBuffer(qbuf);
                 ASSERT(_ret);
@@ -725,6 +729,62 @@ bool V4l2CodecBase::mapVideoFrames(int32_t width, int32_t height)
     DEBUG("create_surface: %d x %d\n", width, height);
     for (uint32_t i = 0; i < m_bufferHandle.size(); i++) {
         frame = createVaSurface(m_bufferHandle[i], width, height);
+        if (!frame)
+            return false;
+        m_videoFrames.push_back(frame);
+    }
+    return true;
+}
+#elif __ENABLE_WAYLAND__
+inline bool V4l2CodecBase::setVaDisplay()
+{
+    VAStatus status;
+    int major, minor;
+    m_vaDisplay = vaGetDisplayWl((struct wl_display*)m_Display);
+    status = vaInitialize(m_vaDisplay, &major, &minor);
+    if (status != VA_STATUS_SUCCESS)
+        return false;
+    return true;
+}
+
+inline bool V4l2CodecBase::createVpp()
+{
+    NativeDisplay nativeDisplay;
+    nativeDisplay.type = NATIVE_DISPLAY_VA;
+    nativeDisplay.handle = (intptr_t)m_vaDisplay;
+    m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
+    return m_vpp->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
+}
+
+SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(uint32_t width, uint32_t height)
+{
+    VASurfaceID id;
+    VASurfaceAttrib attrib;
+    SharedPtr<VideoFrame> frame;
+    uint32_t rtFormat = VA_RT_FORMAT_YUV420;
+    int pixelFormat = VA_FOURCC_NV12;
+    attrib.type = VASurfaceAttribPixelFormat;
+    attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
+    attrib.value.type = VAGenericValueTypeInteger;
+    attrib.value.value.i = pixelFormat;
+
+    VAStatus vaStatus = vaCreateSurfaces(m_vaDisplay, rtFormat, width, height, &id, 1, &attrib, 1);
+    if (vaStatus != VA_STATUS_SUCCESS)
+        return frame;
+
+    frame.reset(new VideoFrame);
+    memset(frame.get(), 0, sizeof(VideoFrame));
+    frame->surface = static_cast<intptr_t>(id);
+    frame->crop.width = width;
+    frame->crop.height = height;
+    return frame;
+}
+
+bool V4l2CodecBase::mapVideoFrames(uint32_t width, uint32_t height)
+{
+    SharedPtr<VideoFrame> frame;
+    for (uint32_t i = 0; i < m_reqBuffCnt; i++) {
+        frame = createVaSurface(width, height);
         if (!frame)
             return false;
         m_videoFrames.push_back(frame);
