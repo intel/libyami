@@ -40,6 +40,7 @@ public:
         , m_colorV(0)
         , m_kernelWireframe(NULL)
     {
+        ensureContext("wireframe");
     }
 
 private:

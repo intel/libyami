@@ -36,6 +36,7 @@ public:
         : m_blockSize(32)
         , m_kernelMosaic(NULL)
     {
+        ensureContext("mosaic");
     }
 
 private:

@@ -45,6 +45,7 @@ public:
         , m_kernelFlipHRot90(NULL)
         , m_kernelFlipVRot90(NULL)
     {
+        ensureContext("transform");
     }
 
 private:
