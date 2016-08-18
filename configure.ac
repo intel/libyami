@@ -116,6 +116,18 @@ fi
 AM_CONDITIONAL(ENABLE_X11,
     [test "x$enable_x11" = "xyes"])
 
+AC_ARG_ENABLE(wayland,
+    [AC_HELP_STRING([--enable-wayland],
+        [enable wayland @<:@default=no@:>@])],
+    [], [enable_wayland="no"])
+
+if test "$enable_wayland" = "yes"; then
+    AC_DEFINE([__ENABLE_WAYLAND__], [1],
+        [Defined to 1 if --enable-wayland="yes"])
+fi
+AM_CONDITIONAL(ENABLE_WAYLAND,
+    [test "x$enable_wayland" = "xyes"])
+
 AC_ARG_ENABLE(baytrail,
     [AC_HELP_STRING([--enable-baytrail],
         [build with baytrail/chromeos support @<:@default=no@:>@])],
@@ -357,6 +369,12 @@ if test "$enable_x11" = "yes"; then
 fi
 AC_SUBST(LIBVA_X11_PKG_REQ)
 AC_SUBST(X11_PKG_REQ)
+if test "$enable_wayland" = "yes"; then
+    PKG_CHECK_MODULES([LIBVA_WAYLAND], [libva-wayland],
+        [AC_DEFINE([HAVE_VA_WAYLAND], [1],
+            [Defined to 1 if VA/WAYLAND API is enabled])],
+        [])
+fi
 
 if test "$enable_v4l2" = "yes"; then
     PKG_CHECK_MODULES([LIBV4L2], [libv4l2])

@@ -30,6 +30,8 @@
 #ifdef ANDROID
 #include <ufo/gralloc.h>
 #include <ufo/graphics.h>
+#elif __ENABLE_WAYLAND__
+#include <va/va_wayland.h>
 #endif
 #include "v4l2_decode.h"
 #include "interface/VideoDecoderHost.h"
@@ -109,11 +111,14 @@ bool V4l2Decoder::start()
 #if ANDROID
     nativeDisplay.type = NATIVE_DISPLAY_VA;
     nativeDisplay.handle = (intptr_t)m_vaDisplay;
+#elif __ENABLE_WAYLAND__
+    nativeDisplay.type = NATIVE_DISPLAY_VA;
+    nativeDisplay.handle = (intptr_t)m_vaDisplay;
 #elif __ENABLE_X11__
-    DEBUG("m_x11Display: %p", m_x11Display);
-    if (m_x11Display) {
+    DEBUG("m_Display: %p", m_Display);
+    if (m_Display) {
         nativeDisplay.type = NATIVE_DISPLAY_X11;
-        nativeDisplay.handle = (intptr_t)m_x11Display;
+        nativeDisplay.handle = (intptr_t)m_Display;
     } else {
         nativeDisplay.type = NATIVE_DISPLAY_DRM;
         nativeDisplay.handle = m_drmfd;
@@ -175,7 +180,7 @@ bool V4l2Decoder::inputPulse(uint32_t index)
     return true; // always return true for decode; simply ignored unsupported nal
 }
 
-#if ANDROID
+#if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
 bool V4l2Decoder::outputPulse(uint32_t &index)
 {
     SharedPtr<VideoFrame> output = m_decoder->getOutput();
@@ -314,6 +319,15 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 #if ANDROID
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
+#elif __ENABLE_WAYLAND__
+    VAStatus vaStatus;
+    struct wl_buffer *buffer;
+    INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
+    dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
+    vaStatus = vaGetSurfaceBufferWl(m_vaDisplay, m_videoFrames[dqbuf->index]->surface, VA_FRAME_PICTURE, &buffer);
+    if (vaStatus != VA_STATUS_SUCCESS)
+        return false;
+    dqbuf->m.userptr = (unsigned long)buffer;
 #else
     INT64_TO_TIMEVAL(m_outputRawFrames[dqbuf->index].timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
@@ -347,6 +361,16 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             if (bufferCount == m_reqBuffCnt)
                 mapVideoFrames(m_videoWidth, m_videoHeight);
         }
+#elif __ENABLE_WAYLAND__
+        struct v4l2_buffer *qbuf = static_cast<struct v4l2_buffer*>(arg);
+        static uint32_t bufferCount = 0;
+        if(qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
+            m_streamOn[OUTPUT] == false) {
+            bufferCount++;
+            if (bufferCount == m_reqBuffCnt) {
+                mapVideoFrames(m_videoWidth, m_videoHeight);
+            }
+        }
 #endif
     } // no break;
     case VIDIOC_STREAMON:
@@ -362,7 +386,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         struct v4l2_requestbuffers *reqbufs = static_cast<struct v4l2_requestbuffers *>(arg);
         GET_PORT_INDEX(port, reqbufs->type, ret);
         if (port == OUTPUT) {
-        #if ANDROID
+        #if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
             if (reqbufs->count)
                 m_reqBuffCnt = reqbufs->count;
             else
@@ -601,7 +625,7 @@ void V4l2Decoder::flush()
         m_decoder->flush();
 }
 
-#if !ANDROID
+#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
 {
     m_bindEglImage = true;
