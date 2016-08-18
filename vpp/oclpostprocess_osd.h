@@ -41,6 +41,7 @@ public:
         , m_kernelOsd(NULL)
         , m_kernelReduceLuma(NULL)
     {
+        ensureContext("osd");
     }
 
 private:

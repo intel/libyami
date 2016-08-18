@@ -33,6 +33,7 @@ public:
     explicit OclPostProcessBlender()
         : m_kernelBlend(NULL)
     {
+        ensureContext("blend");
     }
 
 private:
