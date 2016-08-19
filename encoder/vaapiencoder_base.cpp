@@ -276,15 +276,22 @@ SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
     uint32_t rtFormat;
     SurfacePtr surface;
 
+
     attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
     attrib.type = VASurfaceAttribPixelFormat;
     attrib.value.type = VAGenericValueTypeInteger;
     attrib.value.value.i = fourcc;
+    if(fourcc == VA_FOURCC('I', '0', '1', '0'))
+        attrib.value.value.i = VA_FOURCC_P010;
 
     switch(fourcc) {
     case VA_FOURCC_NV12:
     case VA_FOURCC_I420:
         rtFormat = VA_RT_FORMAT_YUV420;
+        break;
+    case VA_FOURCC_P010:
+    case VA_FOURCC('I', '0', '1', '0'):
+        rtFormat = VA_RT_FORMAT_YUV420_10BPP;
         break;
     case VA_FOURCC_YUY2:
         rtFormat = VA_RT_FORMAT_YUV422;
@@ -343,6 +350,146 @@ static bool copyImage(uint8_t* destBase,
     return true;
 }
 
+static uint32_t get_bpp_in_1stplane_by_fourcc(uint32_t fourcc)
+{
+    uint32_t bpp;
+
+    switch (fourcc) {
+    case VA_FOURCC_NV12:
+    case VA_FOURCC_YV12:
+    case VA_FOURCC_I420:
+        bpp = 1;
+        break;
+
+    case VA_FOURCC_P010:
+    case VA_FOURCC_P016:
+        bpp = 2;
+        break;
+
+    default:
+        bpp = 1;
+        break;
+    }
+
+    return bpp;
+}
+
+static bool loadFrameToSurface(VAImage surface_image,uint8_t* dst,uint8_t* src,uint32_t fourcc)
+{
+    uint8_t *y_src, *u_src, *v_src;
+    uint8_t *y_dst, *u_dst, *v_dst;
+    void *surface_p = dst;
+    uint32_t i, row, col;
+
+    if (surface_image.format.fourcc == VA_FOURCC_YV12 ||
+        surface_image.format.fourcc == VA_FOURCC_I420 ||
+        surface_image.format.fourcc == VA_FOURCC_NV12 ||
+        surface_image.format.fourcc == VA_FOURCC_P010 ||
+        surface_image.format.fourcc == VA_FOURCC_P016) {
+        uint32_t bpp = get_bpp_in_1stplane_by_fourcc(surface_image.format.fourcc);
+
+        y_src = src;
+        if ((fourcc == VA_FOURCC('I', '0', '1', '0')) ||
+            (fourcc == VA_FOURCC_I420)) {
+            u_src = src + surface_image.width * surface_image.height * bpp;
+            v_src = src + surface_image.width * surface_image.height * 5 / 4 * bpp;
+        } else {
+            ERROR("only support I010/I420 ");
+            return false;
+        }
+
+        y_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[0]);
+
+        if(surface_image.format.fourcc == VA_FOURCC_YV12){
+            v_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[1]);
+            u_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[2]);
+        }else if(surface_image.format.fourcc == VA_FOURCC_I420){
+            u_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[1]);
+            v_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[2]);
+        }else if(surface_image.format.fourcc == VA_FOURCC_NV12 ||
+                 surface_image.format.fourcc == VA_FOURCC_P010 ||
+                 surface_image.format.fourcc == VA_FOURCC_P016) {
+            u_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[1]);
+            v_dst = u_dst;
+        }
+        else
+        {
+            ERROR("don't support this surface fcc");
+            return false;
+        }
+
+        /* Y plane, directly copy */
+        for (row = 0; row < surface_image.height; row++) {
+            if(bpp == 2){
+                for(col = 0;col < surface_image.width;col++){
+                    uint16_t value = 0;
+
+                    value = *(uint16_t *)(y_src + col * bpp);
+                    value <<= 6;
+                    *(uint16_t *)(y_dst + col * bpp) = value;
+                }
+            }
+            else
+                memcpy(y_dst, y_src, surface_image.width * bpp);
+            y_dst += surface_image.pitches[0];
+            y_src += surface_image.width * bpp;
+        }
+
+        /* UV plane */
+        if (surface_image.format.fourcc == VA_FOURCC_YV12||
+            surface_image.format.fourcc == VA_FOURCC_I420){
+            /* UV plane */
+            for (row = 0; row < surface_image.height /2; row ++){
+                memcpy(v_dst, v_src, surface_image.width/2*bpp);
+                memcpy(u_dst, u_src, surface_image.width/2*bpp);
+
+                v_src += surface_image.width/2*bpp;
+                u_src += surface_image.width/2*bpp;
+
+                if (surface_image.format.fourcc == VA_FOURCC_YV12){
+                    v_dst += surface_image.pitches[1];
+                    u_dst += surface_image.pitches[2];
+                } else {
+                    v_dst += surface_image.pitches[2];
+                    u_dst += surface_image.pitches[1];
+                }
+            }
+        } else if (surface_image.format.fourcc == VA_FOURCC_NV12||
+                   surface_image.format.fourcc == VA_FOURCC_P010||
+                   surface_image.format.fourcc == VA_FOURCC_P016){
+            for (row = 0; row < surface_image.height / 2; row++) {
+                for (col = 0; col < surface_image.width / 2; col++) {
+                    if(bpp == 2){
+                        uint16_t value = 0;
+
+                        value = *(uint16_t *)(u_src + col * bpp);
+                        value <<= 6;
+                        *(uint16_t *)(u_dst + col * 2 * bpp) = value;
+
+                        value = *(uint16_t *)(v_src + col * bpp);
+                        value <<= 6;
+                        *(uint16_t *)(u_dst + col * 2 * bpp + bpp) = value;
+                    }
+                    else {
+                        for (i = 0; i < bpp; i++) {
+                            u_dst[col * 2 * bpp + i] = u_src[col * bpp  + i];
+                            u_dst[col * 2 * bpp + bpp + i] = v_src[col * bpp + i];
+                        }
+                    }
+                }
+
+                u_dst += surface_image.pitches[1];
+                u_src += (surface_image.width / 2 * bpp);
+                v_src += (surface_image.width / 2 * bpp);
+            }
+        }
+     } else {
+         ERROR("Not supported YUV surface fourcc !!!");
+         return false;
+     }
+    return true;
+}
+
 SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
 {
     uint32_t fourcc = frame->fourcc;
@@ -368,12 +515,28 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
         return nil;
     }
     uint8_t* src = reinterpret_cast<uint8_t*>(frame->handle);
-    if (!copyImage(dest, image.offsets, image.pitches, src,
+
+    switch (fourcc) {
+    case VA_FOURCC('I', '0', '1', '0'):
+    case VA_FOURCC_I420:
+        if (!loadFrameToSurface(image, dest, src,fourcc)) {
+            ERROR("failed to copy image");
+            unmapImage(display, image);
+            return nil;
+        }
+        break;
+
+    case VA_FOURCC_P010:
+    default:
+        if (!copyImage(dest, image.offsets, image.pitches, src,
             frame->offset, frame->pitch, width, height, planes)) {
-        ERROR("failed to copy image");
-        unmapImage(display, image);
-        return nil;
+                ERROR("failed to copy image");
+                unmapImage(display, image);
+                return nil;
+        }
+        break;
     }
+
     unmapImage(display, image);
     return surface;
 }
@@ -500,7 +663,7 @@ bool VaapiEncoderBase::initVA()
 
     int32_t surfaceWidth = ALIGN16(m_videoParamCommon.resolution.width);
     int32_t surfaceHeight = ALIGN16(m_videoParamCommon.resolution.height);
-    m_pool = SurfacePool::create(m_alloc, YAMI_FOURCC_NV12, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight, m_maxOutputBuffer);
+    m_pool = SurfacePool::create(m_alloc, ((m_videoParamCommon.bitDepth == 8)?YAMI_FOURCC_NV12:YAMI_FOURCC_P010), (uint32_t)surfaceWidth, (uint32_t)surfaceHeight, m_maxOutputBuffer);
     if (!m_pool)
         return false;
 
