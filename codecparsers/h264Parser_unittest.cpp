@@ -132,7 +132,7 @@ namespace H264 {
             ASSERT_TRUE(parser.parseSps(sps, nalu));
             EXPECT_EQ(77, sps->profile_idc);
             EXPECT_EQ(40, sps->level_idc);
-            EXPECT_EQ(0, sps->sps_id);
+            EXPECT_EQ(0u, sps->sps_id);
             EXPECT_EQ(0, sps->pic_order_cnt_type);
             EXPECT_FALSE(sps->gaps_in_frame_num_value_allowed_flag);
 
@@ -153,8 +153,8 @@ namespace H264 {
 
             ASSERT_EQ(NAL_PPS, nalu->nal_unit_type);
             ASSERT_TRUE(parser.parsePps(pps, nalu));
-            EXPECT_EQ(0, pps->pps_id);
-            EXPECT_EQ(0, pps->sps_id);
+            EXPECT_EQ(0u, pps->pps_id);
+            EXPECT_EQ(0u, pps->sps_id);
 
             EXPECT_TRUE(pps->entropy_coding_mode_flag);
             EXPECT_EQ(0u, pps->num_slice_groups_minus1);
