@@ -139,6 +139,10 @@ bool VaapiDecSurfacePool::output(const SurfacePtr& surface, int64_t timeStamp)
     assert(it->second == SURFACE_DECODING);
     it->second |= SURFACE_TO_RENDER;
     VideoRenderBuffer* buffer = m_renderMap[id];
+
+    VideoRect& crop = buffer->crop;
+    surface->getCrop(crop.x, crop.y, crop.width, crop.height);
+
     buffer->timeStamp = timeStamp;
     DEBUG("surface=0x%x is output-able with timeStamp=%ld", surface->getID(), timeStamp);
     m_output.push_back(buffer);

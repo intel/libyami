@@ -31,6 +31,13 @@
 
 namespace YamiMediaCodec{
 
+typedef struct {
+    VASurfaceID surface;
+    VADisplay display;
+    int64_t timeStamp; // presentation time stamp
+    VideoRect crop;
+} VideoRenderBuffer;
+
 /***
  * \class VaapiDecSurfacePool
  * \brief surface pool used for decoding rendering
