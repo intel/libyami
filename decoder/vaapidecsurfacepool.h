@@ -39,6 +39,7 @@ typedef struct {
     uint32_t fourcc;
 } VideoRenderBuffer;
 
+struct VideoDecoderConfig;
 /***
  * \class VaapiDecSurfacePool
  * \brief surface pool used for decoding rendering
@@ -60,7 +61,10 @@ typedef struct {
 class VaapiDecSurfacePool : public EnableSharedFromThis <VaapiDecSurfacePool>
 {
 public:
+    /* TODO: remove this after all caller change to VideoDecoderConfig*/
     static DecSurfacePoolPtr create(const DisplayPtr&, VideoConfigBuffer* config,
+        const SharedPtr<SurfaceAllocator>& allocator);
+    static DecSurfacePoolPtr create(const DisplayPtr&, VideoDecoderConfig* config,
         const SharedPtr<SurfaceAllocator>& allocator);
     void getSurfaceIDs(std::vector<VASurfaceID>& ids);
     /// get a free surface,
@@ -93,8 +97,8 @@ private:
 
     VaapiDecSurfacePool();
     bool init(const DisplayPtr& display,
-              VideoConfigBuffer* config,
-              const SharedPtr<SurfaceAllocator>& allocator);
+        VideoDecoderConfig* config,
+        const SharedPtr<SurfaceAllocator>& allocator);
 
     void recycleLocked(VASurfaceID, SurfaceState);
     void recycle(VASurfaceID, SurfaceState);
