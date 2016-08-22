@@ -42,9 +42,29 @@ namespace YamiMediaCodec{
 
 #define INVALID_PTS ((uint64_t)-1)
 
+struct VideoDecoderConfig {
+    /// it is the frame size, height is 1088 for h264 1080p stream
+    uint32_t width;
+    uint32_t height;
+    uint32_t fourcc;
+    uint32_t surfaceNumber;
+    VAProfile profile;
+
+    VideoDecoderConfig()
+    {
+        resetConfig();
+    }
+    void resetConfig()
+    {
+        memset(this, 0, sizeof(*this));
+        profile = VAProfileNone;
+    }
+};
+
 class VaapiDecoderBase:public IVideoDecoder {
   public:
     typedef SharedPtr<VaapiDecPicture> PicturePtr;
+
     VaapiDecoderBase();
     virtual ~ VaapiDecoderBase();
 
@@ -71,6 +91,12 @@ class VaapiDecoderBase:public IVideoDecoder {
       YamiStatus updateReference(void);
       YamiStatus outputPicture(const PicturePtr& picture);
     SurfacePtr createSurface();
+    YamiStatus ensureProfile(VAProfile profile);
+
+    //set format to m_videoFormatInfo, return true if something changed.
+    bool setFormat(uint32_t width, uint32_t height, uint32_t surfaceWidth, uint32_t surfaceHeight,
+        uint32_t surfaceNumber, uint32_t fourcc = YAMI_FOURCC_NV12);
+    bool isSurfaceGeometryChanged() const;
 
     NativeDisplay   m_externalDisplay;
     DisplayPtr m_display;
@@ -93,6 +119,10 @@ class VaapiDecoderBase:public IVideoDecoder {
     uint64_t m_currentPTS;
 
   private:
+      bool createAllocator();
+      YamiStatus ensureSurfacePool();
+      VideoDecoderConfig m_config;
+
 #ifdef __ENABLE_DEBUG__
     int renderPictureCount;
     bool m_dumpSurface;
