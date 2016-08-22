@@ -153,6 +153,7 @@ private:
         const NalUnit* const nalu);
     YamiStatus decodeCurrent();
     YamiStatus outputPicture(const PicturePtr&);
+    SurfacePtr createSurface(const SliceHeader* const);
 
     YamiParser::H264::Parser m_parser;
     PicturePtr m_currPic;

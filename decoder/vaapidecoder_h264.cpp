@@ -1663,6 +1663,20 @@ YamiStatus VaapiDecoderH264::ensureContext(const SharedPtr<SPS>& sps)
     return (m_context) ? YAMI_SUCCESS : YAMI_FAIL;
 }
 
+SurfacePtr VaapiDecoderH264::createSurface(const SliceHeader* const slice)
+{
+    SurfacePtr s = VaapiDecoderBase::createSurface();
+    if (!s)
+        return s;
+    SharedPtr<SPS>& sps = slice->m_pps->m_sps;
+
+    if (sps->frame_cropping_flag)
+        s->setCrop(0, 0, sps->m_cropRectWidth, sps->m_cropRectHeight);
+    else
+        s->setCrop(0, 0, sps->m_width, sps->m_height);
+    return s;
+}
+
 YamiStatus VaapiDecoderH264::createPicture(const SliceHeader* const slice,
     const NalUnit* const nalu)
 {
@@ -1691,7 +1705,7 @@ YamiStatus VaapiDecoderH264::createPicture(const SliceHeader* const slice,
     }
 
     if (!slice->field_pic_flag || !isSecondField) {
-        m_currSurface = createSurface();
+        m_currSurface = createSurface(slice);
         if (!m_currSurface)
             return YAMI_DECODE_NO_SURFACE;
         m_currPic.reset(
