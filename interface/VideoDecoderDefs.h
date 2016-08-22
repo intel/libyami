@@ -60,12 +60,6 @@ typedef struct {
 }VideoConfigBuffer;
 
 typedef struct {
-    VASurfaceID surface;
-    VADisplay display;
-    int64_t timeStamp;          // presentation time stamp
-}VideoRenderBuffer;
-
-typedef struct {
     bool valid;                 // indicates whether format info is valid. MimeType is always valid.
     char *mimeType;
     uint32_t width;
