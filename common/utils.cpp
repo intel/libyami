@@ -146,7 +146,8 @@ bool getPlaneResolution(uint32_t fourcc, uint32_t pixelWidth, uint32_t pixelHeig
                 height[1] = (h + 1) >> 1;
                 planes = 2;
             } else if (fourcc == VA_FOURCC('I', '0', '1', '0')) {
-                width[1] = width[2] = (w + 1) >> 1;
+                width[0] = w * 2;
+                width[1] = width[2] = w;
                 height[1] = height[2] = (h + 1) >> 1;
                 planes = 3;
             } else {

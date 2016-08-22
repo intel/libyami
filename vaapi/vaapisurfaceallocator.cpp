@@ -33,8 +33,8 @@ VaapiSurfaceAllocator::VaapiSurfaceAllocator(VADisplay display, uint32_t extraSi
 
 YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
 {
-    uint32_t rtFormat = VA_RT_FORMAT_YUV420;
     VASurfaceAttrib attrib;
+    memset(&attrib,0,sizeof(attrib));
 
     attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
     attrib.type = VASurfaceAttribPixelFormat;
@@ -48,13 +48,15 @@ YamiStatus VaapiSurfaceAllocator::doAlloc(SurfaceAllocParams* params)
     uint32_t height = params->height;
     if (!width || !height || !size)
         return YAMI_INVALID_PARAM;
-    if (params->fourcc != YAMI_FOURCC_NV12 && params->fourcc != YAMI_FOURCC_P010) {
+    if (params->fourcc != YAMI_FOURCC_NV12 &&
+        params->fourcc != YAMI_FOURCC_P010) {
         ERROR("only support NV12 and P010");
         return YAMI_INVALID_PARAM;
     }
 
     size += m_extraSize;
 
+    uint32_t rtFormat = VA_RT_FORMAT_YUV420;
     if(params->fourcc == YAMI_FOURCC_P010)
         rtFormat = VA_RT_FORMAT_YUV420_10BPP;
 

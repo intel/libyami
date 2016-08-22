@@ -867,7 +867,6 @@ VaapiEncoderHEVC::VaapiEncoderHEVC():
 {
     m_videoParamCommon.profile = VAProfileHEVCMain;
     m_videoParamCommon.level = 51;
-    m_videoParamCommon.bitDepth = 8;
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
 

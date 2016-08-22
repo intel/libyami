@@ -57,7 +57,8 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.rcParams.windowSize = 500;
     m_videoParamCommon.rcParams.disableBitsStuffing = 1;
     m_videoParamCommon.leastInputCount = 0;
-
+    m_videoParamCommon.bitDepth = 8;
+    
     updateMaxOutputBufferCount();
 }
 
@@ -274,7 +275,7 @@ SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
     uint32_t rtFormat;
     SurfacePtr surface;
 
-
+    memset(&attrib,0,sizeof(attrib));
     attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
     attrib.type = VASurfaceAttribPixelFormat;
     attrib.value.type = VAGenericValueTypeInteger;
@@ -379,6 +380,12 @@ static bool loadFrameToSurface(VAImage surface_image,uint8_t* dst,uint8_t* src,u
     void *surface_p = dst;
     uint32_t i, row, col;
 
+    if ((fourcc != VA_FOURCC('I', '0', '1', '0')) &&
+        (fourcc != VA_FOURCC_I420)) {
+        ERROR("only support I010/I420 ");
+        return false;
+    }
+
     if (surface_image.format.fourcc == VA_FOURCC_YV12 ||
         surface_image.format.fourcc == VA_FOURCC_I420 ||
         surface_image.format.fourcc == VA_FOURCC_NV12 ||
@@ -386,28 +393,23 @@ static bool loadFrameToSurface(VAImage surface_image,uint8_t* dst,uint8_t* src,u
         surface_image.format.fourcc == VA_FOURCC_P016) {
         uint32_t bpp = get_bpp_in_1stplane_by_fourcc(surface_image.format.fourcc);
 
+        // here only support I010 and I420
         y_src = src;
-        if ((fourcc == VA_FOURCC('I', '0', '1', '0')) ||
-            (fourcc == VA_FOURCC_I420)) {
-            u_src = src + surface_image.width * surface_image.height * bpp;
-            v_src = src + surface_image.width * surface_image.height * 5 / 4 * bpp;
-        } else {
-            ERROR("only support I010/I420 ");
-            return false;
-        }
+        u_src = src + surface_image.width * surface_image.height * bpp;
+        v_src = src + surface_image.width * surface_image.height * 5 / 4 * bpp;
 
-        y_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[0]);
+        y_dst = (uint8_t *)surface_p + surface_image.offsets[0];
 
         if(surface_image.format.fourcc == VA_FOURCC_YV12){
-            v_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[1]);
-            u_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[2]);
+            v_dst = (uint8_t *)surface_p + surface_image.offsets[1];
+            u_dst = (uint8_t *)surface_p + surface_image.offsets[2];
         }else if(surface_image.format.fourcc == VA_FOURCC_I420){
-            u_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[1]);
-            v_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[2]);
+            u_dst = (uint8_t *)surface_p + surface_image.offsets[1];
+            v_dst = (uint8_t *)surface_p + surface_image.offsets[2];
         }else if(surface_image.format.fourcc == VA_FOURCC_NV12 ||
                  surface_image.format.fourcc == VA_FOURCC_P010 ||
                  surface_image.format.fourcc == VA_FOURCC_P016) {
-            u_dst = (unsigned char *)((unsigned char*)surface_p + surface_image.offsets[1]);
+            u_dst = (uint8_t *)surface_p + surface_image.offsets[1];
             v_dst = u_dst;
         }
         else
@@ -661,7 +663,10 @@ bool VaapiEncoderBase::initVA()
 
     int32_t surfaceWidth = ALIGN16(m_videoParamCommon.resolution.width);
     int32_t surfaceHeight = ALIGN16(m_videoParamCommon.resolution.height);
-    m_pool = SurfacePool::create(m_alloc, ((m_videoParamCommon.bitDepth == 8)?YAMI_FOURCC_NV12:YAMI_FOURCC_P010), (uint32_t)surfaceWidth, (uint32_t)surfaceHeight, m_maxOutputBuffer);
+    uint32_t fourcc = YAMI_FOURCC_NV12;
+    if (m_videoParamCommon.bitDepth == 10)
+        fourcc = YAMI_FOURCC_P010;
+    m_pool = SurfacePool::create(m_alloc, fourcc, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight, m_maxOutputBuffer);
     if (!m_pool)
         return false;
 
