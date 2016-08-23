@@ -446,8 +446,10 @@ const ProfileMapItem g_profileMap[] = {
     { PROFILE_H264_MAIN, VAProfileH264Main },
     { PROFILE_H264_HIGH, VAProfileH264High },
     { PROFILE_JPEG_BASELINE, VAProfileJPEGBaseline },
+#if VA_CHECK_VERSION(0, 38, 0)
     { PROFILE_H265_MAIN, VAProfileHEVCMain },
     { PROFILE_H265_MAIN10, VAProfileHEVCMain10 },
+#endif
 };
 
 VideoProfile VaapiEncoderBase::profile() const
