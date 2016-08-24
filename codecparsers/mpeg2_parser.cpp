@@ -399,14 +399,15 @@ namespace MPEG2 {
         const uint8_t* nalData = shdr->nalData;
         int32_t nalSize = shdr->nalSize;
         QuantMatrices *quantMatrices = &m_quantMatrixExtension.quantizationMatrices;
-        BitReader bitReader(nalData, nalSize);
-        bitReaderInit(&bitReader);
-        skipByte(); // skip start_sequence_code
 
         if (nalSize < kStartCodeSize) {
             ERROR("Incomplete Quant Extension Header");
             return false;
         }
+
+        BitReader bitReader(nalData, nalSize);
+        bitReaderInit(&bitReader);
+        skipByte(); // skip start_sequence_code
 
         memset(&m_quantMatrixExtension, 0, sizeof(QuantMatrixExtension));
 
