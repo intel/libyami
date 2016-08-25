@@ -259,41 +259,15 @@ VaapiDecoderMPEG2::checkLevel(const YamiParser::MPEG2::LevelType& level)
 
 YamiStatus VaapiDecoderMPEG2::start(VideoConfigBuffer* buffer)
 {
-    YamiStatus status = YAMI_SUCCESS;
-    YamiParser::MPEG2::StartCodeType next_code;
 
-    if (NULL == buffer) {
+    if (!buffer) {
         ERROR("Cannot start codec without config buffer");
         return YAMI_FAIL;
     }
 
     m_configBuffer = *buffer;
 
-    if (buffer->data == NULL || buffer->size == 0) {
-        // no information provided in the buffer
-        return YAMI_SUCCESS;
-    }
-
-    if (m_VAStart) {
-        return YAMI_SUCCESS;
-    }
-
-    m_stream->data = buffer->data;
-    m_stream->streamSize = buffer->size;
-    NalReader nalReader(m_stream->data, m_stream->streamSize);
-
-    INFO("start size %ld timeStamp %ld", m_stream->streamSize,
-         m_stream->time_stamp);
-    while (nalReader.read(m_stream->nalData, m_stream->nalSize)) {
-        m_parser->nextStartCode(m_stream.get(), next_code);
-        DEBUG("start Next start_code %x", next_code);
-        status = processConfigBuffer();
-        if (status == YAMI_DECODE_FORMAT_CHANGE) {
-            status = YAMI_SUCCESS;
-        }
-    }
-
-    return status;
+    return YAMI_SUCCESS;
 }
 
 YamiStatus VaapiDecoderMPEG2::processConfigBuffer()
@@ -317,8 +291,8 @@ YamiStatus VaapiDecoderMPEG2::processConfigBuffer()
         m_sequenceHeader = m_parser->getSequenceHeader();
         m_previousStartCode = m_nextStartCode;
         m_nextStartCode = YamiParser::MPEG2::MPEG2_EXTENSION_START_CODE;
-        updateIQMatrix(&m_sequenceHeader->quantizationMatrices, true);
-        m_loadNewIQMatrix = true;
+        m_loadNewIQMatrix
+            = updateIQMatrix(&m_sequenceHeader->quantizationMatrices, true);
         if (!m_DPB.isEmpty())
             m_DPB.flush();
         break;
@@ -352,8 +326,8 @@ YamiStatus VaapiDecoderMPEG2::processConfigBuffer()
                     return YAMI_DECODE_PARSER_FAIL;
                 }
                 m_quantMatrixExtension = m_parser->getQuantMatrixExtension();
-                updateIQMatrix(&m_quantMatrixExtension->quantizationMatrices);
-                m_loadNewIQMatrix = true;
+                m_loadNewIQMatrix = updateIQMatrix(
+                    &m_quantMatrixExtension->quantizationMatrices);
                 break;
             default:
                 break;
@@ -393,8 +367,8 @@ YamiStatus VaapiDecoderMPEG2::processDecodeBuffer()
         // reset the matrices
         m_previousStartCode = m_nextStartCode;
         m_nextStartCode = YamiParser::MPEG2::MPEG2_EXTENSION_START_CODE;
-        updateIQMatrix(&m_sequenceHeader->quantizationMatrices, true);
-        m_loadNewIQMatrix = true;
+        m_loadNewIQMatrix
+            = updateIQMatrix(&m_sequenceHeader->quantizationMatrices, true);
 
         break;
     case YamiParser::MPEG2::MPEG2_GROUP_START_CODE:
@@ -426,14 +400,19 @@ YamiStatus VaapiDecoderMPEG2::processDecodeBuffer()
             m_isParsingSlices = false;
         }
 
-        m_nextStartCode = YamiParser::MPEG2::MPEG2_PICTURE_START_CODE;
-        INFO("parsePictureHeader size %ld", m_stream->streamSize);
-        if (!m_parser->parsePictureHeader(m_stream.get())) {
-            return YAMI_DECODE_PARSER_FAIL;
+        if (m_previousStartCode
+            == YamiParser::MPEG2::MPEG2_EXTENSION_START_CODE
+            || m_previousStartCode
+            == YamiParser::MPEG2::MPEG2_GROUP_START_CODE) {
+            m_nextStartCode = YamiParser::MPEG2::MPEG2_PICTURE_START_CODE;
+            INFO("parsePictureHeader size %ld", m_stream->streamSize);
+            if (!m_parser->parsePictureHeader(m_stream.get())) {
+                return YAMI_DECODE_PARSER_FAIL;
+            }
+            m_pictureHeader = m_parser->getPictureHeader();
+            m_previousStartCode = m_nextStartCode;
+            m_nextStartCode = YamiParser::MPEG2::MPEG2_EXTENSION_START_CODE;
         }
-        m_pictureHeader = m_parser->getPictureHeader();
-        m_previousStartCode = m_nextStartCode;
-        m_nextStartCode = YamiParser::MPEG2::MPEG2_EXTENSION_START_CODE;
         break;
     case YamiParser::MPEG2::MPEG2_EXTENSION_START_CODE:
         extID = static_cast<YamiParser::MPEG2::ExtensionIdentifierType>(
@@ -462,8 +441,8 @@ YamiStatus VaapiDecoderMPEG2::processDecodeBuffer()
                 return YAMI_DECODE_PARSER_FAIL;
             }
             m_quantMatrixExtension = m_parser->getQuantMatrixExtension();
-            updateIQMatrix(&m_quantMatrixExtension->quantizationMatrices);
-            m_loadNewIQMatrix = true;
+            m_loadNewIQMatrix
+                = updateIQMatrix(&m_quantMatrixExtension->quantizationMatrices);
         }
         else if (extID == YamiParser::MPEG2::kSequence) {
             if (!m_parser->parseSequenceExtension(m_stream.get())) {
@@ -732,7 +711,7 @@ YamiStatus VaapiDecoderMPEG2::assignPicture()
     return status;
 }
 
-void VaapiDecoderMPEG2::updateIQMatrix(const QuantMatrices* refIQMatrix,
+bool VaapiDecoderMPEG2::updateIQMatrix(const QuantMatrices* refIQMatrix,
                                        bool reset)
 {
 
@@ -763,6 +742,11 @@ void VaapiDecoderMPEG2::updateIQMatrix(const QuantMatrices* refIQMatrix,
         m_IQMatrices.chroma_non_intra_quantiser_matrix
             = refIQMatrix->chroma_non_intra_quantiser_matrix;
     }
+
+    return refIQMatrix->load_intra_quantiser_matrix
+           || refIQMatrix->load_non_intra_quantiser_matrix
+           || refIQMatrix->load_chroma_intra_quantiser_matrix
+           || refIQMatrix->load_chroma_non_intra_quantiser_matrix;
 }
 
 YamiStatus VaapiDecoderMPEG2::loadIQMatrix()
@@ -959,6 +943,7 @@ YamiStatus VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
             else if (m_previousStartCode
                          == YamiParser::MPEG2::MPEG2_PICTURE_START_CODE
                      || extID == YamiParser::MPEG2::kQuantizationMatrix
+                     || extID == YamiParser::MPEG2::kPictureCoding
                      || extID == YamiParser::MPEG2::kSequence) {
                 status = processDecodeBuffer();
                 if (status != YAMI_SUCCESS) {
@@ -967,7 +952,7 @@ YamiStatus VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
             }
             break;
         default:
-            if (isSliceCode(next_code)) {
+            if (isSliceCode(next_code) && m_isParsingSlices) {
                 status = processDecodeBuffer();
                 if (status != YAMI_SUCCESS) {
                     return status;
