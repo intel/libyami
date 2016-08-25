@@ -125,7 +125,7 @@ private:
     YamiStatus assignPicture();
     YamiStatus createPicture();
     YamiStatus loadIQMatrix();
-    void updateIQMatrix(const YamiParser::MPEG2::QuantMatrices* refIQMatrix,
+    bool updateIQMatrix(const YamiParser::MPEG2::QuantMatrices* refIQMatrix,
                         bool reset = false);
     YamiStatus decodePicture();
     YamiStatus outputPicture(const PicturePtr& picture);
