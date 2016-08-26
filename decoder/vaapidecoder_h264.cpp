@@ -1613,16 +1613,25 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
     return m_contextChanged;
 }
 
+bool VaapiDecoderH264::isResolutionChanged(const SharedPtr<SPS>& sps)
+{
+    if (m_configBuffer.surfaceWidth != sps->m_width
+        || m_configBuffer.surfaceHeight != sps->m_height){
+        return true;
+    }
+    return false;
+}
+
 YamiStatus VaapiDecoderH264::ensureContext(const SharedPtr<SPS>& sps)
 {
-    if (isDecodeContextChanged(sps)) {
+    bool contextChange = isDecodeContextChanged(sps);
+    bool resolutionChange = isResolutionChanged(sps);
+
+    if (contextChange || resolutionChange) {
         INFO("frame size changed, reconfig codec. orig size %d x %d, new size: "
              "%d x %d",
              m_configBuffer.width, m_configBuffer.height, sps->m_width,
              sps->m_height);
-        YamiStatus status = VaapiDecoderBase::terminateVA();
-        if (status != YAMI_SUCCESS)
-            return status;
         m_configBuffer.width = sps->frame_cropping_flag ? sps->m_cropRectWidth
                                                         : sps->m_width;
         m_configBuffer.height = sps->frame_cropping_flag ? sps->m_cropRectHeight
@@ -1632,12 +1641,25 @@ YamiStatus VaapiDecoderH264::ensureContext(const SharedPtr<SPS>& sps)
         m_configBuffer.flag |= HAS_SURFACE_NUMBER;
         m_configBuffer.profile
             = VAProfileH264High; // FIXME: set different profile later
-        status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != YAMI_SUCCESS)
-            return status;
+
+        if(contextChange){
+            YamiStatus status = VaapiDecoderBase::terminateVA();
+            if (status != YAMI_SUCCESS)
+                return status;
+            status = VaapiDecoderBase::start(&m_configBuffer);
+            if (status != YAMI_SUCCESS)
+                return status;
+        } else {
+            m_videoFormatInfo.width = m_configBuffer.width;
+            m_videoFormatInfo.height = m_configBuffer.height;
+            m_videoFormatInfo.surfaceWidth = m_configBuffer.surfaceWidth;
+            m_videoFormatInfo.surfaceHeight = m_configBuffer.surfaceHeight;
+        }
+
         // return YAMI_DECODE_FORMAT_CHANGE to info upper layer va context changed
         return YAMI_DECODE_FORMAT_CHANGE;
     }
+
     return (m_context) ? YAMI_SUCCESS : YAMI_FAIL;
 }
 
