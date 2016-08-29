@@ -53,7 +53,7 @@ YamiStatus SurfacePool::init(const SharedPtr<SurfaceAllocator>& alloc,
     //prepare surfaces for pool
     std::deque<SurfacePtr> surfaces;
     for (uint32_t i = 0; i < m_params.size; i++) {
-        SurfacePtr s(new VaapiSurface(m_params.surfaces[i], width, height));
+        SurfacePtr s(new VaapiSurface(m_params.surfaces[i], width, height, fourcc));
         surfaces.push_back(s);
     }
     m_pool = VideoPool<VaapiSurface>::create(surfaces);

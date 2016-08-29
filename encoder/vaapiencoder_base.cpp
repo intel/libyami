@@ -301,7 +301,7 @@ SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
         &id, 1, &attrib, 1);
     if (!checkVaapiStatus(status, "vaCreateSurfaces"))
         return surface;
-    surface.reset(new VaapiSurface((intptr_t)id, width, height),
+    surface.reset(new VaapiSurface((intptr_t)id, width, height, fourcc),
         SurfaceDestroyer(m_display));
     return surface;
 }

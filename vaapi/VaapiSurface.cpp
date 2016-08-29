@@ -24,7 +24,7 @@
 
 namespace YamiMediaCodec {
 
-VaapiSurface::VaapiSurface(intptr_t id, uint32_t width, uint32_t height)
+VaapiSurface::VaapiSurface(intptr_t id, uint32_t width, uint32_t height, uint32_t fourcc)
 {
     m_frame.reset(new VideoFrame);
     memset(m_frame.get(), 0, sizeof(VideoFrame));
@@ -32,6 +32,7 @@ VaapiSurface::VaapiSurface(intptr_t id, uint32_t width, uint32_t height)
     m_frame->crop.x = m_frame->crop.y = 0;
     m_frame->crop.width = width;
     m_frame->crop.height = height;
+    m_frame->fourcc = fourcc;
     m_width = width;
     m_height = height;
 }
@@ -71,5 +72,10 @@ void VaapiSurface::getCrop(uint32_t& x, uint32_t& y, uint32_t& width, uint32_t& 
     y = r.y;
     width = r.width;
     height = r.height;
+}
+
+uint32_t VaapiSurface::getFourcc()
+{
+    return m_frame->fourcc;
 }
 }

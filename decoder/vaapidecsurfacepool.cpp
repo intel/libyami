@@ -54,10 +54,11 @@ bool VaapiDecSurfacePool::init(const DisplayPtr& display, VideoConfigBuffer* con
     uint32_t size = m_allocParams.size;
     uint32_t width = m_allocParams.width;
     uint32_t height = m_allocParams.height;
+    uint32_t fourcc = config->fourcc;
 
     m_renderBuffers.resize(size);
     for (uint32_t i = 0; i < size; i++) {
-        SurfacePtr s(new VaapiSurface(m_allocParams.surfaces[i], width, height));
+        SurfacePtr s(new VaapiSurface(m_allocParams.surfaces[i], width, height, fourcc));
         VASurfaceID id = s->getID();
 
         m_renderBuffers[i].display = m_display->getID();
@@ -142,6 +143,7 @@ bool VaapiDecSurfacePool::output(const SurfacePtr& surface, int64_t timeStamp)
 
     VideoRect& crop = buffer->crop;
     surface->getCrop(crop.x, crop.y, crop.width, crop.height);
+    buffer->fourcc = surface->getFourcc();
 
     buffer->timeStamp = timeStamp;
     DEBUG("surface=0x%x is output-able with timeStamp=%ld", surface->getID(), timeStamp);
