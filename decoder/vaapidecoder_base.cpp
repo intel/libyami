@@ -193,11 +193,8 @@ SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
         memset(frame.get(), 0, sizeof(VideoFrame));
         frame->surface = (intptr_t)buffer->surface;
         frame->timeStamp = buffer->timeStamp;
-        frame->crop.x = 0;
-        frame->crop.y = 0;
-        frame->crop.width = m_videoFormatInfo.width;
-        frame->crop.height = m_videoFormatInfo.height;
-        frame->fourcc = m_videoFormatInfo.fourcc;
+        frame->crop = buffer->crop;
+        frame->fourcc = buffer->fourcc;
     }
     return frame;
 }
