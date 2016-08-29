@@ -26,13 +26,14 @@ namespace YamiMediaCodec {
 
 class VaapiSurface {
 public:
-    VaapiSurface(intptr_t id, uint32_t width, uint32_t height);
+    VaapiSurface(intptr_t id, uint32_t width, uint32_t height, uint32_t fourcc);
     VaapiSurface(const SharedPtr<VideoFrame>&);
 
     VASurfaceID getID();
 
     bool setCrop(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
     void getCrop(uint32_t& x, uint32_t& y, uint32_t& width, uint32_t& height);
+    uint32_t getFourcc();
 
 private:
     SharedPtr<VideoFrame> m_frame;

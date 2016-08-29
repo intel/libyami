@@ -36,6 +36,7 @@ typedef struct {
     VADisplay display;
     int64_t timeStamp; // presentation time stamp
     VideoRect crop;
+    uint32_t fourcc;
 } VideoRenderBuffer;
 
 /***
