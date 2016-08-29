@@ -970,11 +970,25 @@ void VaapiDecoderH265::getPoc(const PicturePtr& picture,
     }
 }
 
+SurfacePtr VaapiDecoderH265::createSurface(const SliceHeader* const slice)
+{
+    SurfacePtr s = VaapiDecoderBase::createSurface();
+    if (!s)
+        return s;
+    SharedPtr<SPS>& sps = slice->pps->sps;
+
+    if (sps->conformance_window_flag)
+        s->setCrop(0, 0, sps->croppedWidth, sps->croppedHeight);
+    else
+        s->setCrop(0, 0, sps->width, sps->height);
+    return s;
+}
+
 PicturePtr VaapiDecoderH265::createPicture(const SliceHeader* const slice,
         const NalUnit* const nalu)
 {
     PicturePtr picture;
-    SurfacePtr surface = createSurface();
+    SurfacePtr surface = createSurface(slice);
     if (!surface)
         return picture;
     picture.reset(new VaapiDecPictureH265(m_context, surface, m_currentPTS));
