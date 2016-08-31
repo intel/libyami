@@ -17,9 +17,6 @@
 #ifndef __VIDEO_DECODER_CAPI_H__
 #define __VIDEO_DECODER_CAPI_H__
 
-#ifndef __ENABLE_CAPI__
-#define __ENABLE_CAPI__ 1
-#endif
 #include "interface/VideoDecoderDefs.h"
 #include "interface/VideoCommonDefs.h"
 

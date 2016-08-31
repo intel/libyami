@@ -92,18 +92,6 @@ fi
 AM_CONDITIONAL(ENABLE_V4L2,
     [test "x$enable_v4l2" = "xyes"])
 
-AC_ARG_ENABLE(capi,
-    [AC_HELP_STRING([--enable-capi],
-        [wrapper of c api interface @<:@default=no@:>@])],
-    [], [enable_capi="no"])
-
-if test "$enable_capi" = "yes"; then
-    AC_DEFINE([__ENABLE_CAPI__], [1],
-        [Defined to 1 if --enable-capi="yes"])
-fi
-AM_CONDITIONAL(ENABLE_CAPI,
-    [test "x$enable_capi" = "xyes"])
-
 AC_ARG_ENABLE(x11,
     [AC_HELP_STRING([--enable-x11],
         [enable x11 @<:@default=yes@:>@])],

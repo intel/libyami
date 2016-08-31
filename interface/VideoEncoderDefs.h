@@ -18,7 +18,6 @@
 #define __VIDEO_ENCODER_DEF_H__
 
 // config.h should NOT be included in header file, especially for the header file used by external
-// XXX __ENABLE_CAPI__ still seems ok in this file
 
 #include <va/va.h>
 #include <stdint.h>
@@ -96,11 +95,6 @@ typedef struct VideoEncOutputBuffer {
     uint32_t flag;                   //Key frame, Codec Data etc
     VideoOutputFormat format;   //output format
     uint64_t timeStamp;         //reserved
-#ifndef __ENABLE_CAPI__
-     VideoEncOutputBuffer():data(0), bufferSize(0), dataSize(0)
-    , remainingSize(0), flag(0), format(OUTPUT_BUFFER_LAST), timeStamp(0) {
-    };
-#endif
 }VideoEncOutputBuffer;
 
 #ifdef __BUILD_GET_MV__
@@ -127,10 +121,6 @@ typedef struct VideoEncMVBuffer {
     uint8_t *data;                //memory to store the MV
     uint32_t bufferSize;        //buffer size
     uint32_t dataSize;          //actuall size
-#ifndef __ENABLE_CAPI__
-     VideoEncMVBuffer():data(0), bufferSize(0), dataSize(0) {
-    };
-#endif
 }VideoEncMVBuffer;
 #endif
 
@@ -142,11 +132,6 @@ typedef struct VideoEncRawBuffer {
     uint64_t timeStamp;         //reserved
     bool forceKeyFrame;
     intptr_t id;
-#ifndef __ENABLE_CAPI__
-     VideoEncRawBuffer():data(0), fourcc(0), size(0), bufAvailable(false),
-        timeStamp(0), forceKeyFrame(false), id(-1) {
-    };
-#endif
 }VideoEncRawBuffer;
 
 typedef struct VideoEncSurfaceBuffer {
@@ -155,29 +140,16 @@ typedef struct VideoEncSurfaceBuffer {
     uint32_t index;
     bool bufAvailable;
     struct EncSurfaceBuffer *next;
-#ifndef __ENABLE_CAPI__
-    VideoEncSurfaceBuffer():surface(VA_INVALID_ID), usrptr(0)
-    , index(0), bufAvailable(false) {
-    };
-#endif
 }VideoEncSurfaceBuffer;
 
 typedef struct VideoFrameRate {
     uint32_t frameRateNum;
     uint32_t frameRateDenom;
-#ifndef __ENABLE_CAPI__
-     VideoFrameRate():frameRateNum(0), frameRateDenom(1) {
-    };
-#endif
 }VideoFrameRate;
 
 typedef struct VideoResolution {
     uint32_t width;
     uint32_t height;
-#ifndef __ENABLE_CAPI__
-     VideoResolution():width(0), height(0) {
-    };
-#endif
 }VideoResolution;
 
 typedef struct VideoRateControlParams {
@@ -191,32 +163,16 @@ typedef struct VideoRateControlParams {
     uint32_t disableBitsStuffing;
     int8_t diffQPIP;// P frame qp minus initQP
     int8_t diffQPIB;// B frame qp minus initQP
-
-#ifndef __ENABLE_CAPI__
-     VideoRateControlParams():bitRate(0), initQP(0), minQP(0)
-    , windowSize(0), targetPercentage(0)
-    , disableFrameSkip(0), disableBitsStuffing(0)
-    , diffQPIP(0), diffQPIB(0) {
-    };
-#endif
 }VideoRateControlParams;
 
 typedef struct SliceNum {
     uint32_t iSliceNum;
     uint32_t pSliceNum;
-#ifndef __ENABLE_CAPI__
-     SliceNum():iSliceNum(1), pSliceNum(1) {
-    };
-#endif
 }SliceNum;
 
 typedef struct SamplingAspectRatio {
     uint16_t SarWidth;
     uint16_t SarHeight;
-#ifndef __ENABLE_CAPI__
-     SamplingAspectRatio():SarWidth(0), SarHeight(0) {
-    };
-#endif
 }SamplingAspectRatio;
 
 typedef enum {
