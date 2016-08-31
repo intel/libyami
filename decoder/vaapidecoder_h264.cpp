@@ -1605,7 +1605,7 @@ bool VaapiDecoderH264::isDecodeContextChanged(const SharedPtr<SPS>& sps)
     if (m_configBuffer.surfaceWidth < sps->m_width
         || m_configBuffer.surfaceHeight < sps->m_height
         || m_configBuffer.surfaceNumber < (int32_t)maxDecFrameBuffering) {
-        m_configBuffer.surfaceNumber = maxDecFrameBuffering;
+        m_configBuffer.surfaceNumber = maxDecFrameBuffering + 1;
         m_contextChanged = true;
     } else
         m_contextChanged = false;
