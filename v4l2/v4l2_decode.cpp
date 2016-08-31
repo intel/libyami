@@ -135,6 +135,8 @@ bool V4l2Decoder::start()
     if (m_codecData.size()) {
         configBuffer.data = m_codecData.data();
         configBuffer.size = m_codecData.size();
+        configBuffer.width = m_videoWidth;
+        configBuffer.height = m_videoHeight;
     }
     status = m_decoder->start(&configBuffer);
     ASSERT(status == YAMI_SUCCESS);
@@ -466,6 +468,8 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                 ret = -1;
             }
 
+            m_videoWidth = format->fmt.pix_mp.width;
+            m_videoHeight = format->fmt.pix_mp.height;
             m_maxBufferSize[INPUT] = format->fmt.pix_mp.plane_fmt[0].sizeimage;
         } else {
             ret = -1;
