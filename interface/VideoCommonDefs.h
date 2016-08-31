@@ -250,13 +250,11 @@ typedef struct VideoFrame {
      */
     uint32_t    fourcc;
 
-#ifdef __ENABLE_CAPI__
     /**
      * for frame destory, cpp should not touch here
      */
     intptr_t    user_data;
     void        (*free)(struct VideoFrame* );
-#endif
 } VideoFrame;
 
 #define YAMI_MIME_MPEG2 "video/mpeg2"

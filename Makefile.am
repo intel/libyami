@@ -11,9 +11,7 @@ if ENABLE_DOCS
 SUBDIRS += doc
 endif
 
-if ENABLE_CAPI
 SUBDIRS += capi
-endif
 
 if ENABLE_V4L2
 SUBDIRS +=  v4l2
@@ -42,9 +40,7 @@ libyami_la_LIBADD = common/libyami_common.la \
 	vpp/libyami_vpp.la \
 	$(NULL)
 
-if ENABLE_CAPI
 libyami_la_LIBADD += capi/libyami_capi.la
-endif
 
 if ENABLE_X11
 libyami_la_LDFLAGS += $(LIBVA_X11_LIBS) $(X11_LIBS)

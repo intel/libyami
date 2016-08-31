@@ -82,9 +82,5 @@ do{ \
 }while(0)
 #endif
 
-#ifndef __ENABLE_CAPI__
-    #define PARAMETER_ASSIGN(a, b)  a = b
-#else
-    #define PARAMETER_ASSIGN(a, b)  memcpy(&(a), &(b), sizeof(b))
-#endif
+#define PARAMETER_ASSIGN(a, b)  memcpy(&(a), &(b), sizeof(b))
 #endif //__COMMON_DEF_H__
