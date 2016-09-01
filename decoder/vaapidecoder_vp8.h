@@ -59,7 +59,6 @@ char (&ArraySizeHelper(const T (&array)[N]))[N];
 #define arraysize(array) (sizeof(ArraySizeHelper(array)))
 
 enum {
-    VP8_EXTRA_SURFACE_NUMBER = 5,
     VP8_MAX_PICTURE_COUNT = 5,  // gold_ref, alt_ref, last_ref, previous (m_currentPicture, optional), and the newly allocated one
 };
 

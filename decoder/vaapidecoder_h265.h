@@ -35,10 +35,6 @@ namespace H265 {
 
 namespace YamiMediaCodec {
 
-enum {
-    H265_EXTRA_SURFACE_NUMBER = 5,
-};
-
 class VaapiDecPictureH265;
 class VaapiDecoderH265:public VaapiDecoderBase {
     typedef YamiParser::H265::SPS SPS;

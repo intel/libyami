@@ -912,7 +912,7 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
 
 YamiStatus VaapiDecoderH265::ensureContext(const SPS* const sps)
 {
-    uint8_t surfaceNumber = sps->sps_max_dec_pic_buffering_minus1[0] + 1 + H265_EXTRA_SURFACE_NUMBER;
+    uint8_t surfaceNumber = sps->sps_max_dec_pic_buffering_minus1[0] + 1;
     if (m_configBuffer.surfaceWidth < sps->width
         || m_configBuffer.surfaceHeight <  sps->height
         || m_configBuffer.surfaceNumber < surfaceNumber) {

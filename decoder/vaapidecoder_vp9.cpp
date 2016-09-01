@@ -49,8 +49,8 @@ YamiStatus VaapiDecoderVP9::start(VideoConfigBuffer* buffer)
           buffer->height);
 
     buffer->profile = VAProfileVP9Profile0;
-    //8 reference frame + extra number
-    buffer->surfaceNumber = 8 + VP9_EXTRA_SURFACE_NUMBER;
+    //8 reference frame
+    buffer->surfaceNumber = 8;
 
 
     DEBUG("disable native graphics buffer");

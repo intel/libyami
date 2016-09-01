@@ -471,7 +471,7 @@ YamiStatus VaapiDecoderVP8::start(VideoConfigBuffer* buffer)
     }
 
     buffer->profile = VAProfileVP8Version0_3;
-    buffer->surfaceNumber = 3 + VP8_EXTRA_SURFACE_NUMBER;
+    buffer->surfaceNumber = 3;
 
 
     DEBUG("disable native graphics buffer");

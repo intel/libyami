@@ -24,9 +24,6 @@
 #include <vector>
 
 namespace YamiMediaCodec{
-enum {
-    VP9_EXTRA_SURFACE_NUMBER = 5,
-};
 
 class VaapiDecoderVP9:public VaapiDecoderBase {
   public:
