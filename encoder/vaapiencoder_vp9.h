@@ -22,6 +22,8 @@
 #include <va/va_enc_vp9.h>
 #include <deque>
 
+#include "VideoEncoderDefs.h"
+
 namespace YamiMediaCodec {
 
 class VaapiEncPictureVP9;
@@ -51,7 +53,7 @@ private:
     YamiStatus encodePicture(const PicturePtr&);
     bool fill(VAEncSequenceParameterBufferVP9*) const;
     bool fill(VAEncPictureParameterBufferVP9*, const PicturePtr&,
-              const SurfacePtr&) const;
+              const SurfacePtr&);
     bool fill(VAEncMiscParameterTypeVP9PerSegmantParam* segParam) const;
     bool ensureSequence(const PicturePtr&);
     bool ensurePicture(const PicturePtr&, const SurfacePtr&);
@@ -66,7 +68,11 @@ private:
                                               : 1;
     }
 
+    inline uint32_t getReferenceMode() { return m_videoParamsVP9.referenceMode; }
+
+    VideoParamsVP9 m_videoParamsVP9;
     int m_frameCount;
+    int m_currentReferenceIndex;
 
     int m_maxCodedbufSize;
 
