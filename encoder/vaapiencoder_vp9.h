@@ -51,12 +51,13 @@ private:
     YamiStatus encodePicture(const PicturePtr&);
     bool fill(VAEncSequenceParameterBufferVP9*) const;
     bool fill(VAEncPictureParameterBufferVP9*, const PicturePtr&,
-              const SurfacePtr&) const;
+              const SurfacePtr&);
     bool fill(VAEncMiscParameterTypeVP9PerSegmantParam* segParam) const;
     bool ensureSequence(const PicturePtr&);
     bool ensurePicture(const PicturePtr&, const SurfacePtr&);
     bool ensureQMatrix(const PicturePtr&);
     bool referenceListUpdate(const PicturePtr&, const SurfacePtr&);
+    void resetReferenceIndex();
 
     void resetParams();
 
@@ -66,7 +67,11 @@ private:
                                               : 1;
     }
 
+    inline uint32_t getReferenceMode() { return m_videoParamCommon.referenceMode; }
+
     int m_frameCount;
+    int m_currentReferenceIndex;
+    std::deque<uint32_t> m_referenceIndex;
 
     int m_maxCodedbufSize;
 
