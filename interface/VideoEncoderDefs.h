@@ -181,6 +181,7 @@ typedef enum {
     VideoParamsTypeAVC,
     VideoParamsTypeH263,
     VideoParamsTypeMP4,
+    VideoParamsTypeVP9,
     VideoParamsTypeVC1,
     VideoParamsTypeHRD,
 
@@ -231,6 +232,10 @@ typedef struct VideoParamsAVC {
     uint32_t temporalLayerNum;
     uint32_t priorityId;
 }VideoParamsAVC;
+
+typedef struct VideoParamsVP9 {
+    uint32_t referenceMode;
+}VideoParamsVP9;
 
 typedef struct VideoParamsHRD {
     uint32_t size;
