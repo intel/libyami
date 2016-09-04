@@ -17,6 +17,7 @@ libyami_capi_ldflags = \
 
 libyami_capi_cppflags = \
 	$(LIBVA_CFLAGS) \
+	-I$(top_srcdir)/interface \
 	$(NULL)
 
 noinst_LTLIBRARIES          = libyami_capi.la
