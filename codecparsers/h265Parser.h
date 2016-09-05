@@ -411,7 +411,7 @@ namespace H265 {
         int8_t cb_qp_offset_list[6]; //[-12, 12]
         int8_t cr_qp_offset_list[6]; //[-12, 12]
         uint8_t log2_sao_offset_scale_luma;
-        int8_t log2_sao_offset_scale_chroma;
+        uint8_t log2_sao_offset_scale_chroma;
         //used for parsing other syntax elements
         uint32_t picWidthInCtbsY;
         uint32_t picHeightInCtbsY;
