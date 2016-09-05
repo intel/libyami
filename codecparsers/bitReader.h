@@ -47,10 +47,7 @@ public:
     /*read the next nbits bits from the bitstream but not advance the bitstream pointer*/
     uint32_t peek(uint32_t nbits) const;
 
-    /* You are allowed to skip less than BitReader::CACHEBYTES bytes
-     * when call this function at a time. And if you need to skip more than
-     * BitReader::CACHEBYTES bytes, you can call skip() repeatedly. */
-    void skip(uint32_t nbits);
+    bool skip(uint32_t nbits);
 
     /* Get the total bits that had been read from bitstream, and the return
      * value also is the position of the next bit to be read. */
