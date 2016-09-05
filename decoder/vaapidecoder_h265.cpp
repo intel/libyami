@@ -509,14 +509,13 @@ FILL_SCALING_LIST(8x8)
 FILL_SCALING_LIST(16x16)
 FILL_SCALING_LIST(32x32)
 
-#define FILL_SCALING_LIST_DC(mxm) \
-void fillScalingListDc##mxm(VAIQMatrixBufferHEVC* iqMatrix, const ScalingList* const scalingList) \
-{ \
-    for (size_t i = 0; i < N_ELEMENTS(iqMatrix->ScalingListDC##mxm); i++) { \
-        iqMatrix->ScalingListDC##mxm[i] = \
-            scalingList->scalingListDC##mxm[i] + 8; \
-    } \
-}
+#define FILL_SCALING_LIST_DC(mxm)                                                                     \
+    void fillScalingListDc##mxm(VAIQMatrixBufferHEVC* iqMatrix, const ScalingList* const scalingList) \
+    {                                                                                                 \
+        for (size_t i = 0; i < N_ELEMENTS(iqMatrix->ScalingListDC##mxm); i++) {                       \
+            iqMatrix->ScalingListDC##mxm[i] = scalingList->scalingListDC##mxm[i];                     \
+        }                                                                                             \
+    }
 
 FILL_SCALING_LIST_DC(16x16)
 FILL_SCALING_LIST_DC(32x32)

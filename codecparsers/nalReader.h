@@ -30,9 +30,11 @@ public:
     /*parse Exp-Golomb coding*/
     bool readUe(uint32_t& v);
     inline bool readUe(uint8_t& v);
+    inline bool readUe(uint16_t& v);
     uint32_t readUe();
     bool readSe(int32_t& v);
     inline bool readSe(int8_t& v);
+    inline bool readSe(int16_t& v);
     int32_t readSe();
 
     bool moreRbspData() const;
@@ -54,7 +56,25 @@ bool NalReader::readUe(uint8_t& v)
     return true;
 }
 
+bool NalReader::readUe(uint16_t& v)
+{
+    uint32_t tmp;
+    if (!readUe(tmp))
+        return false;
+    v = tmp;
+    return true;
+}
+
 bool NalReader::readSe(int8_t& v)
+{
+    int32_t tmp;
+    if (!readSe(tmp))
+        return false;
+    v = tmp;
+    return true;
+}
+
+bool NalReader::readSe(int16_t& v)
 {
     int32_t tmp;
     if (!readSe(tmp))
