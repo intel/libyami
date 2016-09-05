@@ -109,9 +109,18 @@ uint32_t BitReader::read(uint32_t nbits)
     return 0;
 }
 
-void BitReader::skip(uint32_t nbits)
+bool BitReader::skip(uint32_t nbits)
 {
-    read(nbits);
+    uint32_t tmp;
+    uint32_t size = sizeof(tmp) << 3;
+    while (nbits > size) {
+        if (!readT(tmp))
+            return false;
+        nbits -= size;
+    }
+    if (!read(tmp, nbits))
+        return false;
+    return true;
 }
 
 uint32_t BitReader::peek(uint32_t nbits) const
