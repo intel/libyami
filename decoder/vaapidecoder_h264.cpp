@@ -1149,8 +1149,8 @@ bool VaapiDecoderH264::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
     const uint8_t spsNalLengthSize = 2;
     const uint8_t ppsNalLengthSize = 2;
     NalUnit nalu;
-    const uint8_t* nalBuf;
-    int32_t i = 0, numOfSps, numOfPps, nalBufSize;
+    const uint8_t* nalBuf = NULL;
+    int32_t i = 0, numOfSps, numOfPps, nalBufSize = 0;
 
     numOfSps = buf[5] & 0x1f;
     for (NalReader nr(&buf[6], bufSize - 6, spsNalLengthSize); i < numOfSps;
