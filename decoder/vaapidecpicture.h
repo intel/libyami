@@ -78,9 +78,11 @@ bool VaapiDecPicture::editBitPlane(T*& plane, size_t size)
     if (m_bitPlane)
         return false;
     m_bitPlane = createBufferObject(VABitPlaneBufferType, size, NULL, (void**)&plane);
-    if (m_bitPlane)
+    if (m_bitPlane && plane) {
         memset(plane, 0, size);
-    return m_bitPlane != NULL;
+        return true;
+    }
+    return false;
 }
 
 template <class T>
