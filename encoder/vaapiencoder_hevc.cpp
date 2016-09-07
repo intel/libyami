@@ -393,7 +393,7 @@ private:
         bit_writer_put_ue(bitwriter, 5);
 
         /*vps_max_num_reorder_pics*/
-        bit_writer_put_ue(bitwriter, 0);
+        bit_writer_put_ue(bitwriter, m_encoder->m_numBFrames);
 
         /*vps_max_latency_increase_plus1*/
         bit_writer_put_ue(bitwriter, 0);
@@ -475,7 +475,7 @@ private:
        /* sps_max_dec_pic_buffering_minus1 */
        bit_writer_put_ue(bitwriter, 5);
        /* sps_max_num_reorder_pics */
-       bit_writer_put_ue(bitwriter, 0);
+       bit_writer_put_ue(bitwriter, m_encoder->m_numBFrames);
        /* sps_max_latency_increase_plus1 */
        bit_writer_put_ue(bitwriter, 0);
 
@@ -1218,17 +1218,18 @@ bool  VaapiEncoderHEVC::pictureReferenceListSet (
     for (i = 0; i < m_refList.size(); i++) {
         assert(picture->m_poc != m_refList[i]->m_poc);
         if (picture->m_poc > m_refList[i]->m_poc) {
-            /* set forward reflist */
-            m_refList0.push_front(m_refList[i]);
-            if (m_refList0.size() > m_maxRefList0Count)
-                m_refList0.pop_back();
+            /* set forward reflist: descending order */
+            m_refList0.push_back(m_refList[i]);
         } else {
-            /* set backward reflist */
+            /* set backward reflist: ascending order */
             m_refList1.push_front(m_refList[i]);
-            if (m_refList1.size() > m_maxRefList1Count)
-                m_refList1.pop_back();
         }
     }
+
+    if (m_refList0.size() > m_maxRefList0Count)
+        m_refList0.resize(m_maxRefList0Count);
+    if (m_refList1.size() > m_maxRefList1Count)
+        m_refList1.resize(m_maxRefList1Count);
 
     shortRfsUpdate(picture);
 
