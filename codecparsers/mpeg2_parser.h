@@ -346,11 +346,11 @@ namespace MPEG2 {
     private:
         friend class MPEG2ParserTest;
 
-        void readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
+        bool readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
                                       const uint8_t defaultMatrix[]);
 
-        void readQuantMatrix(bool& loadMatrix, uint8_t matrix[]);
-        void calculateMBColumn();
+        bool readQuantMatrix(bool& loadMatrix, uint8_t matrix[]);
+        bool calculateMBColumn();
 
         // bitReader functions
 
@@ -361,40 +361,37 @@ namespace MPEG2 {
 
         inline void bitReaderDeInit() { m_bitReader = NULL; }
 
-        inline void bitReaderSkipBits(uint32_t num_bits) const
+        inline bool bitReaderSkipBits(uint32_t num_bits) const
         {
-            m_bitReader->skip(num_bits);
+            return m_bitReader->skip(num_bits);
         }
 
-        inline void bitReaderReadBits(uint32_t num_bits, uint32_t* out) const
+        inline bool bitReaderReadBits(uint32_t num_bits, uint32_t* out) const
         {
-            *out = m_bitReader->read(num_bits);
+            return m_bitReader->readT(*out, num_bits);
         }
 
-        inline void bitReaderPeekBits(uint32_t num_bits, uint32_t* out) const
+        inline bool bitReaderPeekBits(uint32_t num_bits, uint32_t* out) const
         {
-            *out = m_bitReader->peek(num_bits);
+            return m_bitReader->peek(*out, num_bits);
+        }
+
+        inline bool bitReaderPeekBool(bool* out) const
+        {
+            return m_bitReader->peek(*out, 1);
         }
 
         inline bool bitReaderReadMarker(bool value) const
         {
-            bool peekMarker;
-            // peek 1 bit marker
-            peekMarker = static_cast<bool>(m_bitReader->read(1));
-            return peekMarker == value;
-        }
-
-        inline bool bitReaderPeekMarker(bool value) const
-        {
-            bool readMarker;
+            bool readMarker, ret;
             // read 1 bit marker
-            readMarker = static_cast<bool>(m_bitReader->peek(1));
-            return readMarker == value;
+            ret = m_bitReader->readT(readMarker);
+            return ret && readMarker == value;
         }
 
-        inline void bitReaderReadFlag(bool* flag) const
+        inline bool bitReaderReadFlag(bool* flag) const
         {
-            *flag = static_cast<bool>(m_bitReader->read(1));
+            return m_bitReader->readT(*flag);
         }
 
         inline uint64_t bitReaderCurrentPosition() const

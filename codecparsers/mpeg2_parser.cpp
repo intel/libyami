@@ -36,9 +36,52 @@
 namespace YamiParser {
 namespace MPEG2 {
 
-#define skipByte()                                                             \
+#define RETURN_ERROR(message)                                                  \
     do {                                                                       \
-        bitReaderSkipBits(8);                                                  \
+        ERROR("Error while reading %s", #message);                             \
+        bitReaderDeInit();                                                     \
+        return false;                                                          \
+    } while (0)
+
+#define READ_MARKER_OR_RETURN(flag)                                            \
+    do {                                                                       \
+        if (!bitReaderReadMarker(flag))                                        \
+            RETURN_ERROR(flag);                                                \
+    } while (0)
+
+#define READ_FLAG_OR_RETURN(flag)                                              \
+    do {                                                                       \
+        if (!bitReaderReadFlag(flag))                                          \
+            RETURN_ERROR(flag);                                                \
+    } while (0)
+
+#define READ_BITS_OR_RETURN(bits, var)                                         \
+    do {                                                                       \
+        if (!bitReaderReadBits(bits, var))                                     \
+            RETURN_ERROR(var);                                                 \
+    } while (0)
+
+#define PEEK_BITS_OR_RETURN(bits, var)                                         \
+    do {                                                                       \
+        if (!bitReaderPeekBits(bits, var))                                     \
+            RETURN_ERROR(var);                                                 \
+    } while (0)
+
+#define PEEK_BOOL_OR_RETURN(var)                                               \
+    do {                                                                       \
+        if (!bitReaderPeekBool(var))                                           \
+            RETURN_ERROR(var);                                                 \
+    } while (0)
+
+#define SKIP_BITS_OR_RETURN(bits)                                              \
+    do {                                                                       \
+        if (!bitReaderSkipBits(bits))                                          \
+            RETURN_ERROR("skip bits");                                         \
+    } while (0)
+
+#define SKIP_BYTE_OR_RETURN()                                                  \
+    do {                                                                       \
+        SKIP_BITS_OR_RETURN(8);                                                \
     } while (0)
 
     // vlc increment values per code
@@ -138,6 +181,7 @@ namespace MPEG2 {
         uint32_t verticalSize;
         int32_t nalSize = shdr->nalSize;
         const uint8_t* nalData = shdr->nalData;
+	bool marker;
 
         if (shdr->nalSize < kStartCodeSize + 1) {
             ERROR("Incomplete slice header");
@@ -153,7 +197,7 @@ namespace MPEG2 {
         bitReaderInit(&bitReader);
         m_slice.verticalPosition = nalData[0];
 
-        skipByte(); // skip start code
+        SKIP_BYTE_OR_RETURN(); // skip start code
 
         // parse one slice
 
@@ -162,7 +206,7 @@ namespace MPEG2 {
 
         if (verticalSize > 2800) {
             // really big picture
-            bitReaderReadBits(
+            READ_BITS_OR_RETURN(
                 3, &(m_slice.slice_vertical_position_extension));
             m_slice.macroblockRow
                 = (m_slice.slice_vertical_position_extension << 7)
@@ -171,26 +215,29 @@ namespace MPEG2 {
             m_slice.macroblockRow = m_slice.verticalPosition - 1;
         }
 
-        bitReaderReadBits(5, &(m_slice.quantiser_scale_code));
-        if (bitReaderPeekMarker(true)) {
+        READ_BITS_OR_RETURN(5, &(m_slice.quantiser_scale_code));
+        PEEK_BOOL_OR_RETURN(&marker);
+        if (marker) {
             // read more intra bits
-            bitReaderReadFlag(&(m_slice.intra_slice_flag));
-            bitReaderReadFlag(&(m_slice.intra_slice));
-            bitReaderReadBits(7, &(m_slice.reserved_bits));
+            READ_FLAG_OR_RETURN(&(m_slice.intra_slice_flag));
+            READ_FLAG_OR_RETURN(&(m_slice.intra_slice));
+            READ_BITS_OR_RETURN(7, &(m_slice.reserved_bits));
 
-            while (bitReaderPeekMarker(true)) {
+            PEEK_BOOL_OR_RETURN(&marker);
+            while (marker) {
                 // extra_information_slice
-                bitReaderReadFlag(&(m_slice.extra_bit_slice));
+                READ_FLAG_OR_RETURN(&(m_slice.extra_bit_slice));
                 if (!m_slice.extra_bit_slice) {
                     ERROR("Bad extra bit slice");
                     bitReaderDeInit();
                     return false;
                 }
-                skipByte();
+                SKIP_BYTE_OR_RETURN();
+                PEEK_BOOL_OR_RETURN(&marker);
             }
         }
 
-        bitReaderReadFlag(&(m_slice.extra_bit_slice));
+        READ_FLAG_OR_RETURN(&(m_slice.extra_bit_slice));
 
         if (m_slice.extra_bit_slice) {
             ERROR("Bad extra bit slice");
@@ -204,7 +251,8 @@ namespace MPEG2 {
         // sliceHeaderSize is given in bits
         m_slice.sliceHeaderSize = bitReaderCurrentPosition();
 
-        calculateMBColumn();
+        if (!calculateMBColumn())
+            return false;
 
 
         DEBUG("slice header size                  : %ld",
@@ -235,14 +283,14 @@ namespace MPEG2 {
         return true;
     }
 
-    void Parser::calculateMBColumn()
+    bool Parser::calculateMBColumn()
     {
         uint32_t bitsToParse;
         uint32_t mbVLC, mbINC = 0, totalMBINC = 0;
         do {
             for (uint8_t i = 0; i < 34; i++) {
                 bitsToParse = kVLCTable[i][0];
-                bitReaderPeekBits(bitsToParse, &mbVLC);
+                PEEK_BITS_OR_RETURN(bitsToParse, &mbVLC);
                 if (mbVLC == kVLCTable[i][1]) {
                     mbINC = kVLCTable[i][2];
                     break;
@@ -252,10 +300,11 @@ namespace MPEG2 {
                 totalMBINC += 33;
             else
                 totalMBINC += mbINC;
-            bitReaderSkipBits(bitsToParse);
+            SKIP_BITS_OR_RETURN(bitsToParse);
         } while (mbINC == 255);
 
         m_slice.macroblockColumn = totalMBINC - 1;
+        return true;
     }
 
     bool Parser::parsePictureHeader(const StreamHeader* shdr)
@@ -272,29 +321,29 @@ namespace MPEG2 {
 
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
-        skipByte();
+        SKIP_BYTE_OR_RETURN();
 
-        bitReaderReadBits(10, &(m_pictureHeader.temporal_reference));
-        bitReaderReadBits(3, &(m_pictureHeader.picture_coding_type));
+        READ_BITS_OR_RETURN(10, &(m_pictureHeader.temporal_reference));
+        READ_BITS_OR_RETURN(3, &(m_pictureHeader.picture_coding_type));
         picture_type = static_cast<PictureCodingType>(
             m_pictureHeader.picture_coding_type);
-        bitReaderReadBits(16, &(m_pictureHeader.vbv_delay));
+        READ_BITS_OR_RETURN(16, &(m_pictureHeader.vbv_delay));
 
         if (picture_type == kPFrame || picture_type == kBFrame) {
-            bitReaderReadFlag(&(m_pictureHeader.full_pel_forward_vector));
-            bitReaderReadBits(3, &(m_pictureHeader.forward_f_code));
+            READ_FLAG_OR_RETURN(&(m_pictureHeader.full_pel_forward_vector));
+            READ_BITS_OR_RETURN(3, &(m_pictureHeader.forward_f_code));
         }
 
         if (picture_type == kBFrame) {
-            bitReaderReadFlag(&(m_pictureHeader.full_pel_backward_vector));
-            bitReaderReadBits(3, &(m_pictureHeader.backward_f_code));
+            READ_FLAG_OR_RETURN(&(m_pictureHeader.full_pel_backward_vector));
+            READ_BITS_OR_RETURN(3, &(m_pictureHeader.backward_f_code));
         }
 
         for (;;) {
-            bitReaderReadFlag(&(m_pictureHeader.extra_bit_picture));
+            READ_FLAG_OR_RETURN(&(m_pictureHeader.extra_bit_picture));
             if (m_pictureHeader.extra_bit_picture == 1) {
                 // decoder shall skip extra_information_picture byte
-                skipByte();
+                SKIP_BYTE_OR_RETURN();
             } else {
                 break;
             }
@@ -333,27 +382,21 @@ namespace MPEG2 {
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
 
-        skipByte(); // skip start_sequence_code
+        SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
 
-        bitReaderReadFlag(&(m_GOPHeader.drop_frame_flag));
-        bitReaderReadBits(5, &(m_GOPHeader.time_code_hours));
-        bitReaderReadBits(6, &(m_GOPHeader.time_code_minutes));
-        if (!bitReaderReadMarker(true)) {
-            ERROR("GOP Header does not have marker");
-            bitReaderDeInit();
-            return false;
-        }
-        bitReaderReadBits(6, &(m_GOPHeader.time_code_seconds));
-        bitReaderReadBits(6, &(m_GOPHeader.time_code_pictures));
-        bitReaderReadFlag(&(m_GOPHeader.closed_gop));
-        bitReaderReadFlag(&(m_GOPHeader.broken_link));
+        READ_FLAG_OR_RETURN(&(m_GOPHeader.drop_frame_flag));
+        READ_BITS_OR_RETURN(5, &(m_GOPHeader.time_code_hours));
+        READ_BITS_OR_RETURN(6, &(m_GOPHeader.time_code_minutes));
+
+        READ_MARKER_OR_RETURN(true);
+
+        READ_BITS_OR_RETURN(6, &(m_GOPHeader.time_code_seconds));
+        READ_BITS_OR_RETURN(6, &(m_GOPHeader.time_code_pictures));
+        READ_FLAG_OR_RETURN(&(m_GOPHeader.closed_gop));
+        READ_FLAG_OR_RETURN(&(m_GOPHeader.broken_link));
         // five marker bits all should be 0
         for (uint8_t i(0); i < 5; ++i) {
-            if (!bitReaderReadMarker(false)) {
-                ERROR("GOP Header does not have marker");
-                bitReaderDeInit();
-                return false;
-            }
+            READ_MARKER_OR_RETURN(false);
         }
 
         DEBUG("drop_frame_flag    : %x", m_GOPHeader.drop_frame_flag);
@@ -368,29 +411,33 @@ namespace MPEG2 {
         return true;
     }
 
-    void Parser::readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
+    bool Parser::readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
                                           const uint8_t defaultMatrix[])
     {
-        readQuantMatrix(loadMatrix, matrix);
+        if (!readQuantMatrix(loadMatrix, matrix))
+            return false;
+
         if (!loadMatrix) {
             memcpy(matrix, defaultMatrix, 64);
             loadMatrix = true;
         }
+        return true;
     }
 
-    void Parser::readQuantMatrix(bool& loadMatrix, uint8_t matrix[])
+    bool Parser::readQuantMatrix(bool& loadMatrix, uint8_t matrix[])
     {
 
-        bitReaderReadFlag(&loadMatrix);
+        READ_FLAG_OR_RETURN(&loadMatrix);
 
         if (loadMatrix) {
             // read 8 bits *64 from the stream
             uint32_t value;
             for (uint8_t i(0); i < 64; ++i) {
-                bitReaderReadBits(8, &value);
+                READ_BITS_OR_RETURN(8, &value);
                 matrix[i] = value;
             }
         }
+        return true;
     }
 
     bool Parser::parseQuantMatrixExtension(const StreamHeader* shdr)
@@ -407,12 +454,12 @@ namespace MPEG2 {
 
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
-        skipByte(); // skip start_sequence_code
+        SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
 
         memset(&m_quantMatrixExtension, 0, sizeof(QuantMatrixExtension));
 
         // extension_start_code_identifier
-        bitReaderReadBits(
+        READ_BITS_OR_RETURN(
             4, &(m_quantMatrixExtension.extension_start_code_identifier));
 
         extID = static_cast<ExtensionIdentifierType>(
@@ -424,17 +471,22 @@ namespace MPEG2 {
             return false;
         }
 
-        readQuantMatrix(quantMatrices->load_intra_quantiser_matrix,
-                        quantMatrices->intra_quantiser_matrix);
+        if (!readQuantMatrix(quantMatrices->load_intra_quantiser_matrix,
+                             quantMatrices->intra_quantiser_matrix))
+            return false;
 
-        readQuantMatrix(quantMatrices->load_non_intra_quantiser_matrix,
-                        quantMatrices->non_intra_quantiser_matrix);
+        if (!readQuantMatrix(quantMatrices->load_non_intra_quantiser_matrix,
+                             quantMatrices->non_intra_quantiser_matrix))
+            return false;
 
-        readQuantMatrix(quantMatrices->load_chroma_intra_quantiser_matrix,
-                        quantMatrices->chroma_intra_quantiser_matrix);
+        if (!readQuantMatrix(quantMatrices->load_chroma_intra_quantiser_matrix,
+                             quantMatrices->chroma_intra_quantiser_matrix))
+            return false;
 
-        readQuantMatrix(quantMatrices->load_chroma_non_intra_quantiser_matrix,
-                        quantMatrices->chroma_non_intra_quantiser_matrix);
+        if (!readQuantMatrix(
+                quantMatrices->load_chroma_non_intra_quantiser_matrix,
+                quantMatrices->chroma_non_intra_quantiser_matrix))
+            return false;
 
         DEBUG("load_intra_quantiser_matrix             : %x",
               quantMatrices->load_intra_quantiser_matrix);
@@ -462,10 +514,10 @@ namespace MPEG2 {
 
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
-        skipByte(); // skip start_sequence_code
+        SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
 
         // extension_start_code_identifier
-        bitReaderReadBits(
+        READ_BITS_OR_RETURN(
             4, &(m_pictureCodingExtension.extension_start_code_identifier));
 
         extID = static_cast<ExtensionIdentifierType>(
@@ -477,30 +529,30 @@ namespace MPEG2 {
             return false;
         }
 
-        bitReaderReadBits(4, &(m_pictureCodingExtension.f_code[0][0]));
-        bitReaderReadBits(4, &(m_pictureCodingExtension.f_code[0][1]));
-        bitReaderReadBits(4, &(m_pictureCodingExtension.f_code[1][0]));
-        bitReaderReadBits(4, &(m_pictureCodingExtension.f_code[1][1]));
-        bitReaderReadBits(2, &(m_pictureCodingExtension.intra_dc_precision));
-        bitReaderReadBits(2, &(m_pictureCodingExtension.picture_structure));
-        bitReaderReadFlag(&(m_pictureCodingExtension.top_field_first));
-        bitReaderReadFlag(&(m_pictureCodingExtension.frame_pred_frame_dct));
-        bitReaderReadFlag(
+        READ_BITS_OR_RETURN(4, &(m_pictureCodingExtension.f_code[0][0]));
+        READ_BITS_OR_RETURN(4, &(m_pictureCodingExtension.f_code[0][1]));
+        READ_BITS_OR_RETURN(4, &(m_pictureCodingExtension.f_code[1][0]));
+        READ_BITS_OR_RETURN(4, &(m_pictureCodingExtension.f_code[1][1]));
+        READ_BITS_OR_RETURN(2, &(m_pictureCodingExtension.intra_dc_precision));
+        READ_BITS_OR_RETURN(2, &(m_pictureCodingExtension.picture_structure));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.top_field_first));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.frame_pred_frame_dct));
+        READ_FLAG_OR_RETURN(
             &(m_pictureCodingExtension.concealment_motion_vectors));
-        bitReaderReadFlag(&(m_pictureCodingExtension.q_scale_type));
-        bitReaderReadFlag(&(m_pictureCodingExtension.intra_vlc_format));
-        bitReaderReadFlag(&(m_pictureCodingExtension.alternate_scan));
-        bitReaderReadFlag(&(m_pictureCodingExtension.repeat_first_field));
-        bitReaderReadFlag(&(m_pictureCodingExtension.chrome_420_type));
-        bitReaderReadFlag(&(m_pictureCodingExtension.progressive_frame));
-        bitReaderReadFlag(&(m_pictureCodingExtension.composite_display_flag));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.q_scale_type));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.intra_vlc_format));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.alternate_scan));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.repeat_first_field));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.chrome_420_type));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.progressive_frame));
+        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.composite_display_flag));
 
         if (m_pictureCodingExtension.composite_display_flag) {
-            bitReaderReadFlag(&(m_pictureCodingExtension.v_axis));
-            bitReaderReadBits(3, &(m_pictureCodingExtension.field_sequence));
-            bitReaderReadFlag(&(m_pictureCodingExtension.sub_carrier));
-            bitReaderReadBits(7, &(m_pictureCodingExtension.burst_amplitude));
-            bitReaderReadBits(8,
+            READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.v_axis));
+            READ_BITS_OR_RETURN(3, &(m_pictureCodingExtension.field_sequence));
+            READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.sub_carrier));
+            READ_BITS_OR_RETURN(7, &(m_pictureCodingExtension.burst_amplitude));
+            READ_BITS_OR_RETURN(8,
                               &(m_pictureCodingExtension.sub_carrier_phase));
 
         }
@@ -556,9 +608,9 @@ namespace MPEG2 {
 
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
-        skipByte();
+        SKIP_BYTE_OR_RETURN();
 
-        bitReaderReadBits(
+        READ_BITS_OR_RETURN(
             4, &(m_sequenceExtension.extension_start_code_identifier));
 
         extID = static_cast<ExtensionIdentifierType>(
@@ -570,24 +622,20 @@ namespace MPEG2 {
             return false;
         }
 
-        bitReaderReadBits(8,
+        READ_BITS_OR_RETURN(8,
                           &(m_sequenceExtension.profile_and_level_indication));
-        bitReaderReadFlag(&(m_sequenceExtension.progressive_sequence));
-        bitReaderReadBits(2, &(m_sequenceExtension.chroma_format));
-        bitReaderReadBits(2, &(m_sequenceExtension.horizontal_size_extension));
-        bitReaderReadBits(2, &(m_sequenceExtension.vertical_size_extension));
-        bitReaderReadBits(12, &(m_sequenceExtension.bit_rate_extension));
+        READ_FLAG_OR_RETURN(&(m_sequenceExtension.progressive_sequence));
+        READ_BITS_OR_RETURN(2, &(m_sequenceExtension.chroma_format));
+        READ_BITS_OR_RETURN(2, &(m_sequenceExtension.horizontal_size_extension));
+        READ_BITS_OR_RETURN(2, &(m_sequenceExtension.vertical_size_extension));
+        READ_BITS_OR_RETURN(12, &(m_sequenceExtension.bit_rate_extension));
 
-        if (!bitReaderReadMarker(true)) {
-            ERROR("Sequence stream does not have marker");
-            bitReaderDeInit();
-            return false;
-        }
+        READ_MARKER_OR_RETURN(true);
 
-        bitReaderReadBits(8, &(m_sequenceExtension.vbv_buffer_size_extension));
-        bitReaderReadFlag(&(m_sequenceExtension.low_delay));
-        bitReaderReadBits(2, &(m_sequenceExtension.frame_rate_extension_n));
-        bitReaderReadBits(5, &(m_sequenceExtension.frame_rate_extension_d));
+        READ_BITS_OR_RETURN(8, &(m_sequenceExtension.vbv_buffer_size_extension));
+        READ_FLAG_OR_RETURN(&(m_sequenceExtension.low_delay));
+        READ_BITS_OR_RETURN(2, &(m_sequenceExtension.frame_rate_extension_n));
+        READ_BITS_OR_RETURN(5, &(m_sequenceExtension.frame_rate_extension_d));
 
         DEBUG("extension_start_code_identifier  : %x",
               m_sequenceExtension.extension_start_code_identifier);
@@ -633,30 +681,27 @@ namespace MPEG2 {
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);
 
-        skipByte();
+        SKIP_BYTE_OR_RETURN();
 
-        bitReaderReadBits(12, &(m_sequenceHdr.horizontal_size_value));
-        bitReaderReadBits(12, &(m_sequenceHdr.vertical_size_value));
-        bitReaderReadBits(4, &(m_sequenceHdr.aspect_ratio_info));
-        bitReaderReadBits(4, &(m_sequenceHdr.frame_rate_code));
-        bitReaderReadBits(18, &(m_sequenceHdr.bit_rate_value));
+        READ_BITS_OR_RETURN(12, &(m_sequenceHdr.horizontal_size_value));
+        READ_BITS_OR_RETURN(12, &(m_sequenceHdr.vertical_size_value));
+        READ_BITS_OR_RETURN(4, &(m_sequenceHdr.aspect_ratio_info));
+        READ_BITS_OR_RETURN(4, &(m_sequenceHdr.frame_rate_code));
+        READ_BITS_OR_RETURN(18, &(m_sequenceHdr.bit_rate_value));
 
-        if (!bitReaderReadMarker(true)) {
-            ERROR("Sequence stream does not have marker");
-            bitReaderDeInit();
-            return false;
-        }
+        READ_MARKER_OR_RETURN(true);
 
-        bitReaderReadBits(10, &(m_sequenceHdr.vbv_buffer_size_value));
-        bitReaderReadFlag(&(m_sequenceHdr.constrained_params_flag));
+        READ_BITS_OR_RETURN(10, &(m_sequenceHdr.vbv_buffer_size_value));
+        READ_FLAG_OR_RETURN(&(m_sequenceHdr.constrained_params_flag));
 
-        readQuantMatrixOrDefault(quantMatrices->load_intra_quantiser_matrix,
+        if (!readQuantMatrixOrDefault(quantMatrices->load_intra_quantiser_matrix,
                                  quantMatrices->intra_quantiser_matrix,
-                                 &kDefaultIntraBlockMatrix[0]);
+                                 &kDefaultIntraBlockMatrix[0]))
+            return false;
 
-        readQuantMatrixOrDefault(quantMatrices->load_non_intra_quantiser_matrix,
+        if (!readQuantMatrixOrDefault(quantMatrices->load_non_intra_quantiser_matrix,
                                  quantMatrices->non_intra_quantiser_matrix,
-                                 &kDefaultNonIntraBlockMatrix[0]);
+                                 &kDefaultNonIntraBlockMatrix[0]));
 
         DEBUG("horizontal_size_value            : %x",
               m_sequenceHdr.horizontal_size_value);
