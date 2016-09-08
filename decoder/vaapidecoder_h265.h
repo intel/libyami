@@ -17,9 +17,10 @@
 #ifndef vaapidecoder_h265_h
 #define vaapidecoder_h265_h
 
+#include "common/Functional.h"
 #include "vaapidecoder_base.h"
 #include "vaapidecpicture.h"
-#include <tr1/functional>
+
 #include <set>
 #include <map>
 #include <va/va_dec_hevc.h>
@@ -56,8 +57,8 @@ private:
 
     class DPB {
         typedef VaapiDecoderH265::RefSet     RefSet;
-        typedef std::tr1::function<YamiStatus(const PicturePtr&)> OutputCallback;
-        typedef std::tr1::function<void (const PicturePtr&)> ForEachFunction;
+        typedef std::function<YamiStatus(const PicturePtr&)> OutputCallback;
+        typedef std::function<void (const PicturePtr&)> ForEachFunction;
     public:
         typedef VaapiDecoderH265::PicturePtr PicturePtr;
         DPB(OutputCallback output);

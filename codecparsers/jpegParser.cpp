@@ -541,7 +541,7 @@ static bool componentIdMatches(const int id, const Component::Shared& component)
 
 bool Parser::parseSOS()
 {
-    using std::tr1::placeholders::_1;
+    using std::placeholders::_1;
 
     if (!m_frameHeader) {
         ERROR("SOS Encountered before SOF");
@@ -577,7 +577,7 @@ bool Parser::parseSOS()
         Components::iterator component = std::find_if(
             m_frameHeader->components.begin(),
             m_frameHeader->components.end(),
-            std::tr1::bind(&componentIdMatches, id, _1));
+            std::bind(&componentIdMatches, id, _1));
 
         if (component == m_frameHeader->components.end()
                 || m_scanHeader->components[(*component)->index]) {

@@ -17,11 +17,12 @@
 #ifndef vaapidecoder_h264_h
 #define vaapidecoder_h264_h
 
+#include "codecparsers/h264Parser.h"
+#include "common/Functional.h"
 #include "vaapidecoder_base.h"
 #include "vaapidecpicture.h"
-#include <tr1/functional>
+
 #include <set>
-#include "codecparsers/h264Parser.h"
 
 namespace YamiMediaCodec {
 
@@ -47,9 +48,9 @@ private:
 
     class DPB {
         typedef VaapiDecoderH264::RefSet RefSet;
-        typedef std::tr1::function<YamiStatus(const PicturePtr&)>
+        typedef std::function<YamiStatus(const PicturePtr&)>
             OutputCallback;
-        typedef std::tr1::function<void(const PicturePtr&)> ForEachFunction;
+        typedef std::function<void(const PicturePtr&)> ForEachFunction;
 
     public:
         typedef VaapiDecoderH264::PicturePtr PicturePtr;

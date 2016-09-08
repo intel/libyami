@@ -23,13 +23,14 @@
 #include "codecparsers/bitWriter.h"
 #include "common/scopedlogger.h"
 #include "common/common_def.h"
+#include "common/Functional.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
 #include "vaapiencoder_factory.h"
 #include <algorithm>
-#include <tr1/functional>
+
 namespace YamiMediaCodec{
 //shortcuts
 typedef VaapiEncoderHEVC::PicturePtr PicturePtr;
@@ -775,7 +776,7 @@ class VaapiEncPictureHEVC:public VaapiEncPicture
 {
     friend class VaapiEncoderHEVC;
     friend class VaapiEncoderHEVCRef;
-    typedef std::tr1::function<YamiStatus()> Function;
+    typedef std::function<YamiStatus()> Function;
 
 public:
     virtual ~VaapiEncPictureHEVC() {}
@@ -790,9 +791,9 @@ public:
 
         std::vector<Function> functions;
         if (format == OUTPUT_CODEC_DATA || ((format == OUTPUT_EVERYTHING) && isIdr()))
-            functions.push_back(std::tr1::bind(&VaapiEncStreamHeaderHEVC::getCodecConfig, m_headers,&out));
+            functions.push_back(std::bind(&VaapiEncStreamHeaderHEVC::getCodecConfig, m_headers,&out));
         if (format == OUTPUT_EVERYTHING || format == OUTPUT_FRAME_DATA)
-            functions.push_back(std::tr1::bind(getOutputHelper, this, &out));
+            functions.push_back(std::bind(getOutputHelper, this, &out));
         YamiStatus ret = getOutput(&out, functions);
         if (ret == YAMI_SUCCESS) {
             outBuffer->dataSize = out.data - outBuffer->data;

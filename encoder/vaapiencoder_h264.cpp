@@ -747,11 +747,8 @@ class VaapiEncPictureH264:public VaapiEncPicture
 {
     friend class VaapiEncoderH264;
     friend class VaapiEncoderH264Ref;
-#ifdef ANDROID
+
     typedef std::function<YamiStatus()> Function;
-#else
-    typedef std::tr1::function<YamiStatus()> Function;
-#endif
 
 public:
     virtual ~VaapiEncPictureH264() {}
@@ -766,9 +763,9 @@ public:
 
         std::vector<Function> functions;
         if (format == OUTPUT_CODEC_DATA || ((format == OUTPUT_EVERYTHING) && isIdr()))
-            functions.push_back(Bind(&VaapiEncStreamHeaderH264::getCodecConfig, m_headers,&out));
+            functions.push_back(std::bind(&VaapiEncStreamHeaderH264::getCodecConfig, m_headers,&out));
         if (format == OUTPUT_EVERYTHING || format == OUTPUT_FRAME_DATA)
-            functions.push_back(Bind(getOutputHelper, this, &out));
+            functions.push_back(std::bind(getOutputHelper, this, &out));
         YamiStatus ret = getOutput(&out, functions);
         if (ret == YAMI_SUCCESS) {
             outBuffer->dataSize = out.data - outBuffer->data;

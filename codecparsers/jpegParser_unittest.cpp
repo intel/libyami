@@ -441,16 +441,13 @@ Parser::CallbackResult simpleCallback(Results& results, const Parser& parser)
 
 JPEG_PARSER_TEST(Parse_SimpleWithCallbacks)
 {
-    using std::tr1::bind;
-    using std::tr1::ref;
-
     Parser parser(&g_SimpleJPEG[0], g_SimpleJPEG.size());
     Results results;
 
 #define registerCallback(id) \
     do { \
         parser.registerCallback(M_ ## id, \
-            bind(&simpleCallback, ref(results), ref(parser))); \
+            std::bind(&simpleCallback, std::ref(results), std::ref(parser))); \
     } while(0)
 
     registerCallback(SOI);

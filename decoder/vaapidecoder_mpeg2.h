@@ -18,11 +18,12 @@
 #define vaapidecoder_mpeg2_h
 
 #include "codecparsers/mpeg2_parser.h"
+#include "common/Functional.h"
 #include "vaapidecoder_base.h"
 #include "vaapidecpicture.h"
-#include "va/va.h"
+
 #include <list>
-#include <tr1/functional>
+#include <va/va.h>
 #include <vector>
 
 namespace YamiMediaCodec {
@@ -63,7 +64,7 @@ public:
 private:
     // mpeg2 DPB class
     class DPB {
-        typedef std::tr1::function<YamiStatus(const PicturePtr&)>
+        typedef std::function<YamiStatus(const PicturePtr&)>
             OutputCallback;
 
     public:

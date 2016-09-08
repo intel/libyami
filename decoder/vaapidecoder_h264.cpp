@@ -33,9 +33,9 @@
 
 namespace YamiMediaCodec {
 typedef VaapiDecoderH264::PicturePtr PicturePtr;
-using std::tr1::bind;
-using std::tr1::placeholders::_1;
-using std::tr1::ref;
+using std::bind;
+using std::placeholders::_1;
+using std::ref;
 using std::vector;
 using namespace YamiParser::H264;
 

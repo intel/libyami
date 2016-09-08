@@ -22,12 +22,19 @@
 #ifndef Functional_h
 #define Functional_h
 
-#ifdef ANDROID
-#include <functional>
-#define Bind std::bind
+#if __cplusplus > 199711L
+    #include <functional>
 #else
-#include <tr1/functional>
-#define Bind std::tr1::bind
-#endif
+    #include <tr1/functional>
+    namespace std {
+        using std::tr1::bind;
+        using std::tr1::function;
+        using std::tr1::ref;
+        namespace placeholders {
+            using std::tr1::placeholders::_1;
+            using std::tr1::placeholders::_2;
+        }
+    }
+#endif // __cplusplus > 199711L
 
-#endif
+#endif // Functional_h

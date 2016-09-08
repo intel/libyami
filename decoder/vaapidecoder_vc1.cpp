@@ -19,7 +19,7 @@
 #endif
 
 #include <string.h>
-#include <tr1/functional>
+
 #include "common/log.h"
 #include "vaapidecoder_vc1.h"
 #include "vaapidecoder_factory.h"

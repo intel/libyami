@@ -20,11 +20,7 @@
 #endif
 
 #include <string.h>
-#ifdef ANDROID
-#include <functional>
-#else
-#include <tr1/functional>
-#endif
+
 #include "common/log.h"
 #include "vaapidecoder_vp9.h"
 #include "vaapidecoder_factory.h"

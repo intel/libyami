@@ -37,11 +37,11 @@
 
 // library headers
 #include "bitReader.h"
+#include "common/Functional.h"
 
 // system headers
 #include <map>
 #include <tr1/array>
-#include <tr1/functional>
 #include <tr1/memory>
 #include <vector>
 
@@ -173,7 +173,7 @@ public:
         ParseSuspend
     };
 
-    typedef std::tr1::function<CallbackResult (void)> Callback;
+    typedef std::function<CallbackResult (void)> Callback;
     typedef std::vector<Callback> CallbackList;
     typedef std::map<enum Marker, CallbackList> Callbacks;
 

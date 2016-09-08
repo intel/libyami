@@ -25,7 +25,6 @@
 #include "vaapidecoder_factory.h"
 
 #include <string.h>
-#include <tr1/functional>
 
 using YamiParser::MPEG2::Slice;
 using YamiParser::MPEG2::PictureCodingExtension;
@@ -206,8 +205,8 @@ VaapiDecoderMPEG2::DPB::getReferencePictures(const PicturePtr& current_picture,
 }
 
 VaapiDecoderMPEG2::VaapiDecoderMPEG2()
-    : m_DPB(std::tr1::bind(&VaapiDecoderMPEG2::outputPicture, this,
-                                 std::tr1::placeholders::_1))
+    : m_DPB(std::bind(&VaapiDecoderMPEG2::outputPicture, this,
+                                 std::placeholders::_1))
     , m_VAStart(false)
     , m_isParsingSlices(false)
     , m_loadNewIQMatrix(false)
@@ -639,8 +638,8 @@ YamiStatus VaapiDecoderMPEG2::findReusePicture(std::list<PicturePtr>& list,
 {
     std::list<PicturePtr>::iterator it;
     it = std::find_if(list.begin(), list.end(),
-                      std::tr1::bind(findTempReference,
-                                     std::tr1::placeholders::_1,
+                      std::bind(findTempReference,
+                                     std::placeholders::_1,
                                      m_pictureHeader->temporal_reference));
     if (it != list.end()) {
         m_currentPicture = (*it);

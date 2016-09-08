@@ -29,7 +29,6 @@
 // system headers
 #include <cassert>
 #include <tr1/array>
-#include <tr1/functional>
 #include <tr1/memory>
 
 using ::YamiParser::JPEG::Component;
@@ -41,9 +40,9 @@ using ::YamiParser::JPEG::QuantTable;
 using ::YamiParser::JPEG::QuantTables;
 using ::YamiParser::JPEG::ScanHeader;
 using ::YamiParser::JPEG::Defaults;
-using ::std::tr1::function;
-using ::std::tr1::bind;
-using ::std::tr1::ref;
+using ::std::function;
+using ::std::bind;
+using ::std::ref;
 
 namespace YamiMediaCodec {
 
