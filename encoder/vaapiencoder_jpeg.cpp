@@ -20,6 +20,7 @@
 
 #include "vaapiencoder_jpeg.h"
 #include "codecparsers/jpegParser.h"
+#include "common/Array.h"
 #include "common/common_def.h"
 #include "common/scopedlogger.h"
 #include "vaapicodedbuffer.h"
@@ -27,7 +28,6 @@
 #include "vaapiencoder_factory.h"
 #include "common/log.h"
 #include <stdio.h>
-#include <tr1/array>
 
 #define NUM_DC_RUN_SIZE_BITS 16
 #define NUM_AC_RUN_SIZE_BITS 16
@@ -99,7 +99,7 @@ static const size_t JPEG_HEADER_SIZE = 83 + (YamiParser::JPEG::DCTSIZE2 * 2)
     + (NUM_DC_RUN_SIZE_BITS * 2) + (NUM_DC_CODE_WORDS_HUFFVAL * 2)
     + (NUM_AC_RUN_SIZE_BITS * 2) + (NUM_AC_CODE_WORDS_HUFFVAL * 2);
 
-typedef std::tr1::array<uint8_t, JPEG_HEADER_SIZE> JPEGHeader;
+typedef std::array<uint8_t, JPEG_HEADER_SIZE> JPEGHeader;
 
 int buildJpegHeader(JPEGHeader& header, int picture_width, int picture_height)
 {

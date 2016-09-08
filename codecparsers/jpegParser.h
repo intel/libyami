@@ -37,11 +37,11 @@
 
 // library headers
 #include "bitReader.h"
+#include "common/Array.h"
 #include "common/Functional.h"
 
 // system headers
 #include <map>
-#include <tr1/array>
 #include <tr1/memory>
 #include <vector>
 
@@ -77,20 +77,20 @@ enum Marker {
 struct QuantTable {
     typedef std::tr1::shared_ptr<QuantTable> Shared;
 
-    std::tr1::array<uint16_t, DCTSIZE2> values;
+    std::array<uint16_t, DCTSIZE2> values;
     int precision;
 };
 
-typedef std::tr1::array<QuantTable::Shared, NUM_QUANT_TBLS> QuantTables;
+typedef std::array<QuantTable::Shared, NUM_QUANT_TBLS> QuantTables;
 
 struct HuffTable {
     typedef std::tr1::shared_ptr<HuffTable> Shared;
 
-    std::tr1::array<uint8_t, 16> codes;
-    std::tr1::array<uint8_t, 256> values;
+    std::array<uint8_t, 16> codes;
+    std::array<uint8_t, 256> values;
 };
 
-typedef std::tr1::array<HuffTable::Shared, NUM_HUFF_TBLS> HuffTables;
+typedef std::array<HuffTable::Shared, NUM_HUFF_TBLS> HuffTables;
 
 struct Component {
     typedef std::tr1::shared_ptr<Component> Shared;
@@ -105,7 +105,7 @@ struct Component {
 };
 
 typedef std::vector<Component::Shared> Components;
-typedef std::tr1::array<Component::Shared, MAX_COMPS_IN_SCAN> CurrComponents;
+typedef std::array<Component::Shared, MAX_COMPS_IN_SCAN> CurrComponents;
 
 struct Segment {
     Segment() : marker(M_ERROR), position(0), length(0) { }
@@ -140,7 +140,7 @@ struct ScanHeader {
     int al;
 };
 
-typedef std::tr1::array<uint8_t, NUM_ARITH_TBLS> ArithmeticTable;
+typedef std::array<uint8_t, NUM_ARITH_TBLS> ArithmeticTable;
 
 class Defaults {
 public:

@@ -76,11 +76,11 @@ Defaults::Defaults()
     // https://www.w3.org/Graphics/JPEG/itu-t81.pdf
 
     { // K.3.3.1 Luminance DC coefficients
-        std::tr1::array<uint8_t, 16> codes = {
+        std::array<uint8_t, 16> codes = {
             0x00, 0x01, 0x05, 0x01, 0x01, 0x01, 0x01, 0x01,
             0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         };
-        std::tr1::array<uint8_t, 256> values = {
+        std::array<uint8_t, 256> values = {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x08, 0x09, 0x0a, 0x0b
         };
@@ -91,11 +91,11 @@ Defaults::Defaults()
     }
 
     { // K.3.3.1 Chrominance DC coefficients
-        std::tr1::array<uint8_t, 16> codes = {
+        std::array<uint8_t, 16> codes = {
             0x00, 0x03, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
             0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00
         };
-        std::tr1::array<uint8_t, 256> values = {
+        std::array<uint8_t, 256> values = {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
             0x08, 0x09, 0x0a, 0x0b
         };
@@ -106,11 +106,11 @@ Defaults::Defaults()
     }
 
     { // K.3.3.2 Luminance AC coefficients
-        std::tr1::array<uint8_t, 16> codes = {
+        std::array<uint8_t, 16> codes = {
             0x00, 0x02, 0x01, 0x03, 0x03, 0x02, 0x04, 0x03,
             0x05, 0x05, 0x04, 0x04, 0x00, 0x00, 0x01, 0x7d
         };
-        std::tr1::array<uint8_t, 256> values = {
+        std::array<uint8_t, 256> values = {
             0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12,
             0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
             0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08,
@@ -140,11 +140,11 @@ Defaults::Defaults()
     }
 
     { // K.3.3.2 Chrominance AC coefficients
-        std::tr1::array<uint8_t, 16> codes = {
+        std::array<uint8_t, 16> codes = {
             0x00, 0x02, 0x01, 0x02, 0x04, 0x04, 0x03, 0x04,
             0x07, 0x05, 0x04, 0x04, 0x00, 0x01, 0x02, 0x77
         };
-        std::tr1::array<uint8_t, 256> values = {
+        std::array<uint8_t, 256> values = {
             0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21,
             0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71,
             0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91,
@@ -173,7 +173,7 @@ Defaults::Defaults()
         m_acHuffTables[1]->values.swap(values);
     }
 
-    static const std::tr1::array<uint8_t, 64> zigzag8x8 = {
+    static const std::array<uint8_t, 64> zigzag8x8 = {
         0,   1,  8, 16,  9,  2,  3, 10,
         17, 24, 32, 25, 18, 11,  4,  5,
         12, 19, 26, 33, 40, 48, 41, 34,
@@ -185,7 +185,7 @@ Defaults::Defaults()
     };
 
     { // Table K.1 Luminance quantization table values
-        std::tr1::array<uint16_t, DCTSIZE2> values = {
+        std::array<uint16_t, DCTSIZE2> values = {
             16,  11,  10,  16,  24,  40,  51,  61,
             12,  12,  14,  19,  26,  58,  60,  55,
             14,  13,  16,  24,  40,  57,  69,  56,
@@ -203,7 +203,7 @@ Defaults::Defaults()
     }
 
     { // Table K.2 Chrominance quantization table values
-        std::tr1::array<uint16_t, DCTSIZE2> values = {
+        std::array<uint16_t, DCTSIZE2> values = {
             17,  18,  24,  47,  99,  99,  99,  99,
             18,  21,  26,  66,  99,  99,  99,  99,
             24,  26,  56,  99,  99,  99,  99,  99,
@@ -267,7 +267,7 @@ void Parser::registerCallback(const Marker& marker, const Callback& callback)
 
 void Parser::registerStartOfFrameCallback(const Callback& callback)
 {
-    static const std::tr1::array<const Marker, 13> sofMarkers = {
+    static const std::array<const Marker, 13> sofMarkers = {
         M_SOF0, M_SOF1 , M_SOF2 , M_SOF3 , M_SOF5 , M_SOF6 , M_SOF7,
         M_SOF9, M_SOF10, M_SOF11, M_SOF13, M_SOF14, M_SOF15 };
 

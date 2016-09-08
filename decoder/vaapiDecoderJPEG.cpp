@@ -28,7 +28,6 @@
 
 // system headers
 #include <cassert>
-#include <tr1/array>
 #include <tr1/memory>
 
 using ::YamiParser::JPEG::Component;

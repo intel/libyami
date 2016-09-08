@@ -22,17 +22,15 @@
 #include "nalreader.h"
 
 // library headers
+#include "common/Array.h"
 #include "common/unittest.h"
-
-// system headers
-#include <tr1/array>
 
 namespace YamiMediaCodec {
 
 #define NALREADER_TEST(name) \
     TEST(NalReaderTest, name)
 
-const std::tr1::array<uint8_t, 39> g_data = {
+const std::array<uint8_t, 39> g_data = {
     0x02, // junk
 
     0x00, 0x00, 0x01, // start code prefix
@@ -55,7 +53,7 @@ const std::tr1::array<uint8_t, 39> g_data = {
     0x12
 };
 
-const std::tr1::array<int32_t, 5> g_nsizes = {9, 4, 6, 12, 7};
+const std::array<int32_t, 5> g_nsizes = {9, 4, 6, 12, 7};
 
 NALREADER_TEST(ReadAsUnits) {
     const uint8_t* nal;
@@ -102,7 +100,7 @@ NALREADER_TEST(ReadEmptyBuf) {
 }
 
 NALREADER_TEST(ReadNoPrefix) {
-    const std::tr1::array<uint8_t, 9> data = {
+    const std::array<uint8_t, 9> data = {
         0x00, 0x01, 0x00,
         0x10, 0x01, 0xfe,
         0x01, 0x00, 0x00

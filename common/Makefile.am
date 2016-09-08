@@ -11,6 +11,7 @@ libyami_common_source_h = \
 	$(NULL)
 
 libyami_common_source_h_priv = \
+	Array.h \
 	NonCopyable.h \
 	Functional.h \
 	log.h \

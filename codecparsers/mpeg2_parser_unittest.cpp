@@ -22,33 +22,33 @@
 #include "mpeg2_parser.h"
 
 // library headers
+#include "common/Array.h"
 #include "common/log.h"
 #include "common/unittest.h"
 
 // system headers
-#include <tr1/array>
 #include <limits>
 #include <time.h> //using rand
 
 namespace YamiParser {
 namespace MPEG2 {
 
-    const static std::tr1::array<const uint8_t, 9> SequenceHeader
+    const static std::array<const uint8_t, 9> SequenceHeader
         = { 0xb3, 0x20, 0x01, 0x20, 0x34, 0xff, 0xff, 0xe0, 0x18 };
 
-    const static std::tr1::array<const uint8_t, 7> SequenceExtension
+    const static std::array<const uint8_t, 7> SequenceExtension
         = { 0xb5, 0x14, 0x8a, 0x00, 0x01, 0x00, 0x00 };
 
-    const static std::tr1::array<const uint8_t, 5> GroupOfPicturesHeader
+    const static std::array<const uint8_t, 5> GroupOfPicturesHeader
         = { 0xb8, 0x00, 0x08, 0x06, 0x00 };
 
-    const static std::tr1::array<const uint8_t, 5> PictureHeaderArray
+    const static std::array<const uint8_t, 5> PictureHeaderArray
         = { 0x00, 0x00, 0x0f, 0xff, 0xf8 };
 
-    const static std::tr1::array<const uint8_t, 6> PictureCodingExtensionArray
+    const static std::array<const uint8_t, 6> PictureCodingExtensionArray
         = { 0xb5, 0x8f, 0xff, 0xf3, 0x41, 0x80 };
 
-    const static std::tr1::array<const uint8_t, 124> SliceArray
+    const static std::array<const uint8_t, 124> SliceArray
         = { 0x01, 0x13, 0xf8, 0x7d, 0x29, 0x48, 0x8b, 0x94, 0xa5, 0x22, 0x2e,
             0x52, 0x94, 0x88, 0xb9, 0x4a, 0x52, 0x22, 0xe5, 0x29, 0x48, 0x8b,
             0x94, 0xa5, 0x22, 0x2e, 0x52, 0x94, 0x88, 0xb9, 0x4a, 0x52, 0x22,

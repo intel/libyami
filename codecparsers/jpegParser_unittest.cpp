@@ -30,7 +30,7 @@
 namespace YamiParser {
 namespace JPEG {
 
-const static std::tr1::array<uint8_t, 844> g_SimpleJPEG = {
+const static std::array<uint8_t, 844> g_SimpleJPEG = {
     0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01,
     0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xff, 0xdb, 0x00, 0x43,
     0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
@@ -196,7 +196,7 @@ protected:
 
 JPEG_PARSER_TEST(Construct_Defaults)
 {
-    std::tr1::array<uint8_t, 1> data = {0x00};
+    std::array<uint8_t, 1> data = {0x00};
 
     Parser parser(&data[0], data.size());
 
@@ -237,7 +237,7 @@ JPEG_PARSER_TEST(Construct_InvalidParams)
     // invalid data pointer
     EXPECT_DEATH(Parser(NULL, 10), "");
 
-    std::tr1::array<uint8_t, 1> data = {0x00};
+    std::array<uint8_t, 1> data = {0x00};
 
     // invalid size
     EXPECT_DEATH(Parser(&data[0], 0), "");
@@ -245,7 +245,7 @@ JPEG_PARSER_TEST(Construct_InvalidParams)
 
 JPEG_PARSER_TEST(Parse_NoSOI)
 {
-    std::tr1::array<uint8_t, 24> data = {
+    std::array<uint8_t, 24> data = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -259,7 +259,7 @@ JPEG_PARSER_TEST(Parse_NoSOI)
 
 JPEG_PARSER_TEST(Parse_SOINotFirst)
 {
-    std::tr1::array<uint8_t, 24> data = {
+    std::array<uint8_t, 24> data = {
         0x00, 0xFF, M_SOI, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -273,7 +273,7 @@ JPEG_PARSER_TEST(Parse_SOINotFirst)
 
 JPEG_PARSER_TEST(Parse_SOIInvalid)
 {
-    std::tr1::array<uint8_t, 24> data = {
+    std::array<uint8_t, 24> data = {
         0x00, M_SOI, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00,  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -287,7 +287,7 @@ JPEG_PARSER_TEST(Parse_SOIInvalid)
 
 JPEG_PARSER_TEST(ParseSOI)
 {
-    std::tr1::array<uint8_t, 1> data = {0x00};
+    std::array<uint8_t, 1> data = {0x00};
 
     Parser parser(&data[0], data.size());
 
@@ -299,7 +299,7 @@ JPEG_PARSER_TEST(ParseSOI)
 
 JPEG_PARSER_TEST(ParseSOS_NoSOF)
 {
-    std::tr1::array<uint8_t, 1> data = {0x00};
+    std::array<uint8_t, 1> data = {0x00};
 
     Parser parser(&data[0], data.size());
 
@@ -309,7 +309,7 @@ JPEG_PARSER_TEST(ParseSOS_NoSOF)
 
 JPEG_PARSER_TEST(ParseSOS_InvalidLength)
 {
-    std::tr1::array<uint8_t, 3> data = {0x00, 0x06, 0x00};
+    std::array<uint8_t, 3> data = {0x00, 0x06, 0x00};
 
     Parser parser(&data[0], data.size());
 
@@ -356,7 +356,7 @@ JPEG_PARSER_TEST(ParseSOS_InvalidLength)
 
 JPEG_PARSER_TEST(ParseSOS_BadComponentDescriptor)
 {
-    std::tr1::array<uint8_t, 4> data = {0x00, 0x0c, 0x3, 0x01};
+    std::array<uint8_t, 4> data = {0x00, 0x0c, 0x3, 0x01};
 
     Parser parser(&data[0], data.size());
     m_frameHeader(parser).reset(new FrameHeader);
@@ -372,7 +372,7 @@ JPEG_PARSER_TEST(ParseSOS_BadComponentDescriptor)
 
 JPEG_PARSER_TEST(ParseSOS)
 {
-    std::tr1::array<uint8_t, 12> data = {
+    std::array<uint8_t, 12> data = {
         0x00, 0x0c,
         0x03, 0x01, 0x11, 0x02, 0x10, 0x03, 0x01, 0x12,
         0x34, 0x56
