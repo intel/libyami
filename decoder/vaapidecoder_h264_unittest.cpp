@@ -171,7 +171,7 @@ VAAPIDECODER_H264_TEST(Decode_Simple)
     /* pass a NULL buffer to flush output */
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(NULL));
 
-    EXPECT_TRUE(decoder.getOutput());
+    EXPECT_TRUE(bool(decoder.getOutput()));
 }
 
 }

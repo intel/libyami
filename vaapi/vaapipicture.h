@@ -104,7 +104,7 @@ bool VaapiPicture::editObject(BufObjectPtr& object , VABufferType bufType, T*& b
     if (!bufPtr)
         return false;
 
-    return object;
+    return bool(object);
 }
 
 #define RENDER_OBJECT(obj) \

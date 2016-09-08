@@ -310,7 +310,7 @@ TEST_P(JPEGTest, Decode_Simple)
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
 
     SharedPtr<VideoFrame> output(decoder.getOutput());
-    ASSERT_TRUE(output);
+    ASSERT_TRUE(bool(output));
     EXPECT_EQ(GetParam()->getFourcc(), output->fourcc);
 }
 
@@ -353,7 +353,7 @@ TEST_P(JPEGTest, Decode_SimpleMulti)
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
 
     output = decoder.getOutput();
-    ASSERT_TRUE(output);
+    ASSERT_TRUE(bool(output));
     EXPECT_EQ(GetParam()->getFourcc(), output->fourcc);
 
     // Set buffer at second jpeg image
@@ -369,7 +369,7 @@ TEST_P(JPEGTest, Decode_SimpleMulti)
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
 
     output = decoder.getOutput();
-    ASSERT_TRUE(output);
+    ASSERT_TRUE(bool(output));
     EXPECT_EQ(GetParam()->getFourcc(), output->fourcc);
 
     /* decoder should fail if more than one image in buffer */

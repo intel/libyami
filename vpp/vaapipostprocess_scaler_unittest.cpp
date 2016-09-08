@@ -98,10 +98,10 @@ public:
     static void checkFilter(const VaapiPostProcessScaler& scaler, VppParamType type)
     {
         if (type == VppParamTypeDenoise) {
-            EXPECT_TRUE(scaler.m_denoise.filter);
+            EXPECT_TRUE(bool(scaler.m_denoise.filter));
         }
         else if (type == VppParamTypeSharpening) {
-            EXPECT_TRUE(scaler.m_sharpening.filter);
+            EXPECT_TRUE(bool(scaler.m_sharpening.filter));
         }
     }
 
@@ -127,7 +127,7 @@ protected:
         float value;
 
         EXPECT_TRUE(scaler.mapToRange(value, level, minLevel, maxLevel, filterType, caps));
-        EXPECT_TRUE(caps);
+        EXPECT_TRUE(bool(caps));
         EXPECT_LT(caps->range.min_value, caps->range.max_value);
         EXPECT_LE(caps->range.min_value, value);
         EXPECT_LE(value, caps->range.max_value);
