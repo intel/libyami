@@ -861,7 +861,7 @@ YamiStatus VaapiDecoderMPEG2::decodePicture()
 YamiStatus VaapiDecoderMPEG2::outputPicture(const PicturePtr& picture)
 {
     VaapiDecoderBase::PicturePtr basePicture
-        = std::tr1::static_pointer_cast<VaapiDecPicture>(picture);
+        = std::static_pointer_cast<VaapiDecPicture>(picture);
 
     return VaapiDecoderBase::outputPicture(basePicture);
 }

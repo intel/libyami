@@ -21,30 +21,27 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-#ifdef ANDROID
-#include <memory>
-#else
-#include <tr1/memory>
-#endif
-namespace YamiMediaCodec{
-#ifdef ANDROID
-    #define SharedPtr std::shared_ptr
-    #define WeakPtr std::weak_ptr
-    #define DynamicPointerCast std::dynamic_pointer_cast
-    #define StaticPointerCast std::static_pointer_cast
-    #define EnableSharedFromThis std::enable_shared_from_this
-#else
-    #define SharedPtr std::tr1::shared_ptr
-    #define WeakPtr std::tr1::weak_ptr
-    #define DynamicPointerCast std::tr1::dynamic_pointer_cast
-    #define StaticPointerCast std::tr1::static_pointer_cast
-    #define EnableSharedFromThis std::tr1::enable_shared_from_this
-#endif
 
-#define SharedFromThis shared_from_this
+#if __cplusplus > 199711L
+    #include <memory>
+#else
+    #include <tr1/memory>
+    namespace std {
+        using std::tr1::shared_ptr;
+        using std::tr1::weak_ptr;
+        using std::tr1::enable_shared_from_this;
+        using std::tr1::dynamic_pointer_cast;
+        using std::tr1::static_pointer_cast;
+    }
+#endif // __cplusplus > 199711L
 
-}
-#endif
+#define SharedPtr std::shared_ptr
+#define WeakPtr std::weak_ptr
+#define DynamicPointerCast std::dynamic_pointer_cast
+#define StaticPointerCast std::static_pointer_cast
+#define EnableSharedFromThis std::enable_shared_from_this
+
+#endif // __cplusplus
 
 #ifdef __cplusplus
 extern "C" {

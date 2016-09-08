@@ -473,7 +473,7 @@ YamiStatus VaapiDecoderH265::decodeParamSet(NalUnit* nalu)
 
 YamiStatus VaapiDecoderH265::outputPicture(const PicturePtr& picture)
 {
-    VaapiDecoderBase::PicturePtr base = std::tr1::static_pointer_cast<VaapiDecPicture>(picture);
+    VaapiDecoderBase::PicturePtr base = std::static_pointer_cast<VaapiDecPicture>(picture);
     return VaapiDecoderBase::outputPicture(base);
 }
 

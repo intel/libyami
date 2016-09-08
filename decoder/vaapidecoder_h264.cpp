@@ -1225,7 +1225,7 @@ YamiStatus VaapiDecoderH264::decodePps(NalUnit* nalu)
 YamiStatus VaapiDecoderH264::outputPicture(const PicturePtr& picture)
 {
     VaapiDecoderBase::PicturePtr base
-        = std::tr1::static_pointer_cast<VaapiDecPicture>(picture);
+        = std::static_pointer_cast<VaapiDecPicture>(picture);
     return VaapiDecoderBase::outputPicture(base);
 }
 

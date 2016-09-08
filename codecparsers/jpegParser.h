@@ -39,10 +39,10 @@
 #include "bitReader.h"
 #include "common/Array.h"
 #include "common/Functional.h"
+#include "interface/VideoCommonDefs.h"
 
 // system headers
 #include <map>
-#include <tr1/memory>
 #include <vector>
 
 namespace YamiParser {
@@ -75,7 +75,7 @@ enum Marker {
 };
 
 struct QuantTable {
-    typedef std::tr1::shared_ptr<QuantTable> Shared;
+    typedef std::shared_ptr<QuantTable> Shared;
 
     std::array<uint16_t, DCTSIZE2> values;
     int precision;
@@ -84,7 +84,7 @@ struct QuantTable {
 typedef std::array<QuantTable::Shared, NUM_QUANT_TBLS> QuantTables;
 
 struct HuffTable {
-    typedef std::tr1::shared_ptr<HuffTable> Shared;
+    typedef std::shared_ptr<HuffTable> Shared;
 
     std::array<uint8_t, 16> codes;
     std::array<uint8_t, 256> values;
@@ -93,7 +93,7 @@ struct HuffTable {
 typedef std::array<HuffTable::Shared, NUM_HUFF_TBLS> HuffTables;
 
 struct Component {
-    typedef std::tr1::shared_ptr<Component> Shared;
+    typedef std::shared_ptr<Component> Shared;
 
     int id;
     int index;
@@ -116,7 +116,7 @@ struct Segment {
 };
 
 struct FrameHeader {
-    typedef std::tr1::shared_ptr<FrameHeader> Shared;
+    typedef std::shared_ptr<FrameHeader> Shared;
 
     bool isBaseline;
     bool isProgressive;
@@ -130,7 +130,7 @@ struct FrameHeader {
 };
 
 struct ScanHeader {
-    typedef std::tr1::shared_ptr<ScanHeader> Shared;
+    typedef std::shared_ptr<ScanHeader> Shared;
 
     CurrComponents components;
     size_t numComponents;
@@ -166,7 +166,7 @@ private:
 
 class Parser {
 public:
-    typedef std::tr1::shared_ptr<Parser> Shared;
+    typedef std::shared_ptr<Parser> Shared;
 
     enum CallbackResult {
         ParseContinue,
