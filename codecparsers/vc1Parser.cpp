@@ -22,6 +22,34 @@
 #include <cstring>
 #include <cassert>
 
+#define READ(f)              \
+    do {                     \
+        if (!br->readT(f)) { \
+            return false;    \
+        }                    \
+    } while (0)
+
+#define READ_BITS(f, bits)         \
+    do {                           \
+        if (!br->readT(f, bits)) { \
+            return false;          \
+        }                          \
+    } while (0)
+
+#define SKIP(bits)             \
+    do {                       \
+        if (!br->skip(bits)) { \
+            return false;      \
+        }                      \
+    } while (0)
+
+#define PEEK(f, bits)              \
+    do {                           \
+        if (!br->peek(&f, bits)) { \
+            return false;          \
+        }                          \
+    } while (0)
+
 namespace YamiParser {
 namespace VC1 {
 
@@ -232,87 +260,93 @@ namespace VC1 {
     {
         uint32_t i;
         BitReader bitReader(data, size);
-        m_seqHdr.profile = bitReader.read(2);
+        BitReader* br = &bitReader;
+        READ_BITS(m_seqHdr.profile, 2);
         if (m_seqHdr.profile != PROFILE_ADVANCED) {
             /* skip reserved bits */
-            bitReader.skip(2);
-            m_seqHdr.frmrtq_postproc = bitReader.read(3);
-            m_seqHdr.bitrtq_postproc = bitReader.read(5);
-            m_seqHdr.loop_filter = bitReader.read(1);
+            SKIP(2);
+            READ_BITS(m_seqHdr.frmrtq_postproc, 3);
+            READ_BITS(m_seqHdr.bitrtq_postproc, 5);
+            READ(m_seqHdr.loop_filter);
             /* skip reserved bits */
-            bitReader.skip(1);
-            m_seqHdr.multires = bitReader.read(1);
+            SKIP(1);
+            READ(m_seqHdr.multires);
             /* skip reserved bits */
-            bitReader.skip(1);
-            m_seqHdr.fastuvmc = bitReader.read(1);
-            m_seqHdr.extended_mv = bitReader.read(1);
-            m_seqHdr.dquant = bitReader.read(2);
-            m_seqHdr.variable_sized_transform_flag = bitReader.read(1);
+            SKIP(1);
+            READ(m_seqHdr.fastuvmc);
+            READ(m_seqHdr.extended_mv);
+            READ_BITS(m_seqHdr.dquant, 2);
+            READ(m_seqHdr.variable_sized_transform_flag);
             /* skip reserved bits */
-            bitReader.skip(1);
-            m_seqHdr.overlap = bitReader.read(1);
-            m_seqHdr.syncmarker = bitReader.read(1);
-            m_seqHdr.rangered = bitReader.read(1);
-            m_seqHdr.max_b_frames = bitReader.read(3);
-            m_seqHdr.quantizer = bitReader.read(2);
-            m_seqHdr.finterpflag = bitReader.read(1);
+            SKIP(1);
+            READ(m_seqHdr.overlap);
+            READ(m_seqHdr.syncmarker);
+            READ(m_seqHdr.rangered);
+            READ_BITS(m_seqHdr.max_b_frames, 3);
+            READ_BITS(m_seqHdr.quantizer, 2);
+            READ(m_seqHdr.finterpflag);
         }
         else {
-            m_seqHdr.level = bitReader.read(3);
-            m_seqHdr.colordiff_format = bitReader.read(2);
-            m_seqHdr.frmrtq_postproc = bitReader.read(3);
-            m_seqHdr.bitrtq_postproc = bitReader.read(5);
-            m_seqHdr.postprocflag = bitReader.read(1);
-            m_seqHdr.coded_width = (bitReader.read(12) + 1) << 1;
-            m_seqHdr.coded_height = (bitReader.read(12) + 1) << 1;
-            m_seqHdr.pulldown = bitReader.read(1);
-            m_seqHdr.interlace = bitReader.read(1);
-            m_seqHdr.tfcntrflag = bitReader.read(1);
-            m_seqHdr.finterpflag = bitReader.read(1);
+            READ_BITS(m_seqHdr.level, 3);
+            READ_BITS(m_seqHdr.colordiff_format, 2);
+            READ_BITS(m_seqHdr.frmrtq_postproc, 3);
+            READ_BITS(m_seqHdr.bitrtq_postproc, 5);
+            READ(m_seqHdr.postprocflag);
+            uint16_t tmp;
+            READ_BITS(tmp, 12);
+            m_seqHdr.coded_width = (tmp + 1) << 1;
+            READ_BITS(tmp, 12);
+            m_seqHdr.coded_height = (tmp + 1) << 1;
+            READ(m_seqHdr.pulldown);
+            READ(m_seqHdr.interlace);
+            READ(m_seqHdr.tfcntrflag);
+            READ(m_seqHdr.finterpflag);
             /* skip reserved bits */
-            bitReader.skip(1);
-            m_seqHdr.psf = bitReader.read(1);
-            m_seqHdr.display_ext = bitReader.read(1);
+            SKIP(1);
+            READ(m_seqHdr.psf);
+            READ(m_seqHdr.display_ext);
             if (m_seqHdr.display_ext == 1) {
-                m_seqHdr.disp_horiz_size = bitReader.read(14) + 1;
-                m_seqHdr.disp_vert_size = bitReader.read(14) + 1;
-                m_seqHdr.aspect_ratio_flag = bitReader.read(1);
+                READ_BITS(m_seqHdr.disp_horiz_size, 14);
+                m_seqHdr.disp_horiz_size++;
+                READ_BITS(m_seqHdr.disp_vert_size, 14);
+                m_seqHdr.disp_vert_size++;
+                READ(m_seqHdr.aspect_ratio_flag);
                 if (m_seqHdr.aspect_ratio_flag == 1) {
-                    m_seqHdr.aspect_ratio = bitReader.read(4);
+                    READ_BITS(m_seqHdr.aspect_ratio, 4);
                     if (m_seqHdr.aspect_ratio == 15) {
-                        m_seqHdr.aspect_horiz_size = bitReader.read(8);
-                        m_seqHdr.aspect_vert_size = bitReader.read(8);
+                        READ(m_seqHdr.aspect_horiz_size);
+                        READ(m_seqHdr.aspect_vert_size);
                     }
                 }
-                m_seqHdr.framerate_flag = bitReader.read(1);
+                READ(m_seqHdr.framerate_flag);
                 if (m_seqHdr.framerate_flag == 1) {
-                    m_seqHdr.framerateind = bitReader.read(1);
+                    READ(m_seqHdr.framerateind);
                     if (m_seqHdr.framerateind == 0) {
-                        m_seqHdr.frameratenr = bitReader.read(8);
-                        m_seqHdr.frameratedr = bitReader.read(4);
+                        READ(m_seqHdr.frameratenr);
+                        READ_BITS(m_seqHdr.frameratedr, 4);
                     }
                     else {
-                        m_seqHdr.framerateexp = bitReader.read(16);
+                        READ(m_seqHdr.framerateexp);
                     }
                 }
-                m_seqHdr.color_format_flag = bitReader.read(1);
+                READ(m_seqHdr.color_format_flag);
 
                 if (m_seqHdr.color_format_flag == 1) {
-                    m_seqHdr.color_prim = bitReader.read(8);
-                    m_seqHdr.transfer_char = bitReader.read(8);
-                    m_seqHdr.matrix_coef = bitReader.read(8);
+                    READ(m_seqHdr.color_prim);
+                    READ(m_seqHdr.transfer_char);
+                    READ(m_seqHdr.matrix_coef);
                 }
             }
-            m_seqHdr.hrd_param_flag = bitReader.read(1);
+            READ(m_seqHdr.hrd_param_flag);
 
             /*Table 13: Syntax elements for HRD_PARAM structure*/
             if (m_seqHdr.hrd_param_flag == 1) {
-                m_seqHdr.hrd_param.hrd_num_leaky_buckets = bitReader.read(5);
-                m_seqHdr.hrd_param.bit_rate_exponent = bitReader.read(4);
-                m_seqHdr.hrd_param.buffer_size_exponent = bitReader.read(4);
+                READ_BITS(m_seqHdr.hrd_param.hrd_num_leaky_buckets, 5);
+                READ_BITS(m_seqHdr.hrd_param.bit_rate_exponent, 4);
+                READ_BITS(m_seqHdr.hrd_param.buffer_size_exponent, 4);
                 for (i = 0; i < m_seqHdr.hrd_param.hrd_num_leaky_buckets; i++) {
-                    m_seqHdr.hrd_param.hrd_rate[i] = bitReader.read(16);
-                    m_seqHdr.hrd_param.hrd_buffer[i] = bitReader.read(16);
+                    READ(m_seqHdr.hrd_param.hrd_rate[i]);
+                    READ(m_seqHdr.hrd_param.hrd_buffer[i]);
                 }
             }
         }
@@ -324,41 +358,43 @@ namespace VC1 {
     {
         uint8_t i;
         BitReader bitReader(data, size);
-        m_entryPointHdr.broken_link = bitReader.read(1);
-        m_entryPointHdr.closed_entry = bitReader.read(1);
-        m_entryPointHdr.panscan_flag = bitReader.read(1);
-        m_entryPointHdr.reference_distance_flag = bitReader.read(1);
-        m_entryPointHdr.loopfilter = bitReader.read(1);
-        m_entryPointHdr.fastuvmc = bitReader.read(1);
-        m_entryPointHdr.extended_mv = bitReader.read(1);
-        m_entryPointHdr.dquant = bitReader.read(2);
-        m_entryPointHdr.variable_sized_transform_flag = bitReader.read(1);
-        m_entryPointHdr.overlap = bitReader.read(1);
-        m_entryPointHdr.quantizer = bitReader.read(2);
-
+        BitReader* br = &bitReader;
+        READ(m_entryPointHdr.broken_link);
+        READ(m_entryPointHdr.closed_entry);
+        READ(m_entryPointHdr.panscan_flag);
+        READ(m_entryPointHdr.reference_distance_flag);
+        READ(m_entryPointHdr.loopfilter);
+        READ(m_entryPointHdr.fastuvmc);
+        READ(m_entryPointHdr.extended_mv);
+        READ_BITS(m_entryPointHdr.dquant, 2);
+        READ(m_entryPointHdr.variable_sized_transform_flag);
+        READ(m_entryPointHdr.overlap);
+        READ_BITS(m_entryPointHdr.quantizer, 2);
         if (m_seqHdr.hrd_param_flag) {
             for (i = 0; i < m_seqHdr.hrd_param.hrd_num_leaky_buckets; i++)
-                m_entryPointHdr.hrd_full[i] = bitReader.read(8);
+                READ(m_entryPointHdr.hrd_full[i]);
         }
 
-        m_entryPointHdr.coded_size_flag = bitReader.read(1);
+        READ(m_entryPointHdr.coded_size_flag);
         if (m_entryPointHdr.coded_size_flag) {
-            m_entryPointHdr.coded_width = (bitReader.read(12) + 1) << 1;
-            m_entryPointHdr.coded_height = (bitReader.read(12) + 1) << 1;
+            READ_BITS(m_entryPointHdr.coded_width, 12);
+            m_entryPointHdr.coded_width = (m_entryPointHdr.coded_width + 1) << 1;
+            READ_BITS(m_entryPointHdr.coded_height, 12);
+            m_entryPointHdr.coded_height = (m_entryPointHdr.coded_height + 1) << 1;
             m_seqHdr.coded_width = m_entryPointHdr.coded_width;
             m_seqHdr.coded_height = m_entryPointHdr.coded_height;
         }
 
         if (m_entryPointHdr.extended_mv)
-            m_entryPointHdr.extended_dmv_flag = bitReader.read(1);
+            READ(m_entryPointHdr.extended_dmv_flag);
 
-        m_entryPointHdr.range_mapy_flag = bitReader.read(1);
+        READ(m_entryPointHdr.range_mapy_flag);
         if (m_entryPointHdr.range_mapy_flag)
-            m_entryPointHdr.range_mapy = bitReader.read(3);
+            READ_BITS(m_entryPointHdr.range_mapy, 3);
 
-        m_entryPointHdr.range_mapuv_flag = bitReader.read(1);
+        READ(m_entryPointHdr.range_mapuv_flag);
         if (m_entryPointHdr.range_mapy_flag)
-            m_entryPointHdr.range_mapuv = bitReader.read(3);
+            READ_BITS(m_entryPointHdr.range_mapuv, 3);
         return true;
     }
 
@@ -383,11 +419,11 @@ namespace VC1 {
         while (i < tableLen) {
             if (numberOfBits != table[i].codeLength) {
                 numberOfBits = table[i].codeLength;
-                codeWord = br->peek(numberOfBits);
+                PEEK(codeWord, numberOfBits);
             }
             if (codeWord == table[i].codeWord) {
                 *out = i;
-                br->skip(numberOfBits);
+                SKIP(numberOfBits);
                 break;
             }
             i++;
@@ -396,29 +432,34 @@ namespace VC1 {
     }
 
     /* 8.7.3.6 Row-skip mode*/
-    void Parser::decodeRowskipMode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
+    bool Parser::decodeRowskipMode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
     {
         uint32_t i, j;
         for (j = 0; j < height; j++) {
-            if (br->read(1)) {
+            bool tmp;
+            READ(tmp);
+            if (tmp) {
                 for (i = 0; i < width; i++)
-                    data[i] = br->read(1);
+                    READ_BITS(data[i], 1);
             }
             else {
                 memset(data, 0, width);
             }
             data += m_mbWidth;
         }
+        return true;
     }
 
     /* 8.7.3.7 Column-skip mode*/
-    void Parser::decodeColskipMode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
+    bool Parser::decodeColskipMode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
     {
         uint32_t i, j;
         for (i = 0; i < width; i++) {
-            if (br->read(1)) {
+            bool tmp;
+            READ(tmp);
+            if (tmp) {
                 for (j = 0; j < height; j++)
-                    data[j * m_mbWidth] = br->read(1);
+                    READ_BITS(data[j * m_mbWidth], 1);
             }
             else {
                 for (j = 0; j < height; j++)
@@ -426,30 +467,31 @@ namespace VC1 {
             }
             data++;
         }
+        return true;
     }
 
     /* Table 80: Norm-2/Diff-2 Code Table */
     bool Parser::decodeNorm2Mode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
     {
         uint32_t i;
-        uint16_t temp;
+        bool temp;
         uint8_t* out = data;
         if ((height * width) & 1)
-            *out++ = br->read(1);
+            READ_BITS(*out++, 1);
         for (i = (height * width) & 1; i < height * width; i += 2) {
-            temp = br->read(1);
+            READ(temp);
             if (temp == 0) {
                 *out++ = 0;
                 *out++ = 0;
             }
             else {
-                temp = br->read(1);
+                READ(temp);
                 if (temp == 1) {
                     *out++ = 1;
                     *out++ = 1;
                 }
                 else {
-                    temp = br->read(1);
+                    READ(temp);
                     if (temp == 0) {
                         *out++ = 1;
                         *out++ = 0;
@@ -536,7 +578,7 @@ namespace VC1 {
         uint32_t i, invert;
         uint16_t mode;
         *isRaw = false;
-        invert = br->read(1);
+        READ_BITS(invert, 1);
         if (!decodeVLCTable(br, &mode, ImodeVLCTable, 7))
             return false;
         if (mode == IMODE_RAW) {
@@ -577,36 +619,36 @@ namespace VC1 {
     {
         if (dquant == 2) {
             m_frameHdr.dq_frame = 0;
-            m_frameHdr.pq_diff = br->read(3);
+            READ_BITS(m_frameHdr.pq_diff, 3);
             if (m_frameHdr.pq_diff != 7) {
                 m_frameHdr.alt_pic_quantizer = m_frameHdr.pquant + m_frameHdr.pq_diff + 1;
             }
             else {
-                m_frameHdr.abs_pq = br->read(5);
+                READ_BITS(m_frameHdr.abs_pq, 5);
                 m_frameHdr.alt_pic_quantizer = m_frameHdr.abs_pq;
             }
         }
         else {
-            m_frameHdr.dq_frame = br->read(1);
+            READ(m_frameHdr.dq_frame);
             if (m_frameHdr.dq_frame == 1) {
-                m_frameHdr.dq_profile = br->read(2);
+                READ_BITS(m_frameHdr.dq_profile, 2);
                 if (m_frameHdr.dq_profile == DQPROFILE_SINGLE_EDGE) {
-                    m_frameHdr.dq_sb_edge = br->read(2);
+                    READ_BITS(m_frameHdr.dq_sb_edge, 2);
                 }
                 else if (m_frameHdr.dq_profile == DQPROFILE_DOUBLE_EDGE) {
-                    m_frameHdr.dq_db_edge = br->read(2);
+                    READ_BITS(m_frameHdr.dq_db_edge, 2);
                 }
                 else if (m_frameHdr.dq_profile == DQPROFILE_ALL_MACROBLOCKS) {
-                    m_frameHdr.dq_binary_level = br->read(1);
+                    READ(m_frameHdr.dq_binary_level);
                 }
                 if (!((m_frameHdr.dq_profile == DQPROFILE_ALL_MACROBLOCKS)
                         && (m_frameHdr.dq_binary_level == 0))) {
-                    m_frameHdr.pq_diff = br->read(3);
+                    READ_BITS(m_frameHdr.pq_diff, 3);
                     if (m_frameHdr.pq_diff != 7) {
                         m_frameHdr.alt_pic_quantizer = m_frameHdr.pquant + m_frameHdr.pq_diff + 1;
                     }
                     else {
-                        m_frameHdr.abs_pq = br->read(5);
+                        READ_BITS(m_frameHdr.abs_pq, 5);
                         m_frameHdr.alt_pic_quantizer = m_frameHdr.abs_pq;
                     }
                 }
@@ -619,7 +661,9 @@ namespace VC1 {
     {
         uint32_t i = 0;
         while (i < len) {
-            if (br->read(1) == val)
+            bool tmp;
+            READ(tmp);
+            if (tmp == val)
                 break;
             i++;
         }
@@ -668,14 +712,14 @@ namespace VC1 {
         uint32_t temp;
         m_frameHdr.interpfrm = 0;
         if (m_seqHdr.finterpflag)
-            m_frameHdr.interpfrm = br->read(1);
+            READ(m_frameHdr.interpfrm);
 
-        br->skip(2);
+        SKIP(2);
         m_frameHdr.range_reduction_frame = 0;
         if (m_seqHdr.rangered)
-            m_frameHdr.range_reduction_frame = br->read(1);
+            READ(m_frameHdr.range_reduction_frame);
 
-        temp = br->read(1);
+        READ_BITS(temp, 1);
         if (m_seqHdr.max_b_frames == 0) {
             /* Table 33 Simple/Main Profile Picture Type VLC if MAXBFRAMES == 0 */
             if (!temp)
@@ -686,7 +730,9 @@ namespace VC1 {
         else {
             /* Table 34 Main Profile Picture Type VLC if MAXBFRAMES  > 0 */
             if (!temp) {
-                if (br->read(1))
+                bool tmp;
+                READ(tmp);
+                if (tmp)
                     m_frameHdr.picture_type = FRAME_I;
                 else
                     m_frameHdr.picture_type = FRAME_B;
@@ -698,10 +744,10 @@ namespace VC1 {
 
         if (m_frameHdr.picture_type == FRAME_I
             || m_frameHdr.picture_type == FRAME_BI)
-            br->skip(7); /* skip BF*/
-        m_frameHdr.pqindex = br->read(5);
+            SKIP(7); /* skip BF*/
+        READ_BITS(m_frameHdr.pqindex, 5);
         if (m_frameHdr.pqindex <= 8)
-            m_frameHdr.halfqp = br->read(1);
+            READ(m_frameHdr.halfqp);
         if (m_seqHdr.quantizer == 0) {
             m_frameHdr.pquant = QuantizerTranslationTable[m_frameHdr.pqindex];
             m_frameHdr.pquantizer = (m_frameHdr.pqindex <= 8) ? 1 : 0;
@@ -709,7 +755,7 @@ namespace VC1 {
         else {
             m_frameHdr.pquant = m_frameHdr.pqindex;
             if (m_seqHdr.quantizer == 1)
-                m_frameHdr.pquantizer = br->read(1);
+                READ(m_frameHdr.pquantizer);
             else if (m_seqHdr.quantizer == 2)
                 m_frameHdr.pquantizer = 0;
             else if (m_seqHdr.quantizer == 3)
@@ -724,21 +770,21 @@ namespace VC1 {
         if (m_seqHdr.multires
             && ((m_frameHdr.picture_type == FRAME_I)
                    || (m_frameHdr.picture_type == FRAME_P))) {
-            m_frameHdr.picture_resolution_index = br->read(2);
+            READ_BITS(m_frameHdr.picture_resolution_index, 2);
         }
 
         if ((m_frameHdr.picture_type == FRAME_I)
             || (m_frameHdr.picture_type == FRAME_BI)) {
             m_frameHdr.transacfrm = getFirst01Bit(br, 0, 2);
             m_frameHdr.transacfrm2 = getFirst01Bit(br, 0, 2);
-            m_frameHdr.intra_transform_dc_table = br->read(1);
+            READ(m_frameHdr.intra_transform_dc_table);
         }
         else if (m_frameHdr.picture_type == FRAME_P) {
             m_frameHdr.mv_mode = getMVMode(br, m_frameHdr.pquant, false);
             if (m_frameHdr.mv_mode == MVMODE_INTENSITY_COMPENSATION) {
                 m_frameHdr.mv_mode2 = getMVMode(br, m_frameHdr.pquant, true);
-                m_frameHdr.lumscale = br->read(6);
-                m_frameHdr.lumshift = br->read(6);
+                READ_BITS(m_frameHdr.lumscale, 6);
+                READ_BITS(m_frameHdr.lumshift, 6);
             }
             if (m_frameHdr.mv_mode == MVMODE_MIXED_MV
                 || (m_frameHdr.mv_mode == MVMODE_INTENSITY_COMPENSATION
@@ -749,36 +795,36 @@ namespace VC1 {
             if (!decodeBitPlane(br, &m_bitPlanes.skipmb[0], &m_frameHdr.skip_mb))
                 return false;
 
-            m_frameHdr.mv_table = br->read(2);
-            m_frameHdr.cbp_table = br->read(2);
+            READ_BITS(m_frameHdr.mv_table, 2);
+            READ_BITS(m_frameHdr.cbp_table, 2);
             if (m_seqHdr.dquant)
                 parseVopdquant(br, m_seqHdr.dquant);
 
             if (m_seqHdr.variable_sized_transform_flag == 1) {
-                m_frameHdr.mb_level_transform_type_flag = br->read(1);
+                READ(m_frameHdr.mb_level_transform_type_flag);
                 if (m_frameHdr.mb_level_transform_type_flag == 1)
-                    m_frameHdr.frame_level_transform_type = br->read(2);
+                    READ_BITS(m_frameHdr.frame_level_transform_type, 2);
             }
             m_frameHdr.transacfrm = getFirst01Bit(br, 0, 2);
-            m_frameHdr.intra_transform_dc_table = br->read(1);
+            READ(m_frameHdr.intra_transform_dc_table);
         }
         else if (m_frameHdr.picture_type == FRAME_B) {
-            m_frameHdr.mv_mode = br->read(1);
+            READ_BITS(m_frameHdr.mv_mode, 1);
             if (!decodeBitPlane(br, &m_bitPlanes.directmb[0], &m_frameHdr.direct_mb))
                 return false;
             if (!decodeBitPlane(br, &m_bitPlanes.skipmb[0], &m_frameHdr.skip_mb))
                 return false;
-            m_frameHdr.mv_table = br->read(2);
-            m_frameHdr.cbp_table = br->read(2);
+            READ_BITS(m_frameHdr.mv_table, 2);
+            READ_BITS(m_frameHdr.cbp_table, 2);
             if (m_seqHdr.dquant)
                 parseVopdquant(br, m_seqHdr.dquant);
             if (m_seqHdr.variable_sized_transform_flag == 1) {
-                m_frameHdr.mb_level_transform_type_flag = br->read(1);
+                READ(m_frameHdr.mb_level_transform_type_flag);
                 if (m_frameHdr.mb_level_transform_type_flag == 1)
-                    m_frameHdr.frame_level_transform_type = br->read(2);
+                    READ_BITS(m_frameHdr.frame_level_transform_type, 2);
             }
             m_frameHdr.transacfrm = getFirst01Bit(br, 0, 2);
-            m_frameHdr.intra_transform_dc_table = br->read(1);
+            READ(m_frameHdr.intra_transform_dc_table);
         }
         return true;
     }
@@ -787,8 +833,12 @@ namespace VC1 {
     /* Table 106: REFDIST VLC Table*/
     uint8_t Parser::getRefDist(BitReader* br)
     {
-        if (br->peek(2) != 3) {
-            return br->read(2);
+        uint32_t temp;
+        PEEK(temp, 2);
+        if (temp != 3) {
+            uint8_t tmp;
+            READ_BITS(tmp, 2);
+            return tmp;
         }
         else {
             return getFirst01Bit(br, 0, 16) + 1;
@@ -811,7 +861,7 @@ namespace VC1 {
             m_frameHdr.fcm = PROGRESSIVE;
         }
         if (m_frameHdr.fcm == FIELD_INTERLACE) {
-            temp = br->read(3);
+            READ_BITS(temp, 3);
             /* 9.1.1.42 Field Picture Type(FPTYPE) (3 bits) */
             m_frameHdr.picture_type = FrameTypeTable[0][temp];
         }
@@ -823,15 +873,15 @@ namespace VC1 {
 
         /* skip tfcntr */
         if (m_seqHdr.tfcntrflag)
-            br->skip(8);
+            SKIP(8);
 
         if (m_seqHdr.pulldown) {
             if (!(m_seqHdr.interlace) || m_seqHdr.psf) {
-                m_frameHdr.rptfrm = br->read(2);
+                READ_BITS(m_frameHdr.rptfrm, 2);
             }
             else {
-                m_frameHdr.tff = br->read(1);
-                m_frameHdr.rff = br->read(1);
+                READ(m_frameHdr.tff);
+                READ(m_frameHdr.rff);
             }
         }
         else {
@@ -841,10 +891,10 @@ namespace VC1 {
         if (m_frameHdr.picture_type == FRAME_SKIPPED)
             return true;
 
-        m_frameHdr.rounding_control = br->read(1);
+        READ(m_frameHdr.rounding_control);
 
         if (m_seqHdr.interlace) {
-            m_frameHdr.uvsamp = br->read(1);
+            READ(m_frameHdr.uvsamp);
             if ((m_frameHdr.fcm == FIELD_INTERLACE)
                 && m_entryPointHdr.reference_distance_flag
                 && (m_frameHdr.picture_type != FRAME_B)
@@ -853,10 +903,10 @@ namespace VC1 {
             }
         }
         if (m_seqHdr.finterpflag)
-            m_frameHdr.interpfrm = br->read(1);
-        m_frameHdr.pqindex = br->read(5);
+            READ(m_frameHdr.interpfrm);
+        READ_BITS(m_frameHdr.pqindex, 5);
         if (m_frameHdr.pqindex <= 8)
-            m_frameHdr.halfqp = br->read(1);
+            READ(m_frameHdr.halfqp);
         if (m_entryPointHdr.quantizer == 0) {
             m_frameHdr.pquant = QuantizerTranslationTable[m_frameHdr.pqindex];
             m_frameHdr.pquantizer = (m_frameHdr.pqindex <= 8);
@@ -864,7 +914,7 @@ namespace VC1 {
         else {
             m_frameHdr.pquant = m_frameHdr.pqindex;
             if (m_entryPointHdr.quantizer == 1)
-                m_frameHdr.pquantizer = br->read(1);
+                READ(m_frameHdr.pquantizer);
             else if (m_entryPointHdr.quantizer == 2)
                 m_frameHdr.pquantizer = 0;
             else if (m_entryPointHdr.quantizer == 3)
@@ -874,7 +924,7 @@ namespace VC1 {
         }
 
         if (m_seqHdr.postprocflag == 1)
-            m_frameHdr.post_processing = br->read(2);
+            READ_BITS(m_frameHdr.post_processing, 2);
         if ((m_frameHdr.picture_type == FRAME_I)
             || (m_frameHdr.picture_type == FRAME_BI)) {
             if (m_frameHdr.fcm == FRAME_INTERLACE) {
@@ -893,16 +943,16 @@ namespace VC1 {
             }
             m_frameHdr.transacfrm = getFirst01Bit(br, 0, 2);
             m_frameHdr.transacfrm2 = getFirst01Bit(br, 0, 2);
-            m_frameHdr.intra_transform_dc_table = br->read(1);
+            READ(m_frameHdr.intra_transform_dc_table);
 
             if (m_entryPointHdr.dquant)
                 parseVopdquant(br, m_entryPointHdr.dquant);
         }
         else if (m_frameHdr.picture_type == FRAME_P) {
             if (m_frameHdr.fcm == FIELD_INTERLACE) {
-                m_frameHdr.numref = br->read(1);
+                READ(m_frameHdr.numref);
                 if (m_frameHdr.numref)
-                    m_frameHdr.reffield = br->read(1);
+                    READ(m_frameHdr.reffield);
             }
             if (m_entryPointHdr.extended_mv)
                 m_frameHdr.extended_mv_range = getFirst01Bit(br, 0, 3);
@@ -912,11 +962,11 @@ namespace VC1 {
             }
 
             if (m_frameHdr.fcm == FRAME_INTERLACE) {
-                m_frameHdr.mvswitch4 = br->read(1);
-                m_frameHdr.intcomp = br->read(1);
+                READ(m_frameHdr.mvswitch4);
+                READ(m_frameHdr.intcomp);
                 if (m_frameHdr.intcomp) {
-                    m_frameHdr.lumscale = br->read(6);
-                    m_frameHdr.lumshift = br->read(6);
+                    READ_BITS(m_frameHdr.lumscale, 6);
+                    READ_BITS(m_frameHdr.lumshift, 6);
                 }
             }
             else {
@@ -927,12 +977,12 @@ namespace VC1 {
                         temp = getFirst01Bit(br, 1, 2);
                         m_frameHdr.intcompfield = temp ? (3 - temp) : temp;
                     }
-                    m_frameHdr.lumscale = br->read(6);
-                    m_frameHdr.lumshift = br->read(6);
+                    READ_BITS(m_frameHdr.lumscale, 6);
+                    READ_BITS(m_frameHdr.lumshift, 6);
                     if ((m_frameHdr.fcm == FIELD_INTERLACE)
                         && m_frameHdr.intcompfield) {
-                        m_frameHdr.lumscale2 = br->read(6);
-                        m_frameHdr.lumshift2 = br->read(6);
+                        READ_BITS(m_frameHdr.lumscale2, 6);
+                        READ_BITS(m_frameHdr.lumshift2, 6);
                     }
                 }
                 if (m_frameHdr.fcm == PROGRESSIVE) {
@@ -951,32 +1001,32 @@ namespace VC1 {
             }
 
             if (m_frameHdr.fcm != PROGRESSIVE) {
-                m_frameHdr.mbmodetab = br->read(2);
-                m_frameHdr.imvtab = br->read(2);
-                m_frameHdr.icbptab = br->read(3);
+                READ_BITS(m_frameHdr.mbmodetab, 2);
+                READ_BITS(m_frameHdr.imvtab, 2);
+                READ_BITS(m_frameHdr.icbptab, 3);
                 if (m_frameHdr.fcm != FIELD_INTERLACE) {
-                    m_frameHdr.mvbptab2 = br->read(2);
+                    READ_BITS(m_frameHdr.mvbptab2, 2);
                     if (m_frameHdr.mvswitch4)
-                        m_frameHdr.mvbptab4 = br->read(2);
+                        READ_BITS(m_frameHdr.mvbptab4, 2);
                 }
                 else if (m_frameHdr.mv_mode == MVMODE_MIXED_MV) {
-                    m_frameHdr.mvbptab4 = br->read(2);
+                    READ_BITS(m_frameHdr.mvbptab4, 2);
                 }
             }
             else {
-                m_frameHdr.mv_table = br->read(2);
-                m_frameHdr.cbp_table = br->read(2);
+                READ_BITS(m_frameHdr.mv_table, 2);
+                READ_BITS(m_frameHdr.cbp_table, 2);
             }
             if (m_entryPointHdr.dquant)
                 parseVopdquant(br, m_entryPointHdr.dquant);
 
             if (m_entryPointHdr.variable_sized_transform_flag) {
-                m_frameHdr.mb_level_transform_type_flag = br->read(1);
+                READ(m_frameHdr.mb_level_transform_type_flag);
                 if (m_frameHdr.mb_level_transform_type_flag)
-                    m_frameHdr.frame_level_transform_type = br->read(2);
+                    READ_BITS(m_frameHdr.frame_level_transform_type, 2);
             }
             m_frameHdr.transacfrm = getFirst01Bit(br, 0, 2);
-            m_frameHdr.intra_transform_dc_table = br->read(1);
+            READ(m_frameHdr.intra_transform_dc_table);
         }
         else if (m_frameHdr.picture_type == FRAME_B) {
             if (m_entryPointHdr.extended_mv)
@@ -986,10 +1036,10 @@ namespace VC1 {
                     m_frameHdr.dmvrange = getFirst01Bit(br, 0, 3);
             }
             if (m_frameHdr.fcm == FRAME_INTERLACE) {
-                m_frameHdr.intcomp = br->read(1);
+                READ(m_frameHdr.intcomp);
             }
             else {
-                m_frameHdr.mv_mode = br->read(1);
+                READ_BITS(m_frameHdr.mv_mode, 1);
             }
             if (m_frameHdr.fcm == FIELD_INTERLACE) {
                 if (!decodeBitPlane(br, &m_bitPlanes.forwardmb[0], &m_frameHdr.forwardmb))
@@ -1002,32 +1052,32 @@ namespace VC1 {
                     return false;
             }
             if (m_frameHdr.fcm != PROGRESSIVE) {
-                m_frameHdr.mbmodetab = br->read(2);
-                m_frameHdr.imvtab = br->read(2);
-                m_frameHdr.icbptab = br->read(3);
+                READ_BITS(m_frameHdr.mbmodetab, 2);
+                READ_BITS(m_frameHdr.imvtab, 2);
+                READ_BITS(m_frameHdr.icbptab, 3);
 
                 if (m_frameHdr.fcm == FRAME_INTERLACE)
-                    m_frameHdr.mvbptab2 = br->read(2);
+                    READ_BITS(m_frameHdr.mvbptab2, 2);
 
                 if ((m_frameHdr.fcm == FRAME_INTERLACE)
                     || ((m_frameHdr.fcm == FIELD_INTERLACE)
                            && (m_frameHdr.mv_mode == MVMODE_MIXED_MV)))
-                    m_frameHdr.mvbptab4 = br->read(2);
+                    READ_BITS(m_frameHdr.mvbptab4, 2);
             }
             else {
-                m_frameHdr.mv_table = br->read(2);
-                m_frameHdr.cbp_table = br->read(2);
+                READ_BITS(m_frameHdr.mv_table, 2);
+                READ_BITS(m_frameHdr.cbp_table, 2);
             }
 
             if (m_entryPointHdr.dquant)
                 parseVopdquant(br, m_entryPointHdr.dquant);
             if (m_entryPointHdr.variable_sized_transform_flag) {
-                m_frameHdr.mb_level_transform_type_flag = br->read(1);
+                READ(m_frameHdr.mb_level_transform_type_flag);
                 if (m_frameHdr.mb_level_transform_type_flag)
-                    m_frameHdr.frame_level_transform_type = br->read(2);
+                    READ_BITS(m_frameHdr.frame_level_transform_type, 2);
             }
             m_frameHdr.transacfrm = getFirst01Bit(br, 0, 2);
-            m_frameHdr.intra_transform_dc_table = br->read(1);
+            READ(m_frameHdr.intra_transform_dc_table);
         }
         return true;
     }

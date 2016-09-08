@@ -123,6 +123,27 @@ bool BitReader::skip(uint32_t nbits)
     return true;
 }
 
+bool BitReader::peek(uint32_t* res, uint32_t nbits) const
+{
+    BitReader tmp(*this);
+
+    return tmp.readT(*res, nbits);
+}
+
+bool BitReader::peek(uint16_t* res, uint32_t nbits) const
+{
+    BitReader tmp(*this);
+
+    return tmp.readT(*res, nbits);
+}
+
+bool BitReader::peek(uint8_t* res, uint32_t nbits) const
+{
+    BitReader tmp(*this);
+
+    return tmp.readT(*res, nbits);
+}
+
 uint32_t BitReader::peek(uint32_t nbits) const
 {
     BitReader tmp(*this);
