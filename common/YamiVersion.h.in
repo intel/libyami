@@ -19,6 +19,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * YAMI_API_MAJOR_VERSION
  * The major version of yami api
@@ -64,5 +68,9 @@
 * return YAMI_API_VERSION;
 */
 void yamiGetApiVersion(uint32_t *apiVersion);
+
+#ifdef __cplusplus
+};
+#endif
 
 #endif /* YAMI_VERSION_H */
