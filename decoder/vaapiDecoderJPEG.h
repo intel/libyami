@@ -21,9 +21,6 @@
 #include "vaapidecpicture.h"
 #include "vaapidecoder_base.h"
 
-// system headers
-#include <memory>
-
 namespace YamiMediaCodec {
 
 class VaapiDecoderJPEG
@@ -50,7 +47,7 @@ private:
 
     YamiStatus finish();
 
-    std::auto_ptr<VaapiDecoderJPEG::Impl> m_impl;
+    SharedPtr<VaapiDecoderJPEG::Impl> m_impl;
     PicturePtr m_picture;
 
     static const bool s_registered; // VaapiDecoderFactory registration result
