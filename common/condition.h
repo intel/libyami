@@ -17,7 +17,7 @@
 #define condition_h
 
 #include "NonCopyable.h"
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 
 #include "lock.h"
 

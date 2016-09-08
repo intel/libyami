@@ -57,6 +57,7 @@ unittest_LDADD = \
 unittest_CPPFLAGS = \
 	$(GTEST_CPPFLAGS) \
 	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/interface \
 	$(NULL)
 
 unittest_CXXFLAGS = \

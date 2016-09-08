@@ -24,7 +24,7 @@
 #include <sys/mman.h>
 
 #include "v4l2_encode.h"
-#include "interface/VideoEncoderHost.h"
+#include "VideoEncoderHost.h"
 #include "common/log.h"
 
 V4l2Encoder::V4l2Encoder()

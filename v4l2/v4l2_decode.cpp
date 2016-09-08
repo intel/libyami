@@ -34,7 +34,7 @@
 #include <va/va_wayland.h>
 #endif
 #include "v4l2_decode.h"
-#include "interface/VideoDecoderHost.h"
+#include "VideoDecoderHost.h"
 #include "common/log.h"
 #include "egl/egl_vaapi_image.h"
 

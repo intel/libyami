@@ -112,6 +112,7 @@ libyami_codecparser_cppflags = \
 	-Dvp8_norm=libyami_vp8_norm \
 	-Dvp8dx_start_decode=libyami_vp8dx_start_decode \
 	-Dvp8dx_bool_decoder_fill=libyami_vp8dx_bool_decoder_fill \
+	-I$(top_srcdir)/interface \
 	$(NULL)
 
 noinst_LTLIBRARIES                 = libyami_codecparser.la

@@ -16,7 +16,7 @@
 
 #ifndef basesurfaceallocator_h
 #define basesurfaceallocator_h
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 
 namespace YamiMediaCodec{
 

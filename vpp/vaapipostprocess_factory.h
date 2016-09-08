@@ -18,7 +18,7 @@
 #define vaapipostprocess_factory_h
 
 #include "common/factory.h"
-#include "interface/VideoPostProcessInterface.h"
+#include "VideoPostProcessInterface.h"
 
 namespace YamiMediaCodec {
 

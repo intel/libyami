@@ -19,7 +19,7 @@
 #endif
 
 #include "common/log.h"
-#include "interface/VideoDecoderHost.h"
+#include "VideoDecoderHost.h"
 #include "vaapidecoder_factory.h"
 
 #if __BUILD_FAKE_DECODER__

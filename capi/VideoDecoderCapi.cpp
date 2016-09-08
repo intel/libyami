@@ -18,8 +18,8 @@
 #include "config.h"
 #endif
 #include "VideoDecoderCapi.h"
-#include "interface/VideoDecoderInterface.h"
-#include "interface/VideoDecoderHost.h"
+#include "VideoDecoderInterface.h"
+#include "VideoDecoderHost.h"
 
 #include <stdlib.h>
 

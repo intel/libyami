@@ -17,7 +17,7 @@
 #define oclpostprocess_blender_h
 
 
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include "oclpostprocess_base.h"
 
 namespace YamiMediaCodec{

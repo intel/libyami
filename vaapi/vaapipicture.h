@@ -17,7 +17,7 @@
 #ifndef vaapipicture_h
 #define vaapipicture_h
 
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include "VaapiBuffer.h"
 #include "vaapiptrs.h"
 #include "VaapiSurface.h"

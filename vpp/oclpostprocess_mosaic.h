@@ -16,7 +16,7 @@
 #ifndef oclpostprocess_mosaic_h
 #define oclpostprocess_mosaic_h
 
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include "oclpostprocess_base.h"
 
 namespace YamiMediaCodec {

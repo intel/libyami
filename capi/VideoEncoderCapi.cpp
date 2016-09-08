@@ -18,8 +18,8 @@
 #include "config.h"
 #endif
 #include "VideoEncoderCapi.h"
-#include "interface/VideoEncoderInterface.h"
-#include "interface/VideoEncoderHost.h"
+#include "VideoEncoderInterface.h"
+#include "VideoEncoderHost.h"
 
 using namespace YamiMediaCodec;
 

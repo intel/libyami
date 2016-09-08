@@ -18,7 +18,7 @@
 #define vaapicontext_h
 
 #include "common/NonCopyable.h"
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include "vaapi/vaapiptrs.h"
 #include <va/va.h>
 

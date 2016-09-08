@@ -19,7 +19,7 @@
 #endif
 
 #include "common/log.h"
-#include "interface/VideoEncoderHost.h"
+#include "VideoEncoderHost.h"
 #include "vaapiencoder_factory.h"
 
 using namespace YamiMediaCodec;

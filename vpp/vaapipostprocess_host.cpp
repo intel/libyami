@@ -19,7 +19,7 @@
 #endif
 
 #include "common/log.h"
-#include "interface/VideoPostProcessHost.h"
+#include "VideoPostProcessHost.h"
 #include "vaapipostprocess_factory.h"
 
 using namespace YamiMediaCodec;

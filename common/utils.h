@@ -16,7 +16,7 @@
 #ifndef utils_h
 #define utils_h
 
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 
 #include <stdint.h>
 

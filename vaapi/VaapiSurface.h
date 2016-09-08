@@ -18,7 +18,7 @@
 #define VaapiSurface_h
 
 #include "common/NonCopyable.h"
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include <va/va.h>
 #include <stdint.h>
 
