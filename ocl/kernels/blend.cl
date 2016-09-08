@@ -44,17 +44,17 @@ __kernel void blend(__write_only image2d_t dst_y,
     rgba[2] = read_imagef(fg, sampler, (int2)(2 * id_z    , id_w + 1));
     rgba[3] = read_imagef(fg, sampler, (int2)(2 * id_z + 1, id_w + 1));
 
-    y_dst = 0.299 * (float4) (rgba[0].x, rgba[1].x, rgba[2].x, rgba[3].x);
-    y_dst = mad(0.587, (float4) (rgba[0].y, rgba[1].y, rgba[2].y, rgba[3].y), y_dst);
-    y_dst = mad(0.114, (float4) (rgba[0].z, rgba[1].z, rgba[2].z, rgba[3].z), y_dst);
+    y_dst = 0.299f * (float4) (rgba[0].x, rgba[1].x, rgba[2].x, rgba[3].x);
+    y_dst = mad(0.587f, (float4) (rgba[0].y, rgba[1].y, rgba[2].y, rgba[3].y), y_dst);
+    y_dst = mad(0.114f, (float4) (rgba[0].z, rgba[1].z, rgba[2].z, rgba[3].z), y_dst);
     y_dst *= (float4) (rgba[0].w, rgba[1].w, rgba[2].w, rgba[3].w);
     y1_dst.x = mad(1 - rgba[0].w, y1.x, y_dst.x);
     y1_dst.y = mad(1 - rgba[1].w, y1.y, y_dst.y);
     y2_dst.x = mad(1 - rgba[2].w, y2.x, y_dst.z);
     y2_dst.y = mad(1 - rgba[3].w, y2.y, y_dst.w);
 
-    uv_dst.x = rgba[0].w * (-0.14713 * rgba[0].x - 0.28886 * rgba[0].y + 0.43600 * rgba[0].z + 0.5);
-    uv_dst.y = rgba[0].w * ( 0.61500 * rgba[0].x - 0.51499 * rgba[0].y - 0.10001 * rgba[0].z + 0.5);
+    uv_dst.x = rgba[0].w * (-0.14713f * rgba[0].x - 0.28886f * rgba[0].y + 0.43600f * rgba[0].z + 0.5f);
+    uv_dst.y = rgba[0].w * ( 0.61500f * rgba[0].x - 0.51499f * rgba[0].y - 0.10001f * rgba[0].z + 0.5f);
     uv_dst.x = mad(1 - rgba[0].w, uv.x, uv_dst.x);
     uv_dst.y = mad(1 - rgba[0].w, uv.y, uv_dst.y);
 
