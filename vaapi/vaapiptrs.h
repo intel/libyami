@@ -17,7 +17,7 @@
 #ifndef vaapiptrs_h
 #define vaapiptrs_h
 
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 
 namespace YamiMediaCodec{
 class VaapiSurface;

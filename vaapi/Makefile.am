@@ -30,6 +30,7 @@ endif
 
 libyami_vaapi_cppflags = \
 	$(LIBVA_CFLAGS) \
+	-I$(top_srcdir)/interface \
 	$(NULL)
 
 noinst_LTLIBRARIES           = libyami_vaapi.la

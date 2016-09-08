@@ -17,7 +17,7 @@
 #ifndef vaapiencpicture_h
 #define vaapiencpicture_h
 
-#include "interface/VideoEncoderDefs.h"
+#include "VideoEncoderDefs.h"
 
 #include "vaapi/vaapipicture.h"
 

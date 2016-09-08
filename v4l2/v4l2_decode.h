@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "v4l2_codecbase.h"
-#include "interface/VideoDecoderInterface.h"
+#include "VideoDecoderInterface.h"
 
 namespace YamiMediaCodec {
     class EglVaapiImage;

@@ -20,7 +20,7 @@
 
 #include "common/log.h"
 #include "common/common_def.h"
-#include "interface/VideoDecoderInterface.h"
+#include "VideoDecoderInterface.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapidecpicture.h"
 #include <deque>

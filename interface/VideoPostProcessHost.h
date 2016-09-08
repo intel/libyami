@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include "VideoPostProcessInterface.h"
+#include <VideoPostProcessInterface.h>
 
 extern "C" { // for dlsym usage
 

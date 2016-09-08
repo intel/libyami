@@ -23,7 +23,7 @@
     #endif
     #include <EGL/egl.h>
 #endif
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 
 #ifndef v4l2_wrapper_h
 #define v4l2_wrapper_h

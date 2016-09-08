@@ -96,6 +96,7 @@ endif
 libyami_decoder_cppflags = \
 	$(LIBVA_CFLAGS) \
 	$(LIBVA_DRM_CFLAGS) \
+	-I$(top_srcdir)/interface \
 	$(NULL)
 
 if ENABLE_X11

@@ -20,7 +20,7 @@
 
 #include <string>
 #include <vector>
-#include "VideoDecoderInterface.h"
+#include <VideoDecoderInterface.h>
 
 extern "C" { // for dlsym usage
 /** \file VideoDecoderHost.h

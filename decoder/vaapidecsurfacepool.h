@@ -22,8 +22,8 @@
 #include "common/common_def.h"
 #include "common/lock.h"
 #include "vaapi/vaapiptrs.h"
-#include "interface/VideoCommonDefs.h"
-#include "interface/VideoDecoderDefs.h"
+#include "VideoCommonDefs.h"
+#include "VideoDecoderDefs.h"
 #include <deque>
 #include <map>
 #include <vector>

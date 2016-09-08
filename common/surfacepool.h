@@ -23,7 +23,7 @@
 
 #include "common/log.h"
 #include "common/videopool.h"
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 /* we should not include vaapi surface here,
  * but we have no choose before we make VaapiSurface more generic,
  * and rename it to Surface

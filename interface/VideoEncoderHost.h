@@ -19,7 +19,7 @@
 
 #include <string>
 #include <vector>
-#include "VideoEncoderInterface.h"
+#include <VideoEncoderInterface.h>
 
 extern "C" { // for dlsym usage
 

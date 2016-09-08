@@ -18,7 +18,7 @@
 #define vaapidecoder_factory_h
 
 #include "common/factory.h"
-#include "interface/VideoDecoderInterface.h"
+#include "VideoDecoderInterface.h"
 
 namespace YamiMediaCodec {
 

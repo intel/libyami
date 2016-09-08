@@ -41,7 +41,7 @@
 #define VP8_PARSER_H_
 
 #include "common/NonCopyable.h"
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include <stdio.h>
 #include <string.h>
 #include "vp8_bool_decoder.h"

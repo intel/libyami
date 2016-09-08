@@ -19,7 +19,7 @@
 #include <vector>
 
 #include "v4l2_codecbase.h"
-#include "interface/VideoEncoderInterface.h"
+#include "VideoEncoderInterface.h"
 
 using namespace YamiMediaCodec;
 typedef SharedPtr < IVideoEncoder > EncoderPtr;

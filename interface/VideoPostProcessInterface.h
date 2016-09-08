@@ -17,8 +17,8 @@
 #ifndef VIDEO_POST_PROCESS_INTERFACE_H_
 #define VIDEO_POST_PROCESS_INTERFACE_H_
 
-#include "VideoCommonDefs.h"
-#include "VideoPostProcessDefs.h"
+#include <VideoCommonDefs.h>
+#include <VideoPostProcessDefs.h>
 
 namespace YamiMediaCodec{
 /**

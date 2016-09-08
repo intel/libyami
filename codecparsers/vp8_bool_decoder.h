@@ -75,7 +75,7 @@
 #define VP8_BOOL_DECODER_H_
 
 #include "common/NonCopyable.h"
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include <sys/types.h>
 #include <stdint.h>
 

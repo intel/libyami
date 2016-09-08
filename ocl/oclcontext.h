@@ -17,7 +17,7 @@
 #define oclcontext_h
 
 
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include "common/lock.h"
 #include <CL/opencl.h>
 #include <CL/cl_intel.h>

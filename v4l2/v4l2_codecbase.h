@@ -23,10 +23,10 @@
 #include "common/condition.h"
 #if ANDROID
 #include "VideoPostProcessHost.h"
-#include "interface/VideoDecoderInterface.h"
+#include "VideoDecoderInterface.h"
 #elif __ENABLE_WAYLAND__
-#include "interface/VideoPostProcessHost.h"
-#include "interface/VideoDecoderInterface.h"
+#include "VideoPostProcessHost.h"
+#include "VideoDecoderInterface.h"
 #else
     #if __ENABLE_X11__
     #include <X11/Xlib.h>
@@ -35,7 +35,7 @@
     #define EGL_EGLEXT_PROTOTYPES
     #include "EGL/eglext.h"
 #endif
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include "v4l2codec_device_ops.h"
 #if ANDROID
 #include <va/va_android.h>

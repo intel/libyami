@@ -31,7 +31,7 @@
 // local headers
 #include "common/NonCopyable.h"
 #include "bitReader.h"
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 
 // system headers
 #include <stdio.h>

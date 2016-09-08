@@ -54,6 +54,7 @@ libyami_vpp_ldflags = \
 libyami_vpp_cppflags = \
 	$(LIBVA_CFLAGS) \
 	$(LIBVA_DRM_CFLAGS) \
+	-I$(top_srcdir)/interface \
 	$(NULL)
 
 if BUILD_OCL_BLENDER

@@ -17,7 +17,7 @@
 #ifndef vaapipostprocess_base_h
 #define vaapipostprocess_base_h
 
-#include "interface/VideoPostProcessInterface.h"
+#include "VideoPostProcessInterface.h"
 #include "vaapi/vaapiptrs.h"
 #include <va/va.h>
 #include <va/va_vpp.h>

@@ -28,6 +28,7 @@ libyamiv4l2_ldflags += $(LIBEGL_LIBS)
 libyamiv4l2_cppflags = \
 	$(LIBVA_CFLAGS) \
 	$(LIBV4L2_CFLAGS) \
+	-I$(top_srcdir)/interface \
 	$(NULL)
 
 if ENABLE_DMABUF

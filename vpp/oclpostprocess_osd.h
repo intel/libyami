@@ -17,7 +17,7 @@
 #define oclpostprocess_osd_h
 
 #include <vector>
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 #include "oclpostprocess_base.h"
 
 using std::vector;

@@ -20,7 +20,7 @@
 
 #include <va/va.h>
 #include <stdint.h>
-#include "VideoCommonDefs.h"
+#include <VideoCommonDefs.h>
 
 #ifdef __cplusplus
 extern "C" {

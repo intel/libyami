@@ -27,7 +27,7 @@
 #define h265Parser_h
 
 #include "nalReader.h"
-#include "interface/VideoCommonDefs.h"
+#include "VideoCommonDefs.h"
 
 #include <map>
 #include <vector>

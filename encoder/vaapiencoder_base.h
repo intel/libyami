@@ -17,8 +17,8 @@
 #ifndef vaapiencoder_base_h
 #define vaapiencoder_base_h
 
-#include "interface/VideoEncoderDefs.h"
-#include "interface/VideoEncoderInterface.h"
+#include "VideoEncoderDefs.h"
+#include "VideoEncoderInterface.h"
 #include "common/lock.h"
 #include "common/log.h"
 #include "common/surfacepool.h"

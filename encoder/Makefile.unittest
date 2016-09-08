@@ -41,6 +41,7 @@ unittest_CPPFLAGS = \
 	$(GTEST_CPPFLAGS) \
 	$(LIBVA_CFLAGS) \
 	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/interface \
 	$(NULL)
 
 unittest_CXXFLAGS = \
