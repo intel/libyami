@@ -79,7 +79,7 @@ __kernel void osd(__write_only image2d_t img_y_dst,
     // blend BW (1.0/0.0, 0.5, 0.5)
     Y0 = alpha0 * bw  + (1 - alpha0) * Y0;
     Y1 = alpha1 * bw  + (1 - alpha1) * Y1;
-    UV = alpha0 * 0.5 + (1 - alpha0) * UV;
+    UV = alpha0 * 0.5f + (1 - alpha0) * UV;
 
     write_imagef(img_y_dst,  (int2)(id_x, id_y), Y0);
     write_imagef(img_y_dst,  (int2)(id_x, id_y + 1), Y1);
