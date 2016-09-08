@@ -17,8 +17,15 @@ if ENABLE_V4L2
 SUBDIRS +=  v4l2
 endif
 
+libyami_source_h = \
+	interface/Yami.h \
+	interface/YamiC.h \
+	$(NULL)
+
 lib_LTLIBRARIES = libyami.la
 libyami_la_SOURCES =
+libyami_includedir = $(includedir)/libyami
+libyami_include_HEADERS = $(libyami_source_h)
 # Dummy C++ source to cause C++ linking
 nodist_EXTRA_libyami_la_SOURCES = dummy.cxx
 libyami_la_LDFLAGS = \
