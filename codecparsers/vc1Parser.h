@@ -76,8 +76,8 @@ namespace VC1 {
 
     /*Table 14: Entry-point layer bitstream for Advanced Profile*/
     struct EntryPointHdr {
-        uint8_t broken_link;
-        uint8_t closed_entry;
+        bool broken_link;
+        bool closed_entry;
         bool panscan_flag;
         bool reference_distance_flag;
         bool loopfilter;
@@ -85,7 +85,7 @@ namespace VC1 {
         bool extended_mv;
         uint8_t dquant;
         bool variable_sized_transform_flag;
-        uint8_t overlap;
+        bool overlap;
         uint8_t quantizer;
         bool coded_size_flag;
         uint16_t coded_width;
@@ -106,15 +106,15 @@ namespace VC1 {
         uint16_t coded_height;
         uint8_t frmrtq_postproc;
         uint8_t bitrtq_postproc;
-        uint8_t loop_filter;
-        uint8_t multires;
+        bool loop_filter;
+        bool multires;
         bool fastuvmc;
         bool extended_mv;
         uint8_t dquant;
         bool variable_sized_transform_flag;
-        uint8_t overlap;
-        uint8_t syncmarker;
-        uint8_t rangered;
+        bool overlap;
+        bool syncmarker;
+        bool rangered;
         uint8_t max_b_frames;
         uint8_t quantizer;
         bool finterpflag;
@@ -125,7 +125,7 @@ namespace VC1 {
         bool interlace;
         bool tfcntrflag;
         bool psf;
-        uint8_t display_ext;
+        bool display_ext;
         uint16_t disp_horiz_size;
         uint16_t disp_vert_size;
         bool aspect_ratio_flag;
@@ -133,7 +133,7 @@ namespace VC1 {
         uint8_t aspect_horiz_size;
         uint8_t aspect_vert_size;
         bool framerate_flag;
-        uint8_t framerateind;
+        bool framerateind;
         uint8_t frameratenr;
         uint8_t frameratedr;
         uint16_t framerateexp;
@@ -157,23 +157,23 @@ namespace VC1 {
 
     struct FrameHdr {
         uint8_t picture_type;
-        uint8_t interpfrm;
-        uint8_t halfqp;
+        bool interpfrm;
+        bool halfqp;
         uint8_t transacfrm;
-        uint8_t intra_transform_dc_table;
+        bool intra_transform_dc_table;
         uint8_t pqindex;
-        uint8_t pquantizer;
+        bool pquantizer;
         uint8_t pquant;
         uint8_t pq_diff;
         uint8_t abs_pq;
-        uint8_t dq_frame;
+        bool dq_frame;
         uint8_t dq_profile;
         uint8_t dq_sb_edge;
         uint8_t dq_db_edge;
-        uint8_t dq_binary_level;
+        bool dq_binary_level;
         uint8_t alt_pic_quantizer;
         uint8_t extended_mv_range;
-        uint8_t range_reduction_frame;
+        bool range_reduction_frame;
         uint8_t picture_resolution_index;
         uint8_t transacfrm2;
         uint8_t mv_mode;
@@ -191,26 +191,26 @@ namespace VC1 {
         uint8_t rptfrm;
         bool tff;
         bool rff;
-        uint8_t rounding_control;
-        uint8_t uvsamp;
+        bool rounding_control;
+        bool uvsamp;
         uint8_t post_processing;
         uint8_t condover;
         bool ac_pred;
         bool overflags;
         bool forwardmb;
         bool fieldtx;
-        uint8_t intcomp;
+        bool intcomp;
         uint8_t dmvrange;
         uint8_t mbmodetab;
         uint8_t imvtab;
         uint8_t icbptab;
         uint8_t mvbptab2;
         uint8_t mvbptab4;
-        uint8_t mvswitch4;
+        bool mvswitch4;
         uint8_t refdist;
         uint8_t fptype;
-        uint8_t numref;
-        uint8_t reffield;
+        bool numref;
+        bool reffield;
         uint8_t lumscale2;
         uint8_t lumshift2;
         uint8_t intcompfield;
@@ -250,8 +250,8 @@ namespace VC1 {
         int32_t searchStartCode(uint8_t*, uint32_t);
         bool convertToRbdu(uint8_t*&, uint32_t&);
         bool decodeVLCTable(BitReader*, uint16_t*, const VLCTable*, uint32_t);
-        void decodeRowskipMode(BitReader*, uint8_t*, uint32_t, uint32_t);
-        void decodeColskipMode(BitReader*, uint8_t*, uint32_t, uint32_t);
+        bool decodeRowskipMode(BitReader*, uint8_t*, uint32_t, uint32_t);
+        bool decodeColskipMode(BitReader*, uint8_t*, uint32_t, uint32_t);
         bool decodeNorm2Mode(BitReader*, uint8_t*, uint32_t, uint32_t);
         bool decodeNorm6Mode(BitReader*, uint8_t*, uint32_t, uint32_t);
         bool decodeBitPlane(BitReader*, uint8_t*, bool*);
