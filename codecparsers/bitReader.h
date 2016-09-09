@@ -47,6 +47,10 @@ public:
     /*read the next nbits bits from the bitstream but not advance the bitstream pointer*/
     uint32_t peek(uint32_t nbits) const;
 
+    /* this version will check read beyond boundary */
+    template <class T>
+    bool peek(T& v, uint32_t nbits) const;
+
     bool skip(uint32_t nbits);
 
     /* Get the total bits that had been read from bitstream, and the return
@@ -98,6 +102,13 @@ bool BitReader::readT(T& v)
 bool BitReader::readT(bool& v)
 {
     return readT(v, 1);
+}
+
+template <class T>
+bool BitReader::peek(T& v, uint32_t nbits) const
+{
+    BitReader tmp(*this);
+    return tmp.readT(v, nbits);
 }
 
 } /*namespace YamiParser*/
