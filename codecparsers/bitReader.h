@@ -47,6 +47,12 @@ public:
     /*read the next nbits bits from the bitstream but not advance the bitstream pointer*/
     uint32_t peek(uint32_t nbits) const;
 
+    bool peek(uint32_t* res, uint32_t nbits) const;
+
+    bool peek(uint16_t* res, uint32_t nbits) const;
+
+    bool peek(uint8_t* res, uint32_t nbits) const;
+
     bool skip(uint32_t nbits);
 
     /* Get the total bits that had been read from bitstream, and the return
