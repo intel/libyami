@@ -338,17 +338,22 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             if (port == INPUT) {
                 DEBUG("start decoding/encoding");
 #if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
-                // FIXME, I remember cros flush uses STREAMON/STREAMOFF as well
-                if (!setVaDisplay()) {
-                    ERROR("fail to set up VADisplay");
-                    ret = -1;
-                }
+                /* there is no dedicate API for V4l2Codec flush(),
+                 * but use STREAMOFF/STREAMON to flush staging buffers.
+                 * so, some initialization work needn't twice here
+                 */
+                if (!m_started) {
+                    if (!setVaDisplay()) {
+                        ERROR("fail to set up VADisplay");
+                        ret = -1;
+                    }
 
-                if (!createVpp()) {
-                    ERROR("fail to set up VPP");
-                    ret = -1;
+                    if (!createVpp()) {
+                        ERROR("fail to set up VPP");
+                        ret = -1;
+                    }
                 }
-            #endif
+#endif
                 boolRet = start();
                 ASSERT(boolRet);
 
