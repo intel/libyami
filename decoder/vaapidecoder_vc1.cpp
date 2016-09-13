@@ -184,7 +184,7 @@ bool VaapiDecoderVC1::ensurePicture(PicturePtr& picture)
     FILL(frameHdr, cbp_table);
     param->luma_scale = frameHdr->lumscale;
     param->luma_shift = frameHdr->lumshift;
-
+    param->b_picture_fraction = frameHdr->bfraction;
     if ((!(frameHdr->mv_type_mb))
         && (frameHdr->picture_type == FRAME_P
                && (frameHdr->mv_mode == MVMODE_MIXED_MV
@@ -303,12 +303,20 @@ bool VaapiDecoderVC1::ensureSlice(PicturePtr& picture, void* data, int size)
         return false;
 
     slice->macroblock_offset = m_parser.m_frameHdr.macroblock_offset;
+
+    if (m_sliceFlag) {
+        slice->macroblock_offset = m_parser.m_sliceHdr.macroblock_offset;
+        slice->slice_vertical_position = m_parser.m_sliceHdr.slice_addr;
+    }
     return true;
 }
 
 YamiStatus VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
 {
     YamiStatus ret;
+    int32_t offset, len;
+    SeqHdr* seqHdr = &m_parser.m_seqHdr;
+    m_sliceFlag = false;
     ret = ensureContext();
     if (ret != YAMI_SUCCESS)
         return ret;
@@ -318,11 +326,30 @@ YamiStatus VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
         return YAMI_OUT_MEMORY;
     }
 
-    if (!ensurePicture(picture)) {
+    if (!ensurePicture(picture))
         return YAMI_FAIL;
-    }
-    if (!ensureSlice(picture, data, size)) {
-        return YAMI_FAIL;
+    if (seqHdr->profile == PROFILE_ADVANCED) {
+        while(1) {
+            offset = m_parser.searchStartCode(data, size);
+            len = (offset < 0) ? size : offset;
+            if (m_sliceFlag)
+                m_parser.parseSliceHeader(data, len);
+
+            if (!ensureSlice(picture, data, len))
+                return YAMI_FAIL;
+
+            if (offset < 0)
+                break;
+            if (data[offset+3] == 0xB)
+                m_sliceFlag = true;
+            else
+                m_sliceFlag = false;
+            data += (offset + 4);
+            size -= (offset + 4);
+        }
+    } else {
+        if (!ensureSlice(picture, data, size))
+            return YAMI_FAIL;
     }
     if (!picture->decode()) {
         return YAMI_FAIL;
@@ -347,7 +374,7 @@ YamiStatus VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
     size = buffer->size;
     data = buffer->data;
     if (!m_parser.parseFrameHeader(data, size))
-        return DECODE_FAIL;
+        return YAMI_DECODE_INVALID_DATA;
     return decode(data, size, buffer->timeStamp);
 }
 

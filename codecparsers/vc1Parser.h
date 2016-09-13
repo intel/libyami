@@ -214,6 +214,7 @@ namespace VC1 {
         uint8_t lumscale2;
         uint8_t lumshift2;
         uint8_t intcompfield;
+        uint16_t bfraction;
         uint32_t macroblock_offset;
     };
 
@@ -229,14 +230,22 @@ namespace VC1 {
         FIELD_INTERLACE
     };
 
+    struct SliceHdr {
+        uint16_t slice_addr;
+        uint32_t macroblock_offset;
+    };
+
     class Parser {
     public:
         Parser();
         ~Parser();
         bool parseCodecData(uint8_t*, uint32_t);
         bool parseFrameHeader(uint8_t*&, uint32_t&);
+        bool parseSliceHeader(uint8_t*, uint32_t);
+        int32_t searchStartCode(uint8_t*, uint32_t);
         SeqHdr m_seqHdr;
         FrameHdr m_frameHdr;
+        SliceHdr m_sliceHdr;
         EntryPointHdr m_entryPointHdr;
         BitPlanes m_bitPlanes;
         uint32_t m_mbWidth;
@@ -247,7 +256,7 @@ namespace VC1 {
         bool getRefDist(BitReader*, uint8_t& refDist);
         int32_t getFirst01Bit(BitReader*, bool, uint32_t);
         uint8_t getMVMode(BitReader*, uint8_t, bool);
-        int32_t searchStartCode(uint8_t*, uint32_t);
+        bool decodeBFraction(BitReader*);
         bool convertToRbdu(uint8_t*&, uint32_t&);
         bool decodeVLCTable(BitReader*, uint16_t*, const VLCTable*, uint32_t);
         bool decodeRowskipMode(BitReader*, uint8_t*, uint32_t, uint32_t);
