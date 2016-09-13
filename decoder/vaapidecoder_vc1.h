@@ -42,6 +42,7 @@ private:
     bool makeBitPlanes(PicturePtr&, VAPictureParameterBufferVC1*);
     YamiParser::VC1::Parser m_parser;
     PicturePtr m_forwardPicture;
+    bool m_sliceFlag;
     static const bool s_registered;
 };
 }

@@ -20,6 +20,7 @@
 
 #include "vc1Parser.h"
 #include "common/log.h"
+#include "common/common_def.h"
 #include <cstring>
 #include <cassert>
 
@@ -147,6 +148,22 @@ namespace VC1 {
             FRAME_P, FRAME_B, FRAME_I, FRAME_BI,
             FRAME_SKIPPED
         },
+    };
+
+    /* Table 40: BFRACTION VLC Table */
+    static const VLCTable BFractionVLCTable[] = {
+        {0x00, 3}, {0x01, 3},
+        {0x02, 3}, {0x02, 3},
+        {0x04, 3}, {0x05, 3},
+        {0x06, 3}, {0x70, 7},
+        {0x71, 7}, {0x72, 7},
+        {0x73, 7}, {0x74, 7},
+        {0x75, 7}, {0x76, 7},
+        {0x77, 7}, {0x78, 7},
+        {0x79, 7}, {0x7a, 7},
+        {0x7b, 7}, {0x7c, 7},
+        {0x7d, 7}, {0x7e, 7},
+        {0x7f, 7}
     };
 
     Parser::Parser()
@@ -401,6 +418,24 @@ namespace VC1 {
         if (m_entryPointHdr.range_mapy_flag)
             READ_BITS(m_entryPointHdr.range_mapuv, 3);
         return true;
+    }
+
+    bool Parser::parseSliceHeader(uint8_t* data, uint32_t size)
+    {
+        bool temp;
+        BitReader* br;
+        bool ret = true;
+        if (m_seqHdr.profile != PROFILE_ADVANCED)
+            return false;
+        BitReader bitReader(data, size);
+        br = &bitReader;
+        READ_BITS(m_sliceHdr.slice_addr, 9);
+        READ(temp);
+        if (temp)
+            ret = parseFrameHeaderAdvanced(&bitReader);
+
+        m_sliceHdr.macroblock_offset = bitReader.getPos();
+        return ret;
     }
 
     void Parser::mallocBitPlanes()
@@ -709,6 +744,19 @@ namespace VC1 {
         return MVMode;
     }
 
+    bool Parser::decodeBFraction(BitReader* br)
+    {
+        uint16_t bfraction;
+        if (!decodeVLCTable(br, &bfraction, BFractionVLCTable, N_ELEMENTS(BFractionVLCTable)))
+            return false;
+
+        m_frameHdr.bfraction = bfraction;
+        if (m_frameHdr.bfraction == 22) {
+            m_frameHdr.picture_type = FRAME_BI;
+        }
+        return true;
+    }
+
     /*Table 16: Progressive I picture layer bitstream for Simple and Main Profile*/
     /*Table 17: Progressive BI picture layer bitstream for Main Profile*/
     /*Table 19: Progressive P picture layer bitstream for Simple and Main Profile*/
@@ -748,6 +796,10 @@ namespace VC1 {
             }
         }
 
+        if (m_frameHdr.picture_type == FRAME_B) {
+            if (!decodeBFraction(br))
+                return false;
+        }
         if (m_frameHdr.picture_type == FRAME_I
             || m_frameHdr.picture_type == FRAME_BI)
             SKIP(7); /* skip BF*/
@@ -816,6 +868,7 @@ namespace VC1 {
         }
         else if (m_frameHdr.picture_type == FRAME_B) {
             READ_BITS(m_frameHdr.mv_mode, 1);
+            m_frameHdr.mv_mode = !(m_frameHdr.mv_mode);
             if (!decodeBitPlane(br, &m_bitPlanes.directmb[0], &m_frameHdr.direct_mb))
                 return false;
             if (!decodeBitPlane(br, &m_bitPlanes.skipmb[0], &m_frameHdr.skip_mb))
@@ -911,6 +964,14 @@ namespace VC1 {
         }
         if (m_seqHdr.finterpflag)
             READ(m_frameHdr.interpfrm);
+        if ((m_frameHdr.fcm != FIELD_INTERLACE
+             && m_frameHdr.picture_type == FRAME_B)
+             || (m_frameHdr.fcm == FIELD_INTERLACE
+             && ((m_frameHdr.picture_type == FRAME_B)
+             || (m_frameHdr.picture_type == FRAME_BI)))) {
+            if (!decodeBFraction(br))
+                return false;
+        }
         READ_BITS(m_frameHdr.pqindex, 5);
         if (m_frameHdr.pqindex <= 8)
             READ(m_frameHdr.halfqp);
@@ -1047,6 +1108,7 @@ namespace VC1 {
             }
             else {
                 READ_BITS(m_frameHdr.mv_mode, 1);
+                m_frameHdr.mv_mode = !(m_frameHdr.mv_mode);
             }
             if (m_frameHdr.fcm == FIELD_INTERLACE) {
                 if (!decodeBitPlane(br, &m_bitPlanes.forwardmb[0], &m_frameHdr.forwardmb))
