@@ -212,6 +212,7 @@ typedef struct VideoParamsCommon {
     uint32_t numRefFrames;
     VideoRateControl rcMode;
     VideoRateControlParams rcParams;
+    uint32_t referenceMode;
     uint32_t leastInputCount;
 }VideoParamsCommon;
 

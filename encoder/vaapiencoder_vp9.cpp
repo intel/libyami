@@ -157,6 +157,7 @@ YamiStatus VaapiEncoderVP9::doEncode(const SurfacePtr& surface,
     if (picture->m_type == VAAPI_PICTURE_I) {
         codedBuffer->setFlag(ENCODE_BUFFERFLAG_SYNCFRAME);
     }
+
     ret = encodePicture(picture);
     if (ret != YAMI_SUCCESS) {
         return ret;
@@ -181,7 +182,7 @@ bool VaapiEncoderVP9::fill(VAEncSequenceParameterBufferVP9* seqParam) const
 // Fills in VA picture parameter buffer
 bool VaapiEncoderVP9::fill(VAEncPictureParameterBufferVP9* picParam,
                            const PicturePtr& picture,
-                           const SurfacePtr& surface) const
+                           const SurfacePtr& surface)
 {
     picParam->reconstructed_frame = surface->getID();
     picParam->coded_buf = picture->getCodedBufferID();
@@ -191,23 +192,46 @@ bool VaapiEncoderVP9::fill(VAEncPictureParameterBufferVP9* picParam,
             picParam->reference_frames[i] = VA_INVALID_SURFACE;
     }
     else {
-        picParam->refresh_frame_flags = 0x01; // refresh last frame
+
         picParam->pic_flags.bits.frame_type = kInterFrame;
 
         ReferenceQueue::const_iterator it = m_reference.begin();
 
-        for (uint32_t i = 0; it != m_reference.end(); ++it, i++)
+        for (uint32_t i = 0; it != m_reference.end(); ++it, i++) {
             picParam->reference_frames[i] = (*it)->getID();
+            DEBUG("reference frame[%d] 0x%x", i, (*it)->getID());
+        }
 
+        picParam->pic_flags.bits.frame_context_idx = 0;
         // last/golden/alt is used as reference frame. L0 forward
         picParam->ref_flags.bits.ref_frame_ctrl_l0 = 0x7;
 
         // golden and alt are last KeyFrame
         // last is last decoded frame
-        picParam->ref_flags.bits.ref_last_idx = 0;
-        picParam->ref_flags.bits.ref_gf_idx = 1;
-        picParam->ref_flags.bits.ref_arf_idx = 2;
-        picParam->pic_flags.bits.frame_context_idx = 0;
+
+        if (getReferenceMode()) {
+            // intel driver updates a new slot with every new frame and keeps
+            // the reference frames in a circular buffer, the buffer is defined
+            // with 8 slots but it is up to the application to use as many as
+            // desired. This scheme implements the use of 3 slots for
+            // last/gold/alt refs
+
+            picParam->refresh_frame_flags = 1 << m_referenceIndex[1];
+            // assign the references on only 3 slots
+            picParam->ref_flags.bits.ref_arf_idx = m_referenceIndex[1];
+            picParam->ref_flags.bits.ref_gf_idx = m_referenceIndex[2];
+            picParam->ref_flags.bits.ref_last_idx = m_referenceIndex[0];
+
+            uint32_t index = m_referenceIndex.front();
+            m_referenceIndex.pop_front();
+            m_referenceIndex.push_back(index);
+        }
+        else {
+            picParam->refresh_frame_flags = 1 << m_referenceIndex[0];
+            picParam->ref_flags.bits.ref_last_idx = m_referenceIndex[0];
+            picParam->ref_flags.bits.ref_gf_idx = m_referenceIndex[1];
+            picParam->ref_flags.bits.ref_arf_idx = m_referenceIndex[2];
+        }
     }
 
     picParam->frame_width_src = width();
@@ -273,6 +297,12 @@ bool VaapiEncoderVP9::ensureQMatrix(const PicturePtr& picture)
     return true;
 }
 
+void VaapiEncoderVP9::resetReferenceIndex() {
+	    m_referenceIndex.clear();
+        uint32_t i;
+        for (i=0;i<3;i++)
+            m_referenceIndex.push_back(i);
+}
 bool VaapiEncoderVP9::referenceListUpdate(const PicturePtr& pic,
                                           const SurfacePtr& recon)
 {
@@ -280,10 +310,21 @@ bool VaapiEncoderVP9::referenceListUpdate(const PicturePtr& pic,
     if (pic->m_type == VAAPI_PICTURE_I) {
         m_reference.clear();
         m_reference.insert(m_reference.end(), kMaxReferenceFrames, recon);
+        resetReferenceIndex();
     }
     else {
-        m_reference.pop_front();
-        m_reference.push_front(recon);
+        if (getReferenceMode()) {
+            m_reference[m_referenceIndex[0]] = recon;
+        }
+        else {
+            m_reference.pop_front();
+            m_reference.push_front(recon);
+        }
+#if __ENABLE_DEBUG__
+            ReferenceQueue::const_iterator it;
+            for (it = m_reference.begin(); it != m_reference.end(); ++it)
+                DEBUG("Update ref frames 0x%x", (*it)->getID());
+#endif
     }
 
     return true;
