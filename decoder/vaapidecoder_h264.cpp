@@ -1769,11 +1769,11 @@ YamiStatus VaapiDecoderH264::decodeSlice(NalUnit* nalu)
             return YAMI_FAIL;
     }
 
-    /* should init reference for every slice */
-    m_dpb.initReference(m_currPic, slice);
-
     if (!m_currPic)
         return YAMI_DECODE_INVALID_DATA;
+
+    /* should init reference for every slice */
+    m_dpb.initReference(m_currPic, slice);
 
     if (!fillSlice(m_currPic, slice, nalu))
         return YAMI_FAIL;
