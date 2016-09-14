@@ -365,8 +365,10 @@ bool VaapiDecoderH265::DPB::init(const PicturePtr& picture,
     removeUnused();
     const PPS* const pps = slice->pps.get();
     const SPS* const sps = pps->sps.get();
-    while (checkReorderPics(sps) || checkLatency(sps) || checkDpbSize(sps))
-        bump();
+    while (checkReorderPics(sps) || checkLatency(sps) || checkDpbSize(sps)) {
+        if (!bump())
+            return false;
+    }
 
     return true;
 }
