@@ -136,8 +136,11 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
 
     PicturePtr picture(new VaapiEncPictureVP8(m_context, surface, timeStamp));
 
-    m_frameCount %= keyFramePeriod();
-    picture->m_type = (m_frameCount ? VAAPI_PICTURE_P : VAAPI_PICTURE_I);
+    if (!(m_frameCount % keyFramePeriod()) || forceKeyFrame)
+        picture->m_type = VAAPI_PICTURE_I;
+    else
+        picture->m_type = VAAPI_PICTURE_P;
+
     m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
