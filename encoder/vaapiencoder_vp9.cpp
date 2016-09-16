@@ -257,10 +257,10 @@ bool VaapiEncoderVP9::fill(VAEncPictureParameterBufferVP9* picParam,
         }
     }
 
-    picParam->frame_width_src = width();
-    picParam->frame_height_src = height();
-    picParam->frame_width_dst = width();
-    picParam->frame_height_dst = height();
+    picParam->frame_width_src = ALIGN8(width());
+    picParam->frame_height_src = ALIGN8(height());
+    picParam->frame_width_dst = ALIGN8(width());
+    picParam->frame_height_dst = ALIGN8(height());
 
     picParam->pic_flags.bits.show_frame = 1;
 
