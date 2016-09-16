@@ -36,28 +36,28 @@
 using namespace YamiMediaCodec;
 
 UTILS_TEST(guessFourcc) {
-    EXPECT_EQ(guessFourcc("test.i420"), (uint32_t)VA_FOURCC_I420);
-    EXPECT_EQ(guessFourcc("test.nv12"), (uint32_t)VA_FOURCC_NV12);
-    EXPECT_EQ(guessFourcc("test.yv12"), (uint32_t)VA_FOURCC_YV12);
-    EXPECT_EQ(guessFourcc("test.yuy2"), (uint32_t)VA_FOURCC_YUY2);
-    EXPECT_EQ(guessFourcc("test.uyvy"), (uint32_t)VA_FOURCC_UYVY);
-    EXPECT_EQ(guessFourcc("test.rgbx"), (uint32_t)VA_FOURCC_RGBX);
-    EXPECT_EQ(guessFourcc("test.bgrx"), (uint32_t)VA_FOURCC_BGRX);
-    EXPECT_EQ(guessFourcc("test.xrgb"), (uint32_t)VA_FOURCC_XRGB);
-    EXPECT_EQ(guessFourcc("test.xbgr"), (uint32_t)VA_FOURCC_XBGR);
+    EXPECT_EQ(guessFourcc("test.i420"), (uint32_t)YAMI_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test.nv12"), (uint32_t)YAMI_FOURCC_NV12);
+    EXPECT_EQ(guessFourcc("test.yv12"), (uint32_t)YAMI_FOURCC_YV12);
+    EXPECT_EQ(guessFourcc("test.yuy2"), (uint32_t)YAMI_FOURCC_YUY2);
+    EXPECT_EQ(guessFourcc("test.uyvy"), (uint32_t)YAMI_FOURCC_UYVY);
+    EXPECT_EQ(guessFourcc("test.rgbx"), (uint32_t)YAMI_FOURCC_RGBX);
+    EXPECT_EQ(guessFourcc("test.bgrx"), (uint32_t)YAMI_FOURCC_BGRX);
+    EXPECT_EQ(guessFourcc("test.xrgb"), (uint32_t)YAMI_FOURCC_XRGB);
+    EXPECT_EQ(guessFourcc("test.xbgr"), (uint32_t)YAMI_FOURCC_XBGR);
 
-    EXPECT_EQ(guessFourcc("test.txt"), (uint32_t)VA_FOURCC_I420);
-    EXPECT_EQ(guessFourcc("test"), (uint32_t)VA_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test.txt"), (uint32_t)YAMI_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test"), (uint32_t)YAMI_FOURCC_I420);
 
-    EXPECT_EQ(guessFourcc("test.I420"), (uint32_t)VA_FOURCC_I420);
-    EXPECT_EQ(guessFourcc("test.NV12"), (uint32_t)VA_FOURCC_NV12);
-    EXPECT_EQ(guessFourcc("test.YV12"), (uint32_t)VA_FOURCC_YV12);
-    EXPECT_EQ(guessFourcc("test.YUY2"), (uint32_t)VA_FOURCC_YUY2);
-    EXPECT_EQ(guessFourcc("test.UYVY"), (uint32_t)VA_FOURCC_UYVY);
-    EXPECT_EQ(guessFourcc("test.RGBX"), (uint32_t)VA_FOURCC_RGBX);
-    EXPECT_EQ(guessFourcc("test.BGRX"), (uint32_t)VA_FOURCC_BGRX);
-    EXPECT_EQ(guessFourcc("test.XRGB"), (uint32_t)VA_FOURCC_XRGB);
-    EXPECT_EQ(guessFourcc("test.XBGR"), (uint32_t)VA_FOURCC_XBGR);
+    EXPECT_EQ(guessFourcc("test.I420"), (uint32_t)YAMI_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test.NV12"), (uint32_t)YAMI_FOURCC_NV12);
+    EXPECT_EQ(guessFourcc("test.YV12"), (uint32_t)YAMI_FOURCC_YV12);
+    EXPECT_EQ(guessFourcc("test.YUY2"), (uint32_t)YAMI_FOURCC_YUY2);
+    EXPECT_EQ(guessFourcc("test.UYVY"), (uint32_t)YAMI_FOURCC_UYVY);
+    EXPECT_EQ(guessFourcc("test.RGBX"), (uint32_t)YAMI_FOURCC_RGBX);
+    EXPECT_EQ(guessFourcc("test.BGRX"), (uint32_t)YAMI_FOURCC_BGRX);
+    EXPECT_EQ(guessFourcc("test.XRGB"), (uint32_t)YAMI_FOURCC_XRGB);
+    EXPECT_EQ(guessFourcc("test.XBGR"), (uint32_t)YAMI_FOURCC_XBGR);
 }
 
 UTILS_TEST(guessResolutionBasic) {
@@ -138,28 +138,28 @@ struct BppEntry {
 };
 
 const static BppEntry bppEntrys[] = {
-    { VA_FOURCC_NV12, 2, 1.5 },
-    { VA_FOURCC_I420, 3, 1.5 },
-    { VA_FOURCC_YV12, 3, 1.5 },
-    { VA_FOURCC_IMC3, 3, 1.5 },
-    { VA_FOURCC_422H, 3, 2 },
-    { VA_FOURCC_422V, 3, 2 },
-    { VA_FOURCC_444P, 3, 3 },
-    { VA_FOURCC_YUY2, 1, 2 },
-    { VA_FOURCC_UYVY, 1, 2 },
-    { VA_FOURCC_RGBX, 1, 4 },
-    { VA_FOURCC_RGBA, 1, 4 },
-    { VA_FOURCC_BGRX, 1, 4 },
-    { VA_FOURCC_BGRA, 1, 4 },
+    { YAMI_FOURCC_NV12, 2, 1.5 },
+    { YAMI_FOURCC_I420, 3, 1.5 },
+    { YAMI_FOURCC_YV12, 3, 1.5 },
+    { YAMI_FOURCC_IMC3, 3, 1.5 },
+    { YAMI_FOURCC_422H, 3, 2 },
+    { YAMI_FOURCC_422V, 3, 2 },
+    { YAMI_FOURCC_444P, 3, 3 },
+    { YAMI_FOURCC_YUY2, 1, 2 },
+    { YAMI_FOURCC_UYVY, 1, 2 },
+    { YAMI_FOURCC_RGBX, 1, 4 },
+    { YAMI_FOURCC_RGBA, 1, 4 },
+    { YAMI_FOURCC_BGRX, 1, 4 },
+    { YAMI_FOURCC_BGRA, 1, 4 },
 };
 
 //check selected unsupported format.
 //we do not want check all unsupported formats, it will introduce too many dependency on libva
 const static uint32_t unsupported[] = {
     0,
-    VA_FOURCC_Y800,
-    VA_FOURCC_411P,
-    VA_FOURCC_ARGB,
+    YAMI_FOURCC_Y800,
+    YAMI_FOURCC_411P,
+    YAMI_FOURCC_ARGB,
 };
 
 UTILS_TEST(getPlaneResolution)
