@@ -140,6 +140,7 @@ const static ResolutionEntry resolutionEntrys[] = {
     { YAMI_FOURCC_422H, 3, { 2, 1, 1 }, { 2, 2, 2 } },
     { YAMI_FOURCC_422V, 3, { 2, 2, 2 }, { 2, 1, 1 } },
     { YAMI_FOURCC_444P, 3, { 2, 2, 2 }, { 2, 2, 2 } },
+    { YAMI_FOURCC_P010, 2, { 4, 4 }, { 2, 1 } },
     { YAMI_FOURCC_YUY2, 1, { 4 }, { 2 } },
     { YAMI_FOURCC_UYVY, 1, { 4 }, { 2 } },
     { YAMI_FOURCC_RGBX, 1, { 8 }, { 2 } },
