@@ -159,8 +159,11 @@ YamiStatus VaapiEncoderVP9::doEncode(const SurfacePtr& surface,
 
     PicturePtr picture(new VaapiEncPictureVP9(m_context, surface, timeStamp));
 
-    m_frameCount %= keyFramePeriod();
-    picture->m_type = (m_frameCount ? VAAPI_PICTURE_P : VAAPI_PICTURE_I);
+    if (!(m_frameCount % keyFramePeriod()) || forceKeyFrame)
+        picture->m_type = VAAPI_PICTURE_I;
+    else
+        picture->m_type = VAAPI_PICTURE_P;
+
     m_frameCount++;
 
     CodedBufferPtr codedBuffer
