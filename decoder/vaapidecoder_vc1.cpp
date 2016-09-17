@@ -28,6 +28,7 @@ namespace YamiMediaCodec {
 using namespace ::YamiParser::VC1;
 VaapiDecoderVC1::VaapiDecoderVC1()
 {
+    m_dpbIdx = 0;
 }
 
 VaapiDecoderVC1::~VaapiDecoderVC1()
@@ -55,7 +56,7 @@ void VaapiDecoderVC1::stop(void)
 
 void VaapiDecoderVC1::flush(void)
 {
-    m_forwardPicture.reset();
+    bumpAll();
     VaapiDecoderBase::flush();
 }
 
@@ -277,8 +278,13 @@ bool VaapiDecoderVC1::ensurePicture(PicturePtr& picture)
     }
 
     if (frameHdr->picture_type == FRAME_P
-        || frameHdr->picture_type == FRAME_SKIPPED)
-        param->forward_reference_picture = m_forwardPicture->getSurfaceID();
+        || frameHdr->picture_type == FRAME_SKIPPED) {
+        param->forward_reference_picture = m_dpb[m_dpbIdx-1]->getSurfaceID();
+    }
+    else if (frameHdr->picture_type == FRAME_B) {
+        param->forward_reference_picture = m_dpb[0]->getSurfaceID();
+        param->backward_reference_picture = m_dpb[1]->getSurfaceID();
+    }
 
     if (param->bitplane_present.value)
         return makeBitPlanes(picture, param);
@@ -311,21 +317,44 @@ bool VaapiDecoderVC1::ensureSlice(PicturePtr& picture, void* data, int size)
     return true;
 }
 
+YamiStatus VaapiDecoderVC1::outputPicture(const PicturePtr& picture)
+{
+    YamiStatus ret = YAMI_SUCCESS;
+    if (!picture->m_picOutputFlag) {
+        ret = VaapiDecoderBase::outputPicture(picture);;
+        picture->m_picOutputFlag = true;
+    }
+    return ret;
+}
+
+void VaapiDecoderVC1:: bumpAll()
+{
+    for(int32_t i = 0; i < m_dpbIdx; i++)
+        outputPicture(m_dpb[i]);
+    m_dpbIdx = 0;
+    m_dpb[0].reset();
+    m_dpb[1].reset();
+}
+
 YamiStatus VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
 {
     YamiStatus ret;
+    SurfacePtr surface;
+    PicturePtr picture;
     int32_t offset, len;
+    bool isReference = true;
     SeqHdr* seqHdr = &m_parser.m_seqHdr;
     m_sliceFlag = false;
     ret = ensureContext();
     if (ret != YAMI_SUCCESS)
         return ret;
-
-    PicturePtr picture = createPicture(pts);
-    if (!picture) {
-        return YAMI_OUT_MEMORY;
+    surface = VaapiDecoderBase::createSurface();
+    if (!surface) {
+        ret = YAMI_OUT_MEMORY;
+    } else {
+        picture.reset(
+            new VaapiDecPictureVC1(m_context, surface, pts));
     }
-
     if (!ensurePicture(picture))
         return YAMI_FAIL;
     if (seqHdr->profile == PROFILE_ADVANCED) {
@@ -355,26 +384,46 @@ YamiStatus VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
         return YAMI_FAIL;
     }
 
-    if ((m_parser.m_frameHdr.picture_type == FRAME_I)
-        || (m_parser.m_frameHdr.picture_type == FRAME_P)
-        || (m_parser.m_frameHdr.picture_type == FRAME_SKIPPED)) {
-        m_forwardPicture = picture;
+    if (m_parser.m_frameHdr.picture_type == FRAME_B)
+        isReference = false;
+    if (m_dpbIdx == 2) {
+        if (!isReference) {
+            outputPicture(m_dpb[0]);
+            outputPicture(picture);
+        } else {
+            outputPicture(m_dpb[0]);
+            m_dpb[0] = m_dpb[1];
+            m_dpb[1] = picture;
+        }
+    } else {
+         if (isReference) {
+            m_dpb[m_dpbIdx] = picture;
+            m_dpbIdx++;
+         }
     }
-    return outputPicture(picture);
+    return YAMI_SUCCESS;
 }
 
 YamiStatus VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
 {
     uint8_t* data;
     uint32_t size;
+    FrameHdr* frameHdr = &m_parser.m_frameHdr;
     if (!buffer || !(buffer->data) || !(buffer->size)) {
-        m_forwardPicture.reset();
+        bumpAll();
         return YAMI_SUCCESS;
     }
     size = buffer->size;
     data = buffer->data;
     if (!m_parser.parseFrameHeader(data, size))
         return YAMI_DECODE_INVALID_DATA;
+    if (((frameHdr->picture_type == FRAME_P
+        || frameHdr->picture_type == FRAME_SKIPPED)
+        && (m_dpbIdx < 1))
+        || ((frameHdr->picture_type == FRAME_B)
+        && (m_dpbIdx < 2))) {
+        return YAMI_FAIL;
+    }
     return decode(data, size, buffer->timeStamp);
 }
 

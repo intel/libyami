@@ -22,8 +22,21 @@
 #include "va/va.h"
 
 namespace YamiMediaCodec {
+class VaapiDecPictureVC1 : public VaapiDecPicture {
+public:
+    VaapiDecPictureVC1(const ContextPtr& context, const SurfacePtr& surface,
+                         int64_t timeStamp)
+        : VaapiDecPicture(context, surface, timeStamp)
+        , m_picOutputFlag(false)
+    {
+    }
+    VaapiDecPictureVC1() {}
+    bool m_picOutputFlag;
+private:
+};
 class VaapiDecoderVC1 : public VaapiDecoderBase {
 public:
+    typedef SharedPtr<VaapiDecPictureVC1> PicturePtr;
     VaapiDecoderVC1();
     virtual ~VaapiDecoderVC1();
     virtual YamiStatus start(VideoConfigBuffer*);
@@ -34,14 +47,18 @@ public:
 private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderVC1>;
     friend class VaapiDecoderVC1Test;
-    int32_t searchStartCode(uint8_t*, uint32_t);
+    void bumpAll();
     YamiStatus ensureContext();
+    YamiStatus outputPicture(const PicturePtr& picture);
     YamiStatus decode(uint8_t*, uint32_t, uint64_t);
     bool ensureSlice(PicturePtr&, void*, int);
     bool ensurePicture(PicturePtr&);
     bool makeBitPlanes(PicturePtr&, VAPictureParameterBufferVC1*);
     YamiParser::VC1::Parser m_parser;
-    PicturePtr m_forwardPicture;
+    //m_dpb[0] stores forward reference picture
+    //m_dpb[1] stores backward reference picture
+    PicturePtr m_dpb[2];
+    int32_t m_dpbIdx;
     bool m_sliceFlag;
     static const bool s_registered;
 };
