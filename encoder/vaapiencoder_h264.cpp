@@ -59,6 +59,8 @@ using std::vector;
 #define H264_SLICE_TYPE_B 1
 #define H264_SLICE_TYPE_I 2
 
+#define Extended_SAR 255
+
 typedef enum {
     VAAPI_ENCODER_H264_NAL_UNKNOWN = 0,
     VAAPI_ENCODER_H264_NAL_NON_IDR = 1,
@@ -1535,7 +1537,14 @@ bool VaapiEncoderH264::fill(VAEncSequenceParameterBufferH264* seqParam) const
     /* VUI parameters are always set, at least for timing_info (framerate) */
     seqParam->vui_parameters_present_flag = TRUE;
     if (seqParam->vui_parameters_present_flag) {
-        seqParam->vui_fields.bits.aspect_ratio_info_present_flag = FALSE;
+        if (!m_videoParamAVC.SAR.SarWidth && !m_videoParamAVC.SAR.SarHeight) {
+            seqParam->vui_fields.bits.aspect_ratio_info_present_flag = TRUE;
+            seqParam->aspect_ratio_idc = Extended_SAR;
+            seqParam->sar_width = m_videoParamAVC.SAR.SarWidth;
+            seqParam->sar_height = m_videoParamAVC.SAR.SarHeight;
+        } else {
+            seqParam->vui_fields.bits.aspect_ratio_info_present_flag = FALSE;
+        }
         seqParam->vui_fields.bits.bitstream_restriction_flag = FALSE;
         seqParam->vui_fields.bits.timing_info_present_flag = TRUE;
         if (seqParam->vui_fields.bits.timing_info_present_flag) {
