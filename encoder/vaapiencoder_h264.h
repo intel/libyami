@@ -92,6 +92,10 @@ private:
     void setIFrame(const PicturePtr&);
     void setIdrFrame(const PicturePtr&);
 
+    void changeLastBFrameToPFrame();
+
+    YamiStatus encodeAllFrames();
+
     void resetParams();
     void checkProfileLimitation();
     void checkSvcTempLimitaion();

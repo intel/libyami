@@ -1062,7 +1062,20 @@ YamiStatus VaapiEncoderH264::start()
 
 void VaapiEncoderH264::flush()
 {
+    YamiStatus ret;
+
     FUNC_ENTER();
+
+    if (!m_reorderFrameList.empty()) {
+        changeLastBFrameToPFrame();
+        m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
+
+        ret = encodeAllFrames();
+        if (ret != YAMI_SUCCESS) {
+            ERROR("Not all frames are flushed.");
+        }
+    }
+
     resetGopStart();
     m_reorderFrameList.clear();
     referenceListFree();
@@ -1144,6 +1157,16 @@ YamiStatus VaapiEncoderH264::getParameters(VideoParamConfigType type, Yami_PTR v
     return status;
 }
 
+void VaapiEncoderH264::changeLastBFrameToPFrame()
+{
+    PicturePtr lastPic = m_reorderFrameList.back();
+    if (lastPic->m_type == VAAPI_PICTURE_B) {
+        lastPic->m_type = VAAPI_PICTURE_P;
+        m_reorderFrameList.pop_back();
+        m_reorderFrameList.push_front(lastPic);
+    }
+}
+
 YamiStatus VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
 {
     if (!surface)
@@ -1156,12 +1179,7 @@ YamiStatus VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeSta
     if (isIdr) {
         // If the last frame before IDR is B frame, set it to P frame.
         if (m_reorderFrameList.size()) {
-            PicturePtr lastPic = m_reorderFrameList.back();
-            if (lastPic->m_type == VAAPI_PICTURE_B) {
-                lastPic->m_type = VAAPI_PICTURE_P;
-                m_reorderFrameList.pop_back();
-                m_reorderFrameList.push_front(lastPic);
-            }
+            changeLastBFrameToPFrame();
         }
         setIdrFrame (picture);
         m_reorderFrameList.push_back(picture);
@@ -1190,16 +1208,10 @@ YamiStatus VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeSta
     return YAMI_SUCCESS;
 }
 
-// calls immediately after reorder,
-// it makes sure I frame are encoded immediately, so P frames can be pushed to the front of the m_reorderFrameList.
-// it also makes sure input thread and output thread runs in parallel
-YamiStatus VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
+YamiStatus VaapiEncoderH264::encodeAllFrames()
 {
     FUNC_ENTER();
     YamiStatus ret;
-    ret = reorder(surface, timeStamp, forceKeyFrame);
-    if (ret != YAMI_SUCCESS)
-        return ret;
 
     while (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
         if (!m_maxCodedbufSize)
@@ -1226,6 +1238,26 @@ YamiStatus VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t timeSt
 
         if (!output(picture))
             return YAMI_INVALID_PARAM;
+    }
+
+    INFO();
+    return YAMI_SUCCESS;
+}
+
+// calls immediately after reorder,
+// it makes sure I frame are encoded immediately, so P frames can be pushed to the front of the m_reorderFrameList.
+// it also makes sure input thread and output thread runs in parallel
+YamiStatus VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
+{
+    FUNC_ENTER();
+    YamiStatus ret;
+    ret = reorder(surface, timeStamp, forceKeyFrame);
+    if (ret != YAMI_SUCCESS)
+        return ret;
+
+    ret = encodeAllFrames();
+    if (ret != YAMI_SUCCESS) {
+        return ret;
     }
 
     INFO();

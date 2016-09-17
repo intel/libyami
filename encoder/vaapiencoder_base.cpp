@@ -89,12 +89,12 @@ YamiStatus VaapiEncoderBase::start(void)
 void VaapiEncoderBase::flush(void)
 {
     AutoLock l(m_lock);
-    m_output.clear();
 }
 
 YamiStatus VaapiEncoderBase::stop(void)
 {
     FUNC_ENTER();
+    m_output.clear();
     cleanupVA();
     return YAMI_SUCCESS;
 }
