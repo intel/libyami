@@ -1104,7 +1104,7 @@ YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
         NalUnit nalu;
         if (nalu.parseNaluHeader(nal, size)) {
             status = decodeNalu(&nalu);
-            if (status != YAMI_SUCCESS)
+            if (status != YAMI_SUCCESS && status != YAMI_DECODE_INVALID_DATA)
                 return status;
         }
     }
