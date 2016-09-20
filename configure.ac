@@ -191,7 +191,7 @@ dnl h265 decoder
 AC_ARG_ENABLE(h265dec,
     [AC_HELP_STRING([--enable-h265dec],
         [build with h265 decoder support @<:@default=yes@:>@])],
-    [], [enable_h265dec="no"])
+    [], [enable_h265dec="yes"])
 
 AM_CONDITIONAL(BUILD_H265_DECODER,
     [test "x$enable_h265dec" = "xyes"])
