@@ -191,8 +191,8 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
-            if(m_videoParamCommon.rcParams.bitRate > 0)
-	         m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
+            //if(m_videoParamCommon.rcParams.bitRate > 0)
+	        // m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
 	     // Only support CQP and CBR mode now
             if (m_videoParamCommon.rcMode != RATE_CONTROL_CBR)
                 m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
