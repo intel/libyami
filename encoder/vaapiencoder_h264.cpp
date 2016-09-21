@@ -765,6 +765,8 @@ public:
         out.flag = 0;
 
         std::vector<Function> functions;
+        if (m_enableAUD && format == OUTPUT_EVERYTHING)
+            functions.push_back(std::bind(getOutputAUD, &out));
         if (format == OUTPUT_CODEC_DATA || ((format == OUTPUT_EVERYTHING) && isIdr()))
             functions.push_back(std::bind(&VaapiEncStreamHeaderH264::getCodecConfig, m_headers,&out));
         if (format == OUTPUT_EVERYTHING || format == OUTPUT_FRAME_DATA)
@@ -779,18 +781,34 @@ public:
 
 private:
     VaapiEncPictureH264(const ContextPtr& context, const SurfacePtr& surface,
-                        int64_t timeStamp)
+                        int64_t timeStamp, bool enableAUD)
         : VaapiEncPicture(context, surface, timeStamp)
         , m_frameNum(0)
         , m_poc(0)
         , m_isReference(true)
         , m_priorityId(0)
         , m_temporalId(0)
+        , m_enableAUD(enableAUD)
     {
     }
 
     bool isIdr() const {
         return m_type == VAAPI_PICTURE_I && !m_frameNum;
+    }
+
+    static YamiStatus getOutputAUD(VideoEncOutputBuffer* outBuffer)
+    {
+        const uint8_t aud[] = {0x00, 0x00, 0x00, 0x01, 0x09, 0xf0};
+        const uint32_t AUD_SIZE = sizeof(aud);
+        ASSERT(outBuffer && outBuffer->data);
+        if (AUD_SIZE > outBuffer->bufferSize) {
+            outBuffer->dataSize = 0;
+            return ENCODE_BUFFER_TOO_SMALL;
+        }
+        memcpy(outBuffer->data, aud, AUD_SIZE);
+        outBuffer->flag |= ENCODE_BUFFERFLAG_CODECCONFIG;
+        outBuffer->dataSize = AUD_SIZE;
+        return YAMI_SUCCESS;
     }
 
     //getOutput is a virutal function, we need this to help bind
@@ -822,6 +840,7 @@ private:
     bool m_isReference;
     uint32_t m_priorityId;
     uint32_t m_temporalId;
+    bool m_enableAUD;
 };
 
 class VaapiEncoderH264Ref
@@ -1204,7 +1223,7 @@ YamiStatus VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeSta
     if (!surface)
         return YAMI_INVALID_PARAM;
 
-    PicturePtr picture(new VaapiEncPictureH264(m_context, surface, timeStamp));
+    PicturePtr picture(new VaapiEncPictureH264(m_context, surface, timeStamp, m_videoParamAVC.enableAUD));
 
     bool isIdr = (m_frameIndex == 0 ||m_frameIndex >= m_keyPeriod || forceKeyFrame);
 

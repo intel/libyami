@@ -233,6 +233,7 @@ typedef struct VideoParamsAVC {
     int8_t deblockBetaOffsetDiv2; //same as slice_beta_offset_div2 defined in h264 spec 7.4.3
     uint32_t temporalLayerNum;
     uint32_t priorityId;
+    bool  enableAUD;
 }VideoParamsAVC;
 
 typedef struct VideoParamsVP9 {
