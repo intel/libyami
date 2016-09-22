@@ -60,7 +60,7 @@ private:
     bool ensureQMatrix(const PicturePtr&);
     bool referenceListUpdate(const PicturePtr&, const SurfacePtr&);
 
-    void resetParams();
+    YamiStatus resetParams();
 
     int keyFramePeriod()
     {

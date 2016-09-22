@@ -78,20 +78,32 @@ YamiStatus VaapiEncoderVP9::getMaxOutSize(uint32_t* maxSize)
     return YAMI_SUCCESS;
 }
 
-void VaapiEncoderVP9::resetParams()
+YamiStatus VaapiEncoderVP9::resetParams()
 {
+
+    // intel driver cannot handle non 8-bit aligned resolutions, once
+    // fixed this can go away
+    if (width() != ALIGN8(width()) || height() != ALIGN8(height())) {
+        ERROR("Input resolution %dx%d is not 8-bit aligned", width(), height());
+        return YAMI_INVALID_PARAM;
+    }
+
     m_maxCodedbufSize = width() * height() * 3 / 2;
 
     // adding extra padding.  In particular small resolutions require more
     // space depending on other quantization parameters during execution. The
     // value below is a good compromise
     m_maxCodedbufSize += kMaxHeaderSize;
+    return YAMI_SUCCESS;
 }
 
 YamiStatus VaapiEncoderVP9::start()
 {
+    YamiStatus status;
     FUNC_ENTER();
-    resetParams();
+    status = resetParams();
+    if (status != YAMI_SUCCESS)
+        return status;
     return VaapiEncoderBase::start();
 }
 
