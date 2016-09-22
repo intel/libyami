@@ -191,10 +191,9 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
-            //if(m_videoParamCommon.rcParams.bitRate > 0)
-	        // m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
-	     // Only support CQP and CBR mode now
-            if (m_videoParamCommon.rcMode != RATE_CONTROL_CBR)
+            if (m_videoParamCommon.rcMode != RATE_CONTROL_CBR &&
+                m_videoParamCommon.rcMode != RATE_CONTROL_VBR &&
+                m_videoParamCommon.rcMode != RATE_CONTROL_CVBR)
                 m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
         } else
             ret = YAMI_INVALID_PARAM;
@@ -398,7 +397,7 @@ void VaapiEncoderBase::fill(VAEncMiscParameterRateControl* rateControl) const
     rateControl->bits_per_second = m_videoParamCommon.rcParams.bitRate;
     rateControl->initial_qp =  m_videoParamCommon.rcParams.initQP;
     rateControl->min_qp =  m_videoParamCommon.rcParams.minQP;
-    /*FIXME: where to find max_qp */
+    rateControl->max_qp = m_videoParamCommon.rcParams.maxQP;
     rateControl->window_size = m_videoParamCommon.rcParams.windowSize;
     rateControl->target_percentage = m_videoParamCommon.rcParams.targetPercentage;
     rateControl->rc_flags.bits.disable_frame_skip = m_videoParamCommon.rcParams.disableFrameSkip;
@@ -419,8 +418,7 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
     if (hrd)
         fill(hrd);
     VideoRateControl mode = rateControlMode();
-    if (mode == RATE_CONTROL_CBR ||
-            mode == RATE_CONTROL_VBR) {
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR || mode == RATE_CONTROL_CVBR) {
         VAEncMiscParameterRateControl* rateControl = NULL;
         if (!picture->newMisc(VAEncMiscParameterTypeRateControl, rateControl))
             return false;
