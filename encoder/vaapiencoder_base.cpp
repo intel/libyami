@@ -59,6 +59,11 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.leastInputCount = 0;
     m_videoParamCommon.rcParams.diffQPIP = 0;
     m_videoParamCommon.rcParams.diffQPIB = 0;
+    m_videoParamCommon.roiParams.numROI = 0;
+    m_videoParamCommon.roiParams.maxDeltaQp = 3;
+    m_videoParamCommon.roiParams.minDeltaQp = 3;
+    m_videoParamCommon.roiParams.roiValueIsQpDelta = false;
+
     updateMaxOutputBufferCount();
 }
 
@@ -171,6 +176,16 @@ YamiStatus VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR v
         }
         break;
     }
+    case VideoParamsTypeROI: {
+        VideoParamsROI* roi = (VideoParamsROI*)videoEncParams;
+        if (roi->size == sizeof(VideoParamsROI)) {
+            PARAMETER_ASSIGN(*roi, m_videoParamCommon.roiParams);
+            ret = YAMI_SUCCESS;
+        } else {
+            ret = YAMI_INVALID_PARAM;
+        }
+        break;
+    }
     default:
         ret = YAMI_SUCCESS;
         break;
@@ -216,6 +231,16 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
             ret = YAMI_INVALID_PARAM;
         }
         break;
+    case VideoParamsTypeROI: {
+        VideoParamsROI* roi = (VideoParamsROI*)videoEncParams;
+        if (roi->size == sizeof(VideoParamsROI) && roi->numROI <= MAX_ROI_NUM) {
+            PARAMETER_ASSIGN(m_videoParamCommon.roiParams, *roi);
+            ret = YAMI_SUCCESS;
+        } else {
+            ret = YAMI_INVALID_PARAM;
+        }
+        break;
+    }
     default:
         ret = YAMI_INVALID_PARAM;
         break;
@@ -409,6 +434,26 @@ void VaapiEncoderBase::fill(VAEncMiscParameterFrameRate* frameRate) const
     frameRate->framerate = fps();
 }
 
+void VaapiEncoderBase::fill(VAEncMiscParameterBufferROI* bufferROI) const
+{
+    const VideoParamsROI* roiParams = &m_videoParamCommon.roiParams;
+
+    bufferROI->num_roi = roiParams->numROI;
+    bufferROI->max_delta_qp = roiParams->maxDeltaQp;
+    bufferROI->min_delta_qp = roiParams->minDeltaQp;
+    bufferROI->roi_flags.bits.roi_value_is_qp_delta = roiParams->roiValueIsQpDelta;
+    bufferROI->roi = (VAEncROI*)((uint8_t*)bufferROI + sizeof(VAEncMiscParameterBufferROI));
+
+    VAEncROI* encROI = bufferROI->roi;
+    for (uint32_t i = 0; i < bufferROI->num_roi; ++i) {
+        encROI[i].roi_rectangle.x = roiParams->roi[i].x;
+        encROI[i].roi_rectangle.y = roiParams->roi[i].y;
+        encROI[i].roi_rectangle.width = roiParams->roi[i].width;
+        encROI[i].roi_rectangle.height = roiParams->roi[i].height;
+        encROI[i].roi_value = roiParams->roi[i].roiValue;
+    }
+}
+
 /* Generates additional control parameters */
 bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
 {
@@ -431,6 +476,17 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
         if (frameRate)
             fill(frameRate);
     }
+
+    uint32_t numROI = m_videoParamCommon.roiParams.numROI;
+    if (!numROI) {
+        VAEncMiscParameterBufferROI* roi = NULL;
+        if (!picture->newMisc(VAEncMiscParameterTypeROI, roi, numROI * sizeof(VAEncROI))) {
+            return false;
+        }
+        if (roi)
+            fill(roi);
+    }
+    
     return true;
 }
 
@@ -475,7 +531,7 @@ void unrefAllocator(SurfaceAllocator* allocator)
 
 bool VaapiEncoderBase::initVA()
 {
-    VAConfigAttrib attrib, *pAttrib = NULL;
+    VAConfigAttrib attrib[2];
     int32_t attribCount = 0;
     FUNC_ENTER();
 
@@ -485,11 +541,12 @@ bool VaapiEncoderBase::initVA()
         return false;
     }
 
+    attrib[attribCount].type = VAConfigAttribEncROI;
+    attribCount += 1;
     if (RATE_CONTROL_NONE != m_videoParamCommon.rcMode) {
-        attrib.type = VAConfigAttribRateControl;
-        attrib.value = m_videoParamCommon.rcMode;
-        pAttrib = &attrib;
-        attribCount = 1;
+        attrib[attribCount].type = VAConfigAttribRateControl;
+        attrib[attribCount].value = m_videoParamCommon.rcMode;
+        attribCount += 1;
     }
 
     if (m_videoParamCommon.enableLowPower) {
@@ -500,7 +557,7 @@ bool VaapiEncoderBase::initVA()
         m_entrypoint = VAEntrypointEncSliceLP;
     }
 
-    ConfigPtr config = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, pAttrib, attribCount);
+    ConfigPtr config = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, attrib, attribCount);
     if (!config) {
         ERROR("failed to create config");
         return false;

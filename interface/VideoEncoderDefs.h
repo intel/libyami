@@ -167,6 +167,25 @@ typedef struct VideoRateControlParams {
     uint32_t layerBitRate[32]; // specify each scalable layer bitrate
 }VideoRateControlParams;
 
+typedef struct VideoROI {
+    int16_t x;
+    int16_t y;
+    uint16_t width;
+    uint16_t height;
+    int8_t roiValue;
+} VideoROI;
+
+#define MAX_ROI_NUM 8
+
+typedef struct VideoParamsROI {
+    uint32_t size;
+    int8_t maxDeltaQp;
+    int8_t minDeltaQp;
+    bool roiValueIsQpDelta;
+    uint32_t numROI;
+    VideoROI roi[MAX_ROI_NUM];
+} VideoParamsROI;
+
 typedef struct SliceNum {
     uint32_t iSliceNum;
     uint32_t pSliceNum;
@@ -193,6 +212,7 @@ typedef enum {
     VideoConfigTypeNALSize,
     VideoConfigTypeIDRRequest,
     VideoConfigTypeSliceNum,
+    VideoParamsTypeROI,
 
     //format related
     VideoConfigTypeAVCStreamFormat,
@@ -217,6 +237,7 @@ typedef struct VideoParamsCommon {
     VideoRateControlParams rcParams;
     uint32_t leastInputCount;
     bool enableLowPower;
+    VideoParamsROI roiParams;
 }VideoParamsCommon;
 
 typedef struct VideoParamsAVC {
