@@ -89,6 +89,80 @@ static const H264LevelLimits LevelLimits[] = {
     {51, 983040, 2},
 };
 
+static const uint8_t DEFAULT_QM4x4_RASTER[6][SCALING_LIST_4x4_SIZE] = {
+    // Default_4x4_Intra
+     6, 13, 20, 28,
+    13, 20, 28, 32,
+    20, 28, 32, 37,
+    28, 32, 37, 42,
+
+     6, 13, 20, 28,
+    13, 20, 28, 32,
+    20, 28, 32, 37,
+    28, 32, 37, 42,
+
+     6, 13, 20, 28,
+    13, 20, 28, 32,
+    20, 28, 32, 37,
+    28, 32, 37, 42,
+
+    // Default_4x4_Inter
+    10, 14, 20, 24,
+    14, 20, 24, 27,
+    20, 24, 27, 30,
+    24, 27, 30, 34,
+
+    10, 14, 20, 24,
+    14, 20, 24, 27,
+    20, 24, 27, 30,
+    24, 27, 30, 34,
+
+    10, 14, 20, 24,
+    14, 20, 24, 27,
+    20, 24, 27, 30,
+    24, 27, 30, 34
+};
+
+static const uint8_t DEFAULT_QM8x8_RASTER[2][SCALING_LIST_8x8_SIZE] = {
+    // Default_8x8_Intra
+     6, 10, 13, 16, 18, 23, 25, 27,
+    10, 11, 16, 18, 23, 25, 27, 29,
+    13, 16, 18, 23, 25, 27, 29, 31,
+    16, 18, 23, 25, 27, 29, 31, 33,
+    18, 23, 25, 27, 29, 31, 33, 36,
+    23, 25, 27, 29, 31, 33, 36, 38,
+    25, 27, 29, 31, 33, 36, 38, 40,
+    27, 29, 31, 33, 36, 38, 40, 42,
+
+    // Default_8x8_Inter
+     9, 13, 15, 17, 19, 21, 22, 24,
+    13, 13, 17, 19, 21, 22, 24, 25,
+    15, 17, 19, 21, 22, 24, 25, 27,
+    17, 19, 21, 22, 24, 25, 27, 28,
+    19, 21, 22, 24, 25, 27, 28, 30,
+    21, 22, 24, 25, 27, 28, 30, 32,
+    22, 24, 25, 27, 28, 30, 32, 33,
+    24, 25, 27, 28, 30, 32, 33, 35
+};
+
+static const uint8_t QM4x4_SCAN_TO_RASTER[] = {
+    0,  1,  4,  8,
+    5,  2,  3,  6,
+    9, 12, 13, 10,
+    7, 11, 14, 15
+};
+
+static const uint8_t QM8x8_SCAN_TO_RASTER[] = {
+    0,  1,  8, 16,  9,  2,  3, 10,
+   17, 24, 32, 25, 18, 11,  4,  5,
+   12, 19, 26, 33, 40, 48, 41, 34,
+   27, 20, 13,  6,  7, 14, 21, 28,
+   35, 42, 49, 56, 57, 50, 43, 36,
+   29, 22, 15, 23, 30, 37, 44, 51,
+   58, 59, 52, 45, 38, 31, 39, 46,
+   53, 60, 61, 54, 47, 55, 62, 63
+};
+
 #define H264_MIN_TEMPORAL_GOP 8
 #define H264_MAX_TEMPORAL_LAYER_NUM 4
 
@@ -247,6 +321,45 @@ bit_writer_write_trailing_bits(BitWriter *bitwriter)
 }
 
 static BOOL
+bit_writer_write_scaling_list(BitWriter *bitwriter, const uint8_t *scalingList, int size)
+{
+    const uint8_t *map = size > SCALING_LIST_4x4_SIZE ? QM8x8_SCAN_TO_RASTER : QM4x4_SCAN_TO_RASTER;
+    int delta_scale;
+    int lastScale = 8;
+    int nextScale = 8;
+    int i;
+
+    for (i = 0; i < size; i++) {
+        if (nextScale != 0) {
+            nextScale = scalingList[map[i]];
+            delta_scale = nextScale - lastScale;
+            if (delta_scale > 127)
+                delta_scale -= 256;
+            else if (delta_scale < -128)
+                delta_scale += 256;
+            bit_writer_put_se(bitwriter, delta_scale);
+        }
+        lastScale = scalingList[map[i]];
+    }
+    return TRUE;
+}
+
+static BOOL
+bit_writer_write_scaling_flag_list(BitWriter *bitwriter, bool present_flag, 
+    uint32_t index, const VideoParamsQM* const qMatrix)
+{
+    bitwriter->writeBits(present_flag, 1);
+    if (present_flag) {
+        if (index < SCALING_LIST_8x8_IDX) {
+            bit_writer_write_scaling_list (bitwriter, qMatrix->scalingList4x4[index], SCALING_LIST_4x4_SIZE); 
+        } else {
+            bit_writer_write_scaling_list (bitwriter, qMatrix->scalingList8x8[index-SCALING_LIST_8x8_IDX], SCALING_LIST_8x8_SIZE); 
+        }
+    }
+    return TRUE;
+}
+
+static BOOL
 bit_writer_write_sei(BitWriter* bitwriter,
                      const VAEncSequenceParameterBufferH264* const seq,
                      uint32_t temporalLayerNum)
@@ -333,6 +446,7 @@ bit_writer_write_sei(BitWriter* bitwriter,
 static BOOL
 bit_writer_write_sps(BitWriter* bitwriter,
                      const VAEncSequenceParameterBufferH264* const seq,
+                     const VideoParamsQM* const qMatrix,
                      VideoProfile profile)
 {
     uint32_t constraint_set0_flag, constraint_set1_flag;
@@ -385,21 +499,15 @@ bit_writer_write_sps(BitWriter* bitwriter,
         bit_writer_put_ue(bitwriter, seq->bit_depth_chroma_minus8);
         /* b_qpprime_y_zero_transform_bypass */
         bitwriter->writeBits(b_qpprime_y_zero_transform_bypass, 1);
-        assert(seq->seq_fields.bits.seq_scaling_matrix_present_flag == 0);
+        
         /*seq_scaling_matrix_present_flag  */
         bitwriter->writeBits(seq->seq_fields.bits.seq_scaling_matrix_present_flag, 1);
-
-    #if 0
         if (seq->seq_fields.bits.seq_scaling_matrix_present_flag) {
-          for (i = 0; i < (seq->seq_fields.bits.chroma_format_idc != 3 ? 8 : 12); i++) {
-            bit_writer_put_bits_uint8(bitwriter, seq->seq_fields.bits.seq_scaling_list_present_flag, 1);
-            if (seq->seq_fields.bits.seq_scaling_list_present_flag) {
-              assert(0);
-              /* FIXME, need write scaling list if seq_scaling_matrix_present_flag ==1*/
+            for (i = 0; i < MAX_SCALING_LIST; i++) {
+                bit_writer_write_scaling_flag_list(bitwriter, 
+                    qMatrix->seqScalingListPresent[i], i, qMatrix);
             }
-          }
         }
-    #endif
     }
 
     /* log2_max_frame_num_minus4 */
@@ -533,7 +641,8 @@ bit_writer_write_sps(BitWriter* bitwriter,
 static BOOL
 bit_writer_write_pps(
     BitWriter *bitwriter,
-    const VAEncPictureParameterBufferH264* const pic
+    const VAEncPictureParameterBufferH264* const pic,
+    const VideoParamsQM* const qMatrix
 )
 {
     uint32_t num_slice_groups_minus1 = 0;
@@ -576,15 +685,10 @@ bit_writer_write_pps(
     bitwriter->writeBits(pic->pic_fields.bits.transform_8x8_mode_flag, 1);
     bitwriter->writeBits(pic->pic_fields.bits.pic_scaling_matrix_present_flag, 1);
     if (pic->pic_fields.bits.pic_scaling_matrix_present_flag) {
-        assert(0);
-        /* FIXME */
-        /*
-        for (i = 0; i <
-            (6+(-( (chroma_format_idc ! = 3) ? 2 : 6) * -pic->pic_fields.bits.transform_8x8_mode_flag));
-            i++) {
-            bit_writer_put_bits_uint8(bitwriter, pic->pic_fields.bits.pic_scaling_list_present_flag, 1);
+        for (int i = 0; i < (SCALING_LIST_8x8_IDX + 2 * pic->pic_fields.bits.transform_8x8_mode_flag); i++) {
+            bit_writer_write_scaling_flag_list(bitwriter, 
+                qMatrix->picScalingListPresent[i], i, qMatrix);
         }
-        */
     }
 
     bit_writer_put_se(bitwriter, pic->second_chroma_qp_index_offset);
@@ -606,11 +710,13 @@ public:
         bsToHeader(m_sei, bs);
     }
 
-    void setSPS(const VAEncSequenceParameterBufferH264* const sequence, VideoProfile profile)
+    void setSPS(const VAEncSequenceParameterBufferH264* const sequence,
+        const VideoParamsQM* const qMatrix,
+        VideoProfile profile)
     {
         ASSERT(m_sps.empty());
         BitWriter bs;
-        bit_writer_write_sps (&bs, sequence, profile);
+        bit_writer_write_sps (&bs, sequence, qMatrix, profile);
         bsToHeader(m_sps, bs);
     }
 
@@ -627,11 +733,12 @@ public:
             bsToHeader(m_sps, bs);
         }
     */
-    void addPPS(const VAEncPictureParameterBufferH264* const picParam)
+    void addPPS(const VAEncPictureParameterBufferH264* const picParam,
+        VideoParamsQM *qMatrix)
     {
         ASSERT(m_sps.size() && m_pps.empty());
         BitWriter bs;
-        bit_writer_write_pps (&bs, picParam);
+        bit_writer_write_pps (&bs, picParam, qMatrix);
         bsToHeader(m_pps, bs);
     }
 
@@ -955,9 +1062,13 @@ void VaapiEncoderH264::checkProfileLimitation()
 
         m_videoParamAVC.enableCabac = false; // don't support cabac
         m_videoParamAVC.enableDct8x8 = false; // only high profile can support 8x8 dtc
+        m_videoParamAVC.qMatrix.seqScalingMatrixPresent = false;
+        m_videoParamAVC.qMatrix.picScalingMatrixPresent = false;
         break;
     case VAProfileH264Main:
         m_videoParamAVC.enableDct8x8 = false;
+        m_videoParamAVC.qMatrix.seqScalingMatrixPresent = false;
+        m_videoParamAVC.qMatrix.picScalingMatrixPresent = false;
         break;
     case VAProfileH264High:
         break;
@@ -1553,6 +1664,9 @@ bool VaapiEncoderH264::fill(VAEncSequenceParameterBufferH264* seqParam) const
         seqParam->frame_crop_bottom_offset = cropBottom / cropUnitY;
     }
 
+    seqParam->seq_fields.bits.seq_scaling_matrix_present_flag =
+        m_videoParamAVC.qMatrix.seqScalingMatrixPresent;
+
     /* VUI parameters are always set, at least for timing_info (framerate) */
     seqParam->vui_parameters_present_flag = TRUE;
     if (seqParam->vui_parameters_present_flag) {
@@ -1617,7 +1731,46 @@ bool VaapiEncoderH264::fill(VAEncPictureParameterBufferH264* picParam, const Pic
     picParam->pic_fields.bits.transform_8x8_mode_flag = m_videoParamAVC.enableDct8x8;
     picParam->pic_fields.bits.deblocking_filter_control_present_flag = true;
 
+    picParam->pic_fields.bits.pic_scaling_matrix_present_flag =
+        m_videoParamAVC.qMatrix.picScalingMatrixPresent;
+
     return TRUE;
+}
+
+bool VaapiEncoderH264::fill(VAIQMatrixBufferH264* buffer) const
+{
+    uint8_t *dest = (uint8_t *)buffer;
+    const VideoParamsQM *qMatrix = &m_videoParamAVC.qMatrix;
+    const bool *list_present_flag;
+    int i;
+
+    if (qMatrix->picScalingMatrixPresent) {
+        list_present_flag = qMatrix->picScalingListPresent;
+    } else if (qMatrix->seqScalingMatrixPresent) {
+        list_present_flag = qMatrix->seqScalingListPresent;
+    } else {
+        return true;
+    }
+
+    for (i = 0; i < MAX_SCALING_LIST; i++) {
+        if (i < SCALING_LIST_8x8_IDX) {
+            if (list_present_flag[i]) {
+                memcpy(dest, qMatrix->scalingList4x4[i], SCALING_LIST_4x4_SIZE);
+            } else {
+                memcpy(dest, DEFAULT_QM4x4_RASTER[i], SCALING_LIST_4x4_SIZE);
+            }
+            dest += SCALING_LIST_4x4_SIZE;
+        } else {
+            if (list_present_flag[i]) {
+                memcpy(dest, qMatrix->scalingList8x8[i-SCALING_LIST_8x8_IDX], SCALING_LIST_8x8_SIZE);
+            } else {
+                memcpy(dest, DEFAULT_QM8x8_RASTER[i-SCALING_LIST_8x8_IDX], SCALING_LIST_8x8_SIZE);
+            }
+            dest += SCALING_LIST_8x8_SIZE;
+        }
+    }
+
+    return true;
 }
 
 bool VaapiEncoderH264::ensureSequenceHeader(const PicturePtr& picture,const VAEncSequenceParameterBufferH264* const sequence)
@@ -1625,13 +1778,13 @@ bool VaapiEncoderH264::ensureSequenceHeader(const PicturePtr& picture,const VAEn
     m_headers.reset(new VaapiEncStreamHeaderH264());
     if (m_isSvcT)
         m_headers->setSEI(sequence, m_temporalLayerNum);
-    m_headers->setSPS(sequence, profile());
+    m_headers->setSPS(sequence, &m_videoParamAVC.qMatrix, profile());
     return true;
 }
 
 bool VaapiEncoderH264::ensurePictureHeader(const PicturePtr& picture, const VAEncPictureParameterBufferH264* const picParam)
 {
-    m_headers->addPPS(picParam);
+    m_headers->addPPS(picParam, &m_videoParamAVC.qMatrix);
     m_headers->generateCodecConfig(m_streamFormat == AVC_STREAM_FORMAT_AVCC);
     picture->m_headers = m_headers;
     return true;
@@ -1988,6 +2141,25 @@ bool VaapiEncoderH264::ensurePicture (const PicturePtr& picture, const SurfacePt
     return true;
 }
 
+bool VaapiEncoderH264::ensureQMatrix(const PicturePtr& picture)
+{
+    assert (picture);
+
+    const VideoParamsQM *qMatrix = &m_videoParamAVC.qMatrix;
+    if (!qMatrix->picScalingMatrixPresent &&
+        !qMatrix->seqScalingMatrixPresent ) {
+        return true;
+    }
+
+    VAIQMatrixBufferH264 *buffer;
+
+    if (!picture->editQMatrix(buffer) || !fill(buffer)) {
+        ERROR("failed to create qMatrix");
+        return false;
+    }
+    return true;
+}
+
 bool VaapiEncoderH264::ensureSlices(const PicturePtr& picture)
 {
     assert (picture);
@@ -2019,6 +2191,8 @@ YamiStatus VaapiEncoderH264::encodePicture(const PicturePtr& picture)
         if (!ensureMiscParams (picture.get()))
             return ret;
         if (!ensurePicture(picture, reconstruct))
+            return ret;
+        if (!ensureQMatrix(picture))
             return ret;
         if (!ensureSlices (picture))
             return ret;

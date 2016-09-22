@@ -176,6 +176,10 @@ typedef struct VideoROI {
 } VideoROI;
 
 #define MAX_ROI_NUM 8
+#define MAX_SCALING_LIST      8
+#define SCALING_LIST_8x8_IDX  6
+#define SCALING_LIST_4x4_SIZE 16
+#define SCALING_LIST_8x8_SIZE 64
 
 typedef struct VideoParamsROI {
     uint32_t size;
@@ -185,6 +189,16 @@ typedef struct VideoParamsROI {
     uint32_t numROI;
     VideoROI roi[MAX_ROI_NUM];
 } VideoParamsROI;
+
+typedef struct VideoParamsQM {
+    uint8_t scalingList4x4[6][SCALING_LIST_4x4_SIZE];  //in raster scan order
+    uint8_t scalingList8x8[2][SCALING_LIST_8x8_SIZE];  //in raster scan order
+
+    bool seqScalingMatrixPresent;
+    bool seqScalingListPresent[MAX_SCALING_LIST];
+    bool picScalingMatrixPresent;
+    bool picScalingListPresent[MAX_SCALING_LIST];
+} VideoParamsQM;
 
 typedef struct SliceNum {
     uint32_t iSliceNum;
@@ -248,6 +262,7 @@ typedef struct VideoParamsAVC {
     uint32_t idrInterval;    //How many Intra frames will have an IDR frame
     SliceNum sliceNum;
     SamplingAspectRatio SAR;
+    VideoParamsQM qMatrix;
     bool  enableCabac;
     bool  enableDct8x8;
     bool  enableDeblockFilter;
