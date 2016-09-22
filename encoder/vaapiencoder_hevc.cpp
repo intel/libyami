@@ -1000,7 +1000,20 @@ YamiStatus VaapiEncoderHEVC::start()
 
 void VaapiEncoderHEVC::flush()
 {
+    YamiStatus ret;
+
     FUNC_ENTER();
+
+    if (!m_reorderFrameList.empty()) {
+        changeLastBFrameToPFrame();
+        m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
+
+        ret = encodeAllFrames();
+        if (ret != YAMI_SUCCESS) {
+            ERROR("Not all frames are flushed.");
+        }
+    }
+
     resetGopStart();
     m_reorderFrameList.clear();
     referenceListFree();
@@ -1062,6 +1075,16 @@ YamiStatus VaapiEncoderHEVC::getParameters(VideoParamConfigType type, Yami_PTR v
     return status;
 }
 
+void VaapiEncoderHEVC::changeLastBFrameToPFrame()
+{
+    PicturePtr lastPic = m_reorderFrameList.back();
+    if (lastPic->m_type == VAAPI_PICTURE_B) {
+        lastPic->m_type = VAAPI_PICTURE_P;
+        m_reorderFrameList.pop_back();
+        m_reorderFrameList.push_front(lastPic);
+    }
+}
+
 YamiStatus VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
 {
     if (!surface)
@@ -1073,6 +1096,10 @@ YamiStatus VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t timeSta
 
     /* check key frames */
     if (isIdr || (m_frameIndex % intraPeriod() == 0)) {
+        if (isIdr && m_reorderFrameList.size()) {
+            changeLastBFrameToPFrame();
+        }
+
         setIntraFrame (picture, isIdr);
         m_reorderFrameList.push_back(picture);
         m_reorderState = VAAPI_ENC_REORD_DUMP_FRAMES;
@@ -1091,16 +1118,10 @@ YamiStatus VaapiEncoderHEVC::reorder(const SurfacePtr& surface, uint64_t timeSta
     return YAMI_SUCCESS;
 }
 
-// calls immediately after reorder,
-// it makes sure I frame are encoded immediately, so P frames can be pushed to the front of the m_reorderFrameList.
-// it also makes sure input thread and output thread runs in parallel
-YamiStatus VaapiEncoderHEVC::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
+YamiStatus VaapiEncoderHEVC::encodeAllFrames()
 {
     FUNC_ENTER();
     YamiStatus ret;
-    ret = reorder(surface, timeStamp, forceKeyFrame);
-    if (ret != YAMI_SUCCESS)
-        return ret;
 
     while (m_reorderState == VAAPI_ENC_REORD_DUMP_FRAMES) {
         if (!m_maxCodedbufSize)
@@ -1132,6 +1153,24 @@ YamiStatus VaapiEncoderHEVC::doEncode(const SurfacePtr& surface, uint64_t timeSt
     }
 
     INFO();
+    return YAMI_SUCCESS;
+}
+
+// calls immediately after reorder,
+// it makes sure I frame are encoded immediately, so P frames can be pushed to the front of the m_reorderFrameList.
+// it also makes sure input thread and output thread runs in parallel
+YamiStatus VaapiEncoderHEVC::doEncode(const SurfacePtr& surface, uint64_t timeStamp, bool forceKeyFrame)
+{
+    FUNC_ENTER();
+    YamiStatus ret;
+    ret = reorder(surface, timeStamp, forceKeyFrame);
+    if (ret != YAMI_SUCCESS)
+        return ret;
+
+    ret = encodeAllFrames();
+    if (ret != YAMI_SUCCESS) {
+        return ret;
+    }
     return YAMI_SUCCESS;
 }
 

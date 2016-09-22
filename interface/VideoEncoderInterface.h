@@ -92,7 +92,7 @@ class IVideoEncoder {
     /// get encode statistics information, for debug use
     virtual YamiStatus getStatistics(VideoStatistics* videoStat) = 0;
 
-    ///obsolete, discard cached data (input data or encoded video frames), not sure why an encoder need this
+    ///flush cached data (input data or encoded video frames)
     virtual void flush(void) = 0;
     ///obsolete, what is the difference between  getParameters and getConfig?
     virtual YamiStatus getConfig(VideoParamConfigType type, Yami_PTR videoEncConfig) = 0;

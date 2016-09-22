@@ -1259,8 +1259,6 @@ YamiStatus VaapiEncoderH264::doEncode(const SurfacePtr& surface, uint64_t timeSt
     if (ret != YAMI_SUCCESS) {
         return ret;
     }
-
-    INFO();
     return YAMI_SUCCESS;
 }
 

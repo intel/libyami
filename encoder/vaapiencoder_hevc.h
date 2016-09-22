@@ -110,6 +110,9 @@ private:
     void setShortRfs();
     void shortRfsUpdate(const PicturePtr&);
 
+    void changeLastBFrameToPFrame();
+    YamiStatus encodeAllFrames();
+
     VideoParamsAVC m_videoParamAVC;
 
     uint8_t m_profileIdc;
