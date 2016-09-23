@@ -5,6 +5,7 @@ unittest_SOURCES = \
 	factory_unittest.cpp \
 	nalreader_unittest.cpp \
 	utils_unittest.cpp \
+        Thread_unittest.cpp \
 	$(NULL)
 
 unittest_LDFLAGS = \
