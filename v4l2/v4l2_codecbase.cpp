@@ -192,6 +192,18 @@ void V4l2CodecBase::workerThread()
     while (m_streamOn[thread]) {
         {
             AutoLock locker(m_frameLock[thread]);
+            //ack i/o thread that it is safe to release the buffer queue
+            if (m_reqBufState[thread] == RBS_Request) {
+                m_reqBufState[thread] = RBS_Acknowledge;
+                m_threadCond[thread]->signal();
+            }
+            // wait until i/o thead has released the buffer queue
+            while (m_reqBufState[thread] == RBS_Acknowledge) {
+                m_threadCond[thread]->wait();
+            }
+        }
+        {
+            AutoLock locker(m_frameLock[thread]);
             if (m_framesTodo[thread].empty()) {
                 DEBUG("%s thread wait because m_framesTodo is empty", THREAD_NAME(thread));
                 m_threadCond[thread]->wait(); // wait if no todo frame is available
@@ -242,17 +254,6 @@ void V4l2CodecBase::workerThread()
                 DEBUG("%s thread wait because operation on yami fails", THREAD_NAME(thread));
                 m_threadCond[thread]->wait(); // wait if encode/getOutput fail (encode hw is busy or no available output)
             }
-
-            //ack i/o thread that it is safe to release the buffer queue
-            if (m_reqBufState[thread] == RBS_Request) {
-                m_reqBufState[thread] = RBS_Acknowledge;
-                m_threadCond[thread]->signal();
-            }
-            // wait until i/o thead has released the buffer queue
-            while (m_reqBufState[thread] == RBS_Acknowledge) {
-                m_threadCond[thread]->wait();
-            }
-
         }//protected by mLock
         DEBUG("fd: %d", m_fd[0]);
     }
@@ -419,6 +420,8 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
 
                 // info work thread that we want to release the buffer queue
                 m_reqBufState[port] = RBS_Request;
+                // in case work thread is locked by yami codec
+                releaseCodecLock(false);
 
                 //try to wakeup workthread (workthread may not be active, after EOS for example)
                 m_threadCond[port]->signal();
@@ -427,6 +430,9 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
                 while (m_reqBufState[port] != RBS_Acknowledge) {
                     m_threadCond[port]->wait();
                 }
+                // bring yami codec back to normal
+                releaseCodecLock(true);
+
                 DEBUG("m_framesTodo[%d].size %zu, m_framesDone[%d].size %zu\n",
                     port, m_framesTodo[port].size(), port, m_framesDone[port].size());
                 m_framesTodo[port].clear();
