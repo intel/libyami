@@ -30,16 +30,16 @@ libyami consists of several libraries:
 Features
 --------
   * MPEG2, VC1, H.264, H.265, VP8, VP9, JPEG ad-hoc decoder
-  * H.264, H.265, VP8, JPEG ad-hoc encoder
-  * CSC and scaling
+  * H.264, H.265, VP8, VP9, JPEG ad-hoc encoder
+  * Sharpening, Denoise, Deinterlace, CSC and scaling
 
 
 Requirements
 ------------
 Hardware requirements
 
-  * Intel Sandybridge, Ivybridge, Haswell and Broadwell (HD Graphics)
-  * Intel Baytrail, Braswell
+  * Intel Sandybridge, Ivybridge, Haswell, Broadwell, Skylake, Kaby Lake(HD Graphics)
+  * Intel Baytrail, Braswell, Apollo Lake
 
 
 Sources

@@ -1,7 +1,37 @@
-libyami NEWS -- summary of changes.  2016-6-8
+libyami NEWS -- summary of changes.  2016-9-26
 Copyright (c) 2010, The WebM Project authors.
 Copyright (C) 2011-2016 Intel Corporation
 Copyright (C) 2015-2016 Alibaba
+
+
+libyami 1.0.0(API:0.3.0) release, work with libva 2016Q3 release
+=====================
+We add following major features:
++ 7423a97 add vp9 encoder
++ f6f1483 add sharpening, denoise, deinterlace for vpp
++ 366d909 add support for 422H, 422V and 444P
++ 2d4a536 add wayland support to v4l2decoder
++ 784ea0f improve h264 encoder speed for memory limited system
++ e57989f improve mpeg2 pass rate from 70% to 100%
++ 112b921 improve vc1 pass rate from 70% to 92%
++ 7f2e032 add profile setting for h264encoder
++ some more encoder setting for h264 and h265
++ more bugs fix and features please refer to git log
+- convert odd resolution from NV12 to I420 will make output yuv twisted
+- some unittest will failed.
+
+We change API from 0.2.0 to 0.3.0 since following interface change
+9f45ee7 add vp9 encoder
+765cb6d add single header Yami.h/YamiC.h for user to include
+99b85bc map tr1 name space to std name space
+ea0b5fd add SVC-T support for h264 CQP mode
+366d909 add support for jpeg 422H, 422V and 444P
+2d4a536 add wayland support to v4l2decoder
+1b53e29 deleted some unused encoder API
+3147d36 enc264: implement I/P/B QP setting on CQP mode
+f6f1483 vpp: add denoise,sharpening and deinterlace
+
+
 
 libyami 0.4.0 release, work with libva 2016Q2 release
 =====================
