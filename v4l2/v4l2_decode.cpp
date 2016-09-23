@@ -305,19 +305,7 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     ASSERT(dqbuf->index < m_maxBufferCount[OUTPUT]);
 
     dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
-    if (!m_bindEglImage) {
-        // FIXME: m_bufferPlaneCount[OUTPUT] doesn't match current RGBX output, it is a bug
-        for (i=0; i< 1; i++) {
-            // FIXME, a better field to hold drm/dma handle
-            dqbuf->m.planes[i].reserved[0] = m_outputRawFrames[dqbuf->index].handle;
-            dqbuf->m.planes[i].reserved[1] = m_outputRawFrames[dqbuf->index].pitch[i];
-            dqbuf->m.planes[i].data_offset = m_outputRawFrames[dqbuf->index].offset[i];
-        }
-    }
 
-    // simple set size data to satify chrome even in texture mode
-    dqbuf->m.planes[0].bytesused = m_videoWidth * m_videoHeight;
-    dqbuf->m.planes[1].bytesused = m_videoWidth * m_videoHeight/2;
 #if ANDROID
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
@@ -327,10 +315,24 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
     vaStatus = vaGetSurfaceBufferWl(m_vaDisplay, m_videoFrames[dqbuf->index]->surface, VA_FRAME_PICTURE, &buffer);
+    DEBUG("index: %d, surface: 0x%x, wl_buffer: %p", dqbuf->index, m_videoFrames[dqbuf->index]->surface, buffer);
     if (vaStatus != VA_STATUS_SUCCESS)
         return false;
     dqbuf->m.userptr = (unsigned long)buffer;
 #else
+    if (!m_bindEglImage) {
+        // FIXME: m_bufferPlaneCount[OUTPUT] doesn't match current RGBX output, it is a bug
+        for (i = 0; i < 1; i++) {
+            // FIXME, a better field to hold drm/dma handle
+            dqbuf->m.planes[i].reserved[0] = m_outputRawFrames[dqbuf->index].handle;
+            dqbuf->m.planes[i].reserved[1] = m_outputRawFrames[dqbuf->index].pitch[i];
+            dqbuf->m.planes[i].data_offset = m_outputRawFrames[dqbuf->index].offset[i];
+        }
+    }
+
+    // simple set size data to satify chrome even in texture mode
+    dqbuf->m.planes[0].bytesused = m_videoWidth * m_videoHeight;
+    dqbuf->m.planes[1].bytesused = m_videoWidth * m_videoHeight / 2;
     INT64_TO_TIMEVAL(m_outputRawFrames[dqbuf->index].timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
 #endif
