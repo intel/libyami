@@ -32,6 +32,8 @@ if BUILD_VP9_DECODER
 unittest_SOURCES += vaapidecoder_vp9_unittest.cpp
 endif
 
+unittest_SOURCES += DecoderApi_unittest.cpp
+
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
 	$(AM_LDFLAGS) \
