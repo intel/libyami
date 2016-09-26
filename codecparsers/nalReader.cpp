@@ -45,21 +45,26 @@ inline bool NalReader::isEmulationBytes(const uint8_t *p) const
 void NalReader::loadDataToCache(uint32_t nbytes)
 {
     const uint8_t *pStart = m_stream + m_loadBytes;
+    const uint8_t *p;
+    const uint8_t *pEnd = m_stream + m_size;
     /*the numbers of emulation prevention three byte in current load block*/
     uint32_t epb = 0;
 
     unsigned long int tmp = 0;
-    for (uint32_t i = 0; i < nbytes; i++) {
-        if(!isEmulationBytes(pStart + i)) {
+    uint32_t size = 0;
+    for (p = pStart; p < pEnd && size < nbytes; p++) {
+        if(!isEmulationBytes(p)) {
             tmp <<= 8;
-            tmp |= pStart[i];
+            tmp |= *p;
+            size++;
         } else {
             epb++;
         }
+
     }
     m_cache = tmp;
-    m_loadBytes += nbytes;
-    m_bitsInCache = (nbytes - epb) << 3;
+    m_loadBytes += p - pStart;
+    m_bitsInCache = size << 3;
     m_epb += epb;
 }
 
