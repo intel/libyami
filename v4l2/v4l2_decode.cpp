@@ -51,6 +51,7 @@ V4l2Decoder::V4l2Decoder()
     : m_bindEglImage(false)
     , m_videoWidth(0)
     , m_videoHeight(0)
+    , m_outputBufferCountOnInit(0)
 {
     uint32_t i;
     m_memoryMode[INPUT] = V4L2_MEMORY_MMAP; // dma_buf hasn't been supported yet
@@ -311,7 +312,6 @@ bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
 
 bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 {
-    int i;
     ASSERT(dqbuf);
     // for the buffers within range of [m_actualOutBufferCount, m_maxBufferCount[OUTPUT]]
     // there are not used in reality, but still be returned back to client during flush (seek/eos)
@@ -328,7 +328,7 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
     vaStatus = vaGetSurfaceBufferWl(m_vaDisplay, m_videoFrames[dqbuf->index]->surface, VA_FRAME_PICTURE, &buffer);
-    DEBUG("index: %d, surface: 0x%x, wl_buffer: %p", dqbuf->index, m_videoFrames[dqbuf->index]->surface, buffer);
+    DEBUG("index: %d, surface: %p, wl_buffer: %p", dqbuf->index, (void*)(m_videoFrames[dqbuf->index]->surface), buffer);
     if (vaStatus != VA_STATUS_SUCCESS)
         return false;
     dqbuf->m.userptr = (unsigned long)buffer;
@@ -369,21 +369,22 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     case VIDIOC_QBUF: {
 #ifdef ANDROID
         struct v4l2_buffer *qbuf = static_cast<struct v4l2_buffer*>(arg);
-        static uint32_t bufferCount = 0;
         if(qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
            m_streamOn[OUTPUT] == false) {
             ASSERT(qbuf->memory == V4L2_MEMORY_ANDROID_BUFFER_HANDLE);
             m_bufferHandle.push_back((buffer_handle_t)(qbuf->m.userptr));
-            bufferCount++;
-            if (bufferCount == m_reqBuffCnt)
+            m_outputBufferCountOnInit++;
+            if (m_outputBufferCountOnInit == m_reqBuffCnt)
                 mapVideoFrames(m_videoWidth, m_videoHeight);
         }
 #elif __ENABLE_WAYLAND__
+        // FIXME, m_outputBufferCountOnInit should be reset on output buffer change (for example: resolution change)
+        // it is not must to init video frame here since we don't accepted external for wayland yet. however, external buffer may be used in the future
         struct v4l2_buffer* qbuf = static_cast<struct v4l2_buffer*>(arg);
-        static uint32_t bufferCount = 0;
         if (qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE && m_streamOn[OUTPUT] == false) {
-            bufferCount++;
-            if (bufferCount == m_reqBuffCnt) {
+            m_outputBufferCountOnInit++;
+            DEBUG("m_outputBufferCountOnInit: %d", m_outputBufferCountOnInit);
+            if (m_outputBufferCountOnInit == m_reqBuffCnt) {
                 mapVideoFrames(m_videoWidth, m_videoHeight);
             }
         }
