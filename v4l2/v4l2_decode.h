@@ -69,6 +69,7 @@ class V4l2Decoder : public V4l2CodecBase
 
     uint32_t m_videoWidth;
     uint32_t m_videoHeight;
+    uint32_t m_outputBufferCountOnInit;
 #if !ANDROID
     std::vector <SharedPtr<EglVaapiImage> > m_eglVaapiImages;
 #endif
