@@ -88,7 +88,9 @@ YamiStatus VaapiEncoderBase::start(void)
 
 void VaapiEncoderBase::flush(void)
 {
-    AutoLock l(m_lock);
+    /* Current version of VaapiEncoderBase::flush is empty fucntion
+     * But we may add something in future.All derive class need call this in derive::flush()
+     */
 }
 
 YamiStatus VaapiEncoderBase::stop(void)
