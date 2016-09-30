@@ -335,16 +335,16 @@ struct PredWeightTable {
     uint8_t chroma_log2_weight_denom;
     bool luma_weight_l0_flag;
     //32 is the max of num_ref_idx_l0_active_minus1
-    int8_t luma_weight_l0[32];
+    int16_t luma_weight_l0[32];
     int8_t luma_offset_l0[32];
     bool chroma_weight_l0_flag;
-    int8_t chroma_weight_l0[32][2];
+    int16_t chroma_weight_l0[32][2];
     int8_t chroma_offset_l0[32][2];
     bool luma_weight_l1_flag;
-    int8_t luma_weight_l1[32];
+    int16_t luma_weight_l1[32];
     int8_t luma_offset_l1[32];
     bool chroma_weight_l1_flag;
-    int8_t chroma_weight_l1[32][2];
+    int16_t chroma_weight_l1[32][2];
     int8_t chroma_offset_l1[32][2];
 };
 
