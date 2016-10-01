@@ -28,6 +28,7 @@
 #include <string.h>
 #include <stdlib.h> // for setenv
 #include <va/va_backend.h>
+#include <unistd.h>
 
 namespace YamiMediaCodec{
 typedef VaapiDecoderBase::PicturePtr PicturePtr;
@@ -117,6 +118,13 @@ YamiStatus VaapiDecoderBase::start(VideoConfigBuffer* buffer)
 
 #ifdef __ENABLE_DEBUG__
     renderPictureCount = 0;
+    if (access("/tmp/yami", F_OK) == 0) {
+        m_dumpSurface = true;
+    }
+    else {
+        m_dumpSurface = false;
+    }
+    DEBUG("m_dumpSurface: %d", m_dumpSurface);
 #endif
     return YAMI_SUCCESS;
 }
@@ -195,6 +203,12 @@ SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
         frame->timeStamp = buffer->timeStamp;
         frame->crop = buffer->crop;
         frame->fourcc = buffer->fourcc;
+#ifdef __ENABLE_DEBUG__
+        if (m_dumpSurface && access("/tmp/yami/dumpon", F_OK) == 0) {
+            DEBUG("dumpSurface display: %p, surface: 0x%x", buffer->display, buffer->surface);
+            dumpSurface(buffer->display, buffer->surface);
+        }
+#endif
     }
     return frame;
 }

@@ -95,6 +95,7 @@ class VaapiDecoderBase:public IVideoDecoder {
   private:
 #ifdef __ENABLE_DEBUG__
     int renderPictureCount;
+    bool m_dumpSurface;
 #endif
 
 };

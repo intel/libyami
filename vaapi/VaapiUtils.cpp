@@ -71,4 +71,68 @@ uint32_t getRtFormat(uint32_t fourcc)
     ERROR("get rt format for %.4s failed", (char*)&fourcc);
     return 0;
 }
+
+bool dumpSurface(VADisplay display, intptr_t surface)
+{
+    static uint32_t _frameCount = 0;
+    const uint8_t* p = NULL;
+    uint32_t fourcc = 0;
+    const char* ptrC = (char*)(&fourcc);
+    char fileName[256];
+    VAImage image;
+    static FILE* fp = NULL;
+    bool useSingleFile = true;
+
+    memset(&image, 0, sizeof(VAImage));
+    p = mapSurfaceToImage(display, surface, image);
+    fourcc = image.format.fourcc;
+
+    if (fourcc != VA_FOURCC_NV12) {
+        WARNING("format: (%c%c%c%c, 0x%x) is not support to dump surface", ptrC[0], ptrC[1], ptrC[2], ptrC[3], fourcc);
+        return false;
+    }
+    if (!image.width || !image.height) {
+        WARNING("invalid surface/image width: %d, height: %d", image.width, image.height);
+        return false;
+    }
+
+    if (!fp) {
+        memset(fileName, 0, sizeof(fileName));
+        if (useSingleFile) {
+            sprintf(fileName, "%s/%c%c%c%c_%dx%d", "/tmp/yami", ptrC[0], ptrC[1], ptrC[2], ptrC[3], image.width, image.height);
+        }
+        else {
+            sprintf(fileName, "%s/%04d_%c%c%c%c_%dx%d", "/tmp/yami", _frameCount, ptrC[0], ptrC[1], ptrC[2], ptrC[3], image.width, image.height);
+            _frameCount++;
+        }
+        fp = fopen(fileName, "w+");
+    }
+    if (!fp)
+        return false;
+
+    int widths[3], heights[3];
+    widths[0] = image.width;
+    widths[1] = ((image.width + 1) / 2) * 2;
+    widths[2] = 0;
+    heights[0] = image.height;
+    heights[1] = (image.height + 1) / 2;
+    heights[2] = 0;
+
+    uint32_t plane = 0;
+    for (plane = 0; plane < image.num_planes; plane++) {
+        int h = 0;
+        for (h = 0; h < heights[plane]; h++) {
+            fwrite(p + image.offsets[plane] + image.pitches[plane] * h, widths[plane], 1, fp);
+        }
+    }
+
+    if (!useSingleFile) {
+        fclose(fp);
+        fp = NULL;
+    }
+
+    unmapImage(display, image);
+
+    return true;
+}
 }
