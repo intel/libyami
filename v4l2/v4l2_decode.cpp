@@ -52,6 +52,9 @@ V4l2Decoder::V4l2Decoder()
     , m_videoWidth(0)
     , m_videoHeight(0)
     , m_outputBufferCountOnInit(0)
+    , m_outputBufferCountQBuf(0)
+    , m_outputBufferCountPulse(0)
+    , m_outputBufferCountGive(0)
 {
     uint32_t i;
     m_memoryMode[INPUT] = V4L2_MEMORY_MMAP; // dma_buf hasn't been supported yet
@@ -199,7 +202,9 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
     m_vpp->process(output, m_videoFrames[index]);
     m_videoFrames[index]->timeStamp = output->timeStamp;
     m_videoFrames[index]->flags = output->flags;
-    DEBUG("buffer index: %d, timeStamp: %" PRId64 "\n", index, output->timeStamp);
+    DEBUG("m_outputBufferCountPulse: %d, buffer index: %d, surface: %p, timeStamp: %" PRId64 "\n",
+        m_outputBufferCountPulse, index, (void*)m_videoFrames[index]->surface, output->timeStamp);
+    m_outputBufferCountPulse++;
     return true;
 }
 #else
@@ -315,11 +320,13 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
     vaStatus = vaGetSurfaceBufferWl(m_vaDisplay, m_videoFrames[dqbuf->index]->surface, VA_FRAME_PICTURE, &buffer);
-    DEBUG("index: %d, surface: %p, wl_buffer: %p", dqbuf->index, (void*)(m_videoFrames[dqbuf->index]->surface), buffer);
+    DEBUG("m_outputBufferCountGive: %d, index: %d, surface: %p, wl_buffer: %p", m_outputBufferCountGive, dqbuf->index, (void*)m_videoFrames[dqbuf->index]->surface, buffer);
+    m_outputBufferCountGive++;
     if (vaStatus != VA_STATUS_SUCCESS)
         return false;
     dqbuf->m.userptr = (unsigned long)buffer;
 #else
+    int i;
     if (!m_bindEglImage) {
         // FIXME: m_bufferPlaneCount[OUTPUT] doesn't match current RGBX output, it is a bug
         for (i = 0; i < 1; i++) {
@@ -354,8 +361,8 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     DEBUG("fd: %d, ioctl command: %s", m_fd[0], IoctlCommandString(command));
     switch (command) {
     case VIDIOC_QBUF: {
-#ifdef ANDROID
         struct v4l2_buffer *qbuf = static_cast<struct v4l2_buffer*>(arg);
+#ifdef ANDROID
         if(qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
            m_streamOn[OUTPUT] == false) {
             ASSERT(qbuf->memory == V4L2_MEMORY_ANDROID_BUFFER_HANDLE);
@@ -367,7 +374,6 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
 #elif __ENABLE_WAYLAND__
         // FIXME, m_outputBufferCountOnInit should be reset on output buffer change (for example: resolution change)
         // it is not must to init video frame here since we don't accepted external for wayland yet. however, external buffer may be used in the future
-        struct v4l2_buffer* qbuf = static_cast<struct v4l2_buffer*>(arg);
         if (qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE && m_streamOn[OUTPUT] == false) {
             m_outputBufferCountOnInit++;
             DEBUG("m_outputBufferCountOnInit: %d", m_outputBufferCountOnInit);
@@ -376,12 +382,21 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             }
         }
 #endif
+        if (qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+            DEBUG("m_outputBufferCountQBuf: %d, buffer index: %d", m_outputBufferCountQBuf, qbuf->index);
+            m_outputBufferCountQBuf++;
+        }
     } // no break;
     case VIDIOC_STREAMON:
     case VIDIOC_STREAMOFF:
     case VIDIOC_DQBUF:
     case VIDIOC_QUERYCAP:
         ret = V4l2CodecBase::ioctl(command, arg);
+        if (command == VIDIOC_STREAMON) {
+            m_outputBufferCountQBuf = 0;
+            m_outputBufferCountPulse = 0;
+            m_outputBufferCountGive = 0;
+        }
         break;
     case VIDIOC_REQBUFS: {
         ret = V4l2CodecBase::ioctl(command, arg);
@@ -395,7 +410,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                 m_reqBuffCnt = reqbufs->count;
             else
                 m_videoFrames.clear();
-        #else
+#else
             if (!reqbufs->count) {
                 m_eglVaapiImages.clear();
             } else {
@@ -413,7 +428,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                     m_eglVaapiImages.push_back(image);
                 }
             }
-        #endif
+#endif
         }
         break;
     }

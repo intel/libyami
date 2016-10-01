@@ -488,7 +488,7 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             #endif
             }
 
-            DEBUG("port: %d, m_framesDone[port].size(): %zu, m_reqBufState[port]: %d",
+            DEBUG("m_framesDone[%d].size(): %zu, m_reqBufState[port]: %d",
                 port, m_framesDone[port].size(), m_reqBufState[port]);
             {
                 AutoLock locker (m_frameLock[port]);

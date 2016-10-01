@@ -28,6 +28,7 @@ void unmapImage(VADisplay display, const VAImage& image);
 
 //return rt format, 0 for unsupported
 uint32_t getRtFormat(uint32_t fourcc);
+bool dumpSurface(VADisplay display, intptr_t surface);
 
 #define checkVaapiStatus(status, prompt)                     \
     (                                                        \

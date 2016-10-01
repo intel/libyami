@@ -70,7 +70,12 @@ class V4l2Decoder : public V4l2CodecBase
     uint32_t m_videoWidth;
     uint32_t m_videoHeight;
     uint32_t m_outputBufferCountOnInit;
-#if !ANDROID
+
+    // debug
+    uint32_t m_outputBufferCountQBuf;
+    uint32_t m_outputBufferCountPulse;
+    uint32_t m_outputBufferCountGive;
+#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
     std::vector <SharedPtr<EglVaapiImage> > m_eglVaapiImages;
 #endif
 };
