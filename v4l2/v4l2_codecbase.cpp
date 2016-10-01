@@ -660,6 +660,24 @@ const char* mimeFromV4l2PixelFormat(uint32_t pixelFormat)
     return mime;
 }
 
+class VideoFrameDeleter {
+public:
+    VideoFrameDeleter(VADisplay display)
+        : m_display(display)
+    {
+    }
+    void operator()(VideoFrame* frame)
+    {
+        VASurfaceID id = (VASurfaceID)frame->surface;
+        DEBUG("destroy VASurface 0x%x", id);
+        vaDestroySurfaces(m_display, &id, 1);
+        delete frame;
+    }
+
+private:
+    VADisplay m_display;
+};
+
 #if ANDROID
 inline bool V4l2CodecBase::setVaDisplay()
 {
@@ -730,7 +748,7 @@ SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const buffer_handle_t buf_h
     if (vaStatus != VA_STATUS_SUCCESS)
         return frame;
 
-    frame.reset(new VideoFrame);
+    frame.reset(new VideoFrame, VideoFrameDeleter(m_vaDisplay));
     memset(frame.get(), 0, sizeof(VideoFrame));
 
     frame->surface = static_cast<intptr_t>(id);
@@ -790,7 +808,7 @@ SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(uint32_t width, uint32_t he
     if (vaStatus != VA_STATUS_SUCCESS)
         return frame;
 
-    frame.reset(new VideoFrame);
+    frame.reset(new VideoFrame, VideoFrameDeleter(m_vaDisplay));
     memset(frame.get(), 0, sizeof(VideoFrame));
     frame->surface = static_cast<intptr_t>(id);
     frame->crop.width = width;
