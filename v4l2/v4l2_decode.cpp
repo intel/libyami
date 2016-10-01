@@ -521,9 +521,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             m_videoHeight = outFormat->height;
             m_maxBufferSize[OUTPUT] = m_videoWidth * m_videoHeight + ((m_videoWidth +1)/2*2) * ((m_videoHeight+1)/2);
         } else {
-            ret = -1;
-            // chromeos accepts EINVAL as not enough input data yet, will try it again.
-            errno = EINVAL;
+            ret = EAGAIN;
         }
       }
     break;
