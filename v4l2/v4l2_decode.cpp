@@ -38,14 +38,16 @@
 #include "common/log.h"
 #include "egl/egl_vaapi_image.h"
 
-#define INT64_TO_TIMEVAL(i64, time_val) do {            \
-        time_val.tv_sec = (int32_t)(i64 >> 32);         \
-        time_val.tv_usec = (int32_t)(i64 & 0xffffffff); \
+#define INT64_TO_TIMEVAL(i64, time_val)                 \
+    do {                                                \
+        time_val.tv_sec = (int32_t)(i64 >> 31);         \
+        time_val.tv_usec = (int32_t)(i64 & 0x7fffffff); \
     } while (0)
-#define TIMEVAL_TO_INT64(i64, time_val) do {            \
-        i64 = time_val.tv_sec;                          \
-        i64 = (i64 << 32) + time_val.tv_usec;           \
-    } while(0)
+#define TIMEVAL_TO_INT64(i64, time_val)       \
+    do {                                      \
+        i64 = time_val.tv_sec;                \
+        i64 = (i64 << 31) + time_val.tv_usec; \
+    } while (0)
 
 V4l2Decoder::V4l2Decoder()
     : m_bindEglImage(false)
