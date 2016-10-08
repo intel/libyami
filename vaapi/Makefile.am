@@ -28,9 +28,15 @@ if ENABLE_X11
 libyami_vaapi_ldflags += $(LIBVA_X11_LIBS) $(X11_LIBS)
 endif
 
+#to compile within yocto
+extra_includes = \
+        -I$(top_srcdir) \
+        $(NULL)
+
 libyami_vaapi_cppflags = \
 	$(LIBVA_CFLAGS) \
 	-I$(top_srcdir)/interface \
+	$(extra_includes) \
 	$(NULL)
 
 noinst_LTLIBRARIES           = libyami_vaapi.la

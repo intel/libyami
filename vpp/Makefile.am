@@ -53,10 +53,16 @@ libyami_vpp_ldflags = \
 	-ldl \
 	$(NULL)
 
+#to compile within yocto
+extra_includes = \
+        -I$(top_srcdir) \
+        $(NULL)
+
 libyami_vpp_cppflags = \
 	$(LIBVA_CFLAGS) \
 	$(LIBVA_DRM_CFLAGS) \
 	-I$(top_srcdir)/interface \
+	$(extra_includes) \
 	$(NULL)
 
 if BUILD_OCL_BLENDER

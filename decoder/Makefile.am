@@ -93,10 +93,16 @@ if ENABLE_X11
 libyami_decoder_ldflags += $(LIBVA_X11_LIBS) $(X11_LIBS)
 endif
 
+#to compile within yocto
+extra_includes = \
+        -I$(top_srcdir) \
+        $(NULL)
+
 libyami_decoder_cppflags = \
 	$(LIBVA_CFLAGS) \
 	$(LIBVA_DRM_CFLAGS) \
 	-I$(top_srcdir)/interface \
+	$(extra_includes)  \
 	$(NULL)
 
 if ENABLE_X11
