@@ -1819,6 +1819,20 @@ YamiStatus VaapiDecoderH264::decodeNalu(NalUnit* nalu)
     return status;
 }
 
+void VaapiDecoderH264::flush(void)
+{
+    decodeCurrent();
+    m_dpb.flush();
+    m_newStream = true;
+    m_endOfStream = false;
+    m_endOfSequence = false;
+    m_currPic.reset();
+    m_prevPic.reset();
+    m_currSurface.reset();
+    m_contextChanged = false;
+    VaapiDecoderBase::flush();
+}
+
 YamiStatus VaapiDecoderH264::decode(VideoDecodeBuffer* buffer)
 {
     if (!buffer || !buffer->data) {
@@ -1827,6 +1841,10 @@ YamiStatus VaapiDecoderH264::decode(VideoDecodeBuffer* buffer)
         m_newStream = true;
         m_endOfStream = false;
         m_endOfSequence = false;
+        m_currPic.reset();
+        m_prevPic.reset();
+        m_currSurface.reset();
+        m_contextChanged = false;
         return YAMI_SUCCESS;
     }
     m_currentPTS = buffer->timeStamp;

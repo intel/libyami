@@ -50,6 +50,7 @@ public:
     virtual ~VaapiDecoderH265();
     virtual YamiStatus start(VideoConfigBuffer*);
     virtual YamiStatus decode(VideoDecodeBuffer*);
+    virtual void flush(void);
 
 private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderH265>;

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -1083,6 +1082,18 @@ YamiStatus VaapiDecoderH265::decodeNalu(NalUnit* nalu)
     return status;
 }
 
+void VaapiDecoderH265::flush(void)
+{
+    decodeCurrent();
+    m_dpb.flush();
+    m_prevPicOrderCntMsb = 0;
+    m_prevPicOrderCntLsb = 0;
+    m_newStream = true;
+    m_endOfSequence = false;
+    m_prevSlice.reset(new SliceHeader());
+    VaapiDecoderBase::flush();
+}
+
 YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
 {
     if (!buffer || !buffer->data) {
@@ -1092,6 +1103,7 @@ YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
         m_prevPicOrderCntLsb = 0;
         m_newStream = true;
         m_endOfSequence = false;
+        m_prevSlice.reset(new SliceHeader());
         return YAMI_SUCCESS;
     }
     m_currentPTS = buffer->timeStamp;
