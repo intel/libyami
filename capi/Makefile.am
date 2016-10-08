@@ -15,9 +15,15 @@ libyami_capi_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(NULL)
 
+#to compile within yocto
+extra_includes = \
+        -I$(top_srcdir) \
+        $(NULL)
+
 libyami_capi_cppflags = \
 	$(LIBVA_CFLAGS) \
 	-I$(top_srcdir)/interface \
+	$(extra_includes) \
 	$(NULL)
 
 noinst_LTLIBRARIES          = libyami_capi.la

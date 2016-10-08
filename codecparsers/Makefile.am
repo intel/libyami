@@ -108,11 +108,17 @@ libyami_codecparser_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(NULL)
 
+#to compile within yocto
+extra_includes = \
+        -I$(top_srcdir) \
+        $(NULL)
+
 libyami_codecparser_cppflags = \
 	-Dvp8_norm=libyami_vp8_norm \
 	-Dvp8dx_start_decode=libyami_vp8dx_start_decode \
 	-Dvp8dx_bool_decoder_fill=libyami_vp8dx_bool_decoder_fill \
 	-I$(top_srcdir)/interface \
+	$(extra_includes) \
 	$(NULL)
 
 noinst_LTLIBRARIES                 = libyami_codecparser.la

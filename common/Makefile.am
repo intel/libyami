@@ -28,9 +28,15 @@ libyami_common_ldflags = \
 	$(LIBVA_DRM_LIBS) \
 	$(NULL)
 
+#to compile within yocto
+extra_includes = \
+        -I$(top_srcdir) \
+        $(NULL)
+
 libyami_common_cppflags = \
 	$(LIBVA_CFLAGS) \
 	-I$(top_srcdir)/interface \
+	$(extra_includes) \
 	$(NULL)
 
 noinst_LTLIBRARIES            = libyami_common.la
