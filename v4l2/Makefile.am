@@ -5,7 +5,9 @@ libyamiv4l2_source_c = \
 	v4l2_wrapper.cpp \
 	$(NULL)
 
+if ENABLE_EGL
 libyamiv4l2_source_c += ../egl/egl_util.c ../egl/egl_vaapi_image.cpp
+endif
 
 libyamiv4l2_source_h = \
 	v4l2_wrapper.h \
@@ -23,7 +25,9 @@ libyamiv4l2_ldflags = \
 	-pthread \
 	$(NULL)
 
+if ENABLE_EGL
 libyamiv4l2_ldflags += $(LIBEGL_LIBS)
+endif
 
 #to compile within yocto
 extra_includes = \
@@ -37,11 +41,14 @@ libyamiv4l2_cppflags = \
 	$(extra_includes) \
 	$(NULL)
 
+if ENABLE_EGL
+libyamiv4l2_cppflags += $(LIBEGL_CFLAGS)
+endif
+
 if ENABLE_DMABUF
 libyamiv4l2_cppflags += $(LIBDRM_CFLAGS)
 endif
 
-libyamiv4l2_cppflags += $(LIBEGL_CFLAGS)
 
 noinst_LTLIBRARIES         = libyamiv4l2.la
 libyamiv4l2includedir      = $(includedir)/libyami
