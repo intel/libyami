@@ -104,6 +104,18 @@ fi
 AM_CONDITIONAL(ENABLE_X11,
     [test "x$enable_x11" = "xyes"])
 
+AC_ARG_ENABLE(egl,
+    [AC_HELP_STRING([--enable-egl],
+        [enable egl @<:@default=yes@:>@])],
+    [], [enable_egl="yes"])
+
+if test "$enable_egl" = "yes"; then
+    AC_DEFINE([__ENABLE_EGL__], [1],
+        [Defined to 1 if --enable-egl="yes"])
+fi
+AM_CONDITIONAL(ENABLE_EGL,
+    [test "x$enable_egl" = "xyes"])
+
 AC_ARG_ENABLE(wayland,
     [AC_HELP_STRING([--enable-wayland],
         [enable wayland @<:@default=no@:>@])],

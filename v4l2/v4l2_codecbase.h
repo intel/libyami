@@ -31,9 +31,11 @@
     #if __ENABLE_X11__
     #include <X11/Xlib.h>
     #endif
+    #if __ENABLE_EGL__
     #include <EGL/egl.h>
     #define EGL_EGLEXT_PROTOTYPES
     #include "EGL/eglext.h"
+    #endif
 #endif
 #include "VideoCommonDefs.h"
 #include "v4l2codec_device_ops.h"
@@ -101,7 +103,9 @@ class V4l2CodecBase {
     };
     virtual int32_t usePixmap(uint32_t bufferIndex, Pixmap pixmap) {return 0;};
     #endif
+    #if __ENABLE_EGL__
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
+    #endif
 #endif
     bool setDrmFd(int drm_fd)
     {

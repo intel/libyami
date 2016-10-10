@@ -21,7 +21,6 @@
     #if __ENABLE_X11__
     #include <X11/Xlib.h>
     #endif
-    #include <EGL/egl.h>
 #endif
 #include "VideoCommonDefs.h"
 
@@ -52,7 +51,7 @@ int32_t YamiV4L2_SetWaylandDisplay(int32_t fd, struct wl_display* wlDisplay);
     /// it should be called before driver initialization (immediate after _Open()).
     int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display);
     #endif
-    int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int buffer_index, void* egl_image);
+    int32_t YamiV4L2_UseEglImage(int fd, /*EGLDisplay*/void* eglDisplay, /*EGLContext*/void* eglContext, unsigned int buffer_index, void* egl_image);
     int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd);
 #endif
 #ifdef __cplusplus

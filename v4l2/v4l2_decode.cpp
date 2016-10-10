@@ -36,7 +36,9 @@
 #include "v4l2_decode.h"
 #include "VideoDecoderHost.h"
 #include "common/log.h"
+#if __ENABLE_EGL__
 #include "egl/egl_vaapi_image.h"
+#endif
 
 #define INT64_TO_TIMEVAL(i64, time_val)                 \
     do {                                                \
@@ -222,7 +224,7 @@ bool V4l2Decoder::outputPulse(uint32_t &index)
     m_outputBufferCountPulse++;
     return true;
 }
-#else
+#elif __ENABLE_EGL__
 bool V4l2Decoder::outputPulse(uint32_t &index)
 {
     SharedPtr<VideoFrame> frame;
@@ -426,7 +428,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                 m_reqBuffCnt = reqbufs->count;
             else
                 m_videoFrames.clear();
-#else
+#elif __ENABLE_EGL__
             if (!reqbufs->count) {
                 m_eglVaapiImages.clear();
             } else {
@@ -660,7 +662,7 @@ void V4l2Decoder::flush()
         m_decoder->flush();
 }
 
-#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
+#if __ENABLE_EGL__
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
 {
     m_bindEglImage = true;

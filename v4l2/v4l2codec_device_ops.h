@@ -16,7 +16,6 @@
 #ifndef v4l2codec_device_ops_h
 #define v4l2codec_device_ops_h
 #include <linux/videodev2.h>
-#include <EGL/egl.h>
 #include <stdint.h>
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
@@ -44,7 +43,7 @@ typedef void*   (*V4l2MmapFunc)(void* addr, size_t length, int32_t prot,
                   int32_t flags, int32_t fd, unsigned int offset);
 typedef int32_t (*V4l2MunmapFunc)(void* addr, size_t length);
 typedef int32_t (*V4l2SetParameterFunc)(int32_t fd, const char* key, const char* value);
-typedef int32_t (*V4l2UseEglImageFunc)(int32_t fd, EGLDisplay egl_display, EGLContext egl_context,
+typedef int32_t (*V4l2UseEglImageFunc)(int32_t fd, /*EGLDisplay*/void* egl_display, /*EGLContext*/void* egl_context,
                   uint32_t buffer_index, void* egl_image);
 
 #define V4L2CODEC_VENDOR_STRING_SIZE  16

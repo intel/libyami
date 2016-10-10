@@ -174,12 +174,14 @@ int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
      return ret;
 }
 #endif
-int32_t YamiV4L2_UseEglImage(int fd, EGLDisplay eglDisplay, EGLContext eglContext, unsigned int bufferIndex, void* eglImage)
+#if __ENABLE_EGL__
+int32_t YamiV4L2_UseEglImage(int fd, /*EGLDisplay*/void* eglDisplay, /*EGLContext*/void* eglContext, unsigned int bufferIndex, void* eglImage)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
     ASSERT(v4l2Codec);
     return v4l2Codec->useEglImage(eglDisplay, eglContext, bufferIndex, eglImage);
 }
+#endif
 
 int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd)
 {
@@ -274,7 +276,7 @@ bool v4l2codecOperationInit(V4l2CodecOps *opFuncs)
     V4L2_DLSYM_OR_RETURN_ON_ERROR(Mmap);
     V4L2_DLSYM_OR_RETURN_ON_ERROR(Munmap);
     V4L2_DLSYM_OR_RETURN_ON_ERROR(SetParameter);
-#if (!defined(ANDROID) && !defined(__ENABLE_WAYLAND__))
+#if __ENABLE_EGL_
     V4L2_DLSYM_OR_RETURN_ON_ERROR(UseEglImage);
 #endif
 #undef V4L2_DLSYM_OR_RETURN_ON_ERROR
