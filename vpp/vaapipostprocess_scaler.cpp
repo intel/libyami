@@ -93,6 +93,11 @@ VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
     if (!src || !dest) {
         return YAMI_INVALID_PARAM;
     }
+    if(src->crop.width & 0x01 || src->crop.height & 0x01){
+        ERROR("unsupported odd resolution");
+        return YAMI_FAIL;
+    }
+
     copyVideoFrameMeta(src, dest);
     SurfacePtr surface(new VaapiSurface(dest));
     VaapiVppPicture picture(m_context, surface);
