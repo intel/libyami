@@ -7,13 +7,13 @@ libyami_vpp_source_c = \
 	vaapivpppicture.cpp \
 	$(NULL)
 
-if BUILD_OCL_BLENDER
+if BUILD_OCL_FILTERS
 libyami_vpp_source_c += ../ocl/oclcontext.cpp
 libyami_vpp_source_c += oclpostprocess_base.cpp
 libyami_vpp_source_c += oclvppimage.cpp
 endif
 
-if BUILD_OCL_BLENDER
+if BUILD_OCL_FILTERS
 libyami_vpp_source_c += oclpostprocess_blender.cpp
 libyami_vpp_source_c += oclpostprocess_osd.cpp
 libyami_vpp_source_c += oclpostprocess_transform.cpp
@@ -34,13 +34,13 @@ libyami_vpp_source_h_priv = \
 	vaapivpppicture.h \
 	$(NULL)
 
-if BUILD_OCL_BLENDER
+if BUILD_OCL_FILTERS
 libyami_vpp_source_h_priv += ../ocl/oclcontext.h
 libyami_vpp_source_h_priv += oclpostprocess_base.h
 libyami_vpp_source_h_priv += oclvppimage.h
 endif
 
-if BUILD_OCL_BLENDER
+if BUILD_OCL_FILTERS
 libyami_vpp_source_h_priv += oclpostprocess_blender.h
 libyami_vpp_source_h_priv += oclpostprocess_osd.h
 libyami_vpp_source_h_priv += oclpostprocess_transform.h
@@ -61,7 +61,7 @@ libyami_vpp_cppflags = \
 	-I$(top_srcdir)/interface \
 	$(NULL)
 
-if BUILD_OCL_BLENDER
+if BUILD_OCL_FILTERS
 libyami_vpp_ocl_kernel = \
 	../ocl/kernels/blend.cl \
 	../ocl/kernels/osd.cl \
@@ -74,7 +74,7 @@ kernel_DATA           = $(libyami_vpp_ocl_kernel)
 libyami_vpp_cppflags += -DKERNEL_DIR=\"$(kerneldir)/\"
 endif
 
-if BUILD_OCL_BLENDER
+if BUILD_OCL_FILTERS
 libyami_vpp_ldflags += -lOpenCL
 endif
 

@@ -280,14 +280,14 @@ fi
 AM_CONDITIONAL(BUILD_GET_MV,
     [test "x$enable_getmv" = "xyes"])
 
-dnl ocl blender
-AC_ARG_ENABLE(oclblender,
-    [AC_HELP_STRING([--enable-oclblender],
+dnl ocl filters
+AC_ARG_ENABLE(oclfilters,
+    [AC_HELP_STRING([--enable-oclfilters],
         [build with opencl based alpha blend support @<:@default=no@:>@])],
-    [], [enable_oclblender="no"])
+    [], [enable_oclfilters="no"])
 
-AM_CONDITIONAL(BUILD_OCL_BLENDER,
-    [test "x$enable_oclblender" = "xyes"])
+AM_CONDITIONAL(BUILD_OCL_FILTERS,
+    [test "x$enable_oclfilters" = "xyes"])
 
 
 # dnl Doxygen
@@ -427,7 +427,7 @@ AS_IF([test x$enable_vp8enc = xyes], [ENCODERS="$ENCODERS vp8"])
 AS_IF([test x$enable_vp9enc = xyes], [ENCODERS="$ENCODERS vp9"])
 
 VPPS=" scaler"
-AS_IF([test x$enable_oclblender = xyes], [VPPS="$VPPS oclblender"])
+AS_IF([test x$enable_oclfilters = xyes], [VPPS="$VPPS oclfilters"])
 
 AC_MSG_RESULT([
     libyami - libyami_version (API: yami_api_version)
