@@ -113,26 +113,26 @@ bool V4l2Decoder::start()
     ASSERT(m_decoder);
 
     NativeDisplay nativeDisplay;
+    nativeDisplay.type = NATIVE_DISPLAY_AUTO;
 
-#if ANDROID
-    nativeDisplay.type = NATIVE_DISPLAY_VA;
-    nativeDisplay.handle = (intptr_t)m_vaDisplay;
-#elif __ENABLE_WAYLAND__
-    nativeDisplay.type = NATIVE_DISPLAY_VA;
-    nativeDisplay.handle = (intptr_t)m_vaDisplay;
+#if ANDROID || __ENABLE_WAYLAND__
+    if (m_vaDisplay) {
+        nativeDisplay.type = NATIVE_DISPLAY_VA;
+        nativeDisplay.handle = (intptr_t)m_vaDisplay;
+    }
 #elif __ENABLE_X11__
     DEBUG("m_Display: %p", m_Display);
     if (m_Display) {
         nativeDisplay.type = NATIVE_DISPLAY_X11;
         nativeDisplay.handle = (intptr_t)m_Display;
-    } else {
+    }
+#endif
+
+    if (m_drmfd) {
         nativeDisplay.type = NATIVE_DISPLAY_DRM;
         nativeDisplay.handle = m_drmfd;
     }
-#else
-    nativeDisplay.type = NATIVE_DISPLAY_DRM;
-    nativeDisplay.handle = m_drmfd;
-#endif
+
     m_decoder->setNativeDisplay(&nativeDisplay);
 
     // send codec_data if there is
@@ -375,7 +375,8 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         }
 #elif __ENABLE_WAYLAND__
         // FIXME, m_outputBufferCountOnInit should be reset on output buffer change (for example: resolution change)
-        // it is not must to init video frame here since we don't accepted external for wayland yet. however, external buffer may be used in the future
+        // it is not must to init video frame here since we don't accepted external buffer for wayland yet.
+        // however, external buffer may be used in the future
         if (qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE && m_streamOn[OUTPUT] == false) {
             m_outputBufferCountOnInit++;
             DEBUG("m_outputBufferCountOnInit: %d", m_outputBufferCountOnInit);

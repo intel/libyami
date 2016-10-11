@@ -88,8 +88,8 @@ V4l2CodecBase::V4l2CodecBase()
 #elif(__ENABLE_WAYLAND__ || __ENABLE_X11__)
     , m_Display(NULL)
 #else
-    , m_drmfd(0)
 #endif
+    , m_drmfd(0)
     , m_hasEvent(false)
     , m_inputThreadCond(m_frameLock[INPUT])
     , m_outputThreadCond(m_frameLock[OUTPUT])
