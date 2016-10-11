@@ -102,9 +102,22 @@ void V4l2Decoder::releaseCodecLock(bool lockable)
 bool V4l2Decoder::start()
 {
     YamiStatus status = YAMI_SUCCESS;
+
     if (m_started)
         return true;
     ASSERT(m_decoder);
+
+#if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
+    if (!setVaDisplay()) {
+        ERROR("fail to set up VADisplay");
+        return false;
+    }
+
+    if (!createVpp()) {
+        ERROR("fail to set up VPP");
+        return false;
+    }
+#endif
 
     NativeDisplay nativeDisplay;
 

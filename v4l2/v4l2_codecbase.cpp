@@ -337,23 +337,6 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             ASSERT(ret != -1);
             if (port == INPUT) {
                 DEBUG("start decoding/encoding");
-#if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
-                /* there is no dedicate API for V4l2Codec flush(),
-                 * but use STREAMOFF/STREAMON to flush staging buffers.
-                 * so, some initialization work needn't twice here
-                 */
-                if (!m_started) {
-                    if (!setVaDisplay()) {
-                        ERROR("fail to set up VADisplay");
-                        ret = -1;
-                    }
-
-                    if (!createVpp()) {
-                        ERROR("fail to set up VPP");
-                        ret = -1;
-                    }
-                }
-#endif
                 boolRet = start();
                 ASSERT(boolRet);
 
@@ -655,7 +638,7 @@ const char* mimeFromV4l2PixelFormat(uint32_t pixelFormat)
 }
 
 #if ANDROID
-inline bool V4l2CodecBase::setVaDisplay()
+bool V4l2CodecBase::setVaDisplay()
 {
     unsigned int display = ANDROID_DISPLAY;
     m_vaDisplay = vaGetDisplay(&display);
@@ -671,7 +654,7 @@ inline bool V4l2CodecBase::setVaDisplay()
     return true;
 }
 
-inline bool V4l2CodecBase::createVpp()
+bool V4l2CodecBase::createVpp()
 {
     NativeDisplay nativeDisplay;
     nativeDisplay.type = NATIVE_DISPLAY_VA;
@@ -748,7 +731,7 @@ bool V4l2CodecBase::mapVideoFrames(int32_t width, int32_t height)
     return true;
 }
 #elif __ENABLE_WAYLAND__
-inline bool V4l2CodecBase::setVaDisplay()
+bool V4l2CodecBase::setVaDisplay()
 {
     VAStatus status;
     int major, minor;
@@ -759,7 +742,7 @@ inline bool V4l2CodecBase::setVaDisplay()
     return true;
 }
 
-inline bool V4l2CodecBase::createVpp()
+bool V4l2CodecBase::createVpp()
 {
     NativeDisplay nativeDisplay;
     nativeDisplay.type = NATIVE_DISPLAY_VA;
