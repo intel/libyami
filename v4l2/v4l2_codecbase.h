@@ -82,8 +82,8 @@ class V4l2CodecBase {
     // virtual int32_t munmap(void* addr, size_t length) {return 0;};
     virtual bool stop() = 0;
 #if ANDROID
-    inline bool setVaDisplay();
-    inline bool createVpp();
+    bool setVaDisplay();
+    bool createVpp();
 #elif __ENABLE_WAYLAND__
     bool setWaylandDisplay(struct wl_display* wlDisplay)
     {
