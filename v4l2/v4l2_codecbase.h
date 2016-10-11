@@ -102,9 +102,12 @@ class V4l2CodecBase {
     virtual int32_t usePixmap(uint32_t bufferIndex, Pixmap pixmap) {return 0;};
     #endif
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
-    bool setDrmFd(int drm_fd) {m_drmfd = drm_fd; return true;};
-
 #endif
+    bool setDrmFd(int drm_fd)
+    {
+        m_drmfd = drm_fd;
+        return true;
+    };
     void workerThread();
     int32_t fd() { return m_fd[0];};
 
@@ -138,25 +141,20 @@ class V4l2CodecBase {
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
+#if __ENABLE_X11__ || __ENABLE_WAYLAND__
+    void* m_Display;
+#endif
 #if ANDROID
-    VADisplay m_vaDisplay;
-    SharedPtr<IVideoPostProcess> m_vpp;
-    uint32_t m_reqBuffCnt;
-    std::vector<SharedPtr<VideoFrame> > m_videoFrames;
     std::vector<buffer_handle_t> m_bufferHandle;
     gralloc_module_t* m_pGralloc;
-#elif __ENABLE_WAYLAND__
-    void* m_Display;
+#endif
+#if ANDROID || __ENABLE_WAYLAND__
     VADisplay m_vaDisplay;
     SharedPtr<IVideoPostProcess> m_vpp;
     uint32_t m_reqBuffCnt;
     std::vector<SharedPtr<VideoFrame> > m_videoFrames;
-#else
-    #if __ENABLE_X11__
-    void* m_Display;
-    #endif
-    int m_drmfd;
 #endif
+    int m_drmfd;
 
     enum EosState{
         EosStateNormal,
