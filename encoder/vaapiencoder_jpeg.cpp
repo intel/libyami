@@ -262,7 +262,7 @@ YamiStatus VaapiEncoderJpeg::getMaxOutSize(uint32_t* maxSize)
 
 void VaapiEncoderJpeg::resetParams()
 {
-    m_maxCodedbufSize = width()*height()*3/2;
+    m_maxCodedbufSize = (width()*height()*3/2) + JPEG_HEADER_SIZE;
 }
 
 YamiStatus VaapiEncoderJpeg::start()
