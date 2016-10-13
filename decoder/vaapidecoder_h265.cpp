@@ -929,6 +929,9 @@ YamiStatus VaapiDecoderH265::ensureContext(const SPS* const sps)
         m_configBuffer.flag |= HAS_SURFACE_NUMBER;
         m_configBuffer.profile = VAProfileHEVCMain;
         m_configBuffer.surfaceNumber = surfaceNumber;
+        if (sps->bit_depth_chroma_minus8 == 2 || sps->bit_depth_luma_minus8 == 2) {
+            m_configBuffer.fourcc = VA_FOURCC_P010;
+        }
         status = VaapiDecoderBase::start(&m_configBuffer);
         if (status != YAMI_SUCCESS)
             return status;
