@@ -48,11 +48,9 @@ static YamiStatus getStatus(Vp8ParserResult result)
     case YamiParser::VP8_PARSER_OK:
         status = YAMI_SUCCESS;
         break;
-    case YamiParser::VP8_PARSER_ERROR:
-        status = YAMI_DECODE_PARSER_FAIL;
-        break;
     default:
-        status = YAMI_FAIL;
+        /* we should return no faltal error for parser failed */
+        status = YAMI_DECODE_INVALID_DATA;
         break;
     }
     return status;
