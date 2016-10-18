@@ -964,6 +964,35 @@ void VaapiEncoderH264::checkSvcTempLimitaion()
         m_videoParamCommon.intraPeriod
             = 1 << (uint32_t)ceil(log2(intraPeriod())); // make sure Gop is 2^n.
     }
+
+    // check every layer bitrate is set for BRC
+    if (bitRate()) {
+        uint32_t* layerBitRate = m_videoParamCommon.rcParams.layerBitRate;
+
+        if (layerBitRate[m_temporalLayerNum - 1] != bitRate())
+            layerBitRate[m_temporalLayerNum - 1] = bitRate();
+
+#if VA_CHECK_VERSION(0, 39, 4)
+        bool resetLayerBitRate = false;
+        uint32_t i;
+        for (i = 0; i < m_temporalLayerNum - 1; i++) {
+            if (!layerBitRate[i] || layerBitRate[i] >= layerBitRate[i + 1]) {
+                ERROR(" layer bit rate setting error, need to be reset ");
+                resetLayerBitRate = true;
+                break;
+            }
+        }
+
+        if (resetLayerBitRate) {
+            for (i = 0; i < m_temporalLayerNum - 1; i++)
+                layerBitRate[i] = bitRate()
+                                  / (1 << (m_temporalLayerNum - 1 - i));
+        }
+#else
+        if (m_isSvcT)
+            ERROR("For SVC-T BRC, please make sure libva version >= 0.39.4");
+#endif
+    }
 }
 
 void VaapiEncoderH264::resetParams ()
@@ -1274,6 +1303,82 @@ YamiStatus VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer* outBuffer)
     if (!m_headers)
         return YAMI_ENCODE_NO_REQUEST_DATA;
     return m_headers->getCodecConfig(outBuffer);
+}
+
+#if VA_CHECK_VERSION(0, 39, 4)
+void VaapiEncoderH264::fill(
+    VAEncMiscParameterTemporalLayerStructure* layerParam) const
+{
+    layerParam->number_of_layers = m_temporalLayerNum;
+    layerParam->periodicity = H264_MIN_TEMPORAL_GOP;
+
+    for (uint32_t i = 0; i < layerParam->periodicity; i++)
+        layerParam->layer_id[i] = getTemporalId(m_temporalLayerNum, i + 1);
+}
+#endif
+
+void VaapiEncoderH264::fill(VAEncMiscParameterRateControl* rateControl,
+                            uint32_t temporalId) const
+{
+    VaapiEncoderBase::fill(rateControl);
+
+    rateControl->bits_per_second
+        = m_videoParamCommon.rcParams.layerBitRate[temporalId];
+#if VA_CHECK_VERSION(0, 39, 4)
+    rateControl->rc_flags.bits.temporal_id = temporalId;
+#endif
+}
+
+void VaapiEncoderH264::fill(VAEncMiscParameterFrameRate* frameRate,
+                            uint32_t temporalId) const
+{
+    uint32_t expTemId = (1 << (m_temporalLayerNum - 1 - temporalId));
+    if (fps() % expTemId == 0)
+        frameRate->framerate = fps() / expTemId;
+    else
+        frameRate->framerate = (expTemId << 16 | fps());
+
+#if VA_CHECK_VERSION(0, 39, 4)
+    frameRate->framerate_flags.bits.temporal_id = temporalId;
+#endif
+}
+
+/* Generates additional control parameters */
+bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
+{
+    VAEncMiscParameterHRD* hrd = NULL;
+    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
+        return false;
+    if (hrd)
+        VaapiEncoderBase::fill(hrd);
+    VideoRateControl mode = rateControlMode();
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
+#if VA_CHECK_VERSION(0, 39, 4)
+        if (m_isSvcT) {
+            VAEncMiscParameterTemporalLayerStructure* layerParam = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeTemporalLayerStructure,
+                                  layerParam))
+                return false;
+            if (layerParam)
+                fill(layerParam);
+        }
+#endif
+        for (uint32_t i = 0; i < m_temporalLayerNum; i++) {
+            VAEncMiscParameterRateControl* rateControl = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeRateControl,
+                                  rateControl))
+                return false;
+            if (rateControl)
+                fill(rateControl, i);
+
+            VAEncMiscParameterFrameRate* frameRate = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
+                return false;
+            if (frameRate)
+                fill(frameRate, i);
+        }
+    }
+    return true;
 }
 
 /* Handle new GOP starts */

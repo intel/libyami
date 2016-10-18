@@ -163,6 +163,7 @@ typedef struct VideoRateControlParams {
     uint32_t disableBitsStuffing;
     int8_t diffQPIP;// P frame qp minus initQP
     int8_t diffQPIB;// B frame qp minus initQP
+    uint32_t layerBitRate[32]; // specify each scalable layer bitrate
 }VideoRateControlParams;
 
 typedef struct SliceNum {

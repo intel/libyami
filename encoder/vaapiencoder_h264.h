@@ -56,6 +56,7 @@ public:
 protected:
     virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame);
     virtual YamiStatus getCodecConfig(VideoEncOutputBuffer* outBuffer);
+    virtual bool ensureMiscParams(VaapiEncPicture*);
 
 private:
     friend class FactoryTest<IVideoEncoder, VaapiEncoderH264>;
@@ -63,6 +64,12 @@ private:
 
     //following code is a template for other encoder implementation
     YamiStatus encodePicture(const PicturePtr&);
+
+#if VA_CHECK_VERSION(0, 39, 4)
+    void fill(VAEncMiscParameterTemporalLayerStructure*) const;
+#endif
+    void fill(VAEncMiscParameterRateControl*, uint32_t temporalId) const;
+    void fill(VAEncMiscParameterFrameRate*, uint32_t temporalId) const;
     bool fill(VAEncSequenceParameterBufferH264*) const;
     bool fill(VAEncPictureParameterBufferH264*, const PicturePtr&, const SurfacePtr&) const ;
     bool ensureSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferH264* const);

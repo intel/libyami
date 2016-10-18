@@ -59,7 +59,6 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.leastInputCount = 0;
     m_videoParamCommon.rcParams.diffQPIP = 0;
     m_videoParamCommon.rcParams.diffQPIB = 0;
-
     updateMaxOutputBufferCount();
 }
 
