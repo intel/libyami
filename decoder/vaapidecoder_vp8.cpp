@@ -452,6 +452,7 @@ VaapiDecoderVP8::VaapiDecoderVP8()
     // m_uvModeProbs[3];
     m_sizeChanged = 0;
     m_hasContext = false;
+    m_gotKeyFrame = false;
 }
 
 VaapiDecoderVP8::~VaapiDecoderVP8()
@@ -508,6 +509,7 @@ void VaapiDecoderVP8::flush(void)
     m_lastPicture.reset();
     m_goldenRefPicture.reset();
     m_altRefPicture.reset();
+    m_gotKeyFrame = false;
 
     VaapiDecoderBase::flush();
 }
@@ -542,6 +544,13 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
             status = ensureContext();
             if (status != YAMI_SUCCESS)
                 return status;
+            m_gotKeyFrame = true;
+        }
+        else {
+            if (!m_gotKeyFrame) {
+                WARNING("we can't decode p frame without key");
+                return YAMI_DECODE_INVALID_DATA;
+            }
         }
 #if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
         int ii = 0;

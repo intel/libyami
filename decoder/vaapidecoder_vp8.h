@@ -107,6 +107,8 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     uint8_t m_yModeProbs[4];
     uint8_t m_uvModeProbs[3];
     uint32_t m_sizeChanged:1;
+    //we can not decode P frame if we do not get key.
+    bool m_gotKeyFrame;
 
 #if __PSB_CACHE_DRAIN_FOR_FIRST_FRAME__
     bool m_isFirstFrame;
