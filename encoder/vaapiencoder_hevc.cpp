@@ -1549,7 +1549,7 @@ bool VaapiEncoderHEVC::addPackedSliceHeader(const PicturePtr& picture,
 
     /* no_output_of_prior_pics_flag */
     if (nalUnitType >=  BLA_W_LP && nalUnitType <= RSV_IRAP_VCL23 )
-        bs.writeBits(1, 1);
+        bs.writeBits(0, 1);
 
     /* slice_pic_parameter_set_id */
     bit_writer_put_ue(&bs, 0);
