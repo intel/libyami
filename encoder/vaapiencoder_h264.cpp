@@ -693,7 +693,8 @@ private:
     void generateCodecConfigAnnexB()
     {
         std::vector<Header*> headers;
-        headers.push_back(&m_sei);
+        if (m_sei.size())
+            headers.push_back(&m_sei);
         headers.push_back(&m_sps);
         headers.push_back(&m_pps);
         uint8_t sync[] = {0, 0, 0, 1};
