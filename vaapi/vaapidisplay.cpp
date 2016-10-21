@@ -138,6 +138,8 @@ class NativeDisplayDrm : public NativeDisplayBase{
     };
 
     bool isCompatible(const NativeDisplay& display) {
+        if (display.type == NATIVE_DISPLAY_AUTO)
+            return true;
         if (display.type != NATIVE_DISPLAY_DRM)
             return false;
         if (isInvalidDrmHandle(display.handle) || display.handle == m_handle)
@@ -157,6 +159,8 @@ class NativeDisplayVADisplay : public NativeDisplayBase{
     };
 
     bool isCompatible(const NativeDisplay& display) {
+        if (display.type == NATIVE_DISPLAY_AUTO)
+            return true;
         return display.type == NATIVE_DISPLAY_VA && display.handle == m_handle;
     }
 };
