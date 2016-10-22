@@ -147,7 +147,6 @@ private:
                                    const SliceHeader* const slice,
                                    RefSet& refSet, bool isList0);
     bool isDecodeContextChanged(const SharedPtr<SPS>& sps);
-    bool isResolutionChanged(const SharedPtr<SPS>& sps);
     bool decodeAvcRecordData(uint8_t* buf, int32_t bufSize);
 
     YamiStatus createPicture(const SliceHeader* const,
