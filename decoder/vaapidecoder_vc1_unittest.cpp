@@ -454,7 +454,6 @@ VAAPIDECODER_VC1_TEST(Decode_Simple)
     buffer.size = g_SimpleVC1.size();
     buffer.timeStamp = 0;
     ASSERT_EQ(YAMI_SUCCESS, decoder.start(&configBuffer));
-    ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
     /* pass a NULL buffer to flush output */
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(NULL));
