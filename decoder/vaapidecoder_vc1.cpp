@@ -37,13 +37,15 @@ VaapiDecoderVC1::~VaapiDecoderVC1()
 
 YamiStatus VaapiDecoderVC1::start(VideoConfigBuffer* buffer)
 {
-    buffer->profile = VAProfileVC1Main;
-    buffer->surfaceNumber = 4;
-    m_configBuffer = *buffer;
-    m_parser.m_seqHdr.coded_width = m_configBuffer.width;
-    m_parser.m_seqHdr.coded_height = m_configBuffer.height;
-    if (!m_parser.parseCodecData(m_configBuffer.data, m_configBuffer.size))
+    if (!buffer || !buffer->data || !buffer->size)
+        return YAMI_INVALID_PARAM;
+    uint32_t width = buffer->width;
+    uint32_t height = buffer->height;
+    m_parser.m_seqHdr.coded_width = width;
+    m_parser.m_seqHdr.coded_height = height;
+    if (!m_parser.parseCodecData(buffer->data, buffer->size))
         return YAMI_FAIL;
+    setFormat(width, height, width, height, VC1_MAX_REFRENCE_SURFACE_NUMBER + 1);
     return YAMI_SUCCESS;
 }
 
@@ -61,18 +63,7 @@ void VaapiDecoderVC1::flush(void)
 
 YamiStatus VaapiDecoderVC1::ensureContext()
 {
-    YamiStatus status;
-    if ((m_videoFormatInfo.width != m_configBuffer.width)
-        || (m_videoFormatInfo.height != m_configBuffer.height)) {
-
-        m_configBuffer.surfaceWidth = m_configBuffer.width;
-        m_configBuffer.surfaceHeight = m_configBuffer.height;
-        status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != YAMI_SUCCESS)
-            return status;
-        return YAMI_DECODE_FORMAT_CHANGE;
-    }
-    return YAMI_SUCCESS;
+    return ensureProfile(VAProfileVC1Main);
 }
 
 bool VaapiDecoderVC1::makeBitPlanes(PicturePtr& picture, VAPictureParameterBufferVC1* param)
@@ -134,8 +125,8 @@ bool VaapiDecoderVC1::ensurePicture(PicturePtr& picture)
     param->forward_reference_picture = VA_INVALID_ID;
     param->backward_reference_picture = VA_INVALID_ID;
     param->inloop_decoded_picture = VA_INVALID_ID;
-    param->coded_width = m_configBuffer.width;
-    param->coded_height = m_configBuffer.height;
+    param->coded_width = m_parser.m_seqHdr.coded_width;
+    param->coded_height = m_parser.m_seqHdr.coded_height;
 
 #define FILL(h, f) param->f = h->f
 #define FILL_MV(h, f) param->mv_fields.bits.f = h->f
