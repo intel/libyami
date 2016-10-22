@@ -62,11 +62,29 @@ typedef struct {
 typedef struct {
     bool valid;                 // indicates whether format info is valid. MimeType is always valid.
     char *mimeType;
+    //width, height, this equals to same value in VideoFrame.crop
+    //if your video is 1920x1080, width will be 1920,and height will be 1080
     uint32_t width;
     uint32_t height;
-    int32_t surfaceWidth;
-    int32_t surfaceHeight;
-    int32_t surfaceNumber;
+
+    /* Same thing as SurfaceAllocParams.width and SurfaceAllocParams.height
+     * You only need pay attention surfaceXXXX only when you are:
+     *  1. using IVideoDecoder.setAllocator.
+     * and
+     *  2. you want pre-allocate surface before we call SurfaceAllocator.alloc
+     * This size is depends on codec type or decoder hardware requirements
+     * For h264 1920x1080 it is usually 1920x1088 since h264 need 16 aligned surface
+     * Other *important* thing is, we may only call SurfaceAllocator.alloc when surface resolution increased
+     * For example, when resolution increase from 640x480 to 1920x1080, we will call
+     * SurfaceAllocator.alloc for 1920x1080, but when video change from 1920x1080 to 640x480, we
+     * may not call SurfaceAllocator.alloc, since we have enough surface resolution for decoding.
+     */
+    uint32_t surfaceWidth;
+    uint32_t surfaceHeight;
+    //same thing as SurfaceAllocParams.size
+    uint32_t surfaceNumber;
+
+    //unused thing yet, may remove in near future
     int32_t aspectX;
     int32_t aspectY;
     int32_t cropLeft;
@@ -78,6 +96,8 @@ typedef struct {
     int32_t bitrate;
     int32_t framerateNom;
     int32_t framerateDenom;
+    //unused end
+
     uint32_t fourcc;
 }VideoFormatInfo;
 
