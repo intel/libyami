@@ -55,6 +55,9 @@ private:
     bool ensurePicture(PicturePtr&);
     bool makeBitPlanes(PicturePtr&, VAPictureParameterBufferVC1*);
     YamiParser::VC1::Parser m_parser;
+
+    const static uint32_t VC1_MAX_REFRENCE_SURFACE_NUMBER = 2;
+
     //m_dpb[0] stores forward reference picture
     //m_dpb[1] stores backward reference picture
     PicturePtr m_dpb[2];
