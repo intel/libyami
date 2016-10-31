@@ -58,6 +58,10 @@ uint32_t getRtFormat(uint32_t fourcc)
         return VA_RT_FORMAT_YUV422;
     case YAMI_FOURCC_444P:
         return VA_RT_FORMAT_YUV444;
+#if VA_CHECK_VERSION(0, 38, 1)
+    case YAMI_FOURCC_P010:
+        return VA_RT_FORMAT_YUV420_10BPP;
+#endif
     case YAMI_FOURCC_RGBX:
     case YAMI_FOURCC_RGBA:
     case YAMI_FOURCC_BGRX:

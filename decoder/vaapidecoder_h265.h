@@ -115,6 +115,7 @@ private:
     YamiStatus decodeParamSet(NalUnit*);
     YamiStatus decodeSlice(NalUnit*);
 
+    static VAProfile getVaProfile(const SPS* const sps);
     YamiStatus ensureContext(const SPS* const);
     bool fillPicture(const PicturePtr& , const SliceHeader* const );
     bool fillSlice(const PicturePtr&, const SliceHeader* const, const NalUnit* const );

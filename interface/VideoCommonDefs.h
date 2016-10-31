@@ -64,6 +64,11 @@ extern "C" {
 #define YAMI_FOURCC(ch0, ch1, ch2, ch3) \
         ((uint32_t)(uint8_t)(ch0) | ((uint32_t)(uint8_t)(ch1) << 8) | \
          ((uint32_t)(uint8_t)(ch2) << 16)  | ((uint32_t)(uint8_t)(ch3) << 24))
+//Y only
+#define YAMI_FOURCC_Y800 YAMI_FOURCC('Y', '8', '0', '0')
+
+//411
+#define YAMI_FOURCC_411P YAMI_FOURCC('4', '1', '1', 'P')
 
 //420
 #define YAMI_FOURCC_NV12 YAMI_FOURCC('N', 'V', '1', '2')
@@ -75,14 +80,25 @@ extern "C" {
 #define YAMI_FOURCC_422H YAMI_FOURCC('4', '2', '2', 'H')
 #define YAMI_FOURCC_422V YAMI_FOURCC('4', '2', '2', 'V')
 #define YAMI_FOURCC_YUY2 YAMI_FOURCC('Y', 'U', 'Y', '2')
+#define YAMI_FOURCC_UYVY YAMI_FOURCC('U', 'Y', 'V', 'Y')
 
 //444
 #define YAMI_FOURCC_444P YAMI_FOURCC('4', '4', '4', 'P')
 
+//10 bits
+#define YAMI_FOURCC_P010 YAMI_FOURCC('P', '0', '1', '0')
+
+//RGB
 #define YAMI_FOURCC_RGBX YAMI_FOURCC('R', 'G', 'B', 'X')
 #define YAMI_FOURCC_RGBA YAMI_FOURCC('R', 'G', 'B', 'A')
 #define YAMI_FOURCC_BGRX YAMI_FOURCC('B', 'G', 'R', 'X')
 #define YAMI_FOURCC_BGRA YAMI_FOURCC('B', 'G', 'R', 'A')
+#define YAMI_FOURCC_XRGB YAMI_FOURCC('X', 'R', 'G', 'B')
+#define YAMI_FOURCC_ARGB YAMI_FOURCC('A', 'R', 'G', 'B')
+#define YAMI_FOURCC_XBGR YAMI_FOURCC('X', 'B', 'G', 'R')
+#define YAMI_FOURCC_ABGR YAMI_FOURCC('A', 'B', 'G', 'R')
+
+#define YAMI_FOURCC_R210 YAMI_FOURCC('R', '2', '1', '0')
 
 typedef enum {
     NATIVE_DISPLAY_AUTO,    // decided by yami

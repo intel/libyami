@@ -911,12 +911,56 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
     return true;
 }
 
+#define CHECK(v, expect)                                                      \
+    do {                                                                      \
+        if (v != expect) {                                                    \
+            ERROR("the value of %s is %d,  not equals to %d", #v, v, expect); \
+            return VAProfileNone;                                             \
+        }                                                                     \
+    } while (0)
+
+#define CHECK_RANGE(v, min, max)                                \
+    do {                                                        \
+        if (v < min || v > max) {                               \
+            ERROR("%s is %d, not in [%d,%d]", #v, v, min, max); \
+            return VAProfileNone;                               \
+        }                                                       \
+    } while (0)
+
+VAProfile VaapiDecoderH265::getVaProfile(const SPS* const sps)
+{
+    if (sps->profile_tier_level.general_profile_idc == 1
+        || sps->profile_tier_level.general_profile_compatibility_flag[1] == 1) {
+        //A.3.2, but we only check some important values
+        CHECK(sps->chroma_format_idc, 1);
+        CHECK(sps->bit_depth_luma_minus8, 0);
+        CHECK(sps->bit_depth_chroma_minus8, 0);
+        return VAProfileHEVCMain;
+    }
+    if (sps->profile_tier_level.general_profile_idc == 2
+        || sps->profile_tier_level.general_profile_compatibility_flag[2] == 1) {
+        //A.3.3, but we only check some important values
+        CHECK(sps->chroma_format_idc, 1);
+        CHECK_RANGE(sps->bit_depth_luma_minus8, 0, 2);
+        CHECK_RANGE(sps->bit_depth_chroma_minus8, 0, 2);
+        return VAProfileHEVCMain10;
+    }
+    ERROR("unsupported profile %d", sps->profile_tier_level.general_profile_idc);
+    return VAProfileNone;
+}
+#undef CHECK
+#undef CHECK_RANGE
+
 YamiStatus VaapiDecoderH265::ensureContext(const SPS* const sps)
 {
     uint8_t surfaceNumber = sps->sps_max_dec_pic_buffering_minus1[0] + 1;
+    VAProfile profile = getVaProfile(sps);
+    if (profile == VAProfileNone)
+        return YAMI_UNSUPPORTED;
     if (m_configBuffer.surfaceWidth < sps->width
-        || m_configBuffer.surfaceHeight <  sps->height
-        || m_configBuffer.surfaceNumber < surfaceNumber) {
+        || m_configBuffer.surfaceHeight < sps->height
+        || m_configBuffer.surfaceNumber < surfaceNumber
+        || m_configBuffer.profile != profile) {
         INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d",
                 m_configBuffer.width, m_configBuffer.height, sps->width, sps->height);
         YamiStatus status = VaapiDecoderBase::terminateVA();
@@ -927,7 +971,8 @@ YamiStatus VaapiDecoderH265::ensureContext(const SPS* const sps)
         m_configBuffer.surfaceWidth = sps->width;
         m_configBuffer.surfaceHeight =sps->height;
         m_configBuffer.flag |= HAS_SURFACE_NUMBER;
-        m_configBuffer.profile = VAProfileHEVCMain;
+        m_configBuffer.profile = profile;
+        m_configBuffer.fourcc = (profile == VAProfileHEVCMain10) ? YAMI_FOURCC_P010 : YAMI_FOURCC_NV12;
         m_configBuffer.surfaceNumber = surfaceNumber;
         status = VaapiDecoderBase::start(&m_configBuffer);
         if (status != YAMI_SUCCESS)
@@ -1119,7 +1164,7 @@ bool VaapiDecoderH265::decodeHevcRecordData(uint8_t* buf, int32_t bufSize)
     }
     /*
      * Some hvcC format don't used buf[0]==1 as flag, so now used the
-     * (buf[0] || buf[1] || buf[2] > 1) as hvcC condition. 
+     * (buf[0] || buf[1] || buf[2] > 1) as hvcC condition.
      */
     if (!(buf[0] || buf[1] || buf[2] > 1)) { //annexb format
         VideoDecodeBuffer buffer;
