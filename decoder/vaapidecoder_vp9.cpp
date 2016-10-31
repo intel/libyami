@@ -28,6 +28,23 @@
 namespace YamiMediaCodec{
 typedef VaapiDecoderVP9::PicturePtr PicturePtr;
 
+static VAProfile profileMap(VP9_PROFILE src_profile)
+{
+    switch (src_profile) {
+    case VP9_PROFILE_0:
+        return VAProfileVP9Profile0;
+    case VP9_PROFILE_1:
+        return VAProfileVP9Profile1;
+    case VP9_PROFILE_2:
+        return VAProfileVP9Profile2;
+    case VP9_PROFILE_3:
+        return VAProfileVP9Profile3;
+    case MAX_VP9_PROFILES:
+    default:
+        return VAProfileNone;
+    }
+}
+
 VaapiDecoderVP9::VaapiDecoderVP9()
 {
     m_parser.reset(vp9_parser_new(), vp9_parser_free);
@@ -89,11 +106,17 @@ void VaapiDecoderVP9::flush(void)
 
 YamiStatus VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
 {
+    VAProfile vp9_profile = profileMap(hdr->profile);
+    if (vp9_profile == VAProfileNone) {
+        return YAMI_FATAL_ERROR;
+    }
     // only reset va context when there is a larger frame
     if (m_configBuffer.width < hdr->width
-        || m_configBuffer.height <  hdr->height) {
-        INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d",
-                m_configBuffer.width, m_configBuffer.height, hdr->width, hdr->height);
+        || m_configBuffer.height < hdr->height
+        || m_configBuffer.profile != vp9_profile) {
+        INFO("frame size changed, reconfig codec. orig size %d x %d, profile %d, new size: %d x %d, profile %d",
+            m_configBuffer.width, m_configBuffer.height, m_configBuffer.profile,
+            hdr->width, hdr->height, vp9_profile);
         YamiStatus status = VaapiDecoderBase::terminateVA();
         if (status != YAMI_SUCCESS)
             return status;
@@ -101,6 +124,10 @@ YamiStatus VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
         m_configBuffer.height = hdr->height;
         m_configBuffer.surfaceWidth = ALIGN8(hdr->width);
         m_configBuffer.surfaceHeight = ALIGN32(hdr->height);
+        m_configBuffer.profile = vp9_profile;
+        if (m_parser->bit_depth == VP9_BITS_10)
+            m_configBuffer.fourcc = YAMI_FOURCC_P010;
+
         status = VaapiDecoderBase::start(&m_configBuffer);
         if (status != YAMI_SUCCESS)
             return status;
@@ -206,6 +233,9 @@ bool VaapiDecoderVP9::ensurePicture(const PicturePtr& picture, const Vp9FrameHdr
     FILL_FIELD(frame_header_length_in_bytes)
     FILL_FIELD(first_partition_size)
 #undef FILL_FIELD
+    param->profile = hdr->profile;
+    param->bit_depth = 8 + m_parser->bit_depth * 2;
+
     assert(sizeof(param->mb_segment_tree_probs) == sizeof(m_parser->mb_segment_tree_probs));
     assert(sizeof(param->segment_pred_probs) == sizeof(m_parser->segment_pred_probs));
     memcpy(param->mb_segment_tree_probs, m_parser->mb_segment_tree_probs, sizeof(m_parser->mb_segment_tree_probs));
