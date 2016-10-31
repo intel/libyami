@@ -45,6 +45,7 @@ YamiStatus VaapiDecoderVP9::start(VideoConfigBuffer* buffer)
           buffer->height);
 
     buffer->profile = VAProfileVP9Profile0;
+    m_parser->bit_depth = VP9_BITS_8;
     //8 reference frame
     buffer->surfaceNumber = 8;
 
