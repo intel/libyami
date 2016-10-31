@@ -545,6 +545,43 @@ static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, Vp9FrameHdr* const fr
   return VP9_PARSER_OK;
 }
 
+static Vp9ParseResult vp9_color_config(Vp9Parser* parser, Vp9FrameHdr* frame_hdr, BitReader* br)
+{
+    if (frame_hdr->profile >= VP9_PROFILE_2) {
+        frame_hdr->bit_depth = vp9_read_bit(br) ? VP9_BITS_12 : VP9_BITS_10;
+        if (VP9_BITS_12 == frame_hdr->bit_depth) {
+            ERROR("vp9 12 bits-depth is unsupported by now!");
+            return VP9_PARSER_UNSUPPORTED;
+        }
+    }
+    else {
+        frame_hdr->bit_depth = VP9_BITS_8;
+    }
+
+    frame_hdr->color_space = (VP9_COLOR_SPACE)vp9_read_bits(br, 3);
+    if (frame_hdr->color_space != VP9_SRGB) {
+        vp9_read_bit(br); //color_range
+        if (frame_hdr->profile == VP9_PROFILE_1 || frame_hdr->profile == VP9_PROFILE_3) {
+            frame_hdr->subsampling_x = vp9_read_bit(br);
+            frame_hdr->subsampling_y = vp9_read_bit(br);
+
+            if (vp9_read_bit(br)) { //reserved_zero
+                ERROR("reserved bit");
+                return VP9_PARSER_ERROR;
+            }
+        }
+        else {
+            frame_hdr->subsampling_y = frame_hdr->subsampling_x = 1;
+        }
+    }
+    else {
+        ERROR("do not support SRGB");
+        return VP9_PARSER_UNSUPPORTED;
+    }
+
+    return VP9_PARSER_OK;
+}
+
 Vp9ParseResult
 vp9_parse_frame_header (Vp9Parser* parser, Vp9FrameHdr * frame_hdr, const uint8_t * data, uint32_t size)
 {
@@ -569,24 +606,8 @@ vp9_parse_frame_header (Vp9Parser* parser, Vp9FrameHdr * frame_hdr, const uint8_
   if (frame_hdr->frame_type == VP9_KEY_FRAME) {
     if (!verify_sync_code(br))
       goto error;
-    if (frame_hdr->profile > VP9_PROFILE_1)
-      frame_hdr->bit_depth = (VP9_BIT_DEPTH)vp9_read_bit(br);
-    frame_hdr->color_space = (VP9_COLOR_SPACE)vp9_read_bits(br, 3);
-    if (frame_hdr->color_space != VP9_SRGB) {
-      vp9_read_bit(br);
-      if (frame_hdr->profile == VP9_PROFILE_1 || frame_hdr->profile == VP9_PROFILE_3) {
-        frame_hdr->subsampling_x = vp9_read_bit(br);
-        frame_hdr->subsampling_y = vp9_read_bit(br);
-        if (vp9_read_bit(br)) {
-          ERROR("reserved bit");
-          goto error;
-        }
-      } else {
-        frame_hdr->subsampling_y = frame_hdr->subsampling_x = 1;
-      }
-    } else {
-      assert(0 && "do not support SRGB");
-    }
+    if (vp9_color_config(parser, frame_hdr, br) != VP9_PARSER_OK)
+        goto error;
     read_frame_size(br, &frame_hdr->width, &frame_hdr->height);
     read_display_frame_size(frame_hdr, br);
   } else {
@@ -596,12 +617,19 @@ vp9_parse_frame_header (Vp9Parser* parser, Vp9FrameHdr * frame_hdr, const uint8_
     if (frame_hdr->intra_only) {
       if (!verify_sync_code(br))
         goto error;
+      if (frame_hdr->profile > VP9_PROFILE_0) {
+          if (vp9_color_config(parser, frame_hdr, br) != VP9_PARSER_OK)
+              goto error;
+      }
+      else {
+          frame_hdr->color_space = VP9_BT_601;
+          frame_hdr->subsampling_y = frame_hdr->subsampling_x = 1;
+          frame_hdr->bit_depth = VP9_BITS_8;
+      }
+
       frame_hdr->refresh_frame_flags = vp9_read_bits(br, VP9_REF_FRAMES);
       read_frame_size(br, &frame_hdr->width, &frame_hdr->height);
       read_display_frame_size(frame_hdr, br);
-
-      frame_hdr->color_space = VP9_BT_601;
-      frame_hdr->subsampling_y = frame_hdr->subsampling_x = 1;
     } else {
       int i;
       frame_hdr->refresh_frame_flags = vp9_read_bits(br, VP9_REF_FRAMES);
