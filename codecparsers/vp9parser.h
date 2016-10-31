@@ -57,10 +57,10 @@ typedef struct _Vp9SegmentationInfoData Vp9SegmentationInfoData;
  *
  * Result type of any parsing function.
  */
-typedef enum
-{
-  VP9_PARSER_OK,
-  VP9_PARSER_ERROR,
+typedef enum {
+    VP9_PARSER_OK,
+    VP9_PARSER_ERROR,
+    VP9_PARSER_UNSUPPORTED
 } Vp9ParseResult;
 
 typedef enum VP9_PROFILE {
