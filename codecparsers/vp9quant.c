@@ -11,9 +11,12 @@
 #include "config.h"
 #endif
 
+#include <stdio.h>
 #include "vp9quant.h"
 
 #define BIT_DEPTH_MODE_COUNT 3
+#define MODE_8BITS_DEPTH 0
+#define MODE_12BITS_DEPTH 2
 
 static const int16_t dc_qlookup[BIT_DEPTH_MODE_COUNT][QINDEX_RANGE] = {
     {
@@ -227,17 +230,25 @@ static const int16_t ac_qlookup[BIT_DEPTH_MODE_COUNT][QINDEX_RANGE] = {
 
 int clamp(int value, int low, int high)
 {
-  return value < low ? low : (value > high ? high : value);
+    return value < low ? low : (value > high ? high : value);
 }
 
-int16_t vp9_dc_quant(int qindex, int delta)
+int16_t vp9_dc_quant(int bit_depth, int qindex, int delta)
 {
-  const uint8_t q = clamp(qindex + delta, 0, MAXQ);
-  return dc_qlookup[0][q];
+    if (bit_depth > MODE_12BITS_DEPTH || bit_depth < MODE_8BITS_DEPTH) {
+        bit_depth = MODE_8BITS_DEPTH;
+        printf("WARNING: bit depth of vp9 should be in the range 8bitS(0),10bits(1) and 12bits(2).\n");
+    }
+    const uint8_t q = clamp(qindex + delta, 0, MAXQ);
+    return dc_qlookup[bit_depth][q];
 }
 
-int16_t vp9_ac_quant(int qindex, int delta)
+int16_t vp9_ac_quant(int bit_depth, int qindex, int delta)
 {
-  const uint8_t q = clamp(qindex + delta, 0, MAXQ);
-  return ac_qlookup[0][q];
+    if (bit_depth > MODE_12BITS_DEPTH || bit_depth < MODE_8BITS_DEPTH) {
+        bit_depth = MODE_8BITS_DEPTH;
+        printf("WARNING: bit depth of vp9 should be in the range 8bitS(0),10bits(1) and 12bits(2).\n");
+    }
+    const uint8_t q = clamp(qindex + delta, 0, MAXQ);
+    return ac_qlookup[bit_depth][q];
 }

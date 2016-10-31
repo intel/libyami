@@ -22,9 +22,9 @@ extern "C" {
 
 int clamp(int value, int low, int high);
 
-int16_t vp9_dc_quant(int qindex, int delta);
+int16_t vp9_dc_quant(int bit_depth, int qindex, int delta);
 
-int16_t vp9_ac_quant(int qindex, int delta);
+int16_t vp9_ac_quant(int bit_depth, int qindex, int delta);
 
 #ifdef __cplusplus
 };
