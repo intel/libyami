@@ -227,6 +227,7 @@ struct _Vp9Segmentation
 struct _Vp9Parser
 {
   BOOL      lossless_flag;
+  VP9_BIT_DEPTH bit_depth;
 
   uint8_t   mb_segment_tree_probs[VP9_SEG_TREE_PROBS];
   uint8_t   segment_pred_probs[VP9_PREDICTION_PROBS];
