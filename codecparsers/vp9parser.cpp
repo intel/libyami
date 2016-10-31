@@ -65,12 +65,13 @@ typedef struct _Vp9ParserPrivate
 
 void init_dequantizer(Vp9Parser* parser);
 
-static void init_vp9_parser(Vp9Parser* parser)
+static void init_vp9_parser(Vp9Parser* parser, VP9_BIT_DEPTH bit_depth)
 {
   Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
   memset(parser, 0, sizeof(Vp9Parser));
   memset(priv, 0, sizeof(Vp9ParserPrivate));
   parser->priv = priv;
+  parser->bit_depth = bit_depth;
   init_dequantizer(parser);
 }
 
@@ -85,7 +86,7 @@ Vp9Parser* vp9_parser_new()
     return NULL;
   }
   parser->priv = priv;
-  init_vp9_parser(parser);
+  init_vp9_parser(parser, VP9_BITS_8);
   return parser;
 }
 
@@ -355,10 +356,10 @@ void init_dequantizer(Vp9Parser* parser)
   Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
   int q;
   for (q = 0; q < QINDEX_RANGE; q++) {
-    priv->y_dequant[q][0] = vp9_dc_quant(q, priv->y_dc_delta_q);
-    priv->y_dequant[q][1] = vp9_ac_quant(q, 0);
-    priv->uv_dequant[q][0] = vp9_dc_quant(q, priv->uv_dc_delta_q);
-    priv->uv_dequant[q][1] = vp9_ac_quant(q, priv->uv_ac_delta_q);
+      priv->y_dequant[q][0] = vp9_dc_quant(parser->bit_depth, q, priv->y_dc_delta_q);
+      priv->y_dequant[q][1] = vp9_ac_quant(parser->bit_depth, q, 0);
+      priv->uv_dequant[q][0] = vp9_dc_quant(parser->bit_depth, q, priv->uv_dc_delta_q);
+      priv->uv_dequant[q][1] = vp9_ac_quant(parser->bit_depth, q, priv->uv_ac_delta_q);
   }
 }
 static void quantization_update(Vp9Parser* parser, const Vp9FrameHdr * frame_hdr)
@@ -498,7 +499,7 @@ static void reference_update(Vp9Parser* parser, const Vp9FrameHdr* const frame_h
   }
 }
 
-static inline  int frame_is_intra_only(const Vp9FrameHdr * frame_hdr)
+static inline int key_or_intra_only(const Vp9FrameHdr* frame_hdr)
 {
   return frame_hdr->frame_type == VP9_KEY_FRAME || frame_hdr->intra_only;
 }
@@ -533,9 +534,9 @@ static void setup_past_independence(Vp9Parser* parser, Vp9FrameHdr* const frame_
 static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, Vp9FrameHdr* const frame_hdr)
 {
   if (frame_hdr->frame_type == VP9_KEY_FRAME) {
-    init_vp9_parser(parser);
+      init_vp9_parser(parser, frame_hdr->bit_depth);
   }
-  if (frame_is_intra_only(frame_hdr) || frame_hdr->error_resilient_mode) {
+  if (key_or_intra_only(frame_hdr) || frame_hdr->error_resilient_mode) {
     setup_past_independence(parser, frame_hdr);
   }
   loop_filter_update(parser, &frame_hdr->loopfilter);
