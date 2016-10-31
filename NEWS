@@ -1,7 +1,22 @@
-libyami NEWS -- summary of changes.  2016-9-26
+libyami NEWS -- summary of changes.  2016-10-31
 Copyright (c) 2010, The WebM Project authors.
 Copyright (C) 2011-2016 Intel Corporation
 Copyright (C) 2015-2016 Alibaba
+
+libyami 1.0.1(API:0.3.2) release, work with libva 1.7.3 release
+=====================
+This release mainly for SVC-T CBR support.We add following features:
++0a241d2 add h264 SVC-T CBR support. This need libva 1.7.3.
++77ba612 fix h264/h265 nalread issue in 32 bits arch
++2c1fcf3 h264parser: change luma_weight_lx from int8_t to int16_t to avoid overflow
++e2a9e07 vp8parser: fix one decoder conformance issue.
++fb83012 make yocto buildable
++518088e add wireframe function to ocl filters
++other small issues.
+
+We change API from 0.3.0 to 0.3.2 since following interface change
++518088e add wireframe function to ocl filters
++0a241d2 add h264 SVC-T CBR support.
 
 
 libyami 1.0.0(API:0.3.0) release, work with libva 2016Q3 release
