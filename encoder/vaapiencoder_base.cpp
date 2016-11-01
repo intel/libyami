@@ -59,6 +59,7 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.leastInputCount = 0;
     m_videoParamCommon.rcParams.diffQPIP = 0;
     m_videoParamCommon.rcParams.diffQPIB = 0;
+    m_videoParamCommon.bitDepth = 8;
     updateMaxOutputBufferCount();
 }
 
@@ -281,13 +282,19 @@ SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
     attrib.type = VASurfaceAttribPixelFormat;
     attrib.value.type = VAGenericValueTypeInteger;
     attrib.value.value.i = fourcc;
+    if(fourcc == VA_FOURCC('I', '0', '1', '0'))
+        attrib.value.value.i = VA_FOURCC_P010;
 
     switch(fourcc) {
     case VA_FOURCC_NV12:
     case VA_FOURCC_I420:
         rtFormat = VA_RT_FORMAT_YUV420;
         break;
-    case VA_FOURCC_YUY2:
+    case VA_FOURCC_P010:
+    case VA_FOURCC('I', '0', '1', '0'):
+        rtFormat = VA_RT_FORMAT_YUV420_10BPP;
+        break;
+   case VA_FOURCC_YUY2:
         rtFormat = VA_RT_FORMAT_YUV422;
         break;
     default:
@@ -503,7 +510,10 @@ bool VaapiEncoderBase::initVA()
 
     int32_t surfaceWidth = ALIGN16(m_videoParamCommon.resolution.width);
     int32_t surfaceHeight = ALIGN16(m_videoParamCommon.resolution.height);
-    m_pool = SurfacePool::create(m_alloc, YAMI_FOURCC_NV12, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight, m_maxOutputBuffer);
+    uint32_t fourcc = YAMI_FOURCC_NV12;
+    if (m_videoParamCommon.bitDepth == 10)
+        fourcc = YAMI_FOURCC_P010;
+    m_pool = SurfacePool::create(m_alloc, fourcc, (uint32_t)surfaceWidth, (uint32_t)surfaceHeight, m_maxOutputBuffer);
     if (!m_pool)
         return false;
 
