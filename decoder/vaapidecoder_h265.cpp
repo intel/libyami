@@ -929,6 +929,16 @@ bool VaapiDecoderH265::fillSlice(const PicturePtr& picture,
 
 VAProfile VaapiDecoderH265::getVaProfile(const SPS* const sps)
 {
+    if (sps->profile_tier_level.general_profile_idc == 0
+        || sps->profile_tier_level.general_profile_compatibility_flag[0] == 1) {
+        //general_profile_idc = 0 is not defined in spec, but some stream have this
+        //we treat it as Main profile
+        CHECK(sps->chroma_format_idc, 1);
+        CHECK(sps->bit_depth_luma_minus8, 0);
+        CHECK(sps->bit_depth_chroma_minus8, 0);
+        return VAProfileHEVCMain;
+    }
+
     if (sps->profile_tier_level.general_profile_idc == 1
         || sps->profile_tier_level.general_profile_compatibility_flag[1] == 1) {
         //A.3.2, but we only check some important values
