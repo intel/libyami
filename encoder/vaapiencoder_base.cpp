@@ -493,6 +493,15 @@ bool VaapiEncoderBase::initVA()
         pAttrib = &attrib;
         attribCount = 1;
     }
+
+    if (m_videoParamCommon.enableLowPower) {
+         if (ipPeriod() > 1) {
+            WARNING("Low power mode can not support B frame encoding");
+            m_videoParamCommon.ipPeriod = 1; // without B frame
+        }
+        m_entrypoint = VAEntrypointEncSliceLP;
+    }
+
     ConfigPtr config = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, pAttrib, attribCount);
     if (!config) {
         ERROR("failed to create config");
