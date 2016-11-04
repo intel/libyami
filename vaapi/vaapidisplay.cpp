@@ -78,6 +78,11 @@ class NativeDisplayBase {
     DISALLOW_COPY_AND_ASSIGN(NativeDisplayBase);
 };
 
+bool isInvalidDrmHandle(int handle)
+{
+    return handle == 0 || handle == -1;
+}
+
 #if __ENABLE_X11__
 class NativeDisplayX11 : public NativeDisplayBase{
   public:
@@ -99,8 +104,13 @@ class NativeDisplayX11 : public NativeDisplayBase{
     };
 
     virtual bool isCompatible(const NativeDisplay& display) {
-        if (display.type == NATIVE_DISPLAY_DRM || display.type == NATIVE_DISPLAY_AUTO)
-            return true; // x11 is compatile to any drm, (do not consider one X with 2 gfx device)
+        if (display.type == NATIVE_DISPLAY_AUTO)
+            return true;
+        if (display.type == NATIVE_DISPLAY_DRM) {
+            //invalid drm handle means any drm display is acceptable.
+            if (isInvalidDrmHandle(display.handle))
+                return true;
+        }
         if (display.type == NATIVE_DISPLAY_X11 && (!display.handle || display.handle == m_handle))
             return true;
         return false;
@@ -130,7 +140,7 @@ class NativeDisplayDrm : public NativeDisplayBase{
     bool isCompatible(const NativeDisplay& display) {
         if (display.type != NATIVE_DISPLAY_DRM)
             return false;
-        if (display.handle == 0 || display.handle == -1 || display.handle == m_handle)
+        if (isInvalidDrmHandle(display.handle) || display.handle == m_handle)
             return true;
         return false;
     }
