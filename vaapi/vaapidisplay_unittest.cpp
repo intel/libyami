@@ -308,6 +308,9 @@ VAAPI_DISPLAY_TEST(CompatibleDRM) {
     native.type = NATIVE_DISPLAY_DRM;
     EXPECT_TRUE(isCompatible(display, native));
 
+    native.type = NATIVE_DISPLAY_AUTO;
+    EXPECT_TRUE(isCompatible(display, native));
+
     native.handle = 0;
     native.type = NATIVE_DISPLAY_VA;
     EXPECT_FALSE(isCompatible(display, native));
@@ -344,6 +347,9 @@ VAAPI_DISPLAY_TEST(CompatibleVA) {
     native.handle = 1;
     native.type = NATIVE_DISPLAY_X11;
     EXPECT_FALSE(isCompatible(display, native));
+
+    native.type = NATIVE_DISPLAY_AUTO;
+    EXPECT_TRUE(isCompatible(display, native));
 }
 
 } //namespace YamiMediaCodec
