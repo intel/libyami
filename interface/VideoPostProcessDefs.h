@@ -29,6 +29,7 @@ typedef enum {
     VppParamTypeSharpening,
     VppParamTypeDeinterlace,
     VppParamTypeWireframe,
+    VppParamTypeColorBalance
 } VppParamType;
 
 typedef struct VppParamOsd {
@@ -68,6 +69,10 @@ typedef struct VPPDenoiseParameters {
 #define SHARPENING_LEVEL_MAX 100
 #define SHARPENING_LEVEL_NONE (SHARPENING_LEVEL_MIN - 1)
 
+#define COLORBALANCE_LEVEL_MIN 0
+#define COLORBALANCE_LEVEL_MAX 100
+#define COLORBALANCE_LEVEL_NONE (COLORBALANCE_LEVEL_MIN - 1)
+
 typedef struct VPPSharpeningParameters {
     size_t size;
     int32_t level;
@@ -91,6 +96,21 @@ typedef struct VppParamWireframe {
     uint8_t colorU;
     uint8_t colorV;
 } VppParamWireframe;
+
+typedef enum VppColorBalanceMode {
+    COLORBALANCE_NONE = 0,
+    COLORBALANCE_HUE,
+    COLORBALANCE_SATURATION,
+    COLORBALANCE_BRIGHTNESS,
+    COLORBALANCE_CONTRAST,
+    COLORBALANCE_COUNT
+} VppColorBalanceMode;
+
+typedef struct VPPColorBalanceParameter {
+    size_t size;
+    VppColorBalanceMode mode;
+    int32_t level;
+} VPPColorBalanceParameter;
 
 #ifdef __cplusplus
 }
