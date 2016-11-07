@@ -20,6 +20,7 @@
 #include "vaapipostprocess_base.h"
 #include <vector>
 #include <set>
+#include <map>
 
 namespace YamiMediaCodec{
 
@@ -48,6 +49,16 @@ private:
         BufObjectPtr filter; //send to va;
     };
 
+    struct ColorBalanceParam {
+        BufObjectPtr filter; //send to va;
+        int32_t level; //send to va
+        VAProcColorBalanceType type; //query from va
+        VAProcFilterValueRange range; //query from va
+    };
+
+    typedef std::map<VppColorBalanceMode, ColorBalanceParam> ColorBalanceMap;
+    typedef ColorBalanceMap::iterator ColorBalanceMapItr;
+
     bool mapToRange(float& value, float min, float max,
         int32_t level, int32_t minLevel, int32_t maxLevel);
 
@@ -65,10 +76,13 @@ private:
 
     YamiStatus setDeinterlaceParam(const VPPDeinterlaceParameters&);
     YamiStatus createDeinterlaceFilter(const VPPDeinterlaceParameters&);
+    YamiStatus setColorBalanceParam(const VPPColorBalanceParameter&);
+    YamiStatus createColorBalanceFilters(ColorBalanceParam& clrBalance, const VPPColorBalanceParameter& vppClrBalance);
 
     ProcParams m_denoise;
     ProcParams m_sharpening;
     DeinterlaceParams m_deinterlace;
+    ColorBalanceMap m_colorBalance;
 
     /**
      * VaapiPostProcessFactory registration result. This postprocess is
