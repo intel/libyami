@@ -140,11 +140,16 @@ VAAPI_DISPLAY_TEST(CreateInvalidHandleVA) {
 
     EXPECT_FALSE(display.get());
 
+    //this turn off gest warning about multithread
+    //you can check details at
+    //https://github.com/google/googletest/blob/master/googletest/docs/AdvancedGuide.md
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+
     native.handle = -1;
     native.type = NATIVE_DISPLAY_VA;
-    display = VaapiDisplay::create(native);
 
-    EXPECT_FALSE(display.get());
+    //This will crash in vaDisplayIsValid
+    ASSERT_DEATH({ display = VaapiDisplay::create(native); }, "");
 }
 
 #if __ENABLE_X11__
