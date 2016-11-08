@@ -103,14 +103,14 @@ protected:
 
 #if __ENABLE_X11__
 VAAPI_DISPLAY_TEST(CreateInvalidHandleX11) {
-    FAIL(); // remove when fixed;
+    //this turn off gest warning about multithread
+    //you can check details at
+    //https://github.com/google/googletest/blob/master/googletest/docs/AdvancedGuide.md
+    ::testing::FLAGS_gtest_death_test_style = "threadsafe";
 
-    // FIXME: This causes segmentation fault.
-    // VaapiDisplay should be able to handle this gracefully
     NativeDisplay native = {1, NATIVE_DISPLAY_X11};
-    DisplayPtr display = VaapiDisplay::create(native);
-
-    EXPECT_FALSE(display.get());
+    //this will crash vaGetDisplay
+    ASSERT_DEATH({ DisplayPtr display = VaapiDisplay::create(native); }, "");
 }
 #endif
 
