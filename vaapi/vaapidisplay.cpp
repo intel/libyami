@@ -155,7 +155,9 @@ class NativeDisplayVADisplay : public NativeDisplayBase{
     virtual bool initialize (const NativeDisplay& display) {
         ASSERT(display.type == NATIVE_DISPLAY_VA);
 
-        return acceptValidExternalHandle(display);
+        if (acceptValidExternalHandle(display))
+            return true;
+        return vaDisplayIsValid((VADisplay)display.handle);
     };
 
     bool isCompatible(const NativeDisplay& display) {
