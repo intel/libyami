@@ -271,6 +271,11 @@ AC_ARG_ENABLE(h264enc,
         [build with h264 encoder support @<:@default=yes@:>@])],
     [], [enable_h264enc="yes"])
 
+if test "$enable_h264enc" = "yes"; then
+    AC_DEFINE([__BUILD_H264_ENCODER__], [1],
+        [Defined to 1 if --enable-h264enc="yes"])
+fi
+
 AM_CONDITIONAL(BUILD_H264_ENCODER,
     [test "x$enable_h264enc" = "xyes"])
 
@@ -279,6 +284,11 @@ AC_ARG_ENABLE(jpegenc,
     [AC_HELP_STRING([--enable-jpegenc],
         [build with jpeg encoder support @<:@default=no@:>@])],
     [], [enable_jpegenc="no"])
+
+if test "$enable_jpegenc" = "yes"; then
+    AC_DEFINE([__BUILD_JPEG_ENCODER__], [1],
+        [Defined to 1 if --enable-jpegenc="yes"])
+fi
 
 AM_CONDITIONAL(BUILD_JPEG_ENCODER,
     [test "x$enable_jpegenc" = "xyes"])
@@ -289,6 +299,11 @@ AC_ARG_ENABLE(vp8enc,
         [build with vp8 encoder support @<:@default=no@:>@])],
     [], [enable_vp8enc="no"])
 
+if test "$enable_vp8enc" = "yes"; then
+    AC_DEFINE([__BUILD_VP8_ENCODER__], [1],
+        [Defined to 1 if --enable-vp8enc="yes"])
+fi
+
 AM_CONDITIONAL(BUILD_VP8_ENCODER,
     [test "x$enable_vp8enc" = "xyes"])
 
@@ -298,6 +313,11 @@ AC_ARG_ENABLE(vp9enc,
         [build with vp9 encoder support @<:@default=no@:>@])],
     [], [enable_vp9enc="no"])
 
+if test "$enable_vp9enc" = "yes"; then
+    AC_DEFINE([__BUILD_VP9_ENCODER__], [1],
+        [Defined to 1 if --enable-vp9enc="yes"])
+fi
+
 AM_CONDITIONAL(BUILD_VP9_ENCODER,
     [test "x$enable_vp9enc" = "xyes"])
 
@@ -306,6 +326,11 @@ AC_ARG_ENABLE(h265enc,
     [AC_HELP_STRING([--enable-h265enc],
         [build with h265 encoder support @<:@default=no@:>@])],
     [], [enable_h265enc="no"])
+
+if test "$enable_h265enc" = "yes"; then
+    AC_DEFINE([__BUILD_H265_ENCODER__], [1],
+        [Defined to 1 if --enable-h265enc="yes"])
+fi
 
 AM_CONDITIONAL(BUILD_H265_ENCODER,
     [test "x$enable_h265enc" = "xyes"])
