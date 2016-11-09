@@ -101,7 +101,6 @@ class V4l2CodecBase {
         m_Display = x11Display;
         return true;
     };
-    virtual int32_t usePixmap(uint32_t bufferIndex, Pixmap pixmap) {return 0;};
     #endif
     #if defined(__ENABLE_EGL__)
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
