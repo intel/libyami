@@ -32,6 +32,7 @@
 #include "v4l2_decode.h"
 #include "common/log.h"
 #include "common/common_def.h"
+#include "vaapi/vaapidisplay.h"
 #include <algorithm>
 #ifdef ANDROID
 #include <va/va_android.h>
@@ -85,11 +86,7 @@ V4l2CodecBase::V4l2CodecBase()
     , m_started(false)
 #ifdef ANDROID
     , m_reqBuffCnt(0)
-#elif defined(__ENABLE_WAYLAND__) || defined(__ENABLE_X11__)
-    , m_Display(NULL)
-#else
 #endif
-    , m_drmfd(0)
     , m_hasEvent(false)
     , m_inputThreadCond(m_frameLock[INPUT])
     , m_outputThreadCond(m_frameLock[OUTPUT])
@@ -117,6 +114,7 @@ V4l2CodecBase::V4l2CodecBase()
     hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (hw_module_t const**)&m_pGralloc);
     ASSERT(m_pGralloc);
 #endif
+    memset(&m_nativeDisplay, 0, sizeof(m_nativeDisplay));
 }
 
 V4l2CodecBase::~V4l2CodecBase()
@@ -662,34 +660,41 @@ private:
     VADisplay m_display;
 };
 
-#ifdef ANDROID
-bool V4l2CodecBase::setVaDisplay()
+#if defined(__ENABLE_WAYLAND__)
+bool V4l2CodecBase::setWaylandDisplay(struct wl_display* wlDisplay)
 {
-    unsigned int display = ANDROID_DISPLAY;
-    m_vaDisplay = vaGetDisplay(&display);
-
-    int major, minor;
-    VAStatus status;
-    status = vaInitialize(m_vaDisplay, &major, &minor);
-    if (status != VA_STATUS_SUCCESS) {
-        fprintf(stderr, "init vaDisplay failed\n");
-        return false;
-    }
-
+    m_nativeDisplay.type = NATIVE_DISPLAY_WAYLAND;
+    m_nativeDisplay.handle = (intptr_t)wlDisplay;
     return true;
-}
+};
+#else
 
-bool V4l2CodecBase::createVpp()
+#if defined(__ENABLE_X11__)
+bool V4l2CodecBase::setXDisplay(Display* x11Display)
 {
-    NativeDisplay nativeDisplay;
-    nativeDisplay.type = NATIVE_DISPLAY_VA;
-    nativeDisplay.handle = (intptr_t)m_vaDisplay;
-    m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
-    return m_vpp->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
-}
+    m_nativeDisplay.type = NATIVE_DISPLAY_X11;
+    m_nativeDisplay.handle = (intptr_t)x11Display;
+    return true;
+};
+#endif //__ENABLE_X11__
+
+#endif //__ENABLE_WAYLAND__
+
+bool V4l2CodecBase::setDrmFd(int fd)
+{
+    m_nativeDisplay.type = NATIVE_DISPLAY_DRM;
+    m_nativeDisplay.handle = (intptr_t)fd;
+    return true;
+};
+
+#if ANDROID
 SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const buffer_handle_t buf_handle, int32_t width, int32_t height)
 {
     SharedPtr<VideoFrame> frame;
+    if (!m_display) {
+        ERROR("bug: no display to create vasurface");
+        return frame;
+    }
 
     intel_ufo_buffer_details_t info;
     memset(&info, 0, sizeof(info));
@@ -727,12 +732,12 @@ SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const buffer_handle_t buf_h
     attrib.value.value.p = &external;
 
     VASurfaceID id;
-    VAStatus vaStatus = vaCreateSurfaces(m_vaDisplay, VA_RT_FORMAT_YUV420,
+    VAStatus vaStatus = vaCreateSurfaces(m_display->getID(), VA_RT_FORMAT_YUV420,
         width, height, &id, 1, &attrib, 1);
     if (vaStatus != VA_STATUS_SUCCESS)
         return frame;
 
-    frame.reset(new VideoFrame, VideoFrameDeleter(m_vaDisplay));
+    frame.reset(new VideoFrame, VideoFrameDeleter(m_display->getID()));
     memset(frame.get(), 0, sizeof(VideoFrame));
 
     frame->surface = static_cast<intptr_t>(id);
@@ -756,31 +761,16 @@ bool V4l2CodecBase::mapVideoFrames(int32_t width, int32_t height)
     return true;
 }
 #elif defined(__ENABLE_WAYLAND__)
-bool V4l2CodecBase::setVaDisplay()
-{
-    VAStatus status;
-    int major, minor;
-    m_vaDisplay = vaGetDisplayWl((struct wl_display*)m_Display);
-    status = vaInitialize(m_vaDisplay, &major, &minor);
-    if (status != VA_STATUS_SUCCESS)
-        return false;
-    return true;
-}
-
-bool V4l2CodecBase::createVpp()
-{
-    NativeDisplay nativeDisplay;
-    nativeDisplay.type = NATIVE_DISPLAY_VA;
-    nativeDisplay.handle = (intptr_t)m_vaDisplay;
-    m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
-    return m_vpp->setNativeDisplay(nativeDisplay) == YAMI_SUCCESS;
-}
-
 SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(uint32_t width, uint32_t height)
 {
+    SharedPtr<VideoFrame> frame;
+    if (!m_display) {
+        ERROR("bug: no display to create vasurface");
+        return frame;
+    }
+
     VASurfaceID id;
     VASurfaceAttrib attrib;
-    SharedPtr<VideoFrame> frame;
     uint32_t rtFormat = VA_RT_FORMAT_YUV420;
     int pixelFormat = VA_FOURCC_NV12;
     attrib.type = VASurfaceAttribPixelFormat;
@@ -788,11 +778,11 @@ SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(uint32_t width, uint32_t he
     attrib.value.type = VAGenericValueTypeInteger;
     attrib.value.value.i = pixelFormat;
 
-    VAStatus vaStatus = vaCreateSurfaces(m_vaDisplay, rtFormat, width, height, &id, 1, &attrib, 1);
+    VAStatus vaStatus = vaCreateSurfaces(m_display->getID(), rtFormat, width, height, &id, 1, &attrib, 1);
     if (vaStatus != VA_STATUS_SUCCESS)
         return frame;
 
-    frame.reset(new VideoFrame, VideoFrameDeleter(m_vaDisplay));
+    frame.reset(new VideoFrame, VideoFrameDeleter(m_display->getID()));
     memset(frame.get(), 0, sizeof(VideoFrame));
     frame->surface = static_cast<intptr_t>(id);
     frame->crop.width = width;

@@ -36,6 +36,7 @@
 #include "v4l2_decode.h"
 #include "VideoDecoderHost.h"
 #include "common/log.h"
+#include "vaapi/vaapidisplay.h"
 #if defined(__ENABLE_EGL__)
 #include "egl/egl_vaapi_image.h"
 #endif
@@ -114,38 +115,9 @@ bool V4l2Decoder::start()
     if (m_started)
         return true;
 
-#if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
-    if (!setVaDisplay()) {
-        ERROR("fail to set up VADisplay");
+    m_display = VaapiDisplay::create(m_nativeDisplay);
+    if (!m_display)
         return false;
-    }
-
-    if (!createVpp()) {
-        ERROR("fail to set up VPP");
-        return false;
-    }
-#endif
-
-    NativeDisplay nativeDisplay;
-    nativeDisplay.type = NATIVE_DISPLAY_AUTO;
-
-#if defined(ANDROID) || defined(__ENABLE_WAYLAND__)
-    if (m_vaDisplay) {
-        nativeDisplay.type = NATIVE_DISPLAY_VA;
-        nativeDisplay.handle = (intptr_t)m_vaDisplay;
-    }
-#elif defined(__ENABLE_X11__)
-    DEBUG("m_Display: %p", m_Display);
-    if (m_Display) {
-        nativeDisplay.type = NATIVE_DISPLAY_X11;
-        nativeDisplay.handle = (intptr_t)m_Display;
-    }
-#endif
-
-    if (m_drmfd) {
-        nativeDisplay.type = NATIVE_DISPLAY_DRM;
-        nativeDisplay.handle = m_drmfd;
-    }
 
     m_decoder.reset(
         createVideoDecoder(mimeFromV4l2PixelFormat(m_pixelFormat[INPUT])),
@@ -155,7 +127,10 @@ bool V4l2Decoder::start()
         return false;
     }
 
-    m_decoder->setNativeDisplay(&nativeDisplay);
+    m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
+    ASSERT(m_vpp);
+    if (!m_vpp)
+        return false;
 
     // send codec_data if there is
     VideoConfigBuffer configBuffer;
@@ -343,7 +318,7 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     struct wl_buffer* buffer;
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
-    vaStatus = vaGetSurfaceBufferWl(m_vaDisplay, m_videoFrames[dqbuf->index]->surface, VA_FRAME_PICTURE, &buffer);
+    vaStatus = vaGetSurfaceBufferWl(m_display->getID(), m_videoFrames[dqbuf->index]->surface, VA_FRAME_PICTURE, &buffer);
     DEBUG("m_outputBufferCountGive: %d, index: %d, surface: %p, wl_buffer: %p", m_outputBufferCountGive, dqbuf->index, (void*)m_videoFrames[dqbuf->index]->surface, buffer);
     m_outputBufferCountGive++;
     if (vaStatus != VA_STATUS_SUCCESS)
