@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 Intel Corporation. All rights reserved.
+ * Copyright (C) 2013-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
-#include "vaapiencoder_factory.h"
 #include <algorithm>
 #include <math.h>
 
@@ -2003,9 +2002,5 @@ YamiStatus VaapiEncoderH264::encodePicture(const PicturePtr& picture)
 
     return YAMI_SUCCESS;
 }
-
-const bool VaapiEncoderH264::s_registered =
-    VaapiEncoderFactory::register_<VaapiEncoderH264>(YAMI_MIME_AVC)
-    && VaapiEncoderFactory::register_<VaapiEncoderH264>(YAMI_MIME_H264);
 
 }

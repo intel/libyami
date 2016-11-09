@@ -62,7 +62,11 @@ private:
 
     unsigned char quality;
 
-    static const bool s_registered; // VaapiEncoderFactory registration result
+    /**
+     * VaapiEncoderFactory registration result. This encoder is registered in
+     * vaapiencoder_host.cpp
+     */
+    static const bool s_registered;
 };
 }
 #endif

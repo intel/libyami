@@ -1,6 +1,6 @@
 
 /*
- * Copyright (C) 2014-2015 Intel Corporation. All rights reserved.
+ * Copyright (C) 2014-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -164,7 +164,11 @@ private:
     StreamHeaderPtr m_headers;
     Lock m_paramLock; // locker for parameters update, for example: m_sps/m_pps/m_maxCodedbufSize (width/height etc)
 
-    static const bool s_registered; // VaapiEncoderFactory registration result
+    /**
+     * VaapiEncoderFactory registration result. This encoder is registered in
+     * vaapiencoder_host.cpp
+     */
+    static const bool s_registered;
 };
 }
 #endif /* vaapiencoder_hevc_h */
