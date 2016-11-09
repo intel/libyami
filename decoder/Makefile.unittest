@@ -57,6 +57,41 @@ unittest_CXXFLAGS = \
 	$(AM_CXXFLAGS) \
 	$(NULL)
 
-check-local: unittest
-	$(builddir)/unittest
+# Separate the vaapidecoder_host_unittest so that we can detect static
+# initialization bugs with the decoder factory.  Separation is required
+# since any derived decoder that is explicitly constructed in another test
+# would hide such bugs.
+noinst_PROGRAMS += unittest_host
+unittest_host_SOURCES = \
+	unittest_main.cpp \
+	vaapidecoder_host_unittest.cpp \
+	$(NULL)
 
+unittest_host_LDFLAGS = \
+	$(GTEST_LDFLAGS) \
+	$(AM_LDFLAGS) \
+	$(NULL)
+
+unittest_host_LDADD = \
+	libyami_decoder.la \
+	$(top_builddir)/codecparsers/libyami_codecparser.la \
+	$(top_builddir)/vaapi/libyami_vaapi.la \
+	$(top_builddir)/common/libyami_common.la \
+	$(GTEST_LIBS) \
+	$(NULL)
+
+unittest_host_CPPFLAGS = \
+	$(GTEST_CPPFLAGS) \
+	$(LIBVA_CFLAGS) \
+	$(AM_CPPFLAGS) \
+	-I$(top_srcdir)/interface \
+	$(NULL)
+
+unittest_host_CXXFLAGS = \
+	$(GTEST_CXXFLAGS) \
+	$(AM_CXXFLAGS) \
+	$(NULL)
+
+check-local: unittest unittest_host
+	$(builddir)/unittest
+	$(builddir)/unittest_host
