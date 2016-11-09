@@ -44,6 +44,9 @@ public:
     }
 
 private:
+    friend class FactoryTest<IVideoPostProcess, OclPostProcessWireframe>;
+    friend class OclPostProcessWireframeTest;
+
     virtual bool prepareKernels();
 
     static const bool s_registered; // VaapiPostProcessFactory registration result

@@ -37,6 +37,9 @@ public:
     }
 
 private:
+    friend class FactoryTest<IVideoPostProcess, OclPostProcessBlender>;
+    friend class OclPostProcessBlenderTest;
+
     virtual bool prepareKernels();
     YamiStatus blend(const SharedPtr<VideoFrame>& src,
                      const SharedPtr<VideoFrame>& dst);

@@ -22,6 +22,9 @@
 #include <ocl/oclcontext.h>
 #include <va/va.h>
 
+template <class B, class C>
+class FactoryTest;
+
 namespace YamiMediaCodec{
 class OclContext;
 /**
