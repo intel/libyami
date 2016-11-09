@@ -358,6 +358,11 @@ AC_ARG_ENABLE(oclfilters,
         [build with opencl based alpha blend support @<:@default=no@:>@])],
     [], [enable_oclfilters="no"])
 
+if test "$enable_oclfilters" = "yes"; then
+    AC_DEFINE([__BUILD_OCL_FILTERS__], [1],
+        [Defined to 1 if --enable-oclfilters="yes"])
+fi
+
 AM_CONDITIONAL(BUILD_OCL_FILTERS,
     [test "x$enable_oclfilters" = "xyes"])
 
