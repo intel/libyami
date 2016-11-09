@@ -21,23 +21,18 @@
 #include <vector>
 #include <list>
 #include "common/condition.h"
-#ifdef ANDROID
 #include "VideoPostProcessHost.h"
 #include "VideoDecoderInterface.h"
-#elif defined(__ENABLE_WAYLAND__)
-#include "VideoPostProcessHost.h"
-#include "VideoDecoderInterface.h"
-#else
-    #ifdef __ENABLE_X11__
-    #include <X11/Xlib.h>
-    #endif
-    #ifdef __ENABLE_EGL__
-    #include <EGL/egl.h>
-    #define EGL_EGLEXT_PROTOTYPES
-    #include "EGL/eglext.h"
-    #endif
+#if defined(__ENABLE_X11__)
+#include <X11/Xlib.h>
+#endif
+#if defined(__ENABLE_EGL__)
+#include <EGL/egl.h>
+#define EGL_EGLEXT_PROTOTYPES
+#include "EGL/eglext.h"
 #endif
 #include "VideoCommonDefs.h"
+#include "vaapi/vaapiptrs.h"
 #include "v4l2codec_device_ops.h"
 #ifdef ANDROID
 #include <va/va_android.h>
@@ -83,34 +78,19 @@ class V4l2CodecBase {
                          int prot, int flags, unsigned int offset) {return NULL;};
     // virtual int32_t munmap(void* addr, size_t length) {return 0;};
     virtual bool stop() = 0;
-#ifdef ANDROID
-    bool setVaDisplay();
-    bool createVpp();
-#elif defined(__ENABLE_WAYLAND__)
-    bool setWaylandDisplay(struct wl_display* wlDisplay)
-    {
-        m_Display = wlDisplay;
-        return true;
-    };
-    bool setVaDisplay();
-    bool createVpp();
-#else
-    #if defined(__ENABLE_X11__)
-    bool setXDisplay(Display* x11Display)
-    {
-        m_Display = x11Display;
-        return true;
-    };
-    #endif
-    #if defined(__ENABLE_EGL__)
-    virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
-    #endif
+
+#if defined(__ENABLE_WAYLAND__)
+    bool setWaylandDisplay(struct wl_display*);
+#elif defined(__ENABLE_X11__)
+    bool setXDisplay(Display*);
 #endif
-    bool setDrmFd(int drm_fd)
-    {
-        m_drmfd = drm_fd;
-        return true;
-    };
+
+#if defined(__ENABLE_EGL__)
+    virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
+#endif
+
+    bool setDrmFd(int fd);
+
     void workerThread();
     int32_t fd() { return m_fd[0];};
 
@@ -144,20 +124,19 @@ class V4l2CodecBase {
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
-#if defined(__ENABLE_X11__) || defined(__ENABLE_WAYLAND__)
-    void* m_Display;
-#endif
-#ifdef ANDROID
+
+#if defined(ANDROID)
     std::vector<buffer_handle_t> m_bufferHandle;
     gralloc_module_t* m_pGralloc;
 #endif
-#if defined(ANDROID) || defined(__ENABLE_WAYLAND__)
-    VADisplay m_vaDisplay;
+    DisplayPtr m_display;
+
     SharedPtr<IVideoPostProcess> m_vpp;
+#if defined(ANDROID) || defined(__ENABLE_WAYLAND__)
     uint32_t m_reqBuffCnt;
     std::vector<SharedPtr<VideoFrame> > m_videoFrames;
 #endif
-    int m_drmfd;
+    NativeDisplay m_nativeDisplay;
 
     enum EosState{
         EosStateNormal,
