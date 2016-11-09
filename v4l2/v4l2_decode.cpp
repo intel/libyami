@@ -113,7 +113,6 @@ bool V4l2Decoder::start()
 
     if (m_started)
         return true;
-    ASSERT(m_decoder);
 
 #if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
     if (!setVaDisplay()) {
@@ -146,6 +145,14 @@ bool V4l2Decoder::start()
     if (m_drmfd) {
         nativeDisplay.type = NATIVE_DISPLAY_DRM;
         nativeDisplay.handle = m_drmfd;
+    }
+
+    m_decoder.reset(
+        createVideoDecoder(mimeFromV4l2PixelFormat(m_pixelFormat[INPUT])),
+        releaseVideoDecoder);
+    ASSERT(m_decoder);
+    if (!m_decoder) {
+        return false;
     }
 
     m_decoder->setNativeDisplay(&nativeDisplay);
@@ -496,14 +503,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             ASSERT(format->fmt.pix_mp.num_planes == 1);
             ASSERT(format->fmt.pix_mp.plane_fmt[0].sizeimage);
             m_codecData.clear();
-            m_decoder.reset(
-                createVideoDecoder(mimeFromV4l2PixelFormat(format->fmt.pix_mp.pixelformat)),
-                releaseVideoDecoder);
-            ASSERT(m_decoder);
-            if (!m_decoder) {
-                ret = -1;
-            }
-
+            m_pixelFormat[INPUT] = format->fmt.pix_mp.pixelformat;
             m_videoWidth = format->fmt.pix_mp.width;
             m_videoHeight = format->fmt.pix_mp.height;
             m_maxBufferSize[INPUT] = format->fmt.pix_mp.plane_fmt[0].sizeimage;
