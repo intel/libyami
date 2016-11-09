@@ -38,7 +38,8 @@ const bool VaapiDecoderH264::s_registered
 #if __BUILD_H265_DECODER__
 #include "vaapidecoder_h265.h"
 const bool VaapiDecoderH265::s_registered =
-    VaapiDecoderFactory::register_<VaapiDecoderH265>(YAMI_MIME_H265);
+    VaapiDecoderFactory::register_<VaapiDecoderH265>(YAMI_MIME_H265)
+    && VaapiDecoderFactory::register_<VaapiDecoderH265>(YAMI_MIME_HEVC);
 #endif
 
 #if __BUILD_MPEG2_DECODER__
