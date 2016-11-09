@@ -50,7 +50,11 @@ private:
     SharedPtr<VaapiDecoderJPEG::Impl> m_impl;
     PicturePtr m_picture;
 
-    static const bool s_registered; // VaapiDecoderFactory registration result
+    /**
+     * VaapiDecoderFactory registration result. This decoder is registered in
+     * vaapidecoder_host.cpp
+     */
+    static const bool s_registered;
 
     DISALLOW_COPY_AND_ASSIGN(VaapiDecoderJPEG);
 };

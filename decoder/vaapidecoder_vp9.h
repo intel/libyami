@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Intel Corporation. All rights reserved.
+ * Copyright (C) 2013-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,9 +53,13 @@ class VaapiDecoderVP9:public VaapiDecoderBase {
     ParserPtr m_parser;
     std::vector<SurfacePtr> m_reference;
 
-    static const bool s_registered; // VaapiDecoderFactory registration result
+    /**
+     * VaapiDecoderFactory registration result. This decoder is registered in
+     * vaapidecoder_host.cpp
+     */
+    static const bool s_registered;
 };
 
-};
+} // namespace YamiMediaCodec
 
 #endif

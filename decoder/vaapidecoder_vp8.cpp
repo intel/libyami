@@ -21,7 +21,6 @@
 #include <string.h>
 #include "common/log.h"
 #include "vaapidecoder_vp8.h"
-#include "vaapidecoder_factory.h"
 
 using ::YamiParser::Vp8Parser;
 using ::YamiParser::Vp8FrameHeader;
@@ -590,8 +589,5 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
 
     return status;
 }
-
-const bool VaapiDecoderVP8::s_registered =
-    VaapiDecoderFactory::register_<VaapiDecoderVP8>(YAMI_MIME_VP8);
 
 }

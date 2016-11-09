@@ -60,7 +60,12 @@ private:
     PicturePtr m_dpb[2];
     int32_t m_dpbIdx;
     bool m_sliceFlag;
+
+    /**
+     * VaapiDecoderFactory registration result. This decoder is registered in
+     * vaapidecoder_host.cpp
+     */
     static const bool s_registered;
 };
-}
+} // namespace YamiMediaCodec
 #endif

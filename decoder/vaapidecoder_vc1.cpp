@@ -22,7 +22,6 @@
 
 #include "common/log.h"
 #include "vaapidecoder_vc1.h"
-#include "vaapidecoder_factory.h"
 
 namespace YamiMediaCodec {
 using namespace ::YamiParser::VC1;
@@ -427,6 +426,4 @@ YamiStatus VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
     return decode(data, size, buffer->timeStamp);
 }
 
-const bool VaapiDecoderVC1::s_registered
-    = VaapiDecoderFactory::register_<VaapiDecoderVC1>(YAMI_MIME_VC1);
 }

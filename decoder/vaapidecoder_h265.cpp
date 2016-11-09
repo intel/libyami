@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 Intel Corporation. All rights reserved.
+ * Copyright (C) 2013-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 #include "codecparsers/h265Parser.h"
 #include "common/log.h"
 #include "common/nalreader.h"
-#include "vaapidecoder_factory.h"
 
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapicontext.h"
@@ -1229,9 +1228,6 @@ bool VaapiDecoderH265::decodeHevcRecordData(uint8_t* buf, int32_t bufSize)
     m_nalLengthSize = nalLengthSize;
     return true;
 }
-
-const bool VaapiDecoderH265::s_registered =
-    VaapiDecoderFactory::register_<VaapiDecoderH265>(YAMI_MIME_H265);
 
 }
 

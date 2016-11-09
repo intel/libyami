@@ -166,8 +166,13 @@ private:
     uint32_t m_nalLengthSize;
     SurfacePtr m_currSurface;
     bool m_contextChanged;
-    static const bool s_registered; // VaapiDecoderFactory registration result
+
+    /**
+     * VaapiDecoderFactory registration result. This decoder is registered in
+     * vaapidecoder_host.cpp
+     */
+    static const bool s_registered;
 };
-};
+} // namespace YamiMediaCodec
 
 #endif
