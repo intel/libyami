@@ -1,5 +1,3 @@
-INCLUDES = -I$(top_srcdir)/interface
-
 libyami_vpp_source_c = \
 	vaapipostprocess_base.cpp \
 	vaapipostprocess_host.cpp \
