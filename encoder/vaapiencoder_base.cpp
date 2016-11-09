@@ -291,7 +291,7 @@ SurfacePtr VaapiEncoderBase::createNewSurface(uint32_t fourcc)
         rtFormat = VA_RT_FORMAT_YUV422;
         break;
     default:
-        ERROR("unspported fourcc %x", fourcc);
+        ERROR("unsupported fourcc %x", fourcc);
         return surface;
     }
 

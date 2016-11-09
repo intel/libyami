@@ -153,7 +153,7 @@ typedef enum {
     YAMI_DRIVER_FAIL,
     /* yami unimplemented */
     YAMI_NOT_IMPLEMENT,
-    /* driver or yami unspported*/
+    /* driver or yami unsupported*/
     YAMI_UNSUPPORTED,
     YAMI_INVALID_PARAM,
     YAMI_OUT_MEMORY,

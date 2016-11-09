@@ -1710,7 +1710,7 @@ bool VaapiEncoderH264::addPackedSliceHeader(
 
     /* frame_mbs_only_flag == 1 */
     if (!m_seqParam->seq_fields.bits.frame_mbs_only_flag) {
-        ERROR("interlace unspported");
+        ERROR("interlace unsupported");
         return false;
     }
 
@@ -1723,7 +1723,7 @@ bool VaapiEncoderH264::addPackedSliceHeader(
             m_seqParam->seq_fields.bits.log2_max_pic_order_cnt_lsb_minus4 + 4);
         /* pic_order_present_flag == 0 */
     } else {
-        ERROR("POC type unspported");
+        ERROR("POC type unsupported");
         return false;
     }
 
