@@ -6,6 +6,16 @@ unittest_SOURCES = \
 
 unittest_SOURCES += vaapipostprocess_scaler_unittest.cpp
 
+if BUILD_OCL_FILTERS
+unittest_SOURCES += \
+	oclpostprocess_blender_unittest.cpp \
+	oclpostprocess_mosaic_unittest.cpp \
+	oclpostprocess_osd_unittest.cpp \
+	oclpostprocess_transform_unittest.cpp \
+	oclpostprocess_wireframe_unittest.cpp \
+	$(NULL)
+endif
+
 unittest_LDFLAGS = \
 	$(GTEST_LDFLAGS) \
 	$(AM_LDFLAGS) \

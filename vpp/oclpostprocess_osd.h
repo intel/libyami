@@ -45,6 +45,9 @@ public:
     }
 
 private:
+    friend class FactoryTest<IVideoPostProcess, OclPostProcessOsd>;
+    friend class OclPostProcessOsdTest;
+
     virtual bool prepareKernels();
     YamiStatus computeBlockLuma(const SharedPtr<VideoFrame> frame);
 

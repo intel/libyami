@@ -49,6 +49,9 @@ public:
     }
 
 private:
+    friend class FactoryTest<IVideoPostProcess, OclPostProcessTransform>;
+    friend class OclPostProcessTransformTest;
+
     virtual bool prepareKernels();
     YamiStatus flip(const SharedPtr<OclVppCLImage>& src,
         const SharedPtr<OclVppCLImage>& dst);
