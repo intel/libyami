@@ -158,7 +158,11 @@ private:
     std::list<PicturePtr> m_topFieldPictures;
     std::list<PicturePtr> m_bottomFieldPictures;
 
-    static const bool s_registered; // VaapiDecoderFactory registration result
+    /**
+     * VaapiDecoderFactory registration result. This decoder is registered in
+     * vaapidecoder_host.cpp
+     */
+    static const bool s_registered;
 };
 } // namespace YamiMediaCodec
 

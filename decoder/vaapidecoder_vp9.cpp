@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 Intel Corporation. All rights reserved.
+ * Copyright (C) 2013-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@
 
 #include "common/log.h"
 #include "vaapidecoder_vp9.h"
-#include "vaapidecoder_factory.h"
 
 namespace YamiMediaCodec{
 typedef VaapiDecoderVP9::PicturePtr PicturePtr;
@@ -340,8 +339,5 @@ YamiStatus VaapiDecoderVP9::decode(const uint8_t* data, uint32_t size, uint64_t 
         return YAMI_DECODE_INVALID_DATA;
     return decode(&hdr, data, size, timeStamp);
 }
-
-const bool VaapiDecoderVP9::s_registered =
-    VaapiDecoderFactory::register_<VaapiDecoderVP9>(YAMI_MIME_VP9);
 
 }

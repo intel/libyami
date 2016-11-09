@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013 Intel Corporation. All rights reserved.
+ * Copyright (C) 2013-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,49 @@
 #endif
 
 using namespace YamiMediaCodec;
+
+#if __BUILD_H264_DECODER__
+#include "vaapidecoder_h264.h"
+const bool VaapiDecoderH264::s_registered
+    = VaapiDecoderFactory::register_<VaapiDecoderH264>(YAMI_MIME_AVC)
+      && VaapiDecoderFactory::register_<VaapiDecoderH264>(YAMI_MIME_H264);
+#endif
+
+#if __BUILD_H265_DECODER__
+#include "vaapidecoder_h265.h"
+const bool VaapiDecoderH265::s_registered =
+    VaapiDecoderFactory::register_<VaapiDecoderH265>(YAMI_MIME_H265);
+#endif
+
+#if __BUILD_MPEG2_DECODER__
+#include "vaapidecoder_mpeg2.h"
+const bool VaapiDecoderMPEG2::s_registered
+    = VaapiDecoderFactory::register_<VaapiDecoderMPEG2>(YAMI_MIME_MPEG2);
+#endif
+
+#if __BUILD_VC1_DECODER__
+#include "vaapidecoder_vc1.h"
+const bool VaapiDecoderVC1::s_registered
+    = VaapiDecoderFactory::register_<VaapiDecoderVC1>(YAMI_MIME_VC1);
+#endif
+
+#if __BUILD_VP8_DECODER__
+#include "vaapidecoder_vp8.h"
+const bool VaapiDecoderVP8::s_registered =
+    VaapiDecoderFactory::register_<VaapiDecoderVP8>(YAMI_MIME_VP8);
+#endif
+
+#if __BUILD_VP9_DECODER__
+#include "vaapidecoder_vp9.h"
+const bool VaapiDecoderVP9::s_registered =
+    VaapiDecoderFactory::register_<VaapiDecoderVP9>(YAMI_MIME_VP9);
+#endif
+
+#if __BUILD_JPEG_DECODER__
+#include "vaapiDecoderJPEG.h"
+const bool VaapiDecoderJPEG::s_registered =
+    VaapiDecoderFactory::register_<VaapiDecoderJPEG>(YAMI_MIME_JPEG);
+#endif
 
 extern "C" {
 

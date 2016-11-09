@@ -114,8 +114,12 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     bool m_isFirstFrame;
 #endif
 
-    static const bool s_registered; // VaapiDecoderFactory registration result
+    /**
+     * VaapiDecoderFactory registration result. This decoder is registered in
+     * vaapidecoder_host.cpp
+     */
+    static const bool s_registered;
 };
-}
+} // namespace YamiMediaCodec
 
 #endif
