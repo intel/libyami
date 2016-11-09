@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2013-2014 Intel Corporation. All rights reserved.
+ * Copyright (C) 2013-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/vaapicontext.h"
 #include "vaapivpppicture.h"
-#include "vaapipostprocess_factory.h"
 #include "common/log.h"
 #include <va/va_vpp.h>
 
@@ -281,5 +280,4 @@ VaapiPostProcessScaler::setParameters(VppParamType type, void* vppParam)
     return VaapiPostProcessBase::setParameters(type, vppParam);
 }
 
-const bool VaapiPostProcessScaler::s_registered = VaapiPostProcessFactory::register_<VaapiPostProcessScaler>(YAMI_VPP_SCALER);
 }

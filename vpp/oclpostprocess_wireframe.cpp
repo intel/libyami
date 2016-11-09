@@ -19,7 +19,6 @@
 #endif
 
 #include "oclpostprocess_wireframe.h"
-#include "vaapipostprocess_factory.h"
 #include "common/common_def.h"
 #include "common/log.h"
 #include "ocl/oclcontext.h"
@@ -127,5 +126,4 @@ bool OclPostProcessWireframe::prepareKernels()
     return m_kernelWireframe != NULL;
 }
 
-const bool OclPostProcessWireframe::s_registered = VaapiPostProcessFactory::register_<OclPostProcessWireframe>(YAMI_VPP_OCL_WIREFRAME);
 }
