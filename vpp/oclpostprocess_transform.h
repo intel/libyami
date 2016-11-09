@@ -61,7 +61,12 @@ private:
         const SharedPtr<OclVppCLImage>& dst,
         const cl_kernel& kernel);
 
-    static const bool s_registered; // VaapiPostProcessFactory registration result
+    /**
+     * VaapiPostProcessFactory registration result. This postprocess is
+     * registered in vaapipostprocess_host.cpp
+     */
+    static const bool s_registered;
+
     uint32_t m_transform;
     cl_kernel m_kernelFlipH;
     cl_kernel m_kernelFlipV;

@@ -49,7 +49,12 @@ private:
 
     virtual bool prepareKernels();
 
-    static const bool s_registered; // VaapiPostProcessFactory registration result
+    /**
+     * VaapiPostProcessFactory registration result. This postprocess is
+     * registered in vaapipostprocess_host.cpp
+     */
+    static const bool s_registered;
+
     uint32_t m_borderWidth;
     uint8_t m_colorY;
     uint8_t m_colorU;

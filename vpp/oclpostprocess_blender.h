@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Intel Corporation. All rights reserved.
+ * Copyright (C) 2015-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,12 @@ private:
     YamiStatus blend(const SharedPtr<VideoFrame>& src,
                      const SharedPtr<VideoFrame>& dst);
 
-    static const bool s_registered; // VaapiPostProcessFactory registration result
+    /**
+     * VaapiPostProcessFactory registration result. This postprocess is
+     * registered in vaapipostprocess_host.cpp
+     */
+    static const bool s_registered;
+
     cl_kernel m_kernelBlend;
 };
 

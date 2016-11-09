@@ -18,7 +18,6 @@
 #endif
 
 #include "oclpostprocess_osd.h"
-#include "vaapipostprocess_factory.h"
 #include "common/common_def.h"
 #include "common/log.h"
 #include "ocl/oclcontext.h"
@@ -228,5 +227,4 @@ bool OclPostProcessOsd::prepareKernels()
         && (m_kernelReduceLuma != NULL);
 }
 
-const bool OclPostProcessOsd::s_registered = VaapiPostProcessFactory::register_<OclPostProcessOsd>(YAMI_VPP_OCL_OSD);
 }
