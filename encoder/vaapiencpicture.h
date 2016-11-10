@@ -124,6 +124,7 @@ createMiscObject(VAEncMiscParameterType miscType, T * &bufPtr)
     if (obj) {
         misc->type = miscType;
         bufPtr = (T *) (misc->data);
+        memset(bufPtr, 0, sizeof(T));
     }
     return obj;
 }
