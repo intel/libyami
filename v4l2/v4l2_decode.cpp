@@ -632,3 +632,65 @@ int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, u
     return 0;
 }
 #endif
+#if __ENABLE_WAYLAND__
+
+class VideoFrameDeleter {
+public:
+    VideoFrameDeleter(VADisplay display)
+        : m_display(display)
+    {
+    }
+    void operator()(VideoFrame* frame)
+    {
+        VASurfaceID id = (VASurfaceID)frame->surface;
+        DEBUG("destroy VASurface 0x%x", id);
+        vaDestroySurfaces(m_display, &id, 1);
+        delete frame;
+    }
+
+private:
+    VADisplay m_display;
+};
+
+
+SharedPtr<VideoFrame> V4l2Decoder::createVaSurface(uint32_t width, uint32_t height)
+{
+    SharedPtr<VideoFrame> frame;
+    if (!m_display) {
+        ERROR("bug: no display to create vasurface");
+        return frame;
+    }
+
+    VASurfaceID id;
+    VASurfaceAttrib attrib;
+    uint32_t rtFormat = VA_RT_FORMAT_YUV420;
+    int pixelFormat = VA_FOURCC_NV12;
+    attrib.type = VASurfaceAttribPixelFormat;
+    attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
+    attrib.value.type = VAGenericValueTypeInteger;
+    attrib.value.value.i = pixelFormat;
+
+    VAStatus vaStatus = vaCreateSurfaces(m_display->getID(), rtFormat, width, height, &id, 1, &attrib, 1);
+    if (vaStatus != VA_STATUS_SUCCESS)
+        return frame;
+
+    frame.reset(new VideoFrame, VideoFrameDeleter(m_display->getID()));
+    memset(frame.get(), 0, sizeof(VideoFrame));
+    frame->surface = static_cast<intptr_t>(id);
+    frame->crop.width = width;
+    frame->crop.height = height;
+    return frame;
+}
+
+bool V4l2Decoder::mapVideoFrames(uint32_t width, uint32_t height)
+{
+    SharedPtr<VideoFrame> frame;
+    for (uint32_t i = 0; i < m_reqBuffCnt; i++) {
+        frame = createVaSurface(width, height);
+        if (!frame)
+            return false;
+        m_videoFrames.push_back(frame);
+    }
+    return true;
+}
+#endif
