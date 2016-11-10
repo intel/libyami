@@ -104,10 +104,6 @@ class V4l2CodecBase {
     virtual void clearCodecEvent();
     virtual void releaseCodecLock(bool lockable) {};
     virtual void flush() {}
-#if defined(__ENABLE_WAYLAND__)
-    SharedPtr<VideoFrame> createVaSurface(uint32_t width, uint32_t height);
-    bool mapVideoFrames(uint32_t width, uint32_t height);
-#endif
 
     VideoDataMemoryType m_memoryType;
     uint32_t m_maxBufferCount[2];
@@ -119,13 +115,6 @@ class V4l2CodecBase {
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
 
-    DisplayPtr m_display;
-
-    SharedPtr<IVideoPostProcess> m_vpp;
-#if defined(__ENABLE_WAYLAND__)
-    uint32_t m_reqBuffCnt;
-    std::vector<SharedPtr<VideoFrame> > m_videoFrames;
-#endif
     NativeDisplay m_nativeDisplay;
 
     enum EosState{

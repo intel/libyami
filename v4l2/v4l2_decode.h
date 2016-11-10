@@ -55,6 +55,14 @@ class V4l2Decoder : public V4l2CodecBase
     virtual void flush();
 
   private:
+#if __ENABLE_WAYLAND__
+    SharedPtr<VideoFrame> createVaSurface(uint32_t width, uint32_t height);
+    bool mapVideoFrames(uint32_t width, uint32_t height);
+    uint32_t m_reqBuffCnt;
+    std::vector<SharedPtr<VideoFrame> > m_videoFrames;
+#endif
+    DisplayPtr m_display;
+    SharedPtr<IVideoPostProcess> m_vpp;
     DecoderPtr m_decoder;
     std::vector<uint8_t> m_codecData;
     bool m_bindEglImage;
