@@ -34,9 +34,6 @@
 #include "VideoCommonDefs.h"
 #include "vaapi/vaapiptrs.h"
 #include "v4l2codec_device_ops.h"
-#ifdef ANDROID
-#include <va/va_android.h>
-#endif
 
 #ifndef V4L2_EVENT_RESOLUTION_CHANGE
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
@@ -107,10 +104,7 @@ class V4l2CodecBase {
     virtual void clearCodecEvent();
     virtual void releaseCodecLock(bool lockable) {};
     virtual void flush() {}
-#ifdef ANDROID
-    SharedPtr<VideoFrame> createVaSurface(const buffer_handle_t buf_handle, int32_t width, int32_t height);
-    bool mapVideoFrames(int32_t width, int32_t height);
-#elif defined(__ENABLE_WAYLAND__)
+#if defined(__ENABLE_WAYLAND__)
     SharedPtr<VideoFrame> createVaSurface(uint32_t width, uint32_t height);
     bool mapVideoFrames(uint32_t width, uint32_t height);
 #endif
@@ -125,14 +119,10 @@ class V4l2CodecBase {
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
 
-#if defined(ANDROID)
-    std::vector<buffer_handle_t> m_bufferHandle;
-    gralloc_module_t* m_pGralloc;
-#endif
     DisplayPtr m_display;
 
     SharedPtr<IVideoPostProcess> m_vpp;
-#if defined(ANDROID) || defined(__ENABLE_WAYLAND__)
+#if defined(__ENABLE_WAYLAND__)
     uint32_t m_reqBuffCnt;
     std::vector<SharedPtr<VideoFrame> > m_videoFrames;
 #endif

@@ -34,20 +34,8 @@
 #include "common/common_def.h"
 #include "vaapi/vaapidisplay.h"
 #include <algorithm>
-#ifdef ANDROID
-#include <va/va_android.h>
-#include <ufo/gralloc.h>
-#include <ufo/graphics.h>
-#elif defined(__ENABLE_WAYLAND__)
+#if defined(__ENABLE_WAYLAND__)
 #include <va/va_wayland.h>
-#endif
-
-#ifdef ANDROID
-#if !defined(EFD_SEMAPHORE)
-#define EFD_SEMAPHORE (1 << 0)
-#endif
-
-#define ANDROID_DISPLAY 0x18C34078
 #endif
 
 typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
@@ -84,9 +72,6 @@ typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
 V4l2CodecBase::V4l2CodecBase()
     : m_memoryType(VIDEO_DATA_MEMORY_TYPE_RAW_COPY)
     , m_started(false)
-#ifdef ANDROID
-    , m_reqBuffCnt(0)
-#endif
     , m_hasEvent(false)
     , m_inputThreadCond(m_frameLock[INPUT])
     , m_outputThreadCond(m_frameLock[OUTPUT])
@@ -109,11 +94,6 @@ V4l2CodecBase::V4l2CodecBase()
     m_frameCount[OUTPUT] = 0;
 #endif
 
-#ifdef ANDROID
-    // it's better done inside vaapi driver (retrieve buffer picth etc)
-    hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (hw_module_t const**)&m_pGralloc);
-    ASSERT(m_pGralloc);
-#endif
     memset(&m_nativeDisplay, 0, sizeof(m_nativeDisplay));
 }
 
@@ -459,16 +439,6 @@ int32_t V4l2CodecBase::ioctl(int command, void* arg)
             GET_PORT_INDEX(port, dqbuf->type, ret);
             ASSERT(ret != -1);
             ASSERT(dqbuf->memory == m_memoryMode[port]);
-            if (port == OUTPUT) {
-            #ifdef ANDROID
-                if (m_streamOn[port] == false) {
-                    // simple deque the unsed output buffer for android surface's cancelBuffer()
-                    dqbuf->index = m_framesTodo[port].front();
-                    m_framesTodo[port].pop_front();
-                    break;
-                }
-            #endif
-            }
 
             DEBUG("m_framesDone[%d].size(): %zu, m_reqBufState[port]: %d",
                 port, m_framesDone[port].size(), m_reqBufState[port]);
@@ -687,80 +657,7 @@ bool V4l2CodecBase::setDrmFd(int fd)
     return true;
 };
 
-#if ANDROID
-SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(const buffer_handle_t buf_handle, int32_t width, int32_t height)
-{
-    SharedPtr<VideoFrame> frame;
-    if (!m_display) {
-        ERROR("bug: no display to create vasurface");
-        return frame;
-    }
-
-    intel_ufo_buffer_details_t info;
-    memset(&info, 0, sizeof(info));
-    *reinterpret_cast<uint32_t*>(&info) = sizeof(info);
-
-    int err = 0;
-    // it's better skip pitch attribute here, but vaapi driver retrieve the pitch by itself
-    if (m_pGralloc)
-        err = m_pGralloc->perform(m_pGralloc, INTEL_UFO_GRALLOC_MODULE_PERFORM_GET_BO_INFO, buf_handle, &info);
-
-    if (0 != err || !m_pGralloc) {
-        fprintf(stderr, "create vaSurface failed\n");
-        return frame;
-    }
-
-    VASurfaceAttrib attrib;
-    memset(&attrib, 0, sizeof(attrib));
-
-    VASurfaceAttribExternalBuffers external;
-    memset(&external, 0, sizeof(external));
-
-    external.pixel_format = VA_FOURCC_NV12;
-    external.width = width;
-    external.height = height;
-    external.pitches[0] = info.pitch;
-    external.num_planes = 2;
-    external.num_buffers = 1;
-    uint8_t* handle = (uint8_t*)buf_handle;
-    external.buffers = (long unsigned int*)&handle; //graphic handel
-    external.flags = VA_SURFACE_ATTRIB_MEM_TYPE_ANDROID_GRALLOC;
-
-    attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
-    attrib.type = (VASurfaceAttribType)VASurfaceAttribExternalBufferDescriptor;
-    attrib.value.type = VAGenericValueTypePointer;
-    attrib.value.value.p = &external;
-
-    VASurfaceID id;
-    VAStatus vaStatus = vaCreateSurfaces(m_display->getID(), VA_RT_FORMAT_YUV420,
-        width, height, &id, 1, &attrib, 1);
-    if (vaStatus != VA_STATUS_SUCCESS)
-        return frame;
-
-    frame.reset(new VideoFrame, VideoFrameDeleter(m_display->getID()));
-    memset(frame.get(), 0, sizeof(VideoFrame));
-
-    frame->surface = static_cast<intptr_t>(id);
-    frame->crop.width = width;
-    frame->crop.height = height;
-
-    return frame;
-}
-
-bool V4l2CodecBase::mapVideoFrames(int32_t width, int32_t height)
-{
-    SharedPtr<VideoFrame> frame;
-
-    DEBUG("create_surface: %d x %d\n", width, height);
-    for (uint32_t i = 0; i < m_bufferHandle.size(); i++) {
-        frame = createVaSurface(m_bufferHandle[i], width, height);
-        if (!frame)
-            return false;
-        m_videoFrames.push_back(frame);
-    }
-    return true;
-}
-#elif defined(__ENABLE_WAYLAND__)
+#if defined(__ENABLE_WAYLAND__)
 SharedPtr<VideoFrame> V4l2CodecBase::createVaSurface(uint32_t width, uint32_t height)
 {
     SharedPtr<VideoFrame> frame;
