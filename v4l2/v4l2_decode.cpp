@@ -27,10 +27,7 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <string.h>
-#ifdef ANDROID
-#include <ufo/gralloc.h>
-#include <ufo/graphics.h>
-#elif defined(__ENABLE_WAYLAND__)
+#if defined(__ENABLE_WAYLAND__)
 #include <va/va_wayland.h>
 #endif
 #include "v4l2_decode.h"
@@ -185,7 +182,7 @@ bool V4l2Decoder::inputPulse(uint32_t index)
     return true; // always return true for decode; simply ignored unsupported nal
 }
 
-#if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
+#if __ENABLE_WAYLAND__
 bool V4l2Decoder::outputPulse(uint32_t &index)
 {
     SharedPtr<VideoFrame> output = m_decoder->getOutput();
@@ -310,10 +307,7 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 
     dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
 
-#if defined(ANDROID)
-    INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
-    dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
-#elif defined(__ENABLE_WAYLAND__)
+#if defined(__ENABLE_WAYLAND__)
     VAStatus vaStatus;
     struct wl_buffer* buffer;
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
@@ -361,16 +355,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     switch (command) {
     case VIDIOC_QBUF: {
         struct v4l2_buffer *qbuf = static_cast<struct v4l2_buffer*>(arg);
-#ifdef ANDROID
-        if(qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE &&
-           m_streamOn[OUTPUT] == false) {
-            ASSERT(qbuf->memory == V4L2_MEMORY_ANDROID_BUFFER_HANDLE);
-            m_bufferHandle.push_back((buffer_handle_t)(qbuf->m.userptr));
-            m_outputBufferCountOnInit++;
-            if (m_outputBufferCountOnInit == m_reqBuffCnt)
-                mapVideoFrames(m_videoWidth, m_videoHeight);
-        }
-#elif defined(__ENABLE_WAYLAND__)
+#if defined(__ENABLE_WAYLAND__)
         // FIXME, m_outputBufferCountOnInit should be reset on output buffer change (for example: resolution change)
         // it is not must to init video frame here since we don't accepted external buffer for wayland yet.
         // however, external buffer may be used in the future
@@ -405,7 +390,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
         struct v4l2_requestbuffers *reqbufs = static_cast<struct v4l2_requestbuffers *>(arg);
         GET_PORT_INDEX(port, reqbufs->type, ret);
         if (port == OUTPUT) {
-#if (defined(ANDROID) || defined(__ENABLE_WAYLAND__))
+#if __ENABLE_WAYLAND__
             if (reqbufs->count)
                 m_reqBuffCnt = reqbufs->count;
             else
@@ -518,11 +503,9 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             format->fmt.pix_mp.width = outFormat->width;
             format->fmt.pix_mp.height = outFormat->height;
             // XXX assumed output format and pitch
-#ifdef ANDROID
-            format->fmt.pix_mp.pixelformat = HAL_PIXEL_FORMAT_NV12_Y_TILED_INTEL;
-#else
+
             format->fmt.pix_mp.pixelformat = V4L2_PIX_FMT_NV12M;
-#endif
+
             format->fmt.pix_mp.plane_fmt[0].bytesperline = outFormat->width;
             format->fmt.pix_mp.plane_fmt[1].bytesperline = outFormat->width % 2 ? outFormat->width+1 : outFormat->width;
             m_videoWidth = outFormat->width;

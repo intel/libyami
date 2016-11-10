@@ -148,8 +148,7 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length)
     return 0;
 }
 
-#ifdef  ANDROID
-#elif defined(__ENABLE_WAYLAND__)
+#if defined(__ENABLE_WAYLAND__)
 int32_t YamiV4L2_SetWaylandDisplay(int32_t fd, struct wl_display* wlDisplay)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);

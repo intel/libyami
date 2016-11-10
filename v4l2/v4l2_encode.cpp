@@ -62,13 +62,9 @@ bool V4l2Encoder::start()
     ASSERT(status == YAMI_SUCCESS);
 
     NativeDisplay nativeDisplay;
-#ifdef ANDROID
-    nativeDisplay.type = NATIVE_DISPLAY_VA;
-    nativeDisplay.handle = (intptr_t)m_vaDisplay;
-#else
     nativeDisplay.type = NATIVE_DISPLAY_DRM;
     nativeDisplay.handle = 0;
-#endif
+
     m_encoder->setNativeDisplay(&nativeDisplay);
 
     status = m_encoder->start();
@@ -111,17 +107,9 @@ bool V4l2Encoder::inputPulse(uint32_t index)
     if(m_videoParamsChanged )
         UpdateVideoParameters(true);
 
-#ifdef ANDROID
-    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE) {
-        status = m_encoder->encode(m_videoFrames[index]);
-    }
-    else
-#endif
-    {
-        DEBUG_FOURCC("m_inputFrames[index].fourcc: ", m_inputFrames[index].fourcc);
-        status = m_encoder->encode(&m_inputFrames[index]);
-        ASSERT(m_inputFrames[index].bufAvailable); // check it at a later time when yami does encode in async
-    }
+    DEBUG_FOURCC("m_inputFrames[index].fourcc: ", m_inputFrames[index].fourcc);
+    status = m_encoder->encode(&m_inputFrames[index]);
+    ASSERT(m_inputFrames[index].bufAvailable); // check it at a later time when yami does encode in async
 
     if (status != YAMI_SUCCESS)
         return false;
@@ -163,10 +151,7 @@ bool V4l2Encoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
 {
     uint32_t i;
     VideoEncRawBuffer *inputBuffer = &(m_inputFrames[qbuf->index]);
-#ifdef ANDROID
-    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE)
-        return true;
-#endif
+
     // XXX todo: add multiple planes support for yami
     inputBuffer->data = reinterpret_cast<uint8_t*>(qbuf->m.planes[0].m.userptr);
     inputBuffer->size = 0;
@@ -221,37 +206,6 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
     DEBUG("fd: %d, ioctl command: %s", m_fd[0], IoctlCommandString(command));
     switch (command) {
     case VIDIOC_QBUF:
-#if defined(ANDROID)
-    {
-        struct v4l2_buffer* qbuf = static_cast<struct v4l2_buffer*>(arg);
-        if (qbuf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-            if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE) {
-                ASSERT(qbuf->memory == V4L2_MEMORY_ANDROID_BUFFER_HANDLE);
-                // create vaapi surface if input is android buffer_handle_t (for camera kMetadataBufferTypeGrallocSource)
-                uint32_t i = 0;
-                buffer_handle_t handle = reinterpret_cast<buffer_handle_t>(qbuf->m.planes[0].m.userptr);
-                DEBUG("buffer_handle_t: 0x%x\n", handle);
-                if (handle) {
-                    for (i = 0; i < m_bufferHandle.size(); i++) {
-                        if (m_bufferHandle[i] == handle)
-                            break;
-                    }
-
-                    if (i == m_bufferHandle.size() && handle) {
-                        SharedPtr<VideoFrame> frame;
-                        frame = createVaSurface(handle, m_videoParams.resolution.width, m_videoParams.resolution.height);
-                        if (!frame) {
-                            ERROR("fail to create va surface from ANativeWindowBuffer: 0x%x\n", handle);
-                            return -1;
-                        }
-                        m_bufferHandle.push_back(handle);
-                        m_videoFrames.push_back(frame);
-                    }
-                }
-            }
-        }
-    } // no break;
-#endif
     case VIDIOC_QUERYCAP:
     case VIDIOC_STREAMON:
     case VIDIOC_STREAMOFF:
