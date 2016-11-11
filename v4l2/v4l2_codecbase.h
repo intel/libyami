@@ -39,6 +39,14 @@
     #define V4L2_EVENT_RESOLUTION_CHANGE 5
 #endif
 
+#ifndef V4L2_PIX_FMT_VP9
+#define V4L2_PIX_FMT_VP9 YAMI_FOURCC('V', 'P', '9', '0')
+#endif
+
+#ifndef V4L2_PIX_FMT_VC1
+#define V4L2_PIX_FMT_VC1 YAMI_FOURCC('V', 'C', '1', '0')
+#endif
+
 #if defined(INPUT) || defined(OUTPUT)
     #error("conflict define for INPUT/OUTPUT")
 #else

@@ -27,16 +27,21 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <string.h>
+#include <vector>
+#include <map>
+#include <deque>
+#include <set>
+#include <va/va_drmcommon.h>
 #if defined(__ENABLE_WAYLAND__)
 #include <va/va_wayland.h>
 #endif
 #include "v4l2_decode.h"
 #include "VideoDecoderHost.h"
 #include "common/log.h"
+#include "common/common_def.h"
+#include "common/basesurfaceallocator.h"
 #include "vaapi/vaapidisplay.h"
-#if defined(__ENABLE_EGL__)
-#include "egl/egl_vaapi_image.h"
-#endif
+#include "vaapi/VaapiUtils.h"
 
 #define INT64_TO_TIMEVAL(i64, time_val)                 \
     do {                                                \
@@ -49,206 +54,591 @@
         i64 = (i64 << 31) + time_val.tv_usec; \
     } while (0)
 
+//return if we have error
+#define ERROR_RETURN(no) \
+    do {                 \
+        if (no) {        \
+            errno = no;  \
+            return -1;   \
+        }                \
+    } while (0)
+
+#define CHECK(cond)                      \
+    do {                                 \
+        if (!(cond)) {                   \
+            ERROR("%s is false", #cond); \
+            ERROR_RETURN(EINVAL);        \
+        }                                \
+    } while (0)
+
+//check condition in post messsage.
+#define PCHECK(cond)                     \
+    do {                                 \
+        if (!(cond)) {                   \
+            m_state = kError;            \
+            ERROR("%s is false", #cond); \
+            return;                      \
+        }                                \
+    } while (0)
+
+#define SEND(func)                     \
+    do {                               \
+        int32_t ret_ = sendTask(func); \
+        ERROR_RETURN(ret_);            \
+    } while (0)
+
+const static uint32_t kDefaultInputSize = 1024 * 1024;
+
+//#undef DEBUG
+//#define DEBUG ERROR
+
+using namespace std;
+
+struct FrameInfo {
+    int64_t timeStamp;
+};
+
+class V4l2Decoder::Output {
+public:
+    Output(V4l2Decoder* decoder)
+        : m_decoder(decoder)
+    {
+    }
+    virtual void setDecodeAllocator(DecoderPtr decoder)
+    {
+        /* nothing */
+    }
+    virtual int32_t requestBuffers(uint32_t count) = 0;
+    virtual void output(SharedPtr<VideoFrame>& frame) = 0;
+    virtual bool isAlloccationDone() = 0;
+    virtual bool isOutputReady() = 0;
+    virtual int32_t deque(struct v4l2_buffer* buf) = 0;
+    virtual int32_t queue(struct v4l2_buffer* buf)
+    {
+        m_decoder->m_out.queue(buf->index);
+        return 0;
+    }
+    virtual int32_t createBuffers(struct v4l2_create_buffers* createBuffers)
+    {
+        return 0;
+    }
+    virtual void streamOff()
+    {
+    }
+
+protected:
+    void requestFrameInfo(uint32_t count)
+    {
+        m_frameInfo.resize(count);
+    }
+    void outputFrame(uint32_t index, SharedPtr<VideoFrame>& frame)
+    {
+        setTimeStamp(index, frame->timeStamp);
+        m_decoder->m_out.put(index);
+        m_decoder->setDeviceEvent(0);
+    }
+    void getTimeStamp(uint32_t index, struct timeval& timeStamp)
+    {
+        ASSERT(index < m_frameInfo.size());
+        INT64_TO_TIMEVAL(m_frameInfo[index].timeStamp, timeStamp);
+    }
+    void setTimeStamp(uint32_t index, int64_t timeStamp)
+    {
+        ASSERT(index < m_frameInfo.size());
+        m_frameInfo[index].timeStamp = timeStamp;
+    }
+
+    void getBufferInfo(struct v4l2_buffer* buf, uint32_t index)
+    {
+
+        buf->index = index;
+        //chrome will use this value.
+        buf->m.planes[0].bytesused = 1;
+        buf->m.planes[1].bytesused = 1;
+        getTimeStamp(index, buf->timestamp);
+    }
+
+    V4l2Decoder* m_decoder;
+    vector<FrameInfo> m_frameInfo;
+    Lock m_lock;
+};
+
+class SurfaceGetter {
+    typedef map<intptr_t, uint32_t> UsedMap;
+    const static uint32_t kHoldByRenderer = 1;
+    const static uint32_t kHoldByDecoder = 2;
+
+public:
+    static YamiStatus getSurface(SurfaceAllocParams* param, intptr_t* surface)
+    {
+        SurfaceGetter* p = (SurfaceGetter*)param->user;
+        return p->getSurface(surface);
+    }
+
+    static YamiStatus putSurface(SurfaceAllocParams* param, intptr_t surface)
+    {
+        SurfaceGetter* p = (SurfaceGetter*)param->user;
+        return p->putSurface(surface);
+    }
+
+    YamiStatus getSurface(intptr_t* surface)
+    {
+        AutoLock l(m_lock);
+        if (!takeOneFree(surface, kHoldByDecoder))
+            return YAMI_DECODE_NO_SURFACE;
+        DEBUG("getSurface: %x", (uint32_t)*surface);
+        return YAMI_SUCCESS;
+    }
+
+    YamiStatus putSurface(intptr_t surface)
+    {
+        AutoLock l(m_lock);
+
+        clearFlag(surface, kHoldByDecoder);
+        DEBUG("putSurface: %x", (uint32_t)surface);
+        return YAMI_SUCCESS;
+    }
+
+    bool holdByRenderer(intptr_t surface)
+    {
+        AutoLock l(m_lock);
+        return setFlag(surface, kHoldByRenderer);
+    }
+
+    bool freeByRenderer(intptr_t surface)
+    {
+        AutoLock l(m_lock);
+        return clearFlag(surface, kHoldByRenderer);
+    }
+
+    void holdAllByRenderer()
+    {
+        DEBUG("hold all by renderer");
+
+        AutoLock l(m_lock);
+        m_freed.clear();
+
+        UsedMap::iterator it = m_used.begin();
+        while (it != m_used.end()) {
+            it->second = kHoldByRenderer;
+            ++it;
+        }
+    }
+
+    bool takeOneFreeByRenderer(intptr_t* surface)
+    {
+        AutoLock l(m_lock);
+        return takeOneFree(surface, kHoldByRenderer);
+    }
+    bool addNewSurface(intptr_t surface)
+    {
+        AutoLock l(m_lock);
+        UsedMap::iterator it = m_used.find(surface);
+        if (it != m_used.end()) {
+            ERROR("add duplicate surface %x, it's hold by %s", (uint32_t)surface, getOwnerName(it->second));
+        }
+        m_freed.push_back(surface);
+        m_used[surface] = 0;
+        return true;
+    }
+
+private:
+    bool takeOneFree(intptr_t* surface, uint32_t flag)
+    {
+        if (m_freed.empty()) {
+            DEBUG("no free surface");
+            UsedMap::iterator it = m_used.begin();
+            while (it != m_used.end()) {
+                DEBUG("surface %x, it's hold by %s", (uint32_t)it->first, getOwnerName(it->second));
+                ++it;
+            }
+            return false;
+        }
+        *surface = m_freed.front();
+        m_used[*surface] = flag;
+        m_freed.pop_front();
+        return true;
+    }
+
+    bool setFlag(intptr_t surface, uint32_t flag)
+    {
+        UsedMap::iterator it = m_used.find(surface);
+        DEBUG("set %x to %s", (uint32_t)surface, getOwnerName(flag));
+        if (it == m_used.end()) {
+            ERROR("set owner to %s failed for %x", getOwnerName(flag), (uint32_t)surface);
+            return false;
+        }
+        it->second |= flag;
+        return true;
+    }
+    YamiStatus clearFlag(intptr_t surface, uint32_t flag)
+    {
+        UsedMap::iterator it = m_used.find(surface);
+        DEBUG("clear %x to %s", (uint32_t)surface, getOwnerName(flag));
+
+        if (it == m_used.end()) {
+            ERROR("clear wrong surface id = %x", (uint32_t)surface);
+            return YAMI_INVALID_PARAM;
+        }
+        if (!(it->second & flag)) {
+            ERROR("%x is not hold by %s, it hold by %s", (uint32_t)surface, getOwnerName(flag), getOwnerName(it->second));
+            return YAMI_INVALID_PARAM;
+        }
+        it->second &= ~flag;
+        if (!it->second) {
+            m_freed.push_back(surface);
+        }
+        return YAMI_SUCCESS;
+    }
+
+private:
+    const char* getOwnerName(uint32_t flag)
+    {
+        if (flag == kHoldByRenderer)
+            return "renderer";
+        if (flag == kHoldByDecoder)
+            return "decoder";
+        if (flag == (kHoldByRenderer | kHoldByDecoder))
+            return "decoder and render";
+        if (!flag)
+            return "no one";
+        return "unknow";
+    }
+    Lock m_lock;
+    UsedMap m_used;
+    deque<intptr_t> m_freed;
+};
+
+//the buffer resource is created from V4L2's user
+class ExternalBufferOutput : public V4l2Decoder::Output, BaseSurfaceAllocator {
+    typedef map<intptr_t, uint32_t> SurfaceMap;
+
+public:
+    ExternalBufferOutput(V4l2Decoder* decoder)
+        : V4l2Decoder::Output(decoder)
+        , m_getter(new SurfaceGetter)
+    {
+    }
+    virtual void setDecodeAllocator(DecoderPtr decoder)
+    {
+        decoder->setAllocator(this);
+        /* nothing */
+    }
+    virtual int32_t requestBuffers(uint32_t count)
+    {
+        AutoLock l(m_lock);
+        m_count = count;
+        if (!count) {
+            for (size_t i = 0; i < m_surfaces.size(); i++) {
+                if (m_surfaces[i] != VA_INVALID_SURFACE) {
+                    destorySurface(m_surfaces[i]);
+                }
+            }
+        }
+        m_surfaces.resize(count, VA_INVALID_SURFACE);
+        requestFrameInfo(count);
+
+        return 0;
+    }
+    virtual void output(SharedPtr<VideoFrame>& frame)
+    {
+        ASSERT(m_getter.get());
+        m_getter->holdByRenderer(frame->surface);
+
+        AutoLock l(m_lock);
+
+        SurfaceMap::iterator it = m_surfaceMap.find(frame->surface);
+        ASSERT(it != m_surfaceMap.end());
+        outputFrame(it->second, frame);
+    }
+    virtual bool isAlloccationDone()
+    {
+        return m_surfaceMap.size() == m_count;
+    }
+    virtual bool isOutputReady()
+    {
+        return true;
+    }
+    int32_t queue(struct v4l2_buffer* buf)
+    {
+        uint32_t index;
+        bool streamOn;
+        //create and update index
+        intptr_t surface;
+        {
+            //we need hold lock in freeVideoFrame, so we keep the lock in {}
+            AutoLock l(m_lock);
+            index = buf->index;
+
+            CHECK(index < m_surfaces.size());
+            streamOn = m_decoder->m_outputOn;
+            if (!m_decoder->m_outputOn) {
+                CHECK(createSurface(surface, buf));
+                m_surfaces[index] = surface;
+                m_surfaceMap[surface] = index;
+            }
+            surface = m_surfaces[index];
+        }
+
+        ASSERT(m_getter.get());
+        if (!streamOn)
+            m_getter->addNewSurface(surface);
+        else
+            m_getter->freeByRenderer(surface);
+        return 0;
+    }
+    virtual int32_t deque(struct v4l2_buffer* buf)
+    {
+        AutoLock l(m_lock);
+        uint32_t index;
+        if (m_decoder->m_outputOn) {
+            if (!m_decoder->m_out.deque(index)) {
+                ERROR_RETURN(EAGAIN);
+            }
+        }
+        else {
+            CHECK(m_getter);
+            intptr_t p;
+            //this mean we need deque the surface from free list
+            CHECK(m_getter->takeOneFreeByRenderer(&p));
+            SurfaceMap::iterator it = m_surfaceMap.find(p);
+            CHECK(it != m_surfaceMap.end());
+            index = it->second;
+        }
+        getBufferInfo(buf, index);
+        return 0;
+    }
+    virtual void streamOff()
+    {
+        m_getter->holdAllByRenderer();
+    }
+
+protected:
+    virtual YamiStatus doAlloc(SurfaceAllocParams* params)
+    {
+        AutoLock l(m_lock);
+        if (m_surfaces.size() != m_surfaceMap.size()) {
+            ERROR("surfaces size did not match map size (%d != %d)", (int)m_surfaces.size(), (int)m_surfaceMap.size());
+            return YAMI_FAIL;
+        }
+        if (params->size > m_surfaces.size()) {
+            ERROR("require size > surface size (%d > %d)", (int)params->size, (int)m_surfaces.size());
+            return YAMI_FAIL;
+        }
+        params->surfaces = &m_surfaces[0];
+        params->size = m_surfaces.size();
+        params->user = m_getter.get();
+        params->getSurface = SurfaceGetter::getSurface;
+        params->putSurface = SurfaceGetter::putSurface;
+        return YAMI_SUCCESS;
+    }
+    virtual YamiStatus doFree(SurfaceAllocParams* params)
+    {
+        /* nothing */
+        return YAMI_SUCCESS;
+    }
+    virtual void doUnref()
+    {
+        /* nothing */
+    }
+
+    virtual bool createExternalSurface(intptr_t& surface, uint32_t rtFormat, VASurfaceAttribExternalBuffers& external)
+    {
+        VASurfaceAttrib attribs[2];
+        attribs[0].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        attribs[0].type = VASurfaceAttribMemoryType;
+        attribs[0].value.type = VAGenericValueTypeInteger;
+        attribs[0].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME;
+
+        attribs[1].flags = VA_SURFACE_ATTRIB_SETTABLE;
+        attribs[1].type = VASurfaceAttribExternalBufferDescriptor;
+        attribs[1].value.type = VAGenericValueTypePointer;
+        attribs[1].value.value.p = &external;
+
+        VASurfaceID id;
+        VAStatus vaStatus = vaCreateSurfaces(m_decoder->m_display->getID(), rtFormat, external.width, external.height,
+            &id, 1, attribs, N_ELEMENTS(attribs));
+        if (!checkVaapiStatus(vaStatus, "vaCreateSurfaces"))
+            return false;
+        surface = static_cast<intptr_t>(id);
+        return true;
+    }
+
+    virtual bool createSurface(intptr_t& surface, struct v4l2_buffer* buf) = 0;
+    virtual bool destorySurface(intptr_t& surface) = 0;
+
+    uint32_t m_count;
+    vector<intptr_t> m_surfaces;
+    SurfaceMap m_surfaceMap;
+    SharedPtr<SurfaceGetter> m_getter;
+};
+
+class ExternalDmaBufOutput : public ExternalBufferOutput {
+public:
+    ExternalDmaBufOutput(V4l2Decoder* decoder)
+        : ExternalBufferOutput(decoder)
+    {
+    }
+
+    virtual int32_t createBuffers(struct v4l2_create_buffers* createBuffers)
+    {
+        m_createBuffers.reset(new v4l2_create_buffers);
+        *m_createBuffers = *createBuffers;
+        return 0;
+    }
+
+    virtual bool createSurface(intptr_t& surface, struct v4l2_buffer* buf)
+    {
+        if (!m_createBuffers) {
+            ERROR("you need create buffer first");
+            return false;
+        }
+
+        v4l2_pix_format_mplane& format = m_createBuffers->format.fmt.pix_mp;
+        VASurfaceAttribExternalBuffers external;
+        memset(&external, 0, sizeof(external));
+        external.pixel_format = format.pixelformat;
+        uint32_t rtFormat = getRtFormat(format.pixelformat);
+        if (!rtFormat) {
+            ERROR("failed get rtformat for %.4s", (char*)&format.pixelformat);
+            return false;
+        }
+        external.width = format.width;
+        external.height = format.height;
+        external.num_planes = format.num_planes;
+        for (uint32_t i = 0; i < format.num_planes; i++) {
+            external.pitches[i] = format.plane_fmt[i].bytesperline;
+            //not really right, but we use sizeimage to deliver offset
+            external.offsets[i] = format.plane_fmt[i].sizeimage;
+        }
+        external.buffers = &buf->m.userptr;
+        external.num_buffers = 1;
+
+        return createExternalSurface(surface, rtFormat, external);
+    }
+    virtual bool destorySurface(intptr_t& surface)
+    {
+        VASurfaceID s = (VASurfaceID)surface;
+        return checkVaapiStatus(vaDestroySurfaces(m_decoder->m_display->getID(), &s, 1), "vaDestroySurfaces");
+    }
+    SharedPtr<v4l2_create_buffers> m_createBuffers;
+};
+
+#ifdef __ENABLE_EGL__
+#include "egl/egl_vaapi_image.h"
+class EglOutput : public V4l2Decoder::Output {
+public:
+    EglOutput(V4l2Decoder* decoder)
+        : V4l2Decoder::Output(decoder)
+        , m_memoryType(VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
+    {
+    }
+    virtual int32_t requestBuffers(uint32_t count)
+    {
+        v4l2_pix_format_mplane& format = m_decoder->m_outputFormat.fmt.pix_mp;
+        DisplayPtr& display = m_decoder->m_display;
+        CHECK(bool(display));
+        CHECK(format.width && format.height);
+        m_eglVaapiImages.clear();
+        for (uint32_t i = 0; i < count; i++) {
+            SharedPtr<EglVaapiImage> image(new EglVaapiImage(display->getID(), format.width, format.height));
+            if (!image->init()) {
+                ERROR("Create egl vaapi image failed");
+                m_eglVaapiImages.clear();
+                return EINVAL;
+            }
+            m_eglVaapiImages.push_back(image);
+        }
+        requestFrameInfo(count);
+        return 0;
+    }
+    int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
+    {
+        CHECK(m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
+        CHECK(bufferIndex < m_eglVaapiImages.size());
+        *(EGLImageKHR*)eglImage = m_eglVaapiImages[bufferIndex]->createEglImage(eglDisplay, eglContext, m_memoryType);
+        return 0;
+    }
+    void output(SharedPtr<VideoFrame>& frame)
+    {
+        uint32_t index;
+        if (!m_decoder->m_out.get(index)) {
+            ERROR("bug: can't get index");
+            return;
+        }
+        ASSERT(index < m_eglVaapiImages.size());
+        m_eglVaapiImages[index]->blt(frame);
+        outputFrame(index, frame);
+    }
+    bool isAlloccationDone()
+    {
+        return !m_eglVaapiImages.empty();
+    }
+    bool isOutputReady()
+    {
+        uint32_t index;
+        return m_decoder->m_out.peek(index);
+    }
+
+    int32_t deque(struct v4l2_buffer* buf)
+    {
+        uint32_t index;
+        if (!m_decoder->m_out.deque(index)) {
+            ERROR_RETURN(EAGAIN);
+        }
+        getBufferInfo(buf, index);
+        return 0;
+    }
+
+private:
+    std::vector<SharedPtr<EglVaapiImage> > m_eglVaapiImages;
+    VideoDataMemoryType m_memoryType;
+};
+#endif
+
 V4l2Decoder::V4l2Decoder()
-    : m_bindEglImage(false)
-    , m_videoWidth(0)
-    , m_videoHeight(0)
-    , m_outputBufferCountOnInit(0)
-    , m_outputBufferCountQBuf(0)
-    , m_outputBufferCountPulse(0)
-    , m_outputBufferCountGive(0)
+    : m_inputOn(false)
+    , m_outputOn(false)
+    , m_state(kUnStarted)
 {
-    uint32_t i;
-    m_memoryMode[INPUT] = V4L2_MEMORY_MMAP; // dma_buf hasn't been supported yet
-    m_pixelFormat[INPUT] = V4L2_PIX_FMT_H264;
-    m_bufferPlaneCount[INPUT] = 1; // decided by m_pixelFormat[INPUT]
-    m_memoryMode[OUTPUT] = V4L2_MEMORY_MMAP;
-    m_pixelFormat[OUTPUT] = V4L2_PIX_FMT_NV12M;
-    m_bufferPlaneCount[OUTPUT] = 2;
-
-    m_maxBufferCount[INPUT] = 8;
-    m_maxBufferCount[OUTPUT] = 8;
-    m_actualOutBufferCount = m_maxBufferCount[OUTPUT];
-
-    m_inputFrames.resize(m_maxBufferCount[INPUT]);
-    m_outputRawFrames.resize(m_maxBufferCount[OUTPUT]);
-
-    for (i=0; i<m_maxBufferCount[INPUT]; i++) {
-        memset(&m_inputFrames[i], 0, sizeof(VideoDecodeBuffer));
-    }
-    for (i=0; i<m_maxBufferCount[OUTPUT]; i++) {
-        memset(&m_outputRawFrames[i], 0, sizeof(VideoFrameRawData));
-    }
-
-    m_maxBufferSize[INPUT] = 0;
-    m_bufferSpace[INPUT] = NULL;
-    m_maxBufferSize[OUTPUT] = 0;
-    m_bufferSpace[OUTPUT] = NULL;
-
-    m_memoryType = VIDEO_DATA_MEMORY_TYPE_DMA_BUF;
+    memset(&m_inputFormat, 0, sizeof(m_inputFormat));
+    memset(&m_outputFormat, 0, sizeof(m_outputFormat));
+    memset(&m_lastFormat, 0, sizeof(m_lastFormat));
+    m_output.reset(new ExternalDmaBufOutput(this));
 }
 
 V4l2Decoder::~V4l2Decoder()
 {
-    if (m_bufferSpace[INPUT]) {
-        delete [] m_bufferSpace[INPUT];
-        m_bufferSpace[OUTPUT] = NULL;
-    }
-    if (m_bufferSpace[OUTPUT]) {
-        delete [] m_bufferSpace[OUTPUT];
-        m_bufferSpace[OUTPUT] = NULL;
-    }
 }
 
 void V4l2Decoder::releaseCodecLock(bool lockable)
 {
-    m_decoder->releaseLock(lockable);
 }
 
 bool V4l2Decoder::start()
 {
-    YamiStatus status = YAMI_SUCCESS;
-
-    if (m_started)
-        return true;
-
-    m_display = VaapiDisplay::create(m_nativeDisplay);
-    if (!m_display)
-        return false;
-
-    m_decoder.reset(
-        createVideoDecoder(mimeFromV4l2PixelFormat(m_pixelFormat[INPUT])),
-        releaseVideoDecoder);
-    ASSERT(m_decoder);
-    if (!m_decoder) {
-        return false;
-    }
-
-    m_vpp.reset(createVideoPostProcess(YAMI_VPP_SCALER), releaseVideoPostProcess);
-    ASSERT(m_vpp);
-    if (!m_vpp)
-        return false;
-
-    // send codec_data if there is
-    VideoConfigBuffer configBuffer;
-    memset(&configBuffer, 0, sizeof(configBuffer));
-    if (m_codecData.size()) {
-        configBuffer.data = m_codecData.data();
-        configBuffer.size = m_codecData.size();
-        configBuffer.width = m_videoWidth;
-        configBuffer.height = m_videoHeight;
-    }
-    status = m_decoder->start(&configBuffer);
-    ASSERT(status == YAMI_SUCCESS);
-
-    m_started = true;
-
-    return true;
+    return false;
 }
 
 bool V4l2Decoder::stop()
 {
-    if (m_started)
-      m_decoder->stop();
-
-    m_started = false;
     return true;
 }
 
 bool V4l2Decoder::inputPulse(uint32_t index)
 {
-    YamiStatus status = YAMI_SUCCESS;
-
-    VideoDecodeBuffer *inputBuffer = &m_inputFrames[index];
-
-    ASSERT(index < m_maxBufferCount[INPUT]);
-    ASSERT(m_maxBufferSize[INPUT] > 0); // update m_maxBufferSize[INPUT] after VIDIOC_S_FMT
-    ASSERT(m_bufferSpace[INPUT] || m_memoryMode[INPUT] != V4L2_MEMORY_MMAP );
-    ASSERT(inputBuffer->size <= m_maxBufferSize[INPUT]);
-
-    status = m_decoder->decode(inputBuffer);
-
-    if (status == YAMI_DECODE_FORMAT_CHANGE) {
-        setCodecEvent();
-        // we can continue decoding no matter what client does reconfiguration now. otherwise, a tri-state ret is required
-        status = m_decoder->decode(inputBuffer);
-    }
-
-    if (!inputBuffer->size) {
-        setEosState(EosStateInput);
-        DEBUG("flush-debug going into flusing state");
-    }
 
     return true; // always return true for decode; simply ignored unsupported nal
 }
 
-#if __ENABLE_WAYLAND__
-bool V4l2Decoder::outputPulse(uint32_t &index)
+#ifdef __ENABLE_WAYLAND__
+bool V4l2Decoder::outputPulse(uint32_t& index)
 {
-    SharedPtr<VideoFrame> output = m_decoder->getOutput();
-
-    if(!output) {
-        if (eosState() == EosStateInput) {
-            setEosState(EosStateOutput);
-            fprintf(stderr, "flush-debug flush done on OUTPUT thread\n");
-        }
-	return false;
-    }
-
-    m_vpp->process(output, m_videoFrames[index]);
-    m_videoFrames[index]->timeStamp = output->timeStamp;
-    m_videoFrames[index]->flags = output->flags;
-    DEBUG("m_outputBufferCountPulse: %d, buffer index: %d, surface: %p, timeStamp: %" PRId64 "\n",
-        m_outputBufferCountPulse, index, (void*)m_videoFrames[index]->surface, output->timeStamp);
-    m_outputBufferCountPulse++;
     return true;
 }
 #elif __ENABLE_EGL__
-bool V4l2Decoder::outputPulse(uint32_t &index)
+bool V4l2Decoder::outputPulse(uint32_t& index)
 {
-    SharedPtr<VideoFrame> frame;
-
-    ASSERT(index >= 0 && index < m_maxBufferCount[OUTPUT]);
-    DEBUG("index: %d", index);
-
-    //frame = &m_outputRawFrames[index];
-    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_RAW_COPY) {
-        /* if (!m_bufferSpace[OUTPUT])
-            return false;
-        ASSERT(frame->handle);
-        frame->fourcc = VA_FOURCC_NV12;
-        frame->memoryType = VIDEO_DATA_MEMORY_TYPE_RAW_COPY;*/
-        ASSERT("TODO: support raw copy" && 0);
-        return false;
-    }
-    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
-        if (m_eglVaapiImages.empty())
-            return false;
-    }
-
-
-    frame = m_decoder->getOutput();
-
-    if (!frame) {
-        if (eosState() == EosStateInput) {
-            setEosState(EosStateOutput);
-            DEBUG("flush-debug flush done on OUTPUT thread");
-        }
-
-        if (eosState() > EosStateNormal) {
-            DEBUG("seek/EOS flush, return empty buffer");
-        }
-        return false;
-    }
-
-    if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF) {
-        // FIXME, it introduce one GPU copy; which is not necessary in major case and should be avoided in most case
-        m_eglVaapiImages[index]->blt(frame);
-        if (!m_bindEglImage)
-            m_eglVaapiImages[index]->exportFrame(m_memoryType, m_outputRawFrames[index]);
-    }
-
-    DEBUG("outputPulse: index=%d, timeStamp=%ld", index, m_outputRawFrames[index].timeStamp);
     return true;
 }
 #endif
@@ -259,85 +649,20 @@ bool V4l2Decoder::recycleOutputBuffer(int32_t index)
     return true;
 }
 
-bool V4l2Decoder::recycleInputBuffer(struct v4l2_buffer *dqbuf)
+bool V4l2Decoder::recycleInputBuffer(struct v4l2_buffer* dqbuf)
 {
-    VideoDecodeBuffer *inputBuffer = &(m_inputFrames[dqbuf->index]);
-    uintptr_t *ptr = (uintptr_t*)dqbuf->m.planes[0].reserved;
-    *ptr = (uintptr_t)inputBuffer->data;
-    DEBUG("inputBuffer->data: %p, *ptr: %p\n", inputBuffer->data, (void*)(*ptr));
 
     return true;
 }
 
-bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
+bool V4l2Decoder::acceptInputBuffer(struct v4l2_buffer* qbuf)
 {
-    VideoDecodeBuffer *inputBuffer = &(m_inputFrames[qbuf->index]);
-    ASSERT(m_maxBufferSize[INPUT] > 0);
-    ASSERT(m_bufferSpace[INPUT] || m_memoryMode[INPUT] != V4L2_MEMORY_MMAP );
-    ASSERT(qbuf->memory == m_memoryMode[INPUT]);
-    ASSERT(qbuf->index < m_maxBufferCount[INPUT]);
-    ASSERT(qbuf->length == 1);
-    inputBuffer->size = qbuf->m.planes[0].bytesused; // one plane only
-    if (!inputBuffer->size) // EOS
-        inputBuffer->data = NULL;
-    else {
-        if (m_memoryMode[INPUT] == V4L2_MEMORY_MMAP)
-            inputBuffer->data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*qbuf->index;
-        else if (m_memoryMode[INPUT] == V4L2_MEMORY_USERPTR) {
-            // FIXME, puzzle, videodev2.h uses 'unsigned long userptr', how could it support 64 bit mem address?
-            uintptr_t *ptr = (uintptr_t*)qbuf->m.planes[0].reserved;
-            inputBuffer->data = (uint8_t*)(*ptr);
-        }
-    }
-
-    TIMEVAL_TO_INT64(inputBuffer->timeStamp, qbuf->timestamp);
-    inputBuffer->flag = qbuf->flags;
-    // set buffer unit-mode if possible, nal, frame?
-    DEBUG("qbuf->index: %d, inputBuffer: %p, timestamp: %" PRId64, qbuf->index, inputBuffer->data, inputBuffer->timeStamp);
 
     return true;
 }
 
-bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
+bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer* dqbuf)
 {
-    ASSERT(dqbuf);
-    // for the buffers within range of [m_actualOutBufferCount, m_maxBufferCount[OUTPUT]]
-    // there are not used in reality, but still be returned back to client during flush (seek/eos)
-    ASSERT(dqbuf->index < m_maxBufferCount[OUTPUT]);
-
-    dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
-
-#if defined(__ENABLE_WAYLAND__)
-    VAStatus vaStatus;
-    struct wl_buffer* buffer;
-    INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
-    dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
-    vaStatus = vaGetSurfaceBufferWl(m_display->getID(), m_videoFrames[dqbuf->index]->surface, VA_FRAME_PICTURE, &buffer);
-    DEBUG("m_outputBufferCountGive: %d, index: %d, surface: %p, wl_buffer: %p", m_outputBufferCountGive, dqbuf->index, (void*)m_videoFrames[dqbuf->index]->surface, buffer);
-    m_outputBufferCountGive++;
-    if (vaStatus != VA_STATUS_SUCCESS)
-        return false;
-    dqbuf->m.userptr = (unsigned long)buffer;
-#else
-    int i;
-    if (!m_bindEglImage) {
-        // FIXME: m_bufferPlaneCount[OUTPUT] doesn't match current RGBX output, it is a bug
-        for (i = 0; i < 1; i++) {
-            // FIXME, a better field to hold drm/dma handle
-            dqbuf->m.planes[i].reserved[0] = m_outputRawFrames[dqbuf->index].handle;
-            dqbuf->m.planes[i].reserved[1] = m_outputRawFrames[dqbuf->index].pitch[i];
-            dqbuf->m.planes[i].data_offset = m_outputRawFrames[dqbuf->index].offset[i];
-        }
-    }
-
-    // simple set size data to satify chrome even in texture mode
-    dqbuf->m.planes[0].bytesused = m_videoWidth * m_videoHeight;
-    dqbuf->m.planes[1].bytesused = m_videoWidth * m_videoHeight / 2;
-    INT64_TO_TIMEVAL(m_outputRawFrames[dqbuf->index].timeStamp, dqbuf->timestamp);
-    dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
-#endif
-    DEBUG("deque buffer index: %d, timeStamp: (%ld, %ld)\n",
-        dqbuf->index,  dqbuf->timestamp.tv_sec, dqbuf->timestamp.tv_usec);
 
     return true;
 }
@@ -348,349 +673,615 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 
 int32_t V4l2Decoder::ioctl(int command, void* arg)
 {
-    int32_t ret = 0;
-    int port = -1;
-
     DEBUG("fd: %d, ioctl command: %s", m_fd[0], IoctlCommandString(command));
     switch (command) {
     case VIDIOC_QBUF: {
-        struct v4l2_buffer *qbuf = static_cast<struct v4l2_buffer*>(arg);
-#if defined(__ENABLE_WAYLAND__)
-        // FIXME, m_outputBufferCountOnInit should be reset on output buffer change (for example: resolution change)
-        // it is not must to init video frame here since we don't accepted external buffer for wayland yet.
-        // however, external buffer may be used in the future
-        if (qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE && m_streamOn[OUTPUT] == false) {
-            m_outputBufferCountOnInit++;
-            DEBUG("m_outputBufferCountOnInit: %d", m_outputBufferCountOnInit);
-            if (m_outputBufferCountOnInit == m_reqBuffCnt) {
-                mapVideoFrames(m_videoWidth, m_videoHeight);
-            }
-        }
-#endif
-        if (qbuf->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-            DEBUG("m_outputBufferCountQBuf: %d, buffer index: %d", m_outputBufferCountQBuf, qbuf->index);
-            m_outputBufferCountQBuf++;
-        }
-    } // no break;
-    case VIDIOC_STREAMON:
-    case VIDIOC_STREAMOFF:
-    case VIDIOC_DQBUF:
-    case VIDIOC_QUERYCAP:
-        ret = V4l2CodecBase::ioctl(command, arg);
-        if (command == VIDIOC_STREAMON) {
-            m_outputBufferCountQBuf = 0;
-            m_outputBufferCountPulse = 0;
-            m_outputBufferCountGive = 0;
-        }
-        break;
+        struct v4l2_buffer* qbuf = static_cast<struct v4l2_buffer*>(arg);
+        return onQueueBuffer(qbuf);
+    }
+    case VIDIOC_DQBUF: {
+        struct v4l2_buffer* dqbuf = static_cast<struct v4l2_buffer*>(arg);
+        return onDequeBuffer(dqbuf);
+    }
+    case VIDIOC_STREAMON: {
+        __u32 type = *((__u32*)arg);
+        return onStreamOn(type);
+    }
+    case VIDIOC_STREAMOFF: {
+        __u32 type = *((__u32*)arg);
+        return onStreamOff(type);
+    }
+    case VIDIOC_QUERYCAP: {
+        return V4l2CodecBase::ioctl(command, arg);
+    }
     case VIDIOC_REQBUFS: {
-        ret = V4l2CodecBase::ioctl(command, arg);
-        ASSERT(ret == 0);
-        int port = -1;
-        struct v4l2_requestbuffers *reqbufs = static_cast<struct v4l2_requestbuffers *>(arg);
-        GET_PORT_INDEX(port, reqbufs->type, ret);
-        if (port == OUTPUT) {
-#if __ENABLE_WAYLAND__
-            if (reqbufs->count)
-                m_reqBuffCnt = reqbufs->count;
-            else
-                m_videoFrames.clear();
-#elif defined(__ENABLE_EGL__)
-            if (!reqbufs->count) {
-                m_eglVaapiImages.clear();
-            } else {
-                const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
-                ASSERT(outFormat && outFormat->width && outFormat->height);
-                ASSERT(m_eglVaapiImages.empty());
-                for (uint32_t i = 0; i < reqbufs->count; i++) {
-                    SharedPtr<EglVaapiImage> image(
-                                                   new EglVaapiImage(m_decoder->getDisplayID(), outFormat->width, outFormat->height));
-                    if (!image->init()) {
-                        ERROR("Create egl vaapi image failed");
-                        ret  = -1;
-                        break;
-                    }
-                    m_eglVaapiImages.push_back(image);
-                }
-            }
-#endif
-        }
-        break;
+        struct v4l2_requestbuffers* reqbufs = static_cast<struct v4l2_requestbuffers*>(arg);
+        return onRequestBuffers(reqbufs);
+    }
+    case VIDIOC_S_FMT: {
+        struct v4l2_format* format = static_cast<struct v4l2_format*>(arg);
+        return onSetFormat(format);
     }
     case VIDIOC_QUERYBUF: {
-        struct v4l2_buffer *buffer = static_cast<struct v4l2_buffer*>(arg);
-        GET_PORT_INDEX(port, buffer->type, ret);
-
-        ASSERT(ret == 0);
-        ASSERT(buffer->memory == m_memoryMode[port]);
-        ASSERT(buffer->index < m_maxBufferCount[port]);
-        ASSERT(buffer->length == m_bufferPlaneCount[port]);
-        ASSERT(m_maxBufferSize[port] > 0);
-
-        if (port == INPUT) {
-            ASSERT(buffer->memory == V4L2_MEMORY_MMAP);
-            buffer->m.planes[0].length = m_maxBufferSize[INPUT];
-            buffer->m.planes[0].m.mem_offset = m_maxBufferSize[INPUT] * buffer->index;
-        } else if (port == OUTPUT) {
-            ASSERT(m_maxBufferSize[INPUT] && m_maxBufferCount[INPUT]);
-            // plus input buffer space size, it will be minused in mmap
-            buffer->m.planes[0].m.mem_offset =  m_maxBufferSize[OUTPUT] * buffer->index;
-            buffer->m.planes[0].m.mem_offset += m_maxBufferSize[INPUT] * m_maxBufferCount[INPUT];
-            buffer->m.planes[0].length = m_videoWidth * m_videoHeight;
-            buffer->m.planes[1].m.mem_offset = buffer->m.planes[0].m.mem_offset + buffer->m.planes[0].length;
-            buffer->m.planes[1].length = ((m_videoWidth+1)/2*2) * ((m_videoHeight+1)/2);
-        }
+        struct v4l2_buffer* buf = static_cast<struct v4l2_buffer*>(arg);
+        return onQueryBuffer(buf);
     }
-    break;
-    case VIDIOC_S_FMT: {
-        struct v4l2_format *format = static_cast<struct v4l2_format *>(arg);
-        ASSERT(!m_streamOn[INPUT] && !m_streamOn[OUTPUT]);
-        if (format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
-            // ::Initialize
-            uint32_t size;
-            memcpy(&size, format->fmt.raw_data, sizeof(uint32_t));
-            if(size <= (sizeof(format->fmt.raw_data)-sizeof(uint32_t))) {
-                uint8_t *ptr = format->fmt.raw_data;
-                ptr += sizeof(uint32_t);
-                m_codecData.assign(ptr, ptr + size);
-            } else {
-                ret = -1;
-                ERROR("unvalid codec size");
-            }
-            //ASSERT(format->fmt.pix_mp.pixelformat == V4L2_PIX_FMT_NV12M);
-        } else if (format->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
-            // ::CreateInputBuffers
-            ASSERT(format->fmt.pix_mp.num_planes == 1);
-            ASSERT(format->fmt.pix_mp.plane_fmt[0].sizeimage);
-            m_codecData.clear();
-            m_pixelFormat[INPUT] = format->fmt.pix_mp.pixelformat;
-            m_videoWidth = format->fmt.pix_mp.width;
-            m_videoHeight = format->fmt.pix_mp.height;
-            m_maxBufferSize[INPUT] = format->fmt.pix_mp.plane_fmt[0].sizeimage;
-        } else {
-            ret = -1;
-            ERROR("unknow type: %d of setting format VIDIOC_S_FMT", format->type);
-        }
-    }
-    break;
     case VIDIOC_SUBSCRIBE_EVENT: {
-        // ::Initialize
-        struct v4l2_event_subscription *sub = static_cast<struct v4l2_event_subscription*>(arg);
-        ASSERT(sub->type == V4L2_EVENT_RESOLUTION_CHANGE);
-        // resolution change event is must, we always do so
+        struct v4l2_event_subscription* sub = static_cast<struct v4l2_event_subscription*>(arg);
+        return onSubscribeEvent(sub);
     }
-    break;
     case VIDIOC_DQEVENT: {
         // ::DequeueEvents
-        struct v4l2_event *ev = static_cast<struct v4l2_event*>(arg);
-        // notify resolution change
-        if (hasCodecEvent()) {
-            ev->type = V4L2_EVENT_RESOLUTION_CHANGE;
-            clearCodecEvent();
-        } else
-            ret = -1;
+        struct v4l2_event* ev = static_cast<struct v4l2_event*>(arg);
+        return onDequeEvent(ev);
     }
-    break;
     case VIDIOC_G_FMT: {
         // ::GetFormatInfo
         struct v4l2_format* format = static_cast<struct v4l2_format*>(arg);
-        ASSERT(format && format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
-        ASSERT(m_decoder);
-
-        const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
-        if (format && outFormat && outFormat->width && outFormat->height) {
-            format->fmt.pix_mp.num_planes = m_bufferPlaneCount[OUTPUT];
-            format->fmt.pix_mp.width = outFormat->width;
-            format->fmt.pix_mp.height = outFormat->height;
-            // XXX assumed output format and pitch
-
-            format->fmt.pix_mp.pixelformat = V4L2_PIX_FMT_NV12M;
-
-            format->fmt.pix_mp.plane_fmt[0].bytesperline = outFormat->width;
-            format->fmt.pix_mp.plane_fmt[1].bytesperline = outFormat->width % 2 ? outFormat->width+1 : outFormat->width;
-            m_videoWidth = outFormat->width;
-            m_videoHeight = outFormat->height;
-            m_maxBufferSize[OUTPUT] = m_videoWidth * m_videoHeight + ((m_videoWidth +1)/2*2) * ((m_videoHeight+1)/2);
-        } else {
-            ret = EAGAIN;
-        }
-      }
-    break;
+        return onGetFormat(format);
+    }
     case VIDIOC_G_CTRL: {
         // ::CreateOutputBuffers
         struct v4l2_control* ctrl = static_cast<struct v4l2_control*>(arg);
-        ASSERT(ctrl->id == V4L2_CID_MIN_BUFFERS_FOR_CAPTURE);
-        ASSERT(m_decoder);
-        // VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
-        ctrl->value = 0; // no need report dpb size, we hold all buffers in decoder.
+        return onGetCtrl(ctrl);
     }
-    break;
     case VIDIOC_ENUM_FMT: {
-        struct v4l2_fmtdesc *fmtdesc = static_cast<struct v4l2_fmtdesc *>(arg);
-        if ((fmtdesc->index == 0) && (fmtdesc->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE)) {
-            fmtdesc->pixelformat = V4L2_PIX_FMT_NV12M;
-        } else if ((fmtdesc->index == 0) && (fmtdesc->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)) {
-            fmtdesc->pixelformat = V4L2_PIX_FMT_VP8;
-        } else if ((fmtdesc->index == 1) && (fmtdesc->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE)) {
-            fmtdesc->pixelformat = V4L2_PIX_FMT_VP9;
-        } else {
-            ret = -1;
-        }
+        struct v4l2_fmtdesc* fmtdesc = static_cast<struct v4l2_fmtdesc*>(arg);
+        return onEnumFormat(fmtdesc);
     }
-    break;
     case VIDIOC_G_CROP: {
-        struct v4l2_crop* crop= static_cast<struct v4l2_crop *>(arg);
-        ASSERT(crop->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
-        ASSERT(m_decoder);
-        const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
-        if (outFormat && outFormat->width && outFormat->height) {
-            crop->c.left =  0;
-            crop->c.top  =  0;
-            crop->c.width  = outFormat->width;
-            crop->c.height = outFormat->height;
-        } else {
-            ret = -1;
-        }
+        struct v4l2_crop* crop = static_cast<struct v4l2_crop*>(arg);
+        return onGetCrop(crop);
     }
-    break;
-    default:
-        ret = -1;
+    case VIDIOC_CREATE_BUFS: {
+        struct v4l2_create_buffers* req = static_cast<struct v4l2_create_buffers*>(arg);
+        return onCreateBuffers(req);
+    }
+    default: {
         ERROR("unknown ioctrl command: %d", command);
-    break;
+        return -1;
     }
-
-    if (ret == -1 && errno != EAGAIN) {
-        // ERROR("ioctl failed");
-        WARNING("ioctl command: %s failed", IoctlCommandString(command));
     }
+}
 
+bool V4l2Decoder::needReallocation(const VideoFormatInfo* format)
+{
+    bool ret = m_lastFormat.surfaceWidth != format->surfaceWidth
+        || m_lastFormat.surfaceHeight != format->surfaceHeight
+        || m_lastFormat.surfaceNumber != format->surfaceNumber
+        || m_lastFormat.fourcc != format->fourcc;
+    m_lastFormat = *format;
     return ret;
 }
 
-/**
- * in order to distinguish input/output buffer, output is <assumed> after input buffer.
- * additional m_maxBufferSize[INPUT] && m_maxBufferCount[INPUT] is added to input buffer offset in VIDIOC_QUERYBUF
- * then minus back in mmap.
-*/
-void* V4l2Decoder::mmap (void* addr, size_t length,
-                      int prot, int flags, unsigned int offset)
+VideoDecodeBuffer* V4l2Decoder::peekInput()
 {
-    uint32_t i;
-    ASSERT((prot == PROT_READ) | PROT_WRITE);
-    ASSERT(flags == MAP_SHARED);
+    uint32_t index;
+    if (!m_in.peek(index))
+        return NULL;
+    ASSERT(index < m_inputFrames.size());
+    VideoDecodeBuffer* inputBuffer = &(m_inputFrames[index]);
+    return inputBuffer;
+}
 
-    ASSERT(m_maxBufferSize[INPUT] && m_maxBufferCount[INPUT]);
-
-    if (offset < m_maxBufferSize[INPUT] * m_maxBufferCount[INPUT]) { // assume it is input buffer
-        if (!m_bufferSpace[INPUT]) {
-            m_bufferSpace[INPUT] = new uint8_t[m_maxBufferSize[INPUT] * m_maxBufferCount[INPUT]];
-            for (i=0; i<m_maxBufferCount[INPUT]; i++) {
-                m_inputFrames[i].data = m_bufferSpace[INPUT] + m_maxBufferSize[INPUT]*i;
-                m_inputFrames[i].size = m_maxBufferSize[INPUT];
-            }
-        }
-        ASSERT(m_bufferSpace[INPUT]);
-        return m_bufferSpace[INPUT] + offset;
-    } else { // it is output buffer
-        offset -= m_maxBufferSize[INPUT] * m_maxBufferCount[INPUT];
-        ASSERT(offset <= m_maxBufferSize[OUTPUT] * m_maxBufferCount[OUTPUT]);
-        if (!m_bufferSpace[OUTPUT]) {
-            m_bufferSpace[OUTPUT] = new uint8_t[m_maxBufferSize[OUTPUT] * m_maxBufferCount[OUTPUT]];
-            for (i=0; i<m_maxBufferCount[OUTPUT]; i++) {
-                m_outputRawFrames[i].handle = (intptr_t)(m_bufferSpace[OUTPUT] + m_maxBufferSize[OUTPUT]*i);
-                m_outputRawFrames[i].size = m_maxBufferSize[OUTPUT];
-                m_outputRawFrames[i].width = m_videoWidth;
-                m_outputRawFrames[i].height = m_videoHeight;
-
-                // m_outputRawFrames[i].fourcc = VA_FOURCC_NV12;
-                m_outputRawFrames[i].offset[0] = 0;
-                m_outputRawFrames[i].offset[1] = m_videoWidth * m_videoHeight;
-                m_outputRawFrames[i].pitch[0] = m_videoWidth;
-                m_outputRawFrames[i].pitch[1] = m_videoWidth % 2 ? m_videoWidth+1 : m_videoWidth;
-            }
-        }
-        ASSERT(m_bufferSpace[OUTPUT]);
-        return m_bufferSpace[OUTPUT] + offset;
+void V4l2Decoder::consumeInput()
+{
+    PCHECK(m_thread.isCurrent());
+    uint32_t index;
+    if (!m_in.get(index)) {
+        ERROR("bug: can't get from input");
+        return;
     }
+    m_in.put(index);
+    setDeviceEvent(0);
+}
+
+void V4l2Decoder::getInputJob()
+{
+    PCHECK(m_thread.isCurrent());
+    PCHECK(bool(m_decoder));
+    if (m_state != kGetInput) {
+        DEBUG("early out, state = %d", m_state);
+        return;
+    }
+    VideoDecodeBuffer* inputBuffer = peekInput();
+    if (!inputBuffer) {
+        DEBUG("early out, no input buffer");
+        m_state = kWaitInput;
+        return;
+    }
+    YamiStatus status = m_decoder->decode(inputBuffer);
+    DEBUG("decode %d, return %d", (int)inputBuffer->size, (int)status);
+    if (status == YAMI_DECODE_FORMAT_CHANGE) {
+        const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
+        PCHECK(outFormat);
+
+        if (needReallocation(outFormat)) {
+            m_state = kWaitAllocation;
+        }
+        setCodecEvent();
+        DEBUG("early out, format changed to %dx%d, surface size is %dx%d",
+            outFormat->width, outFormat->height, outFormat->surfaceWidth, outFormat->surfaceHeight);
+        return;
+    }
+    if (status == YAMI_DECODE_NO_SURFACE) {
+        m_state = kWaitSurface;
+        DEBUG("early out, no surface");
+        return;
+    }
+    consumeInput();
+    m_state = kGetOutput;
+    post(bind(&V4l2Decoder::getOutputJob, this));
+}
+
+void V4l2Decoder::inputReadyJob()
+{
+    PCHECK(m_thread.isCurrent());
+    if (m_state != kWaitInput) {
+        DEBUG("early out, state = %d", m_state);
+        return;
+    }
+    m_state = kGetInput;
+    getInputJob();
+}
+
+void V4l2Decoder::getOutputJob()
+{
+    PCHECK(m_thread.isCurrent());
+    PCHECK(bool(m_decoder));
+    if (m_state != kGetOutput) {
+        DEBUG("early out, state = %d", m_state);
+        return;
+    }
+    while (m_output->isOutputReady()) {
+        SharedPtr<VideoFrame> frame = m_decoder->getOutput();
+        if (!frame) {
+            DEBUG("early out, no frame");
+            m_state = kGetInput;
+            post(bind(&V4l2Decoder::getInputJob, this));
+            return;
+        }
+        m_output->output(frame);
+    }
+    m_state = kWaitOutput;
+}
+
+void V4l2Decoder::outputReadyJob()
+{
+    PCHECK(m_thread.isCurrent());
+    if (m_state == kWaitOutput) {
+        m_state = kGetOutput;
+        getOutputJob();
+    }
+    else if (m_state == kWaitSurface) {
+        m_state = kGetInput;
+        getInputJob();
+    }
+}
+
+void V4l2Decoder::checkAllocationJob()
+{
+    PCHECK(m_thread.isCurrent());
+    if (m_state == kWaitAllocation) {
+        if (m_output->isAlloccationDone()) {
+            m_state = kGetInput;
+            getInputJob();
+        }
+    }
+}
+
+int32_t V4l2Decoder::onQueueBuffer(v4l2_buffer* buf)
+{
+    CHECK(buf);
+    uint32_t type = buf->type;
+    CHECK(type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+        || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+
+    if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+        CHECK(buf->memory == V4L2_MEMORY_MMAP);
+        CHECK(buf->length == 1);
+        CHECK(buf->index < m_inputFrames.size());
+        DEBUG("queue input size = %d", buf->m.planes[0].bytesused);
+
+        VideoDecodeBuffer& inputBuffer = m_inputFrames[buf->index];
+        inputBuffer.size = buf->m.planes[0].bytesused; // one plane only
+        if (!inputBuffer.size) // EOS
+            inputBuffer.data = NULL;
+        TIMEVAL_TO_INT64(inputBuffer.timeStamp, buf->timestamp);
+
+        m_in.queue(buf->index);
+        post(bind(&V4l2Decoder::inputReadyJob, this));
+        return 0;
+    }
+
+    m_output->queue(buf);
+    post(bind(&V4l2Decoder::outputReadyJob, this));
+    return 0;
+}
+
+int32_t V4l2Decoder::onDequeBuffer(v4l2_buffer* buf)
+{
+    CHECK(buf);
+    uint32_t type = buf->type;
+    CHECK(type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+        || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+    if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+        CHECK(m_inputOn);
+        uint32_t index;
+        if (!m_in.deque(index)) {
+            ERROR_RETURN(EAGAIN);
+        }
+        buf->index = index;
+        return 0;
+    }
+    return m_output->deque(buf);
+}
+int32_t V4l2Decoder::onStreamOn(uint32_t type)
+{
+    CHECK(type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+        || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+
+    if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+
+        if (!m_display) {
+            m_display = VaapiDisplay::create(m_nativeDisplay);
+            CHECK(bool(m_display));
+        }
+
+        CHECK(!m_inputOn);
+        m_inputOn = true;
+        CHECK(m_thread.start());
+
+        post(bind(&V4l2Decoder::startDecoderJob, this));
+        return 0;
+    }
+    CHECK(!m_outputOn);
+    m_outputOn = true;
+    post(bind(&V4l2Decoder::checkAllocationJob, this));
+    return 0;
+}
+
+void V4l2Decoder::flushDecoderJob()
+{
+    if (m_decoder)
+        m_decoder->flush();
+    m_out.clearPipe();
+    m_state = kStopped;
+}
+int32_t V4l2Decoder::onStreamOff(uint32_t type)
+{
+    CHECK(type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+        || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+    if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+        if (m_inputOn) {
+            post(bind(&V4l2Decoder::flushDecoderJob, this));
+            m_thread.stop();
+            m_in.clearPipe();
+            m_inputOn = false;
+            m_state = kUnStarted;
+        }
+        return 0;
+    }
+    m_outputOn = false;
+    m_output->streamOff();
+    return 0;
+}
+
+int32_t V4l2Decoder::requestInputBuffers(uint32_t count)
+{
+    CHECK(m_thread.isCurrent());
+
+    uint32_t size = m_inputFormat.fmt.pix_mp.plane_fmt[0].sizeimage;
+
+    m_inputFrames.resize(count);
+    if (count) {
+        //this means we really need allocate space
+        if (!size)
+            m_inputFormat.fmt.pix_mp.plane_fmt[0].sizeimage = kDefaultInputSize;
+    }
+    m_inputSpace.resize(count * size);
+    m_inputFrames.resize(count);
+    for (uint32_t i = 0; i < count; i++) {
+        VideoDecodeBuffer& frame = m_inputFrames[i];
+        memset(&frame, 0, sizeof(frame));
+        frame.data = &m_inputSpace[i * size];
+    }
+    return 0;
+}
+
+int32_t V4l2Decoder::onRequestBuffers(const v4l2_requestbuffers* req)
+{
+    CHECK(req);
+    uint32_t type = req->type;
+    uint32_t count = req->count;
+    CHECK(type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
+        || V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+    if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+        CHECK(req->memory == V4L2_MEMORY_MMAP);
+        return sendTask(bind(&V4l2Decoder::requestInputBuffers, this, count));
+    }
+    CHECK(req->memory == V4L2_MEMORY_MMAP);
+    return sendTask(bind(&Output::requestBuffers, m_output, count));
+}
+
+int32_t V4l2Decoder::onSetFormat(v4l2_format* format)
+{
+    CHECK(format);
+    CHECK(!m_inputOn && !m_outputOn);
+
+    if (format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        uint32_t size;
+        memcpy(&size, format->fmt.raw_data, sizeof(uint32_t));
+
+        CHECK(size <= (sizeof(format->fmt.raw_data) - sizeof(uint32_t)));
+
+        uint8_t* ptr = format->fmt.raw_data;
+        ptr += sizeof(uint32_t);
+        m_codecData.assign(ptr, ptr + size);
+        return 0;
+    }
+
+    if (format->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+        CHECK(format->fmt.pix_mp.num_planes == 1);
+        CHECK(format->fmt.pix_mp.plane_fmt[0].sizeimage);
+        memcpy(&m_inputFormat, format, sizeof(*format));
+        return 0;
+    }
+
+    ERROR("unknow type: %d of setting format VIDIOC_S_FMT", format->type);
+    return -1;
+}
+
+int32_t V4l2Decoder::onQueryBuffer(v4l2_buffer* buf)
+{
+    CHECK(buf);
+    CHECK(buf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+    CHECK(buf->memory == V4L2_MEMORY_MMAP);
+    CHECK(m_inputFormat.fmt.pix_mp.num_planes == 1);
+
+    uint32_t idx = buf->index;
+    uint32_t size = m_inputFormat.fmt.pix_mp.plane_fmt[0].sizeimage;
+    CHECK(size);
+    buf->m.planes[0].length = size;
+    buf->m.planes[0].m.mem_offset = size * idx;
+
+    return 0;
+}
+
+int32_t V4l2Decoder::onSubscribeEvent(v4l2_event_subscription* sub)
+{
+    CHECK(sub->type == V4L2_EVENT_RESOLUTION_CHANGE);
+    /// resolution change event is must, we always do so
+    return 0;
+}
+
+int32_t V4l2Decoder::onDequeEvent(v4l2_event* ev)
+{
+    CHECK(ev);
+    if (hasCodecEvent()) {
+        ev->type = V4L2_EVENT_RESOLUTION_CHANGE;
+        clearCodecEvent();
+        return 0;
+    }
+    return -1;
+}
+
+int32_t V4l2Decoder::onGetFormat(v4l2_format* format)
+{
+    CHECK(format && format->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+    CHECK(m_inputOn);
+
+    SEND(bind(&V4l2Decoder::getFormatTask, this, format));
+
+    //save it.
+    m_outputFormat = *format;
+    return 0;
+}
+
+int32_t V4l2Decoder::onGetCtrl(v4l2_control* ctrl)
+{
+    CHECK(ctrl);
+    CHECK(ctrl->id == V4L2_CID_MIN_BUFFERS_FOR_CAPTURE);
+
+    SEND(bind(&V4l2Decoder::getCtrlTask, this, ctrl));
+    return 0;
+}
+
+int32_t V4l2Decoder::onEnumFormat(v4l2_fmtdesc* fmtdesc)
+{
+    uint32_t type = fmtdesc->type;
+    uint32_t index = fmtdesc->index;
+    if (type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) {
+        CHECK(!index);
+        fmtdesc->pixelformat = V4L2_PIX_FMT_NV12M;
+        return 0;
+    }
+
+    if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
+        //TODO: query from libyami when capablity api is ready.
+        const static uint32_t supported[] = {
+            V4L2_PIX_FMT_H264,
+            V4L2_PIX_FMT_VC1,
+            V4L2_PIX_FMT_MPEG2,
+            V4L2_PIX_FMT_JPEG,
+            V4L2_PIX_FMT_VP8,
+            V4L2_PIX_FMT_VP9,
+        };
+        CHECK(index < N_ELEMENTS(supported));
+        fmtdesc->pixelformat = supported[index];
+        return 0;
+    }
+    return -1;
+}
+
+int32_t V4l2Decoder::onGetCrop(v4l2_crop* crop)
+{
+    CHECK(crop->type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+    ASSERT(0);
+    return 0;
+    //return sendTask(m_decoderThread, std::bind(getCrop,crop)));
+}
+
+int32_t V4l2Decoder::onCreateBuffers(v4l2_create_buffers* req)
+{
+    return m_output->createBuffers(req);
+}
+
+void V4l2Decoder::startDecoderJob()
+{
+    PCHECK(m_state == kUnStarted);
+
+    if (m_decoder) {
+        m_state = kGetInput;
+        getInputJob();
+        return;
+    }
+
+    const char* mime = mimeFromV4l2PixelFormat(m_inputFormat.fmt.pix_mp.pixelformat);
+
+    m_decoder.reset(
+        createVideoDecoder(mime), releaseVideoDecoder);
+    if (!m_decoder) {
+        ERROR("create display failed");
+        m_display.reset();
+        return;
+    }
+
+    m_output->setDecodeAllocator(m_decoder);
+
+    YamiStatus status;
+    VideoConfigBuffer config;
+    memset(&config, 0, sizeof(config));
+    config.width = m_inputFormat.fmt.pix_mp.width;
+    config.height = m_inputFormat.fmt.pix_mp.height;
+    config.data = &m_codecData[0];
+    config.size = m_codecData.size();
+
+    status = m_decoder->start(&config);
+    if (status != YAMI_SUCCESS) {
+        ERROR("start decoder failed");
+        return;
+    }
+    const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
+    if (outFormat && outFormat->width && outFormat->height) {
+        //we got format now, we are waiting for surface allocation.
+        m_state = kWaitAllocation;
+    }
+    else {
+        m_state = kGetInput;
+        getInputJob();
+    }
+}
+
+void V4l2Decoder::post(Job job)
+{
+    m_thread.post(job);
+}
+
+static void taskWrapper(int32_t& ret, Task& task)
+{
+    ret = task();
+}
+
+int32_t V4l2Decoder::sendTask(Task task)
+{
+    //if send fail, we will return EINVAL;
+    int32_t ret = EINVAL;
+    m_thread.send(bind(taskWrapper, ref(ret), ref(task)));
+    return ret;
+}
+
+int32_t V4l2Decoder::getFormatTask(v4l2_format* format)
+{
+    CHECK(m_thread.isCurrent());
+    CHECK(format);
+    CHECK(bool(m_decoder));
+
+    const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
+    if (!outFormat)
+        return EINVAL;
+
+    memset(format, 0, sizeof(*format));
+    format->fmt.pix_mp.width = outFormat->width;
+    format->fmt.pix_mp.height = outFormat->height;
+
+    //TODO: add support for P010
+    format->fmt.pix_mp.num_planes = 2; //for NV12
+    format->fmt.pix_mp.pixelformat = V4L2_PIX_FMT_NV12M;
+
+    //we can't fill format->fmt.pix_mp.plane_fmt[0].bytesperline
+    //yet, since we did not creat surface.
+    return 0;
+}
+
+int32_t V4l2Decoder::getCtrlTask(v4l2_control* ctrl)
+{
+    CHECK(m_thread.isCurrent());
+    CHECK(ctrl);
+    CHECK(bool(m_decoder));
+
+    const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
+    if (!outFormat)
+        return EINVAL;
+
+    //TODO: query this from outFormat;
+    ctrl->value = outFormat->surfaceNumber;
+    return 0;
+}
+
+#define MCHECK(cond)                     \
+    do {                                 \
+        if (!(cond)) {                   \
+            ERROR("%s is false", #cond); \
+            return NULL;                 \
+        }                                \
+    } while (0)
+
+void* V4l2Decoder::mmap(void* addr, size_t length,
+    int prot, int flags, unsigned int offset)
+{
+    MCHECK(prot == (PROT_READ | PROT_WRITE));
+    MCHECK(flags == MAP_SHARED);
+    uint32_t size = m_inputFormat.fmt.pix_mp.plane_fmt[0].sizeimage;
+    MCHECK(size);
+    MCHECK(length == size);
+    MCHECK(!(offset % size));
+    MCHECK(offset / size < m_inputFrames.size());
+    MCHECK(offset + size <= m_inputSpace.size());
+
+    return &m_inputSpace[offset];
+}
+
+#undef MCHECK
+
+int32_t V4l2Decoder::setFrameMemoryType(VideoDataMemoryType memory_type)
+{
+    if (memory_type == VIDEO_DATA_MEMORY_TYPE_EXTERNAL_DMA_BUF)
+        m_output.reset(new ExternalDmaBufOutput(this));
+#ifdef __ENABLE_EGL__
+    if (memory_type == VIDEO_DATA_MEMORY_TYPE_DRM_NAME
+        || memory_type == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
+        m_output.reset(new EglOutput(this));
+#endif
+    if (!m_output) {
+        ERROR("unspported memory type %d", memory_type);
+        return -1;
+    }
+    return 0;
 }
 
 void V4l2Decoder::flush()
 {
-    if (m_decoder)
-        m_decoder->flush();
 }
 
 #ifdef __ENABLE_EGL__
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
 {
-    m_bindEglImage = true;
-    ASSERT(m_memoryType == VIDEO_DATA_MEMORY_TYPE_DRM_NAME || m_memoryType == VIDEO_DATA_MEMORY_TYPE_DMA_BUF);
-    ASSERT(bufferIndex<m_eglVaapiImages.size());
-    bufferIndex = std::min(bufferIndex, m_actualOutBufferCount-1);
-    *(EGLImageKHR*)eglImage = m_eglVaapiImages[bufferIndex]->createEglImage(eglDisplay, eglContext, m_memoryType);
-
-    return 0;
-}
-#endif
-#if __ENABLE_WAYLAND__
-
-class VideoFrameDeleter {
-public:
-    VideoFrameDeleter(VADisplay display)
-        : m_display(display)
-    {
+    SharedPtr<EglOutput> output = DynamicPointerCast<EglOutput>(m_output);
+    if (!output) {
+        ERROR("can't cast m_output to EglOutput");
+        return -1;
     }
-    void operator()(VideoFrame* frame)
-    {
-        VASurfaceID id = (VASurfaceID)frame->surface;
-        DEBUG("destroy VASurface 0x%x", id);
-        vaDestroySurfaces(m_display, &id, 1);
-        delete frame;
-    }
-
-private:
-    VADisplay m_display;
-};
-
-
-SharedPtr<VideoFrame> V4l2Decoder::createVaSurface(uint32_t width, uint32_t height)
-{
-    SharedPtr<VideoFrame> frame;
-    if (!m_display) {
-        ERROR("bug: no display to create vasurface");
-        return frame;
-    }
-
-    VASurfaceID id;
-    VASurfaceAttrib attrib;
-    uint32_t rtFormat = VA_RT_FORMAT_YUV420;
-    int pixelFormat = VA_FOURCC_NV12;
-    attrib.type = VASurfaceAttribPixelFormat;
-    attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
-    attrib.value.type = VAGenericValueTypeInteger;
-    attrib.value.value.i = pixelFormat;
-
-    VAStatus vaStatus = vaCreateSurfaces(m_display->getID(), rtFormat, width, height, &id, 1, &attrib, 1);
-    if (vaStatus != VA_STATUS_SUCCESS)
-        return frame;
-
-    frame.reset(new VideoFrame, VideoFrameDeleter(m_display->getID()));
-    memset(frame.get(), 0, sizeof(VideoFrame));
-    frame->surface = static_cast<intptr_t>(id);
-    frame->crop.width = width;
-    frame->crop.height = height;
-    return frame;
-}
-
-bool V4l2Decoder::mapVideoFrames(uint32_t width, uint32_t height)
-{
-    SharedPtr<VideoFrame> frame;
-    for (uint32_t i = 0; i < m_reqBuffCnt; i++) {
-        frame = createVaSurface(width, height);
-        if (!frame)
-            return false;
-        m_videoFrames.push_back(frame);
-    }
-    return true;
+    return output->useEglImage(eglDisplay, eglContext, bufferIndex, eglImage);
 }
 #endif

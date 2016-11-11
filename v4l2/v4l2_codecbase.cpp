@@ -77,6 +77,14 @@ V4l2CodecBase::V4l2CodecBase()
     , m_outputThreadCond(m_frameLock[OUTPUT])
     , m_eosState(EosStateNormal)
 {
+    m_maxBufferCount[INPUT] = 0;
+    m_maxBufferCount[OUTPUT] = 0;
+    m_bufferPlaneCount[INPUT] = 0;
+    m_bufferPlaneCount[OUTPUT] = 0;
+    m_memoryMode[INPUT] = 0;
+    m_memoryMode[OUTPUT] = 0;
+    m_pixelFormat[INPUT] = 0;
+    m_pixelFormat[OUTPUT] = 0;
     m_streamOn[INPUT] = false;
     m_streamOn[OUTPUT] = false;
     m_threadOn[INPUT] = false;
@@ -567,14 +575,6 @@ struct FormatEntry {
     uint32_t format;
     const char* mime;
 };
-
-#ifndef V4L2_PIX_FMT_VP9
-#define V4L2_PIX_FMT_VP9 YAMI_FOURCC('V', 'P', '9', '0')
-#endif
-
-#ifndef V4L2_PIX_FMT_VC1
-#define V4L2_PIX_FMT_VC1 YAMI_FOURCC('V', 'C', '1', '0')
-#endif
 
 static const FormatEntry FormatEntrys[] = {
     {V4L2_PIX_FMT_H264, YAMI_MIME_H264},

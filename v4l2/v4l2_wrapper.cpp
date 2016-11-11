@@ -221,6 +221,9 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
             memoryType = VIDEO_DATA_MEMORY_TYPE_SURFACE_ID;
         } else if (!strcmp(value, "android-buffer-handle")) {
             memoryType = VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE;
+        }
+        else if (!strcmp(value, "external-dma-buf")) {
+            memoryType = VIDEO_DATA_MEMORY_TYPE_EXTERNAL_DMA_BUF;
         } else {
             ERROR("unknow output frame memory type: %s\n", value);
             return -1;
