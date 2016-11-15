@@ -21,7 +21,6 @@
 #include "vaapidecsurfacepool.h"
 
 #include "common/log.h"
-#include "vaapi/vaapidisplay.h"
 #include "vaapi/VaapiSurface.h"
 #include "decoder/vaapidecoder_base.h"
 #include <string.h>
@@ -29,30 +28,66 @@
 
 namespace YamiMediaCodec{
 
-DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoConfigBuffer* config,
-    const SharedPtr<SurfaceAllocator>& allocator )
+YamiStatus VaapiDecSurfacePool::getSurface(void* pool, intptr_t* surface, uint32_t flags)
+{
+    VaapiDecSurfacePool* p = (VaapiDecSurfacePool*)pool;
+    return p->getSurface(surface, flags);
+}
+
+YamiStatus VaapiDecSurfacePool::putSurface(void* pool, intptr_t surface)
+{
+    VaapiDecSurfacePool* p = (VaapiDecSurfacePool*)pool;
+    return p->putSurface(surface);
+}
+
+YamiStatus VaapiDecSurfacePool::getSurface(intptr_t* surface, uint32_t /*flags*/)
+{
+    AutoLock lock(m_lock);
+
+    if (m_freed.empty())
+        return YAMI_DECODE_NO_SURFACE;
+    *surface = m_freed.front();
+    m_used.insert(*surface);
+    m_freed.pop_front();
+    return YAMI_SUCCESS;
+}
+
+YamiStatus VaapiDecSurfacePool::putSurface(intptr_t surface)
+{
+    AutoLock lock(m_lock);
+
+    if (m_used.find(surface) == m_used.end()) {
+        ERROR("put wrong surface, id = %p", (void*)surface);
+        return YAMI_INVALID_PARAM;
+    }
+    m_used.erase(surface);
+    m_freed.push_back(surface);
+    return YAMI_SUCCESS;
+}
+
+DecSurfacePoolPtr VaapiDecSurfacePool::create(VideoConfigBuffer* config,
+    const SharedPtr<SurfaceAllocator>& allocator)
 {
     VideoDecoderConfig conf;
     conf.width = config->surfaceWidth;
     conf.height = config->surfaceHeight;
     conf.fourcc = config->fourcc;
     conf.surfaceNumber = config->surfaceNumber;
-    return create(display, &conf, allocator);
+    return create(&conf, allocator);
 }
 
-DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoDecoderConfig* config,
+DecSurfacePoolPtr VaapiDecSurfacePool::create(VideoDecoderConfig* config,
     const SharedPtr<SurfaceAllocator>& allocator)
 {
     DecSurfacePoolPtr pool(new VaapiDecSurfacePool);
-    if (!pool->init(display, config, allocator))
+    if (!pool->init(config, allocator))
         pool.reset();
     return pool;
 }
 
-bool VaapiDecSurfacePool::init(const DisplayPtr& display, VideoDecoderConfig* config,
+bool VaapiDecSurfacePool::init(VideoDecoderConfig* config,
     const SharedPtr<SurfaceAllocator>& allocator)
 {
-    m_display = display;
     m_allocator = allocator;
     m_allocParams.width = config->width;
     m_allocParams.height = config->height;
@@ -68,26 +103,19 @@ bool VaapiDecSurfacePool::init(const DisplayPtr& display, VideoDecoderConfig* co
     uint32_t height = m_allocParams.height;
     uint32_t fourcc = config->fourcc;
 
-    m_renderBuffers.resize(size);
     for (uint32_t i = 0; i < size; i++) {
-        SurfacePtr s(new VaapiSurface(m_allocParams.surfaces[i], width, height, fourcc));
-        VASurfaceID id = s->getID();
+        intptr_t s = m_allocParams.surfaces[i];
+        SurfacePtr surface(new VaapiSurface(s, width, height, fourcc));
 
-        m_renderBuffers[i].display = m_display->getID();
-        m_renderBuffers[i].surface = id;
-        m_renderBuffers[i].timeStamp = 0;
+        m_surfaceMap[s] = surface.get();
+        m_surfaces.push_back(surface);
 
-        m_renderMap[id] = &m_renderBuffers[i];
-        m_surfaceMap[id] = s.get();
-        m_freed.push_back(id);
-        m_surfaces.push_back(s);
+        m_freed.push_back(s);
     }
     return true;
 }
 
 VaapiDecSurfacePool::VaapiDecSurfacePool()
-    :m_cond(m_lock),
-    m_flushing(false)
 {
     memset(&m_allocParams, 0, sizeof(m_allocParams));
 }
@@ -103,144 +131,81 @@ void VaapiDecSurfacePool::getSurfaceIDs(std::vector<VASurfaceID>& ids)
 {
     //no need hold lock, it never changed from start
     assert(!ids.size());
-    size_t size = m_renderBuffers.size();
+    size_t size = m_surfaces.size();
     ids.reserve(size);
 
     for (size_t i = 0; i < size; ++i)
-        ids.push_back(m_renderBuffers[i].surface);
+        ids.push_back(m_surfaces[i]->getID());
 }
 
 struct VaapiDecSurfacePool::SurfaceRecycler
 {
     SurfaceRecycler(const DecSurfacePoolPtr& pool): m_pool(pool) {}
-    void operator()(VaapiSurface* surface) { m_pool->recycle(surface->getID(), SURFACE_DECODING);}
+    void operator()(VaapiSurface* surface)
+    {
+        putSurface(m_pool.get(), (intptr_t)surface->getID());
+    }
+
 private:
     DecSurfacePoolPtr m_pool;
 };
 
-SurfacePtr VaapiDecSurfacePool::acquireWithWait()
+SurfacePtr VaapiDecSurfacePool::acquire()
 {
     SurfacePtr surface;
+    intptr_t p;
+    YamiStatus status = getSurface(this, &p, 0);
+    if (status != YAMI_SUCCESS)
+        return surface;
+    //we only hold this lock after getSurface, since getSurface will do the lock
     AutoLock lock(m_lock);
-    while (m_freed.empty() && !m_flushing) {
-        DEBUG("wait because there is no available surface from pool");
-        m_cond.wait();
-    }
-
-    if (m_flushing) {
-        DEBUG("input flushing, return nil surface");
+    SurfaceMap::iterator it = m_surfaceMap.find(p);
+    if (it == m_surfaceMap.end()) {
+        ERROR("surface getter turn a invalid surface ptr, %p", (void*)p);
         return surface;
     }
-
-    assert(!m_freed.empty());
-    VASurfaceID id = m_freed.front();
-    m_freed.pop_front();
-    m_allocated[id] = SURFACE_DECODING;
-    VaapiSurface* s = m_surfaceMap[id];
-    surface.reset(s, SurfaceRecycler(shared_from_this()));
+    surface.reset(it->second, SurfaceRecycler(shared_from_this()));
     return surface;
 }
 
+struct VaapiDecSurfacePool::VideoFrameRecycler {
+    VideoFrameRecycler(const SurfacePtr& surface)
+        : m_surface(surface)
+    {
+    }
+    void operator()(VideoFrame* frame) {}
+private:
+    SurfacePtr m_surface;
+};
+
 bool VaapiDecSurfacePool::output(const SurfacePtr& surface, int64_t timeStamp)
 {
-    VASurfaceID id = surface->getID();
-
     AutoLock lock(m_lock);
-    const Allocated::iterator it = m_allocated.find(id);
-    if (it == m_allocated.end())
-        return false;
-    assert(it->second == SURFACE_DECODING);
-    it->second |= SURFACE_TO_RENDER;
-    VideoRenderBuffer* buffer = m_renderMap[id];
-
-    VideoRect& crop = buffer->crop;
-    surface->getCrop(crop.x, crop.y, crop.width, crop.height);
-    buffer->fourcc = surface->getFourcc();
-
-    buffer->timeStamp = timeStamp;
-    DEBUG("surface=0x%x is output-able with timeStamp=%ld", surface->getID(), timeStamp);
-    m_output.push_back(buffer);
+    SharedPtr<VideoFrame> frame(surface->m_frame.get(), VideoFrameRecycler(surface));
+    frame->timeStamp = timeStamp;
+    m_output.push_back(frame);
     return true;
 }
 
-VideoRenderBuffer* VaapiDecSurfacePool::getOutput()
+SharedPtr<VideoFrame> VaapiDecSurfacePool::getOutput()
 {
+    SharedPtr<VideoFrame> frame;
     AutoLock lock(m_lock);
     if (m_output.empty())
-        return NULL;
-    VideoRenderBuffer* buffer = m_output.front();
+        return frame;
+    frame = m_output.front();
     m_output.pop_front();
-    const Allocated::iterator it = m_allocated.find(buffer->surface);
-    assert(it != m_allocated.end());
-    assert(it->second & SURFACE_TO_RENDER);
-    assert(!(it->second & SURFACE_RENDERING));
-    //clear SURFACE_TO_RENDER and set SURFACE_RENDERING
-    it->second ^= SURFACE_RENDERING | SURFACE_TO_RENDER;
-    return buffer;
-}
-
-struct VaapiDecSurfacePool::SurfaceRecyclerRender
-{
-    SurfaceRecyclerRender(const DecSurfacePoolPtr& pool, VideoRenderBuffer* buffer): m_pool(pool), m_buffer(buffer) {}
-    void operator()(VaapiSurface* surface) { m_pool->recycle(m_buffer);}
-private:
-    DecSurfacePoolPtr m_pool;
-    VideoRenderBuffer* m_buffer;
-};
-
-void VaapiDecSurfacePool::setWaitable(bool waitable)
-{
-    m_flushing = !waitable;
-
-    if (!waitable) {
-        m_cond.signal();
-    }
+    return frame;
 }
 
 void VaapiDecSurfacePool::flush()
 {
-    AutoLock lock(m_lock);
-    for (OutputQueue::iterator it = m_output.begin();
-        it != m_output.end(); ++it) {
-        recycleLocked((*it)->surface, SURFACE_TO_RENDER);
+    OutputQueue q;
+    {
+        //the VideoFrame deconstructor will triggle putSurface, we can't hold the lock to call it 
+        AutoLock lock(m_lock);
+        q.swap(m_output);
     }
-    m_output.clear();
-    //still have unreleased surface
-    if (!m_allocated.empty())
-        m_flushing = true;
-}
-
-void VaapiDecSurfacePool::recycleLocked(VASurfaceID id, SurfaceState flag)
-{
-    const Allocated::iterator it = m_allocated.find(id);
-    if (it == m_allocated.end()) {
-        ERROR("try to recycle %u from state %d, it's not an allocated buffer", id, flag);
-        return;
-    }
-    it->second &= ~flag;
-    if (it->second == SURFACE_FREE) {
-        m_allocated.erase(it);
-        m_freed.push_back(id);
-        if (m_flushing && m_allocated.size() == 0)
-            m_flushing = false;
-        m_cond.signal();
-    }
-}
-
-void VaapiDecSurfacePool::recycle(VASurfaceID id, SurfaceState flag)
-{
-    AutoLock lock(m_lock);
-    recycleLocked(id,flag);
-}
-
-void VaapiDecSurfacePool::recycle(const VideoRenderBuffer * renderBuf)
-{
-    if (renderBuf < &m_renderBuffers[0]
-        || renderBuf >= &m_renderBuffers[m_renderBuffers.size()]) {
-        ERROR("recycle invalid render buffer");
-        return;
-    }
-    recycle(renderBuf->surface, SURFACE_RENDERING);
 }
 
 } //namespace YamiMediaCodec

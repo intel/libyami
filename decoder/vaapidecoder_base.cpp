@@ -171,45 +171,13 @@ void VaapiDecoderBase::flush(void)
     m_currentPTS = INVALID_PTS;
 }
 
-struct BufferRecycler
-{
-    BufferRecycler(const DecSurfacePoolPtr&  pool, VideoRenderBuffer* buffer)
-        :m_pool(pool), m_buffer(buffer)
-    {
-    }
-    void operator()(VideoFrame* frame)
-    {
-        m_pool->recycle(m_buffer);
-        delete frame;
-    }
-
-private:
-    DecSurfacePoolPtr  m_pool;
-    VideoRenderBuffer* m_buffer;
-};
-
 SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
 {
     SharedPtr<VideoFrame> frame;
-    DecSurfacePoolPtr pool = m_surfacePool;
+    DecSurfacePoolPtr& pool = m_surfacePool;
     if (!pool)
         return frame;
-    VideoRenderBuffer *buffer = pool->getOutput();
-    if (buffer) {
-        frame.reset(new VideoFrame, BufferRecycler(pool, buffer));
-        memset(frame.get(), 0, sizeof(VideoFrame));
-        frame->surface = (intptr_t)buffer->surface;
-        frame->timeStamp = buffer->timeStamp;
-        frame->crop = buffer->crop;
-        frame->fourcc = buffer->fourcc;
-#ifdef __ENABLE_DEBUG__
-        if (m_dumpSurface && access("/tmp/yami/dumpon", F_OK) == 0) {
-            DEBUG("dumpSurface display: %p, surface: 0x%x", buffer->display, buffer->surface);
-            dumpSurface(buffer->display, buffer->surface);
-        }
-#endif
-    }
-    return frame;
+    return pool->getOutput();
 }
 
 const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
@@ -262,7 +230,7 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     }
 
     m_configBuffer.surfaceNumber = numSurface;
-    m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_configBuffer, m_allocator);
+    m_surfacePool = VaapiDecSurfacePool::create(&m_configBuffer, m_allocator);
     DEBUG("surface pool is created");
     if (!m_surfacePool)
         return YAMI_FAIL;
@@ -335,7 +303,7 @@ YamiStatus VaapiDecoderBase::ensureSurfacePool()
     if (!createAllocator())
         return YAMI_FAIL;
 
-    m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_config, m_allocator);
+    m_surfacePool = VaapiDecSurfacePool::create(&m_config, m_allocator);
     if (!m_surfacePool)
         return YAMI_FAIL;
     DEBUG("surface pool is created");
@@ -412,7 +380,6 @@ void VaapiDecoderBase::releaseLock(bool lockable)
     if (!m_surfacePool)
         return;
 
-    m_surfacePool->setWaitable(lockable);
 }
 
 void VaapiDecoderBase::setAllocator(SurfaceAllocator* allocator)
@@ -424,7 +391,7 @@ SurfacePtr VaapiDecoderBase::createSurface()
 {
     SurfacePtr surface;
     if (m_surfacePool) {
-        surface = m_surfacePool->acquireWithWait();
+        surface = m_surfacePool->acquire();
     }
     return surface;
 }
