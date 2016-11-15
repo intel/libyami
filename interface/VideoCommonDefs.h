@@ -185,7 +185,8 @@ typedef YamiStatus Encode_Status;
 #define ENCODE_NO_MEMORY YAMI_OUT_MEMORY
 /*compatible code end*/
 
-typedef struct {
+typedef struct _SurfaceAllocParams SurfaceAllocParams;
+typedef struct _SurfaceAllocParams {
     //in
     uint32_t fourcc;
     uint32_t width;
@@ -201,6 +202,29 @@ typedef struct {
 
     //out
     intptr_t* surfaces;
+
+    /**
+     * yami will call this when it want new surface to put decode data
+     *
+     * it's optional
+     * @param user SurfaceAllocParams::user
+     * @param surface you want decode to
+     */
+    YamiStatus (*getSurface)(SurfaceAllocParams* thiz, intptr_t* surface);
+
+    /**
+     * yami will call this when all surface usage have been done
+     *
+     * it's optional
+     * @param user SurfaceAllocParams::user
+     * @param surface need to recycle
+     */
+    YamiStatus (*putSurface)(SurfaceAllocParams* thiz, intptr_t surface);
+
+    //you can set your private data for get and put surface
+    //yami will not touch it
+    void* user;
+
 } SurfaceAllocParams;
 
 typedef struct _SurfaceAllocator SurfaceAllocator;
