@@ -78,9 +78,9 @@ private:
     bool init(VideoDecoderConfig* config,
         const SharedPtr<SurfaceAllocator>& allocator);
 
-    static YamiStatus getSurface(void* pool, intptr_t* surface, uint32_t flags);
-    static YamiStatus putSurface(void* pool, intptr_t surface);
-    YamiStatus getSurface(intptr_t* surface, uint32_t flags);
+    static YamiStatus getSurface(SurfaceAllocParams* param, intptr_t* surface);
+    static YamiStatus putSurface(SurfaceAllocParams* param, intptr_t surface);
+    YamiStatus getSurface(intptr_t* surface);
     YamiStatus putSurface(intptr_t surface);
 
     //following member only change in constructor.
