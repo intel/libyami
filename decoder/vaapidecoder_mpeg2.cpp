@@ -622,7 +622,7 @@ YamiStatus VaapiDecoderMPEG2::assignSurface()
     surface = VaapiDecoderBase::createSurface();
 
     if (!surface) {
-        status = YAMI_OUT_MEMORY;
+        status = YAMI_DECODE_NO_SURFACE;
     } else {
         surface->setCrop(0, 0, m_configBuffer.width, m_configBuffer.height);
         m_currentPicture.reset(

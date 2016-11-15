@@ -452,15 +452,15 @@ YamiStatus VaapiDecoderJPEG::finish()
         return YAMI_FAIL;
     }
 
-    m_picture = createPicture(m_currentPTS);
-    if (!m_picture) {
+    YamiStatus status;
+    status = createPicture(m_picture, m_currentPTS);
+    if (status != YAMI_SUCCESS) {
         ERROR("Could not create a VAAPI picture.");
-        return YAMI_FAIL;
+        return status;
     }
 
     m_picture->m_timeStamp = m_currentPTS;
 
-    YamiStatus status;
 
     status = fillSliceParam();
     if (status !=  YAMI_SUCCESS) {

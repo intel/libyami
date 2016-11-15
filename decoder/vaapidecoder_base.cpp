@@ -56,18 +56,17 @@ VaapiDecoderBase::~VaapiDecoderBase()
     stop();
 }
 
-PicturePtr VaapiDecoderBase::createPicture(int64_t timeStamp /* , VaapiPictureStructure structure = VAAPI_PICTURE_STRUCTURE_FRAME */)
+YamiStatus VaapiDecoderBase::createPicture(PicturePtr& picture, int64_t timeStamp /* , VaapiPictureStructure structure = VAAPI_PICTURE_STRUCTURE_FRAME */)
 {
-    PicturePtr picture;
     /*accquire one surface from m_surfacePool in base decoder  */
     SurfacePtr surface = createSurface();
     if (!surface) {
         DEBUG("create surface failed");
-        return picture;
+        return YAMI_DECODE_NO_SURFACE;
     }
 
     picture.reset(new VaapiDecPicture(m_context, surface, timeStamp));
-    return picture;
+    return YAMI_SUCCESS;
 }
 
 YamiStatus VaapiDecoderBase::start(VideoConfigBuffer* buffer)

@@ -74,7 +74,7 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     virtual YamiStatus decode(VideoDecodeBuffer* buffer);
 
   private:
-    bool allocNewPicture();
+      YamiStatus allocNewPicture();
     bool fillPictureParam(const PicturePtr& picture);
     /* fill Quant matrix parameters */
     bool ensureQuantMatrix(const PicturePtr& pic);

@@ -349,7 +349,7 @@ YamiStatus VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
         return ret;
     surface = VaapiDecoderBase::createSurface();
     if (!surface) {
-        ret = YAMI_OUT_MEMORY;
+        ret = YAMI_DECODE_NO_SURFACE;
     } else {
         picture.reset(
             new VaapiDecPictureVC1(m_context, surface, pts));
