@@ -137,7 +137,7 @@ private:
     bool decodeHevcRecordData(uint8_t* buf, int32_t bufSize);
 
     SurfacePtr createSurface(const SliceHeader* const);
-    PicturePtr createPicture(const SliceHeader* const, const NalUnit* const nalu);
+    YamiStatus createPicture(PicturePtr& picture, const SliceHeader* const, const NalUnit* const nalu);
     void getPoc(const PicturePtr&, const SliceHeader* const,
             const NalUnit* const);
     YamiStatus decodeCurrent();

@@ -57,9 +57,10 @@ YamiStatus VaapiDecoderFake::decode(VideoDecodeBuffer* buffer)
         m_first = false;
         return YAMI_DECODE_FORMAT_CHANGE;
     }
-    PicturePtr picture = createPicture(buffer->timeStamp);
-    if (!picture)
-        return YAMI_OUT_MEMORY;
+    PicturePtr picture;
+    YamiStatus status = createPicture(picture, buffer->timeStamp);
+    if (status != YAMI_SUCCESS)
+        return status;
     return outputPicture(picture);
 }
 

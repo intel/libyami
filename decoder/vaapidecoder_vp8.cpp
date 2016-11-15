@@ -314,9 +314,9 @@ bool VaapiDecoderVP8::ensureProbabilityTable(const PicturePtr&  pic)
     // XXX, create/render VAProbabilityDataBufferVP8 in base class
     if (!pic->editProbTable(probTable))
         return false;
-    memcpy (probTable->dct_coeff_probs, 
-            m_frameHdr.entropy_hdr.coeff_probs,
-            sizeof (m_frameHdr.entropy_hdr.coeff_probs));
+    memcpy(probTable->dct_coeff_probs,
+        m_frameHdr.entropy_hdr.coeff_probs,
+        sizeof(m_frameHdr.entropy_hdr.coeff_probs));
     return true;
 }
 
@@ -379,32 +379,33 @@ void VaapiDecoderVP8::updateReferencePictures()
 
 }
 
-bool VaapiDecoderVP8::allocNewPicture()
+YamiStatus VaapiDecoderVP8::allocNewPicture()
 {
-    m_currentPicture = createPicture(m_currentPTS);
+    YamiStatus status = createPicture(m_currentPicture, m_currentPTS);
 
-    if (!m_currentPicture)
-        return false;
+    if (status != YAMI_SUCCESS)
+        return status;
 
     SurfacePtr surface = m_currentPicture->getSurface();
     ASSERT(m_frameWidth && m_frameHeight);
     if (!surface->setCrop(0, 0, m_frameWidth, m_frameHeight)) {
         ASSERT(0 && "frame size is bigger than internal surface resolution");
-        return false;
+        return YAMI_FAIL;
     }
 
     DEBUG ("alloc new picture: %p with surface ID: %x",
          m_currentPicture.get(), m_currentPicture->getSurfaceID());
 
-    return true;
+    return YAMI_SUCCESS;
 }
 
 YamiStatus VaapiDecoderVP8::decodePicture()
 {
     YamiStatus status = YAMI_SUCCESS;
 
-    if (!allocNewPicture())
-        return YAMI_FAIL;
+    status = allocNewPicture();
+    if (status != YAMI_SUCCESS)
+        return status;
 
     if (!ensureQuantMatrix(m_currentPicture)) {
         ERROR("failed to reset quantizer matrix");

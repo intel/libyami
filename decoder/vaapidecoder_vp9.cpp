@@ -276,9 +276,10 @@ YamiStatus VaapiDecoderVP9::decode(const Vp9FrameHdr* hdr, const uint8_t* data, 
     if (ret != YAMI_SUCCESS)
         return ret;
 
-    PicturePtr picture = createPicture(timeStamp);
-    if (!picture)
-        return YAMI_OUT_MEMORY;
+    PicturePtr picture;
+    ret = createPicture(picture, timeStamp);
+    if (ret != YAMI_SUCCESS)
+        return ret;
 
     if (hdr->show_existing_frame) {
         SurfacePtr& surface = m_reference[hdr->frame_to_show];
