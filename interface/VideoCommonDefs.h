@@ -209,7 +209,7 @@ typedef struct _SurfaceAllocator SurfaceAllocator;
 // 2. reconstruct surface for encoder.
 typedef struct _SurfaceAllocator
 {
-    void*      *user;   /* you can put your private data here, yami will not touch it */
+    void* user; /* you can put your private data here, yami will not touch it */
     /* alloc and free surfaces */
     YamiStatus (*alloc) (SurfaceAllocator* thiz, SurfaceAllocParams* params);
     YamiStatus (*free)  (SurfaceAllocator* thiz, SurfaceAllocParams* params);
