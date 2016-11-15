@@ -27,17 +27,10 @@
 #include <deque>
 #include <map>
 #include <vector>
+#include <set>
 #include <va/va.h>
 
 namespace YamiMediaCodec{
-
-typedef struct {
-    VASurfaceID surface;
-    VADisplay display;
-    int64_t timeStamp; // presentation time stamp
-    VideoRect crop;
-    uint32_t fourcc;
-} VideoRenderBuffer;
 
 struct VideoDecoderConfig;
 /***
@@ -62,75 +55,56 @@ class VaapiDecSurfacePool : public EnableSharedFromThis <VaapiDecSurfacePool>
 {
 public:
     /* TODO: remove this after all caller change to VideoDecoderConfig*/
-    static DecSurfacePoolPtr create(const DisplayPtr&, VideoConfigBuffer* config,
+    static DecSurfacePoolPtr create(VideoConfigBuffer* config,
         const SharedPtr<SurfaceAllocator>& allocator);
-    static DecSurfacePoolPtr create(const DisplayPtr&, VideoDecoderConfig* config,
+    static DecSurfacePoolPtr create(VideoDecoderConfig* config,
         const SharedPtr<SurfaceAllocator>& allocator);
     void getSurfaceIDs(std::vector<VASurfaceID>& ids);
-    /// get a free surface,
-    /// it always return null buffer if it's flushed.
-    SurfacePtr acquireWithWait();
+    /// get a free surface
+    SurfacePtr acquire();
     /// push surface to output queue
     bool output(const SurfacePtr&, int64_t timetamp);
     /// get surface from output queue
-    VideoRenderBuffer* getOutput();
-    /// recycle to surface pool
-    void recycle(const VideoRenderBuffer * renderBuf);
-    /// recycle exported video frame to surface/image pool
-    //after this, acquireWithWait will always return null surface,
-    //until all SurfacePtr and VideoRenderBuffer returned.
+    SharedPtr<VideoFrame> getOutput();
+
+    //flush everything in ouptut queue
     void flush();
 
-    /// decode thread may be blocked at acquireWithWait, wake it up and escape if required. it doesn't release internal surfaces.
-    /// it can be used for drain or unclear termination (in v4l2 wrapper, STREAMOFF can be used for either flush or drain).
-    void setWaitable(bool waitable);
     ~VaapiDecSurfacePool();
 
 
 private:
-    enum SurfaceState{
-        SURFACE_FREE      = 0x00000000,
-        SURFACE_DECODING  = 0x00000001,
-        SURFACE_TO_RENDER = 0x00000002,
-        SURFACE_RENDERING = 0x00000004
-    };
-
     VaapiDecSurfacePool();
-    bool init(const DisplayPtr& display,
-        VideoDecoderConfig* config,
+    bool init(VideoDecoderConfig* config,
         const SharedPtr<SurfaceAllocator>& allocator);
 
-    void recycleLocked(VASurfaceID, SurfaceState);
-    void recycle(VASurfaceID, SurfaceState);
+    static YamiStatus getSurface(void* pool, intptr_t* surface, uint32_t flags);
+    static YamiStatus putSurface(void* pool, intptr_t surface);
+    YamiStatus getSurface(intptr_t* surface, uint32_t flags);
+    YamiStatus putSurface(intptr_t surface);
 
     //following member only change in constructor.
-    DisplayPtr m_display;
-    std::vector<VideoRenderBuffer> m_renderBuffers;
     std::vector<SurfacePtr> m_surfaces;
-    typedef std::map<VASurfaceID, VideoRenderBuffer*> RenderMap;
-    RenderMap m_renderMap;
-    typedef std::map<VASurfaceID, VaapiSurface*> SurfaceMap;
+
+    typedef std::map<intptr_t, VaapiSurface*> SurfaceMap;
     SurfaceMap m_surfaceMap;
 
     //free and allocted.
-    std::deque<VASurfaceID> m_freed;
-    typedef std::map<VASurfaceID, uint32_t> Allocated;
-    Allocated m_allocated;
+    std::deque<intptr_t> m_freed;
+    std::set<intptr_t> m_used;
 
     /* output queue*/
-    typedef std::deque<VideoRenderBuffer*> OutputQueue;
+    typedef std::deque<SharedPtr<VideoFrame> > OutputQueue;
     OutputQueue m_output;
 
     Lock m_lock;
-    Condition m_cond;
-    bool m_flushing;
 
     //for external allocator
     SharedPtr<SurfaceAllocator> m_allocator;
     SurfaceAllocParams m_allocParams;
 
     struct SurfaceRecycler;
-    struct SurfaceRecyclerRender;
+    struct VideoFrameRecycler;
 
     DISALLOW_COPY_AND_ASSIGN(VaapiDecSurfacePool);
 };
