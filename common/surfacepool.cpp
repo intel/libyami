@@ -56,7 +56,7 @@ YamiStatus SurfacePool::init(const SharedPtr<SurfaceAllocator>& alloc,
         SurfacePtr s(new VaapiSurface(m_params.surfaces[i], width, height, fourcc));
         surfaces.push_back(s);
     }
-    m_pool = VideoPool<VaapiSurface>::create(surfaces);
+    m_pool.reset(new VideoPool<VaapiSurface>(surfaces));
     if (!m_pool) {
         ERROR("failed to create Surface Pool");
         return YAMI_OUT_MEMORY;
