@@ -25,11 +25,12 @@ template <class T>
 class VideoPool : public EnableSharedFromThis<VideoPool<T> >
 {
 public:
-    static SharedPtr<VideoPool<T> >
-    create(std::deque<SharedPtr<T> >& buffers)
+    VideoPool(std::deque<SharedPtr<T> >& buffers)
     {
-        SharedPtr<VideoPool<T> > ptr(new VideoPool<T>(buffers));
-        return ptr;
+            m_holder.swap(buffers);
+            for (size_t i = 0; i < m_holder.size(); i++) {
+                m_freed.push_back(m_holder[i].get());
+            }
     }
 
     SharedPtr<T> alloc()
@@ -45,14 +46,6 @@ public:
     }
 
 private:
-
-    VideoPool(std::deque<SharedPtr<T> >& buffers)
-    {
-            m_holder.swap(buffers);
-            for (size_t i = 0; i < m_holder.size(); i++) {
-                m_freed.push_back(m_holder[i].get());
-            }
-    }
 
     void recycle(T* ptr)
     {
