@@ -3,6 +3,7 @@ libyami_common_source_c = \
 	utils.cpp \
 	nalreader.cpp \
 	surfacepool.cpp \
+	PooledFrameAllocator.cpp \
 	YamiVersion.cpp \
 	$(NULL)
 
