@@ -865,6 +865,7 @@ VaapiEncoderH264::VaapiEncoderH264()
     m_videoParamAVC.deblockBetaOffsetDiv2 = 2;
     m_videoParamAVC.temporalLayerNum = 1;
     m_videoParamAVC.priorityId = 0;
+    m_videoParamAVC.enablePrefixNalUnit = false;
     m_maxOutputBuffer = H264_MIN_TEMPORAL_GOP;
 }
 
@@ -1003,6 +1004,10 @@ void VaapiEncoderH264::resetParams ()
     ensureCodedBufferSize();
 
     m_temporalLayerNum = m_videoParamAVC.temporalLayerNum;
+
+    // enable prefix nal unit for simulcast or svc-t
+    if (m_temporalLayerNum > 1 || m_videoParamAVC.priorityId)
+        m_videoParamAVC.enablePrefixNalUnit = true;
 
     checkProfileLimitation();
     checkSvcTempLimitaion();
@@ -1916,7 +1921,8 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
         /* set calculation for next slice */
         lastMbIndex += curSliceMbs;
 
-        if (!addPackedPrefixNalUnit(picture))
+        if (m_videoParamAVC.enablePrefixNalUnit
+            && !addPackedPrefixNalUnit(picture))
             return false;
         if (!addPackedSliceHeader(picture, sliceParam))
             return false;
