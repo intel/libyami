@@ -127,7 +127,7 @@ protected:
         float value;
 
         EXPECT_TRUE(scaler.mapToRange(value, level, minLevel, maxLevel, filterType, caps));
-        EXPECT_TRUE(bool(caps));
+        ASSERT_TRUE(bool(caps));
         EXPECT_LT(caps->range.min_value, caps->range.max_value);
         EXPECT_LE(caps->range.min_value, value);
         EXPECT_LE(value, caps->range.max_value);
