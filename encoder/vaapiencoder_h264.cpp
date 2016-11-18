@@ -1666,11 +1666,12 @@ bool VaapiEncoderH264::addPackedPrefixNalUnit(const PicturePtr& picture) const
 
     bit_writer_write_trailing_bits(&bs);
 
+    uint32_t codedBits = bs.getCodedBitsCount();
     uint8_t* codedData = bs.getBitWriterData();
-    ASSERT(codedData);
+    ASSERT(codedData && codedBits);
 
     if (!picture->addPackedHeader(VAEncPackedHeaderRawData, codedData,
-                                  bs.getCodedBitsCount())) {
+                                  codedBits)) {
         ret = false;
     }
 
@@ -1833,11 +1834,12 @@ bool VaapiEncoderH264::addPackedSliceHeader(
         bs.writeToBytesAligned(true);
     }
 
+    uint32_t codedBits = bs.getCodedBitsCount();
     uint8_t* codedData = bs.getBitWriterData();
-    ASSERT(codedData);
+    ASSERT(codedData && codedBits);
 
     if (!picture->addPackedHeader(VAEncPackedHeaderSlice, codedData,
-                                  bs.getCodedBitsCount())) {
+                                  codedBits)) {
         ret = false;
     }
 
