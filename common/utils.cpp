@@ -37,6 +37,7 @@ uint32_t guessFourcc(const char* fileName)
 {
     static const char* possibleFourcc[] = {
         "I420", "NV12", "YV12",
+        "P010",
         "YUY2", "UYVY",
         "RGBX", "BGRX", "XRGB", "XBGR",
         //for jpeg
