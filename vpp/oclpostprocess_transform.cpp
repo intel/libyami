@@ -18,7 +18,6 @@
 #endif
 
 #include "oclpostprocess_transform.h"
-#include "vaapipostprocess_factory.h"
 #include "common/common_def.h"
 #include "common/log.h"
 #include "ocl/oclcontext.h"
@@ -298,5 +297,4 @@ bool OclPostProcessTransform::prepareKernels()
         && (m_kernelFlipVRot90 != NULL);
 }
 
-const bool OclPostProcessTransform::s_registered = VaapiPostProcessFactory::register_<OclPostProcessTransform>(YAMI_VPP_OCL_TRANSFORM);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Intel Corporation. All rights reserved.
+ * Copyright (C) 2013-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,11 @@ private:
     ProcParams m_sharpening;
     DeinterlaceParams m_deinterlace;
 
-    static const bool s_registered; // VaapiPostProcessFactory registration result
+    /**
+     * VaapiPostProcessFactory registration result. This postprocess is
+     * registered in vaapipostprocess_host.cpp
+     */
+    static const bool s_registered;
 };
 }
 #endif                          /* vaapipostprocess_scaler_h */

@@ -25,7 +25,6 @@
 #include "vaapi/vaapidisplay.h"
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
-#include "vaapiencoder_factory.h"
 #include <algorithm>
 
 namespace YamiMediaCodec {
@@ -394,7 +393,4 @@ YamiStatus VaapiEncoderVP9::encodePicture(const PicturePtr& picture)
     return YAMI_SUCCESS;
 }
 
-
-const bool VaapiEncoderVP9::s_registered
-    = VaapiEncoderFactory::register_<VaapiEncoderVP9>(YAMI_MIME_VP9);
 }

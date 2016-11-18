@@ -18,7 +18,6 @@
 #endif
 
 #include "oclpostprocess_mosaic.h"
-#include "vaapipostprocess_factory.h"
 #include "common/common_def.h"
 #include "common/log.h"
 #include "ocl/oclcontext.h"
@@ -116,5 +115,4 @@ bool OclPostProcessMosaic::prepareKernels()
     return m_kernelMosaic != NULL;
 }
 
-const bool OclPostProcessMosaic::s_registered = VaapiPostProcessFactory::register_<OclPostProcessMosaic>(YAMI_VPP_OCL_MOSAIC);
 }

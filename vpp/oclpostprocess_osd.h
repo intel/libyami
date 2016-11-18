@@ -45,10 +45,18 @@ public:
     }
 
 private:
+    friend class FactoryTest<IVideoPostProcess, OclPostProcessOsd>;
+    friend class OclPostProcessOsdTest;
+
     virtual bool prepareKernels();
     YamiStatus computeBlockLuma(const SharedPtr<VideoFrame> frame);
 
-    static const bool s_registered; // VaapiPostProcessFactory registration result
+    /**
+     * VaapiPostProcessFactory registration result. This postprocess is
+     * registered in vaapipostprocess_host.cpp
+     */
+    static const bool s_registered;
+
     vector<float> m_osdLuma;
     vector<uint32_t> m_lineBuf;
     int m_blockCount;

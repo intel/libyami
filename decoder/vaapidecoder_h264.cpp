@@ -22,7 +22,6 @@
 
 #include "common/log.h"
 #include "common/nalreader.h"
-#include "vaapidecoder_factory.h"
 
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/vaapicontext.h"
@@ -1864,7 +1863,4 @@ YamiStatus VaapiDecoderH264::decode(VideoDecodeBuffer* buffer)
     return YAMI_SUCCESS;
 }
 
-const bool VaapiDecoderH264::s_registered
-    = VaapiDecoderFactory::register_<VaapiDecoderH264>(YAMI_MIME_AVC)
-      && VaapiDecoderFactory::register_<VaapiDecoderH264>(YAMI_MIME_H264);
 }

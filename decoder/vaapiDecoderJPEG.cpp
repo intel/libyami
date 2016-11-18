@@ -24,7 +24,6 @@
 // library headers
 #include "codecparsers/jpegParser.h"
 #include "common/common_def.h"
-#include "vaapidecoder_factory.h"
 
 // system headers
 #include <cassert>
@@ -509,6 +508,4 @@ YamiStatus VaapiDecoderJPEG::reset(VideoConfigBuffer* buffer)
     return VaapiDecoderBase::reset(buffer);
 }
 
-const bool VaapiDecoderJPEG::s_registered =
-    VaapiDecoderFactory::register_<VaapiDecoderJPEG>(YAMI_MIME_JPEG);
 }

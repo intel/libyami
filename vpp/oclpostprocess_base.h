@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef vaapipostprocess_base_h
-#define vaapipostprocess_base_h
+#ifndef oclpostprocess_base_h
+#define oclpostprocess_base_h
 
 #include "VideoPostProcessInterface.h"
 #include <CL/opencl.h>
 #include <ocl/oclcontext.h>
 #include <va/va.h>
+
+template <class B, class C>
+class FactoryTest;
 
 namespace YamiMediaCodec{
 class OclContext;

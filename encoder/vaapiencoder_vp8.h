@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 Intel Corporation. All rights reserved.
+ * Copyright (C) 2014-2016 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,7 +72,11 @@ private:
     typedef std::deque<SurfacePtr> ReferenceQueue;
     std::deque<SurfacePtr> m_reference;
 
-    static const bool s_registered; // VaapiEncoderFactory registration result
+    /**
+     * VaapiEncoderFactory registration result. This encoder is registered in
+     * vaapiencoder_host.cpp
+     */
+    static const bool s_registered;
 };
 }
 #endif /* vaapiencoder_vp8_h */

@@ -22,7 +22,6 @@
 #include "common/nalreader.h"
 #include "vaapidecpicture.h"
 #include "vaapidecoder_mpeg2.h"
-#include "vaapidecoder_factory.h"
 
 #include <string.h>
 
@@ -1071,6 +1070,4 @@ void VaapiDecoderMPEG2::flush()
     VaapiDecoderBase::flush();
 }
 
-const bool VaapiDecoderMPEG2::s_registered
-    = VaapiDecoderFactory::register_<VaapiDecoderMPEG2>(YAMI_MIME_MPEG2);
 }

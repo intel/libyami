@@ -22,6 +22,33 @@
 #include "VideoPostProcessHost.h"
 #include "vaapipostprocess_factory.h"
 
+#if __BUILD_OCL_FILTERS__
+#include "oclpostprocess_blender.h"
+#include "oclpostprocess_mosaic.h"
+#include "oclpostprocess_osd.h"
+#include "oclpostprocess_transform.h"
+#include "oclpostprocess_wireframe.h"
+
+namespace YamiMediaCodec {
+const bool OclPostProcessBlender::s_registered =
+    VaapiPostProcessFactory::register_<OclPostProcessBlender>(YAMI_VPP_OCL_BLENDER);
+const bool OclPostProcessMosaic::s_registered =
+    VaapiPostProcessFactory::register_<OclPostProcessMosaic>(YAMI_VPP_OCL_MOSAIC);
+const bool OclPostProcessOsd::s_registered =
+    VaapiPostProcessFactory::register_<OclPostProcessOsd>(YAMI_VPP_OCL_OSD);
+const bool OclPostProcessTransform::s_registered =
+    VaapiPostProcessFactory::register_<OclPostProcessTransform>(YAMI_VPP_OCL_TRANSFORM);
+const bool OclPostProcessWireframe::s_registered =
+    VaapiPostProcessFactory::register_<OclPostProcessWireframe>(YAMI_VPP_OCL_WIREFRAME);
+}
+#endif
+
+#include "vaapipostprocess_scaler.h"
+namespace YamiMediaCodec {
+const bool VaapiPostProcessScaler::s_registered =
+    VaapiPostProcessFactory::register_<VaapiPostProcessScaler>(YAMI_VPP_SCALER);
+}
+
 using namespace YamiMediaCodec;
 
 extern "C" {
