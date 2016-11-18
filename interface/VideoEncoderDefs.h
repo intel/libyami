@@ -216,6 +216,7 @@ typedef struct VideoParamsCommon {
     VideoRateControlParams rcParams;
     uint32_t leastInputCount;
     bool enableLowPower;
+    uint8_t bitDepth;
 }VideoParamsCommon;
 
 typedef struct VideoParamsAVC {

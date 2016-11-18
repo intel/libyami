@@ -155,6 +155,7 @@ static uint8_t hevc_get_profile_idc(VideoProfile profile)
         break;
     case PROFILE_H265_MAIN10:
         idc = 2;
+        break;
     default:
         assert(0);
     }
@@ -233,8 +234,6 @@ static void profile_tier_level(
 
     unsigned char vps_general_level_idc = seq->general_level_idc * 3;
 
-    general_profile_compatibility_flag[1] = general_profile_compatibility_flag[2] = 1;
-
     if (profile_present_flag) {
         /* general_profile_space */
         bitwriter->writeBits(0, 2);
@@ -244,6 +243,7 @@ static void profile_tier_level(
         bitwriter->writeBits(seq->general_profile_idc, 5);
 
         /* general_profile_compatibility_flag. Only the bit corresponding to profile_idc is set */
+        general_profile_compatibility_flag[seq->general_profile_idc] = 1;
         for (i = 0; i < N_ELEMENTS(general_profile_compatibility_flag); i++) {
             bitwriter->writeBits(general_profile_compatibility_flag[i], 1);
         }
@@ -898,6 +898,8 @@ void VaapiEncoderHEVC::resetParams ()
 {
 
     m_levelIdc = level();
+    if (10 == m_videoParamCommon.bitDepth)
+        m_videoParamCommon.profile = VAProfileHEVCMain10;
     m_profileIdc = hevc_get_profile_idc(profile());
 
     m_numSlices = 1;
@@ -1371,9 +1373,10 @@ bool VaapiEncoderHEVC::fill(VAEncSequenceParameterBufferHEVC* seqParam) const
     /* separate color plane_flag*/
     seqParam->seq_fields.bits.separate_colour_plane_flag = 0;
     /* bit_depth_luma_minus8. Only 0 is supported for main profile */
-    seqParam->seq_fields.bits.bit_depth_luma_minus8 = 0;
+    seqParam->seq_fields.bits.bit_depth_luma_minus8 = m_videoParamCommon.bitDepth - 8;
     /* bit_depth_chroma_minus8. Only 0 is supported for main profile*/
-    seqParam->seq_fields.bits.bit_depth_chroma_minus8 = 0;
+    seqParam->seq_fields.bits.bit_depth_chroma_minus8 = m_videoParamCommon.bitDepth - 8;
+
     /* scaling_list_enabled_flag. Use the default value  */
     seqParam->seq_fields.bits.scaling_list_enabled_flag = 0;
     /* strong_intra_smoothing_enabled_flag. Not use the bi-linear interpolation */
