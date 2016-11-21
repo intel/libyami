@@ -30,13 +30,13 @@
 #ifdef ANDROID
 #include <ufo/gralloc.h>
 #include <ufo/graphics.h>
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
 #include <va/va_wayland.h>
 #endif
 #include "v4l2_decode.h"
 #include "VideoDecoderHost.h"
 #include "common/log.h"
-#if __ENABLE_EGL__
+#if defined(__ENABLE_EGL__)
 #include "egl/egl_vaapi_image.h"
 #endif
 
@@ -130,12 +130,12 @@ bool V4l2Decoder::start()
     NativeDisplay nativeDisplay;
     nativeDisplay.type = NATIVE_DISPLAY_AUTO;
 
-#if ANDROID || __ENABLE_WAYLAND__
+#if defined(ANDROID) || defined(__ENABLE_WAYLAND__)
     if (m_vaDisplay) {
         nativeDisplay.type = NATIVE_DISPLAY_VA;
         nativeDisplay.handle = (intptr_t)m_vaDisplay;
     }
-#elif __ENABLE_X11__
+#elif defined(__ENABLE_X11__)
     DEBUG("m_Display: %p", m_Display);
     if (m_Display) {
         nativeDisplay.type = NATIVE_DISPLAY_X11;
@@ -328,10 +328,10 @@ bool V4l2Decoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
 
     dqbuf->flags = m_outputRawFrames[dqbuf->index].flags;
 
-#if ANDROID
+#if defined(ANDROID)
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
     dqbuf->flags = m_videoFrames[dqbuf->index]->flags;
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
     VAStatus vaStatus;
     struct wl_buffer* buffer;
     INT64_TO_TIMEVAL(m_videoFrames[dqbuf->index]->timeStamp, dqbuf->timestamp);
@@ -388,7 +388,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
             if (m_outputBufferCountOnInit == m_reqBuffCnt)
                 mapVideoFrames(m_videoWidth, m_videoHeight);
         }
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
         // FIXME, m_outputBufferCountOnInit should be reset on output buffer change (for example: resolution change)
         // it is not must to init video frame here since we don't accepted external buffer for wayland yet.
         // however, external buffer may be used in the future
@@ -428,7 +428,7 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
                 m_reqBuffCnt = reqbufs->count;
             else
                 m_videoFrames.clear();
-#elif __ENABLE_EGL__
+#elif defined(__ENABLE_EGL__)
             if (!reqbufs->count) {
                 m_eglVaapiImages.clear();
             } else {
@@ -662,7 +662,7 @@ void V4l2Decoder::flush()
         m_decoder->flush();
 }
 
-#if __ENABLE_EGL__
+#ifdef __ENABLE_EGL__
 int32_t V4l2Decoder::useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
 {
     m_bindEglImage = true;

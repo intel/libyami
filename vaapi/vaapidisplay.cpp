@@ -83,7 +83,7 @@ bool isInvalidDrmHandle(int handle)
     return handle == 0 || handle == -1;
 }
 
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
 class NativeDisplayX11 : public NativeDisplayBase{
   public:
     NativeDisplayX11() :NativeDisplayBase(){ };
@@ -302,7 +302,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
 
     switch (nativeDisplay.type) {
     case NATIVE_DISPLAY_AUTO:
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
     case NATIVE_DISPLAY_X11:
         nativeDisplayObj.reset (new NativeDisplayX11());
         if (nativeDisplayObj && nativeDisplayObj->initialize(nativeDisplay))

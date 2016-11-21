@@ -21,7 +21,7 @@
 #include "v4l2_codecbase.h"
 #include "VideoDecoderInterface.h"
 
-#if __ENABLE_EGL__
+#ifdef __ENABLE_EGL__
 namespace YamiMediaCodec {
     class EglVaapiImage;
 }
@@ -38,7 +38,7 @@ class V4l2Decoder : public V4l2CodecBase
     virtual int32_t ioctl(int request, void* arg);
     virtual void* mmap(void* addr, size_t length,
                          int prot, int flags, unsigned int offset);
-#if __ENABLE_EGL__
+#ifdef __ENABLE_EGL__
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image);
 #endif
 
@@ -77,7 +77,7 @@ class V4l2Decoder : public V4l2CodecBase
     uint32_t m_outputBufferCountQBuf;
     uint32_t m_outputBufferCountPulse;
     uint32_t m_outputBufferCountGive;
-#if __ENABLE_EGL__
+#ifdef __ENABLE_EGL__
     std::vector <SharedPtr<EglVaapiImage> > m_eglVaapiImages;
 #endif
 };

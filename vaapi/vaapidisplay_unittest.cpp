@@ -47,7 +47,7 @@ protected:
     }
 
     virtual void SetUp() {
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
         m_x11_handle = 0;
 #endif
     }
@@ -71,7 +71,7 @@ protected:
             m_drm_handles.erase(match);
     }
 
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
     intptr_t openX11Handle() {
         m_x11_handle = (intptr_t)XOpenDisplay(NULL);
         return m_x11_handle;
@@ -85,7 +85,7 @@ protected:
             close(*it);
         m_drm_handles.clear();
 
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
         if (m_x11_handle)
             XCloseDisplay((Display*)(m_x11_handle));
 #endif
@@ -93,7 +93,7 @@ protected:
 
     DrmHandles m_drm_handles;
 
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
     intptr_t m_x11_handle;
 #endif
 };
@@ -101,7 +101,7 @@ protected:
 #define VAAPI_DISPLAY_TEST(name) \
     TEST_F(VaapiDisplayTest, name)
 
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
 VAAPI_DISPLAY_TEST(CreateInvalidHandleX11) {
     //this turn off gest warning about multithread
     //you can check details at
@@ -152,7 +152,7 @@ VAAPI_DISPLAY_TEST(CreateInvalidHandleVA) {
     ASSERT_DEATH({ display = VaapiDisplay::create(native); }, "");
 }
 
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
 VAAPI_DISPLAY_TEST(CreateX11) {
     // Let yami create the native display
     NativeDisplay native = {0, NATIVE_DISPLAY_X11};
@@ -248,7 +248,7 @@ VAAPI_DISPLAY_TEST(CreateVA) {
     EXPECT_EQ(display->getID(), display2->getID());
 }
 
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
 VAAPI_DISPLAY_TEST(CompatibleX11) {
     NativeDisplay native = {openX11Handle(), NATIVE_DISPLAY_X11};
     DisplayPtr display = VaapiDisplay::create(native);

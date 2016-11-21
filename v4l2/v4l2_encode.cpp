@@ -62,7 +62,7 @@ bool V4l2Encoder::start()
     ASSERT(status == YAMI_SUCCESS);
 
     NativeDisplay nativeDisplay;
-#if ANDROID
+#ifdef ANDROID
     nativeDisplay.type = NATIVE_DISPLAY_VA;
     nativeDisplay.handle = (intptr_t)m_vaDisplay;
 #else
@@ -111,7 +111,7 @@ bool V4l2Encoder::inputPulse(uint32_t index)
     if(m_videoParamsChanged )
         UpdateVideoParameters(true);
 
-#if ANDROID
+#ifdef ANDROID
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE) {
         status = m_encoder->encode(m_videoFrames[index]);
     }
@@ -163,7 +163,7 @@ bool V4l2Encoder::acceptInputBuffer(struct v4l2_buffer *qbuf)
 {
     uint32_t i;
     VideoEncRawBuffer *inputBuffer = &(m_inputFrames[qbuf->index]);
-#if ANDROID
+#ifdef ANDROID
     if (m_memoryType == VIDEO_DATA_MEMORY_TYPE_ANDROID_BUFFER_HANDLE)
         return true;
 #endif
@@ -221,7 +221,7 @@ int32_t V4l2Encoder::ioctl(int command, void* arg)
     DEBUG("fd: %d, ioctl command: %s", m_fd[0], IoctlCommandString(command));
     switch (command) {
     case VIDIOC_QBUF:
-#if ANDROID
+#if defined(ANDROID)
     {
         struct v4l2_buffer* qbuf = static_cast<struct v4l2_buffer*>(arg);
         if (qbuf->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {

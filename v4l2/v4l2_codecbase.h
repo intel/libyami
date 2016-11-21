@@ -21,17 +21,17 @@
 #include <vector>
 #include <list>
 #include "common/condition.h"
-#if ANDROID
+#ifdef ANDROID
 #include "VideoPostProcessHost.h"
 #include "VideoDecoderInterface.h"
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
 #include "VideoPostProcessHost.h"
 #include "VideoDecoderInterface.h"
 #else
-    #if __ENABLE_X11__
+    #ifdef __ENABLE_X11__
     #include <X11/Xlib.h>
     #endif
-    #if __ENABLE_EGL__
+    #ifdef __ENABLE_EGL__
     #include <EGL/egl.h>
     #define EGL_EGLEXT_PROTOTYPES
     #include "EGL/eglext.h"
@@ -39,7 +39,7 @@
 #endif
 #include "VideoCommonDefs.h"
 #include "v4l2codec_device_ops.h"
-#if ANDROID
+#ifdef ANDROID
 #include <va/va_android.h>
 #endif
 
@@ -83,10 +83,10 @@ class V4l2CodecBase {
                          int prot, int flags, unsigned int offset) {return NULL;};
     // virtual int32_t munmap(void* addr, size_t length) {return 0;};
     virtual bool stop() = 0;
-#if ANDROID
+#ifdef ANDROID
     bool setVaDisplay();
     bool createVpp();
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
     bool setWaylandDisplay(struct wl_display* wlDisplay)
     {
         m_Display = wlDisplay;
@@ -95,7 +95,7 @@ class V4l2CodecBase {
     bool setVaDisplay();
     bool createVpp();
 #else
-    #if __ENABLE_X11__
+    #if defined(__ENABLE_X11__)
     bool setXDisplay(Display* x11Display)
     {
         m_Display = x11Display;
@@ -103,7 +103,7 @@ class V4l2CodecBase {
     };
     virtual int32_t usePixmap(uint32_t bufferIndex, Pixmap pixmap) {return 0;};
     #endif
-    #if __ENABLE_EGL__
+    #if defined(__ENABLE_EGL__)
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
     #endif
 #endif
@@ -128,10 +128,10 @@ class V4l2CodecBase {
     virtual void clearCodecEvent();
     virtual void releaseCodecLock(bool lockable) {};
     virtual void flush() {}
-#if ANDROID
+#ifdef ANDROID
     SharedPtr<VideoFrame> createVaSurface(const buffer_handle_t buf_handle, int32_t width, int32_t height);
     bool mapVideoFrames(int32_t width, int32_t height);
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
     SharedPtr<VideoFrame> createVaSurface(uint32_t width, uint32_t height);
     bool mapVideoFrames(uint32_t width, uint32_t height);
 #endif
@@ -145,14 +145,14 @@ class V4l2CodecBase {
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
-#if __ENABLE_X11__ || __ENABLE_WAYLAND__
+#if defined(__ENABLE_X11__) || defined(__ENABLE_WAYLAND__)
     void* m_Display;
 #endif
-#if ANDROID
+#ifdef ANDROID
     std::vector<buffer_handle_t> m_bufferHandle;
     gralloc_module_t* m_pGralloc;
 #endif
-#if ANDROID || __ENABLE_WAYLAND__
+#if defined(ANDROID) || defined(__ENABLE_WAYLAND__)
     VADisplay m_vaDisplay;
     SharedPtr<IVideoPostProcess> m_vpp;
     uint32_t m_reqBuffCnt;
