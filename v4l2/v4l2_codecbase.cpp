@@ -37,11 +37,11 @@
 #include <va/va_android.h>
 #include <ufo/gralloc.h>
 #include <ufo/graphics.h>
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
 #include <va/va_wayland.h>
 #endif
 
-#if ANDROID
+#ifdef ANDROID
 #if !defined(EFD_SEMAPHORE)
 #define EFD_SEMAPHORE (1 << 0)
 #endif
@@ -83,9 +83,9 @@ typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
 V4l2CodecBase::V4l2CodecBase()
     : m_memoryType(VIDEO_DATA_MEMORY_TYPE_RAW_COPY)
     , m_started(false)
-#if ANDROID
+#ifdef ANDROID
     , m_reqBuffCnt(0)
-#elif(__ENABLE_WAYLAND__ || __ENABLE_X11__)
+#elif defined(__ENABLE_WAYLAND__) || defined(__ENABLE_X11__)
     , m_Display(NULL)
 #else
 #endif
@@ -112,7 +112,7 @@ V4l2CodecBase::V4l2CodecBase()
     m_frameCount[OUTPUT] = 0;
 #endif
 
-#if ANDROID
+#ifdef ANDROID
     // it's better done inside vaapi driver (retrieve buffer picth etc)
     hw_get_module(GRALLOC_HARDWARE_MODULE_ID, (hw_module_t const**)&m_pGralloc);
     ASSERT(m_pGralloc);
@@ -280,7 +280,7 @@ static void* _workerThread(void *arg)
     return NULL;
 }
 
-#if __ENABLE_DEBUG__
+#if defined(__ENABLE_DEBUG__)
 const char* V4l2CodecBase::IoctlCommandString(int command)
 {
     static const char* unknown = "Unkonwn command";
@@ -661,7 +661,7 @@ private:
     VADisplay m_display;
 };
 
-#if ANDROID
+#ifdef ANDROID
 bool V4l2CodecBase::setVaDisplay()
 {
     unsigned int display = ANDROID_DISPLAY;
@@ -754,7 +754,7 @@ bool V4l2CodecBase::mapVideoFrames(int32_t width, int32_t height)
     }
     return true;
 }
-#elif __ENABLE_WAYLAND__
+#elif defined(__ENABLE_WAYLAND__)
 bool V4l2CodecBase::setVaDisplay()
 {
     VAStatus status;

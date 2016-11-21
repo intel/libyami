@@ -18,7 +18,7 @@
 #endif
 
 #include "v4l2_wrapper.h"
-#if __ENABLE_V4L2_OPS__
+#if defined(__ENABLE_V4L2_OPS__)
 #include "v4l2codec_device_ops.h"
 #endif
 #include "v4l2_codecbase.h"
@@ -148,8 +148,8 @@ int32_t YamiV4L2_Munmap(void* addr, size_t length)
     return 0;
 }
 
-#if ANDROID
-#elif __ENABLE_WAYLAND__
+#ifdef  ANDROID
+#elif defined(__ENABLE_WAYLAND__)
 int32_t YamiV4L2_SetWaylandDisplay(int32_t fd, struct wl_display* wlDisplay)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -161,7 +161,7 @@ int32_t YamiV4L2_SetWaylandDisplay(int32_t fd, struct wl_display* wlDisplay)
     return ret;
 }
 #else
-#if __ENABLE_X11__
+#if defined(__ENABLE_X11__)
 int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -174,7 +174,7 @@ int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
      return ret;
 }
 #endif
-#if __ENABLE_EGL__
+#if defined(__ENABLE_EGL__)
 int32_t YamiV4L2_UseEglImage(int fd, /*EGLDisplay*/void* eglDisplay, /*EGLContext*/void* eglContext, unsigned int bufferIndex, void* eglImage)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -194,7 +194,7 @@ int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd)
      return ret;
 }
 #endif
-#if __ENABLE_V4L2_OPS__
+#if defined(__ENABLE_V4L2_OPS__)
 extern "C" int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value);
 int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
 {
@@ -234,7 +234,7 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
         struct wl_display* wlDisplay = (struct wl_display*)ptr;
         DEBUG("wlDisplay: %p", wlDisplay);
         ret = v4l2Codec->setWaylandDisplay(wlDisplay);
-#elif __ENABLE_X11__
+#elif defined(__ENABLE_X11__)
     } else if (!strcmp(key, "x11-display")) {
         uintptr_t ptr = (uintptr_t)atoll(value);
         Display* x11Display = (Display*)ptr;
@@ -276,7 +276,7 @@ bool v4l2codecOperationInit(V4l2CodecOps *opFuncs)
     V4L2_DLSYM_OR_RETURN_ON_ERROR(Mmap);
     V4L2_DLSYM_OR_RETURN_ON_ERROR(Munmap);
     V4L2_DLSYM_OR_RETURN_ON_ERROR(SetParameter);
-#if __ENABLE_EGL_
+#if defined(__ENABLE_EGL__)
     V4L2_DLSYM_OR_RETURN_ON_ERROR(UseEglImage);
 #endif
 #undef V4L2_DLSYM_OR_RETURN_ON_ERROR
