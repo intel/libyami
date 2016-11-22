@@ -47,6 +47,7 @@ typedef enum {
     RATE_CONTROL_VBR = VA_RC_VBR,
     RATE_CONTROL_VCM = VA_RC_VCM,
     RATE_CONTROL_CQP = VA_RC_CQP,
+    RATE_CONTROL_CVBR = VA_RC_VBR_CONSTRAINED,
     RATE_CONTROL_LAST
 }VideoRateControl;
 
@@ -166,6 +167,39 @@ typedef struct VideoRateControlParams {
     uint32_t layerBitRate[32]; // specify each scalable layer bitrate
 }VideoRateControlParams;
 
+typedef struct VideoROI {
+    int16_t x;
+    int16_t y;
+    uint16_t width;
+    uint16_t height;
+    int8_t roiValue;
+} VideoROI;
+
+#define MAX_ROI_NUM 8
+#define MAX_SCALING_LIST      8
+#define SCALING_LIST_8x8_IDX  6
+#define SCALING_LIST_4x4_SIZE 16
+#define SCALING_LIST_8x8_SIZE 64
+
+typedef struct VideoParamsROI {
+    uint32_t size;
+    int8_t maxDeltaQp;
+    int8_t minDeltaQp;
+    bool roiValueIsQpDelta;
+    uint32_t numROI;
+    VideoROI roi[MAX_ROI_NUM];
+} VideoParamsROI;
+
+typedef struct VideoParamsQM {
+    uint8_t scalingList4x4[6][SCALING_LIST_4x4_SIZE];  //in raster scan order
+    uint8_t scalingList8x8[2][SCALING_LIST_8x8_SIZE];  //in raster scan order
+
+    bool seqScalingMatrixPresent;
+    bool seqScalingListPresent[MAX_SCALING_LIST];
+    bool picScalingMatrixPresent;
+    bool picScalingListPresent[MAX_SCALING_LIST];
+} VideoParamsQM;
+
 typedef struct SliceNum {
     uint32_t iSliceNum;
     uint32_t pSliceNum;
@@ -192,6 +226,7 @@ typedef enum {
     VideoConfigTypeNALSize,
     VideoConfigTypeIDRRequest,
     VideoConfigTypeSliceNum,
+    VideoParamsTypeROI,
 
     //format related
     VideoConfigTypeAVCStreamFormat,
@@ -216,6 +251,7 @@ typedef struct VideoParamsCommon {
     VideoRateControlParams rcParams;
     uint32_t leastInputCount;
     bool enableLowPower;
+    VideoParamsROI roiParams;
 }VideoParamsCommon;
 
 typedef struct VideoParamsAVC {
@@ -226,6 +262,7 @@ typedef struct VideoParamsAVC {
     uint32_t idrInterval;    //How many Intra frames will have an IDR frame
     SliceNum sliceNum;
     SamplingAspectRatio SAR;
+    VideoParamsQM qMatrix;
     bool  enableCabac;
     bool  enableDct8x8;
     bool  enableDeblockFilter;
@@ -233,6 +270,7 @@ typedef struct VideoParamsAVC {
     int8_t deblockBetaOffsetDiv2; //same as slice_beta_offset_div2 defined in h264 spec 7.4.3
     uint32_t temporalLayerNum;
     uint32_t priorityId;
+    bool  enableAUD;
 }VideoParamsAVC;
 
 typedef struct VideoParamsVP9 {

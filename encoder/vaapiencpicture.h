@@ -44,9 +44,8 @@ class VaapiEncPicture:public VaapiPicture {
     template < class T >
     bool newSlice(T * &sliceParam);
 
-
     template < class T >
-    bool newMisc(VAEncMiscParameterType, T * &miscParam);
+    bool newMisc(VAEncMiscParameterType, T * &miscParam, uint32_t extraSize = 0);
 
     bool addPackedHeader(VAEncPackedHeaderType, const void *header,
                          uint32_t headerBitSize);
@@ -68,7 +67,7 @@ class VaapiEncPicture:public VaapiPicture {
     bool doRender();
 
     template < class T >
-        BufObjectPtr createMiscObject(VAEncMiscParameterType, T * &bufPtr);
+    BufObjectPtr createMiscObject(VAEncMiscParameterType, T * &bufPtr, uint32_t extraSize);
 
     BufObjectPtr m_sequence;
     BufObjectPtr m_picture;
@@ -114,10 +113,10 @@ template < class T > bool VaapiEncPicture::newSlice(T * &sliceParam)
 
 template < class T >
 BufObjectPtr VaapiEncPicture::
-createMiscObject(VAEncMiscParameterType miscType, T * &bufPtr)
+createMiscObject(VAEncMiscParameterType miscType, T * &bufPtr, uint32_t extraSize)
 {
     VAEncMiscParameterBuffer *misc;
-    int size = sizeof(VAEncMiscParameterBuffer) + sizeof(T);
+    uint32_t size = sizeof(VAEncMiscParameterBuffer) + sizeof(T) + extraSize;
     BufObjectPtr obj =
         createBufferObject(VAEncMiscParameterBufferType, size, NULL,
                            (void **) &misc);
@@ -131,9 +130,9 @@ createMiscObject(VAEncMiscParameterType miscType, T * &bufPtr)
 
 template < class T >
 bool VaapiEncPicture::newMisc(VAEncMiscParameterType miscType,
-                              T * &miscParam)
+                              T * &miscParam, uint32_t extraSize)
 {
-    BufObjectPtr misc = createMiscObject(miscType, miscParam);
+    BufObjectPtr misc = createMiscObject(miscType, miscParam, extraSize);
     return addObject(m_miscParams, misc);
 }
 }

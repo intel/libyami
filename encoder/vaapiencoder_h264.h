@@ -72,12 +72,14 @@ private:
     void fill(VAEncMiscParameterFrameRate*, uint32_t temporalId) const;
     bool fill(VAEncSequenceParameterBufferH264*) const;
     bool fill(VAEncPictureParameterBufferH264*, const PicturePtr&, const SurfacePtr&) const ;
+    bool fill(VAIQMatrixBufferH264* qMatrix) const;
     bool ensureSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferH264* const);
     bool ensurePictureHeader(const PicturePtr&, const VAEncPictureParameterBufferH264* const );
     bool addSliceHeaders (const PicturePtr&) const;
     bool ensureSequence(const PicturePtr&);
     bool ensurePicture (const PicturePtr&, const SurfacePtr&);
     bool ensureSlices(const PicturePtr&);
+    bool ensureQMatrix(const PicturePtr&);
     bool ensureCodedBufferSize();
     bool addPackedPrefixNalUnit(const PicturePtr&) const;
     bool addPackedSliceHeader(
