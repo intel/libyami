@@ -302,8 +302,8 @@ uint32_t get_min_lb_tile_cols(uint32_t sb_cols)
     return log2;
 }
 
-/* align to 64 */
-#define SB_ALIGN(w) (((w | 0x3f) + 1) >> 6)
+/* align to 64, follow specification 6.2.6 Compute image size syntax */
+#define SB_ALIGN(w) (((w) + 63) >> 6)
 static BOOL read_tile_info(Vp9FrameHdr* frame_hdr, BitReader* br)
 {
     const uint32_t sb_cols = SB_ALIGN(frame_hdr->width);
