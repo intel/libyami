@@ -72,6 +72,8 @@ bool PooledFrameAllocator::setFormat(uint32_t fourcc, int width, int height)
     for (size_t i = 0;  i < surfaces.size(); i++) {
         SharedPtr<VideoFrame> f(new VideoFrame);
         memset(f.get(), 0, sizeof(VideoFrame));
+        f->crop.width = width;
+        f->crop.height = height;
         f->surface = (intptr_t)surfaces[i];
         f->fourcc = fourcc;
         buffers.push_back(f);
