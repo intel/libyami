@@ -997,6 +997,17 @@ void VaapiEncoderH264::checkSvcTempLimitaion()
 
 void VaapiEncoderH264::resetParams ()
 {
+    if (m_videoParamCommon.enableLowPower) {
+#if VA_CHECK_VERSION(0, 39, 2)
+        if (ipPeriod() > 1) {
+            WARNING("Low power mode can not support B frame encoding");
+            m_videoParamCommon.ipPeriod = 1; // without B frame
+        }
+        m_entrypoint = VAEntrypointEncSliceLP;
+#else
+        ERROR("For AVC lowpower mode, please make sure libva version >= 0.39.2");
+#endif
+    }
 
     m_levelIdc = level();
 
