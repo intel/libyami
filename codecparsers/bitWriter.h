@@ -43,7 +43,11 @@ public:
     /* get encoded bitstream buffer */
     uint8_t* getBitWriterData();
 
-    /* get encoded bits count */
+    /* get encoded bits count
+     * it is recommended to call getCodedBitsCount prior to getBitWriterData,
+     * because getBitWriterData may pad some bits to make sure byte aligned,
+     * then the padded bits will be caculated as coded bits.
+     * */
     uint64_t getCodedBitsCount() const
     {
         return static_cast<uint64_t>(m_bs.size() * 8) + m_bitsInCache;
