@@ -71,8 +71,7 @@ void BitWriter::flushCache()
 bool BitWriter::writeBits(uint32_t value, uint32_t numBits)
 {
     if (value >= (uint64_t)1 << numBits) {
-        ERROR("Write Bits Error: value overflow");
-        return false;
+        WARNING("Write Bits: value overflow");
     }
 
     ASSERT((m_bitsInCache <= CACHEBITS) && (numBits <= CACHEBITS));
