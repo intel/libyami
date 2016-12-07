@@ -41,9 +41,6 @@ using std::list;
 using std::vector;
 using std::deque;
 
-/* Define the maximum IDR period */
-#define MAX_IDR_PERIOD 2000
-
 #define HEVC_NAL_START_CODE 0x000001
 
 #define HEVC_SLICE_TYPE_I            2
@@ -941,9 +938,6 @@ void VaapiEncoderHEVC::resetParams ()
         m_numBFrames = ipPeriod() - 1;
 
     m_keyPeriod = intraPeriod() * (m_videoParamAVC.idrInterval + 1);
-
-    if (m_keyPeriod > MAX_IDR_PERIOD)
-        m_keyPeriod = MAX_IDR_PERIOD;
 
     if (minQP() > initQP() ||
             (rateControlMode()== RATE_CONTROL_CQP && minQP() < initQP()))

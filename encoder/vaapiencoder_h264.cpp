@@ -41,9 +41,6 @@ using YamiParser::BitWriter;
 using std::list;
 using std::vector;
 
-/* Define the maximum IDR period */
-#define MAX_IDR_PERIOD 2000
-
 #define LEVEL51_MAX_MBPS 983040
 #define H264_FRAME_FR 172
 #define H264_MIN_CR 2
@@ -1039,9 +1036,6 @@ void VaapiEncoderH264::resetParams ()
         m_numBFrames = ipPeriod() - 1;
 
     m_keyPeriod = intraPeriod() * (m_videoParamAVC.idrInterval + 1);
-
-    if (m_keyPeriod > MAX_IDR_PERIOD)
-        m_keyPeriod = MAX_IDR_PERIOD;
 
     if (initQP() < minQP())
         initQP() = minQP();
