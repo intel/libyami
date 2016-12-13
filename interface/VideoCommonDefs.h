@@ -19,6 +19,7 @@
 // config.h should NOT be included in header file, especially for the header file used by external
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 
@@ -45,20 +46,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#endif
-
-#ifndef __cplusplus
-#ifndef bool
-#define bool  int
-#endif
-
-#ifndef true
-#define true  1
-#endif
-
-#ifndef false
-#define false 0
-#endif
 #endif
 
 #define YAMI_FOURCC(ch0, ch1, ch2, ch3) \
