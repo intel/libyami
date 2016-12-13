@@ -322,7 +322,7 @@ YamiStatus VaapiPostProcessScaler::setColorBalanceParam(const VPPColorBalancePar
             if (mapToVppColorBalanceMode(vppClrBalanceMode, caps[i].type)) {
                 m_colorBalance[vppClrBalanceMode].range = caps[i].range;
                 m_colorBalance[vppClrBalanceMode].type = caps[i].type;
-                m_colorBalance[vppClrBalanceMode].level = COLORBALANCE_NONE;
+                m_colorBalance[vppClrBalanceMode].level = COLORBALANCE_LEVEL_NONE;
             }
         }
     }
