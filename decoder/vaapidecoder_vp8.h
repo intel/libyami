@@ -85,6 +85,7 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     /* decoding functions */
     YamiStatus decodePicture();
     void updateReferencePictures();
+    void flush(bool discardOutput);
 
   private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderVP8>;
