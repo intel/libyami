@@ -39,6 +39,8 @@ static const uint8_t keyFrameUVModeProbs[3] = { 142, 114, 183 };
 static const uint8_t nonKeyFrameDefaultYModeProbs[4] = { 112, 86, 140, 37 };
 static const uint8_t nonKeyFrameDefaultUVModeProbs[3] = { 162, 101, 204 };
 
+static const uint32_t surfaceNumVP8 = 3;
+
 static YamiStatus getStatus(Vp8ParserResult result)
 {
     YamiStatus status;
@@ -59,9 +61,6 @@ static YamiStatus getStatus(Vp8ParserResult result)
 
 YamiStatus VaapiDecoderVP8::ensureContext()
 {
-    bool resetContext = false;
-    YamiStatus status = YAMI_SUCCESS;
-
     if (m_frameHdr.key_frame != Vp8FrameHeader::KEYFRAME) {
         return YAMI_SUCCESS;
     }
@@ -83,52 +82,14 @@ YamiStatus VaapiDecoderVP8::ensureContext()
        so, m_confiBuffer width/height may update upon key frame
        3. we don't care m_configBuffer graphicBufferWidth/graphicBufferHeight for now,
        since that is used for android
-     */
+    */
 
-    DEBUG("got frame size: %d x %d", m_frameHdr.width, m_frameHdr.height);
     m_frameWidth = m_frameHdr.width;
     m_frameHeight = m_frameHdr.height;
-
-    // only reset va context when there is a larger frame
-    if (m_configBuffer.width < m_frameHdr.width
-        || m_configBuffer.height < m_frameHdr.height) {
-        resetContext = true;
-        INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d", m_configBuffer.width, m_configBuffer.height, m_frameHdr.width, m_frameHdr.height);
-        m_configBuffer.width = m_frameHdr.width;
-        m_configBuffer.height = m_frameHdr.height;
-        m_configBuffer.surfaceWidth = m_configBuffer.width;
-        m_configBuffer.surfaceHeight = m_configBuffer.height;
-        if (m_hasContext)
-            status = VaapiDecoderBase::terminateVA();
-        m_hasContext = false;
-
-        if (status != YAMI_SUCCESS)
-            return status;
-    } else if (m_videoFormatInfo.width != m_frameHdr.width
-        || m_videoFormatInfo.height != m_frameHdr.height) {
-        // notify client of resolution change, no need to reset hw context
-            INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d\n", m_videoFormatInfo.width, m_videoFormatInfo.height, m_frameHdr.width, m_frameHdr.height);
-            m_videoFormatInfo.width = m_frameHdr.width;
-            m_videoFormatInfo.height = m_frameHdr.height;
-            // XXX, assume graphicBufferWidth/graphicBufferHeight are hw resolution, needn't update here
-            return YAMI_DECODE_FORMAT_CHANGE;
-    }
-
-    if (m_hasContext)
-        return YAMI_SUCCESS;
-
-    DEBUG("Start VA context");
-    status = VaapiDecoderBase::start(&m_configBuffer);
-
-    if (status != YAMI_SUCCESS)
-        return status;
-
-    m_hasContext = true;
-
-    if (resetContext)
+    if (setFormat(m_frameWidth, m_frameHeight, m_frameWidth, m_frameHeight, surfaceNumVP8)) {
         return YAMI_DECODE_FORMAT_CHANGE;
-
-    return YAMI_SUCCESS;
+    }
+    return ensureProfile(VAProfileVP8Version0_3);
 }
 
 bool VaapiDecoderVP8::fillSliceParam(VASliceParameterBufferVP8* sliceParam)
@@ -501,7 +462,7 @@ void VaapiDecoderVP8::stop(void)
     VaapiDecoderBase::stop();
 }
 
-void VaapiDecoderVP8::flush(void)
+void VaapiDecoderVP8::flush(bool discardOutput)
 {
     DEBUG("VP8: flush()");
     /*FIXME: should output all surfaces in drain mode*/
@@ -511,13 +472,25 @@ void VaapiDecoderVP8::flush(void)
     m_altRefPicture.reset();
     m_gotKeyFrame = false;
 
-    VaapiDecoderBase::flush();
+    if (discardOutput)
+        VaapiDecoderBase::flush();
+}
+
+void VaapiDecoderVP8::flush(void)
+{
+    DEBUG("VP8: flush()");
+    /*FIXME: should output all surfaces in drain mode*/
+    flush(true);
 }
 
 YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
 {
     YamiStatus status;
     Vp8ParserResult result;
+    if (!buffer || !buffer->data) {
+        flush(false);
+        return YAMI_SUCCESS;
+    }
 
     m_currentPTS = buffer->timeStamp;
 
@@ -525,7 +498,7 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
     m_frameSize = buffer->size;
 
     DEBUG("VP8: Decode(bufsize =%d, timestamp=%ld)", m_frameSize,
-          m_currentPTS);
+        m_currentPTS);
 
     do {
         if (m_frameSize == 0) {
