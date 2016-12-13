@@ -326,6 +326,17 @@ YamiStatus VaapiPostProcessScaler::setColorBalanceParam(const VPPColorBalancePar
             }
         }
     }
+
+    if(COLORBALANCE_NONE == colorbalance.mode){
+        for (ColorBalanceMapItr itr = m_colorBalance.begin(); itr != m_colorBalance.end(); itr++) {
+            if (itr->second.filter) {
+                itr->second.filter.reset();
+                itr->second.level = COLORBALANCE_LEVEL_NONE;
+            }
+        }
+        return YAMI_SUCCESS;
+    }
+
     ColorBalanceMapItr iteratorClrBalance = m_colorBalance.find(colorbalance.mode);
     if (iteratorClrBalance == m_colorBalance.end()) {
         ERROR("unsupported VppColorBalanceMode: %d", colorbalance.mode);
