@@ -55,8 +55,8 @@ bool VaapiSurface::setCrop(uint32_t x, uint32_t y, uint32_t width, uint32_t heig
 {
     VideoRect& r = m_frame->crop;
 
-    if (x + width > r.width
-        || y + height > r.height)
+    if (x + width > m_width
+        || y + height > m_height)
         return false;
     r.x = x;
     r.y = y;
