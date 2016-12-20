@@ -1,7 +1,21 @@
-libyami NEWS -- summary of changes.  2016-10-31
+libyami NEWS -- summary of changes.  2016-12-20
 Copyright (c) 2010, The WebM Project authors.
 Copyright (C) 2011-2016 Intel Corporation
 Copyright (C) 2015-2016 Alibaba
+
+libyami 1.1.0(API:0.4.0) release, work with libva 1.7.3 release
+=====================
+We add following major features:
++3daae20 add Hue, Saturation, Brightness and Contrast to vpp
++0c8299c fix memory leak issue in v4l2
++71ec018 fix h264 baseline encoder fail issue
++d39104d fix h264/h265 encoder generate invalid frame for long GOP
++c7364f0 add h265 10 bits encoder
+
+We change API from 0.3.2 to 0.4.0 since following interface change
++7c6050b add enablePrefixNalUnit to h264 encoder
++3daae20 add Hue, Saturation, Brightness and Contrast to vpp
++c7364f0 add h265 10 bits encoder
 
 libyami 1.0.1(API:0.3.2) release, work with libva 1.7.3 release
 =====================
