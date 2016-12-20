@@ -52,14 +52,11 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
     m_videoParamCommon.rcParams.maxQP = 51;
-    m_videoParamCommon.rcParams.bitRate= 0;
-    m_videoParamCommon.rcParams.targetPercentage= 70;
-    m_videoParamCommon.rcParams.windowSize = 500;
     m_videoParamCommon.rcParams.disableBitsStuffing = 1;
-    m_videoParamCommon.leastInputCount = 0;
-    m_videoParamCommon.rcParams.diffQPIP = 0;
-    m_videoParamCommon.rcParams.diffQPIB = 0;
     m_videoParamCommon.bitDepth = 8;
+    memset(&m_videoParamsHRD, 0, sizeof(m_videoParamsHRD));
+    m_videoParamsHRD.windowSize = 1000;
+    m_videoParamsHRD.targetPercentage = 95;
     updateMaxOutputBufferCount();
 }
 
@@ -192,14 +189,16 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
-            if(m_videoParamCommon.rcParams.bitRate > 0)
-	         m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
-	     // Only support CQP and CBR mode now
-            if (m_videoParamCommon.rcMode != RATE_CONTROL_CBR)
+            if(m_videoParamCommon.rcParams.bitRate > 0){
+                if(m_videoParamCommon.rcMode != RATE_CONTROL_VBR)
+                    m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
+            } else{
                 m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
+            }
         } else
             ret = YAMI_INVALID_PARAM;
         m_maxCodedbufSize = 0; // resolution may change, recalculate max codec buffer size when it is requested
+
         break;
     }
     case VideoConfigTypeFrameRate: {
@@ -214,6 +213,22 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
         VideoConfigBitRate* rcParamsConfig = (VideoConfigBitRate*)videoEncParams;
         if (rcParamsConfig->size == sizeof(VideoConfigBitRate)) {
             m_videoParamCommon.rcParams = rcParamsConfig->rcParams;
+        } else
+            ret = YAMI_INVALID_PARAM;
+        }
+        break;
+    case VideoParamsTypeHRD: {
+        VideoParamsHRD* videoParamsHRD = (VideoParamsHRD*)videoEncParams;
+        if (videoParamsHRD->size == sizeof(VideoParamsHRD)) {
+            PARAMETER_ASSIGN(m_videoParamsHRD, *videoParamsHRD);
+            if(m_videoParamsHRD.targetPercentage < 50){
+                m_videoParamsHRD.targetPercentage = 50;
+                WARNING("target percentage should be in [50, 100]");
+            }
+            if(m_videoParamsHRD.targetPercentage > 100){
+                m_videoParamsHRD.targetPercentage = 100;
+                WARNING("target percentage should be in [50, 100]");
+            }
         } else
             ret = YAMI_INVALID_PARAM;
         }
@@ -381,8 +396,16 @@ SurfacePtr VaapiEncoderBase::createSurface(const SharedPtr<VideoFrame>& frame)
 
 void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
 {
-    hrd->buffer_size = m_videoParamCommon.rcParams.bitRate * 4;
-    hrd->initial_buffer_fullness = hrd->buffer_size/2;
+    if (m_videoParamsHRD.bufferSize && m_videoParamsHRD.initBufferFullness) {
+        hrd->buffer_size = m_videoParamsHRD.bufferSize;
+        hrd->initial_buffer_fullness = m_videoParamsHRD.initBufferFullness;
+    }
+    else {
+        hrd->initial_buffer_fullness = m_videoParamCommon.rcParams.bitRate;
+        hrd->buffer_size = hrd->initial_buffer_fullness * 2;
+    }
+
+
     DEBUG("bitRate: %d, hrd->buffer_size: %d, hrd->initial_buffer_fullness: %d",
         m_videoParamCommon.rcParams.bitRate, hrd->buffer_size,hrd->initial_buffer_fullness);
 }
@@ -393,10 +416,11 @@ void VaapiEncoderBase::fill(VAEncMiscParameterRateControl* rateControl) const
     rateControl->initial_qp =  m_videoParamCommon.rcParams.initQP;
     rateControl->min_qp =  m_videoParamCommon.rcParams.minQP;
     /*FIXME: where to find max_qp */
-    rateControl->window_size = m_videoParamCommon.rcParams.windowSize;
-    rateControl->target_percentage = m_videoParamCommon.rcParams.targetPercentage;
+    rateControl->window_size = m_videoParamsHRD.windowSize;
+    rateControl->target_percentage = m_videoParamsHRD.targetPercentage;
     rateControl->rc_flags.bits.disable_frame_skip = m_videoParamCommon.rcParams.disableFrameSkip;
     rateControl->rc_flags.bits.disable_bit_stuffing = m_videoParamCommon.rcParams.disableBitsStuffing;
+
 }
 
 void VaapiEncoderBase::fill(VAEncMiscParameterFrameRate* frameRate) const

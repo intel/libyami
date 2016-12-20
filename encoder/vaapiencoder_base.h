@@ -168,6 +168,7 @@ protected:
     ContextPtr m_context;
     VAEntrypoint m_entrypoint;
     VideoParamsCommon m_videoParamCommon;
+    VideoParamsHRD m_videoParamsHRD;
     uint32_t m_maxOutputBuffer; // max count of frames are encoding in parallel, it hurts performance when m_maxOutputBuffer is too big.
     uint32_t m_maxCodedbufSize;
 

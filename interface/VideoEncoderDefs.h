@@ -157,8 +157,6 @@ typedef struct VideoRateControlParams {
     uint32_t initQP;
     uint32_t minQP;
     uint32_t maxQP;
-    uint32_t windowSize; // use for HRD CPB length in ms
-    uint32_t targetPercentage;
     uint32_t disableFrameSkip;
     uint32_t disableBitsStuffing;
     int8_t diffQPIP;// P frame qp minus initQP
@@ -247,6 +245,8 @@ typedef struct VideoParamsHRD {
     uint32_t size;
     uint32_t bufferSize;
     uint32_t initBufferFullness;
+    uint32_t windowSize; // use for HRD CPB length in ms
+    uint32_t targetPercentage;
 }VideoParamsHRD;
 
 typedef struct VideoConfigFrameRate {
