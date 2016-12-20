@@ -6,17 +6,17 @@ AC_PREREQ([2.68])
 # YAMI-API version for api headers, only change it when the api interface is changed.
 m4_define([yami_api_major_version], 0)
 # update this for every release when micro version large than zero
-m4_define([yami_api_minor_version], 3)
+m4_define([yami_api_minor_version], 4)
 # change this for any api change
-m4_define([yami_api_micro_version], 6)
+m4_define([yami_api_micro_version], 0)
 m4_define([yami_api_version],
     [yami_api_major_version.yami_api_minor_version.yami_api_micro_version])
 
 # package version (lib name suffix), usually sync with git tag
 m4_define([libyami_major_version], 1)
-m4_define([libyami_minor_version], 0)
+m4_define([libyami_minor_version], 1)
 # even number of micro_version means a release after full validation cycle
-m4_define([libyami_micro_version], 1)
+m4_define([libyami_micro_version], 0)
 m4_define([libyami_version],
                     [libyami_major_version.libyami_minor_version.libyami_micro_version])
 
