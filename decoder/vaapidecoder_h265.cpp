@@ -1103,11 +1103,6 @@ YamiStatus VaapiDecoderH265::decodeNalu(NalUnit* nalu)
 
     if (NalUnit::TRAIL_N <= type && type <= NalUnit::CRA_NUT) {
         status = decodeSlice(nalu);
-        if (status == YAMI_DECODE_INVALID_DATA) {
-            //ignore invalid data while decoding slice
-            m_current.reset();
-            status = YAMI_SUCCESS;
-        }
     } else {
         status = decodeCurrent();
         if (status != YAMI_SUCCESS)
@@ -1165,16 +1160,22 @@ YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
     NalReader nr(buffer->data, buffer->size, m_nalLengthSize);
     const uint8_t* nal;
     int32_t size;
+    YamiStatus lastError = YAMI_SUCCESS;
     YamiStatus status;
     while (nr.read(nal, size)) {
         NalUnit nalu;
         if (nalu.parseNaluHeader(nal, size)) {
             status = decodeNalu(&nalu);
-            if (status != YAMI_SUCCESS && status != YAMI_DECODE_INVALID_DATA)
-                return status;
+            if (status != YAMI_SUCCESS) {
+                //we will continue decode if decodeNalu return YAMI_DECODE_INVALID_DATA
+                //but we will return the error at end of fucntion
+                lastError = status;
+                if (status != YAMI_DECODE_INVALID_DATA)
+                    return status;
+            }
         }
     }
-    return YAMI_SUCCESS;
+    return lastError;
 }
 
 bool VaapiDecoderH265::decodeHevcRecordData(uint8_t* buf, int32_t bufSize)
@@ -1192,7 +1193,8 @@ bool VaapiDecoderH265::decodeHevcRecordData(uint8_t* buf, int32_t bufSize)
         memset(&buffer, 0, sizeof(buffer));
         buffer.data = buf;
         buffer.size = bufSize;
-        return (decode(&buffer) == YAMI_SUCCESS);
+        //we ignore no fatal error
+        return (decode(&buffer) >= YAMI_SUCCESS);
     }
     if (bufSize < 24) {
         ERROR("invalid avcc record data");
