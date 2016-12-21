@@ -29,9 +29,9 @@ libyami consists of several libraries:
 
 Features
 --------
-  * MPEG2, VC1, H.264, H.265, VP8, VP9, JPEG ad-hoc decoder
-  * H.264, H.265, VP8, VP9, JPEG ad-hoc encoder
-  * Sharpening, Denoise, Deinterlace, CSC and scaling
+  * MPEG-2, VC-1, WMV 9 (WMV3), H.264, HEVC (H.265), VP8, VP9, and JPEG ad-hoc decoders
+  * H.264, HEVC (H.265), VP8, VP9, and JPEG ad-hoc encoders
+  * Sharpening, Denoise, Deinterlace, CSC, and scaling
 
 
 Requirements
@@ -61,10 +61,10 @@ Simple api demo application
 https://github.com/01org/libyami-utils/blob/master/examples/simpleplayer.cpp
 
 
-Ffmpeg integration
+FFmpeg integration
 --------------------------
-You can refer to https://github.com/01org/ffmpeg_libyami for  ffmpeg integration.
-You can report ffmpeg related issue to https://github.com/01org/ffmpeg_libyami/issues
+You can refer to https://github.com/01org/ffmpeg_libyami for FFmpeg integration.
+You can report FFmpeg related issue to https://github.com/01org/ffmpeg_libyami/issues
 
 
 Build instructions
