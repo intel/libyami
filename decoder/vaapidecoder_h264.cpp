@@ -1137,7 +1137,8 @@ bool VaapiDecoderH264::decodeAvcRecordData(uint8_t* buf, int32_t bufSize)
         memset(&buffer, 0, sizeof(buffer));
         buffer.data = buf;
         buffer.size = bufSize;
-        return (decode(&buffer) == YAMI_SUCCESS);
+        //we ignore no faltal error
+        return (decode(&buffer) >= YAMI_SUCCESS);
     }
 
     if (bufSize < 7) {
@@ -1787,12 +1788,6 @@ YamiStatus VaapiDecoderH264::decodeNalu(NalUnit* nalu)
 
     if (NAL_SLICE_NONIDR <= type && type <= NAL_SLICE_IDR) {
         status = decodeSlice(nalu);
-        if (status == YAMI_DECODE_INVALID_DATA) {
-            // ignore invalid data while decoding slice to continue to decode
-            // the next slice
-            m_currPic.reset();
-            status = YAMI_SUCCESS;
-        }
     } else {
         status = decodeCurrent();
         if (status != YAMI_SUCCESS)
@@ -1850,6 +1845,7 @@ YamiStatus VaapiDecoderH264::decode(VideoDecodeBuffer* buffer)
 
     int32_t size;
     NalUnit nalu;
+    YamiStatus lastError = YAMI_SUCCESS;
     YamiStatus status = YAMI_SUCCESS;
     const uint8_t* nal;
     NalReader nr(buffer->data, buffer->size, m_nalLengthSize);
@@ -1857,10 +1853,15 @@ YamiStatus VaapiDecoderH264::decode(VideoDecodeBuffer* buffer)
     while (nr.read(nal, size)) {
         if (nalu.parseNalUnit(nal, size))
             status = decodeNalu(&nalu);
-        if (status != YAMI_SUCCESS)
-            return status;
+        if (status != YAMI_SUCCESS) {
+            //we will continue decode if decodeNalu return YAMI_DECODE_INVALID_DATA
+            //but we will return the error at end of fucntion
+            lastError = status;
+            if (status != YAMI_DECODE_INVALID_DATA)
+                return status;
+        }
     }
-    return YAMI_SUCCESS;
+    return lastError;
 }
 
 }
