@@ -1683,6 +1683,10 @@ YamiStatus VaapiDecoderH264::createPicture(const SliceHeader* const slice,
     VaapiPictureType picStructure;
     bool isSecondField = false;
 
+    /* skip all non-idr slices if m_prevPic is a NULL */
+    if(!m_prevPic && !nalu->m_idrPicFlag)
+        return YAMI_DECODE_INVALID_DATA;
+
     if (slice->field_pic_flag) {
         if (slice->bottom_field_flag)
             picStructure = VAAPI_PICTURE_BOTTOM_FIELD;
