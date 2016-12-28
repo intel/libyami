@@ -48,6 +48,15 @@
         }                                     \
     } while (0)
 
+#define CHECK_READ_UE(f, min, max)                                       \
+    do {                                                                 \
+        READ_UE(f);                                                      \
+        if (f < min || f > max) {                                        \
+            ERROR("%s(%d) should be in range[%d, %d]", #f, f, min, max); \
+            return false;                                                \
+        }                                                                \
+    } while (0)
+
 #define READ_SE(f)                            \
     do {                                      \
         if (!br.readSe(f)) {                  \
@@ -1145,8 +1154,8 @@ bool Parser::parsePps(const NalUnit* nalu)
     READ(pps->tiles_enabled_flag);
     READ(pps->entropy_coding_sync_enabled_flag);
     if (pps->tiles_enabled_flag) {
-        READ_UE(pps->num_tile_columns_minus1);
-        READ_UE(pps->num_tile_rows_minus1);
+        CHECK_READ_UE(pps->num_tile_columns_minus1, 0, pps->picWidthInCtbsY - 1);
+        CHECK_READ_UE(pps->num_tile_rows_minus1, 0, pps->picHeightInCtbsY - 1);
         READ(pps->uniform_spacing_flag);
         if (pps->uniform_spacing_flag) {
             uint8_t numCol = pps->num_tile_columns_minus1 + 1;
