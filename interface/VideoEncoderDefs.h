@@ -87,6 +87,11 @@ typedef enum {
 #define ENCODE_BUFFERFLAG_DATAINVALID      0x00000020
 #define ENCODE_BUFFERFLAG_SLICEOVERFOLOW   0x00000040
 
+//quality level for encoder
+#define VIDEO_PARAMS_QUALITYLEVEL_NONE 0
+#define VIDEO_PARAMS_QUALITYLEVEL_MIN 1
+#define VIDEO_PARAMS_QUALITYLEVEL_MAX 7
+
 typedef struct VideoEncOutputBuffer {
     uint8_t *data;
     uint32_t bufferSize;        //buffer size
@@ -183,6 +188,7 @@ typedef enum {
     VideoParamsTypeVP9,
     VideoParamsTypeVC1,
     VideoParamsTypeHRD,
+    VideoParamsTypeQualityLevel,
 
     VideoConfigTypeFrameRate,
     VideoConfigTypeBitRate,
@@ -195,7 +201,7 @@ typedef enum {
     VideoConfigTypeAVCStreamFormat,
 
     VideoParamsConfigExtension
-}VideoParamConfigType;
+} VideoParamConfigType;
 
 typedef struct VideoParamConfigSet {
     uint32_t size;
@@ -248,6 +254,11 @@ typedef struct VideoParamsHRD {
     uint32_t windowSize; // use for HRD CPB length in ms
     uint32_t targetPercentage;
 }VideoParamsHRD;
+
+typedef struct VideoParamsQualityLevel {
+    uint32_t size;
+    uint32_t level;
+} VideoParamsQualityLevel;
 
 typedef struct VideoConfigFrameRate {
     uint32_t size;

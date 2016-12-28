@@ -164,11 +164,21 @@ protected:
 
     bool isBusy();
 
+    bool mapToRange(uint32_t& value,
+        uint32_t min, uint32_t max,
+        uint32_t level,
+        uint32_t minLevel, uint32_t maxLevel);
+    bool mapQualityLevel();
+    bool fillQualityLevel(VaapiEncPicture*);
+
     DisplayPtr m_display;
     ContextPtr m_context;
     VAEntrypoint m_entrypoint;
     VideoParamsCommon m_videoParamCommon;
     VideoParamsHRD m_videoParamsHRD;
+    bool m_videoParamQualityLevelUpdate;
+    VideoParamsQualityLevel m_videoParamQualityLevel;
+    uint32_t m_vaVideoParamQualityLevel;
     uint32_t m_maxOutputBuffer; // max count of frames are encoding in parallel, it hurts performance when m_maxOutputBuffer is too big.
     uint32_t m_maxCodedbufSize;
 
