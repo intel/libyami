@@ -142,6 +142,7 @@ private:
             const NalUnit* const);
     YamiStatus decodeCurrent();
     YamiStatus outputPicture(const PicturePtr&);
+    void flush(bool discardOutput);
 
     SharedPtr<Parser> m_parser;
     PicturePtr  m_current;
