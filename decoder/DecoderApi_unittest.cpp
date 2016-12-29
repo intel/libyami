@@ -59,6 +59,21 @@ static FrameData g_h264data[] = {
     g_EOF,
 };
 
+static FrameData g_h265data[] = {
+    g_hevc8x8I,
+    g_hevc8x8P,
+    g_hevc8x8B,
+    g_hevc8x18,
+    g_hevc16x16,
+    g_hevc8x8I,
+    g_hevc8x8P,
+    g_hevc8x8B,
+    g_hevc8x8I,
+    g_hevc8x8P,
+    g_hevc8x8B,
+    g_EOF,
+};
+
 static FrameData g_vp8data[] = {
     g_vp8_8x8I,
     g_vp8_8x8P1,
@@ -326,5 +341,6 @@ INSTANTIATE_TEST_CASE_P(
     VaapiDecoder, DecodeApiTest,
     ::testing::Values(
         TestDecodeFrames::create(g_h264data, YAMI_MIME_H264),
+        TestDecodeFrames::create(g_h265data, YAMI_MIME_H265),
         TestDecodeFrames::create(g_vp8data, YAMI_MIME_VP8)));
 }
