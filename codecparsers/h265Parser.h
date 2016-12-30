@@ -137,13 +137,13 @@ namespace H265 {
         uint8_t initial_cpb_removal_delay_length_minus1;
         uint8_t au_cpb_removal_delay_length_minus1;
         uint8_t dpb_output_delay_length_minus1;
-        bool fixed_pic_rate_general_flag[6];
-        bool fixed_pic_rate_within_cvs_flag[6];
-        uint16_t elemental_duration_in_tc_minus1[6]; //[0, 2047]
-        bool low_delay_hrd_flag[6];
-        uint8_t cpb_cnt_minus1[6]; //[0, 31]
+        bool fixed_pic_rate_general_flag[MAXSUBLAYERS];
+        bool fixed_pic_rate_within_cvs_flag[MAXSUBLAYERS];
+        uint16_t elemental_duration_in_tc_minus1[MAXSUBLAYERS]; //[0, 2047]
+        bool low_delay_hrd_flag[MAXSUBLAYERS];
+        uint8_t cpb_cnt_minus1[MAXSUBLAYERS]; //[0, 31]
 
-        SubLayerHRDParameters sublayer_hrd_params[6];
+        SubLayerHRDParameters sublayer_hrd_params[MAXSUBLAYERS];
     };
 
     struct ShortTermRefPicSet {
