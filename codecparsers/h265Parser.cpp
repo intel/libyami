@@ -1473,10 +1473,17 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
             if (!slice->deblocking_filter_disabled_flag) {
                 READ_SE(slice->beta_offset_div2);
                 READ_SE(slice->tc_offset_div2);
-                CHECK_RANGE(slice->beta_offset_div2, -6, 6);
-                CHECK_RANGE(slice->tc_offset_div2, -6, 6);
             }
         }
+        else {
+            slice->deblocking_filter_disabled_flag = pps->pps_deblocking_filter_disabled_flag;
+            if (!slice->deblocking_filter_disabled_flag) {
+                slice->beta_offset_div2 = pps->pps_beta_offset_div2;
+                slice->tc_offset_div2 = pps->pps_tc_offset_div2;
+            }
+        }
+        CHECK_RANGE(slice->beta_offset_div2, -6, 6);
+        CHECK_RANGE(slice->tc_offset_div2, -6, 6);
 
         if (pps->pps_loop_filter_across_slices_enabled_flag
             && (slice->sao_luma_flag
