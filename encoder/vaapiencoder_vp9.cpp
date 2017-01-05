@@ -278,7 +278,8 @@ bool VaapiEncoderVP9::fill(VAEncPictureParameterBufferVP9* picParam,
 
     picParam->pic_flags.bits.show_frame = 1;
 
-    picParam->luma_ac_qindex = kDefaultQPValue;
+    picParam->luma_ac_qindex = (initQP() >= minQP() && initQP() <= maxQP()) ? initQP() : kDefaultQPValue;
+
     picParam->luma_dc_qindex_delta = 1;
     picParam->chroma_ac_qindex_delta = 1;
     picParam->chroma_dc_qindex_delta = 1;
