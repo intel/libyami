@@ -24,6 +24,25 @@
 #include <math.h>
 #include <stddef.h> //offsetof
 
+#define POWER32SUB2 0xFFFFFFFE
+#define POWER15 (1 << 15)
+
+#define CHECK_RANGE_INT32(var, min, max)                                         \
+    {                                                                            \
+        if ((var) < (min) || (var) > (max)) {                                    \
+            ERROR("%s(%d) should be in the range[%d, %d]", #var, var, min, max); \
+            return false;                                                        \
+        }                                                                        \
+    }
+
+#define CHECK_RANGE_UINT32(var, min, max)                                        \
+    {                                                                            \
+        if ((var) < (min) || (var) > (max)) {                                    \
+            ERROR("%s(%u) should be in the range[%u, %u]", #var, var, min, max); \
+            return false;                                                        \
+        }                                                                        \
+    }
+
 #define READ(f)                             \
     do {                                    \
         if (!br.readT(f)) {                 \
@@ -40,6 +59,12 @@
         }                                               \
     } while (0)
 
+#define CHECK_READ_BITS(f, bits, min, max) \
+    do {                                   \
+        READ_BITS(f, bits);                \
+        CHECK_RANGE_UINT32(f, min, max);   \
+    } while (0)
+
 #define READ_UE(f)                            \
     do {                                      \
         if (!br.readUe(f)) {                  \
@@ -48,13 +73,10 @@
         }                                     \
     } while (0)
 
-#define CHECK_READ_UE(f, min, max)                                       \
-    do {                                                                 \
-        READ_UE(f);                                                      \
-        if (f < min || f > max) {                                        \
-            ERROR("%s(%d) should be in range[%d, %d]", #f, f, min, max); \
-            return false;                                                \
-        }                                                                \
+#define CHECK_READ_UE(f, min, max)       \
+    do {                                 \
+        READ_UE(f);                      \
+        CHECK_RANGE_UINT32(f, min, max); \
     } while (0)
 
 #define READ_SE(f)                            \
@@ -63,6 +85,12 @@
             ERROR("failed to readSe %s", #f); \
             return false;                     \
         }                                     \
+    } while (0)
+
+#define CHECK_READ_SE(f, min, max)      \
+    do {                                \
+        READ_SE(f);                     \
+        CHECK_RANGE_INT32(f, min, max); \
     } while (0)
 
 #define SKIP(bits)                   \
@@ -75,12 +103,6 @@
 
 namespace YamiParser {
 namespace H265 {
-
-#define CHECK_RANGE(var, min, max)          \
-    {                                       \
-        if ((var) < (min) || (var) > (max)) \
-            return false;                   \
-    }
 
 #define SET_DEF_FOR_ORDERING_INFO(var)                                                     \
     if (!var->var##_sub_layer_ordering_info_present_flag &&                                \
@@ -99,15 +121,11 @@ namespace H265 {
     {                                                                                                            \
         uint32_t start = var->var##_sub_layer_ordering_info_present_flag ? 0 : var->var##_max_sub_layers_minus1; \
         for (uint32_t i = start; i <= var->var##_max_sub_layers_minus1; i++) {                                   \
-            READ_UE(var->var##_max_dec_pic_buffering_minus1[i]);                                                 \
-            if (var->var##_max_dec_pic_buffering_minus1[i] > MAXDPBSIZE - 1)                                     \
-                return false;                                                                                    \
+            CHECK_READ_UE(var->var##_max_dec_pic_buffering_minus1[i], 0, MAXDPBSIZE - 1);                        \
                                                                                                                  \
-            READ_UE(var->var##_max_num_reorder_pics[i]);                                                         \
-            if (var->var##_max_num_reorder_pics[i] > var->var##_max_dec_pic_buffering_minus1[i])                 \
-                return false;                                                                                    \
+            CHECK_READ_UE(var->var##_max_num_reorder_pics[i], 0, var->var##_max_dec_pic_buffering_minus1[i]);    \
                                                                                                                  \
-            READ_UE(var->var##_max_latency_increase_plus1[i]);                                                   \
+            CHECK_READ_UE(var->var##_max_latency_increase_plus1[i], 0, POWER32SUB2);                             \
         }                                                                                                        \
     }
 
@@ -206,13 +224,17 @@ static const uint8_t* searchStartPos(const uint8_t* src, uint32_t size)
 // 7.3.1 NAL unit syntax
 bool NalUnit::parseNaluHeader(const uint8_t* data, size_t size)
 {
-    if (!data || !size)
+    if (!data || !size) {
+        ERROR("data is NULL, or size is 0");
         return false;
+    }
 
     m_data = data;
     m_size = size;
-    if (m_size < NALU_HEAD_SIZE)
+    if (m_size < NALU_HEAD_SIZE) {
+        ERROR("m_size(%d) < NALU_HEAD_SIZE(%d)", m_size, NALU_HEAD_SIZE);
         return false;
+    }
 
     BitReader br(m_data, m_size);
 
@@ -234,6 +256,8 @@ SharedPtr<VPS> Parser::getVps(uint8_t id) const
     VpsMap::const_iterator it = m_vps.find(id);
     if (it != m_vps.end())
         res = it->second;
+    else
+        WARNING("can't get the VPS by ID(%d)", id);
     return res;
 }
 
@@ -243,6 +267,8 @@ SharedPtr<SPS> Parser::getSps(uint8_t id) const
     SpsMap::const_iterator it = m_sps.find(id);
     if (it != m_sps.end())
         res = it->second;
+    else
+        WARNING("can't get the SPS by ID(%d)", id);
     return res;
 }
 
@@ -252,6 +278,8 @@ SharedPtr<PPS> Parser::getPps(uint8_t id) const
     PpsMap::const_iterator it = m_pps.find(id);
     if (it != m_pps.end())
         res = it->second;
+    else
+        WARNING("can't get the PPS by ID(%d)", id);
     return res;
 }
 
@@ -370,11 +398,23 @@ bool Parser::subLayerHrdParameters(SubLayerHRDParameters* subParams,
     uint8_t subPicParamsPresentFlag)
 {
     for (uint32_t i = 0; i <= cpbCnt; i++) {
-        READ_UE(subParams->bit_rate_value_minus1[i]);
-        READ_UE(subParams->cpb_size_value_minus1[i]);
+        if (i == 0) {
+            CHECK_READ_UE(subParams->bit_rate_value_minus1[i], 0, POWER32SUB2);
+            CHECK_READ_UE(subParams->cpb_size_value_minus1[i], 0, POWER32SUB2);
+        }
+        else {
+            CHECK_READ_UE(subParams->bit_rate_value_minus1[i], subParams->bit_rate_value_minus1[i - 1], POWER32SUB2);
+            CHECK_READ_UE(subParams->cpb_size_value_minus1[i], 0, subParams->cpb_size_value_minus1[i - 1] + 1);
+        }
         if (subPicParamsPresentFlag) {
-            READ_UE(subParams->cpb_size_du_value_minus1[i]);
-            READ_UE(subParams->bit_rate_du_value_minus1[i]);
+            if (i == 0) {
+                CHECK_READ_UE(subParams->cpb_size_du_value_minus1[i], 0, POWER32SUB2);
+                CHECK_READ_UE(subParams->bit_rate_du_value_minus1[i], 0, POWER32SUB2);
+            }
+            else {
+                CHECK_READ_UE(subParams->cpb_size_du_value_minus1[i], 0, subParams->cpb_size_du_value_minus1[i - 1] + 1);
+                CHECK_READ_UE(subParams->bit_rate_du_value_minus1[i], subParams->bit_rate_du_value_minus1[i - 1], POWER32SUB2);
+            }
         }
         READ(subParams->cbr_flag[i]);
     }
@@ -422,12 +462,12 @@ bool Parser::hrdParameters(HRDParameters* params, NalReader& br,
             params->fixed_pic_rate_within_cvs_flag[i] = 1;
 
         if (params->fixed_pic_rate_within_cvs_flag[i])
-            READ_UE(params->elemental_duration_in_tc_minus1[i]);
+            CHECK_READ_UE(params->elemental_duration_in_tc_minus1[i], 0, 2047);
         else
             READ(params->low_delay_hrd_flag[i]);
 
         if (!params->low_delay_hrd_flag[i])
-            READ_UE(params->cpb_cnt_minus1[i]);
+            CHECK_READ_UE(params->cpb_cnt_minus1[i], 0, 31);
 
         if (params->nal_hrd_parameters_present_flag) {
             if (!subLayerHrdParameters(&params->sublayer_hrd_params[i], br,
@@ -450,8 +490,10 @@ bool Parser::hrdParameters(HRDParameters* params, NalReader& br,
 // E.2 VUI parameters syntax
 bool Parser::vuiParameters(SPS* sps, NalReader& br)
 {
-    if (!sps)
+    if (!sps) {
+        ERROR("SPS is NULL");
         return false;
+    }
 
     VuiParameters* vui = &sps->vui_params;
 
@@ -495,8 +537,8 @@ bool Parser::vuiParameters(SPS* sps, NalReader& br)
     }
     READ(vui->chroma_loc_info_present_flag);
     if (vui->chroma_loc_info_present_flag) {
-        READ_UE(vui->chroma_sample_loc_type_top_field);
-        READ_UE(vui->chroma_sample_loc_type_bottom_field);
+        CHECK_READ_UE(vui->chroma_sample_loc_type_top_field, 0, 5);
+        CHECK_READ_UE(vui->chroma_sample_loc_type_bottom_field, 0, 5);
     }
     READ(vui->neutral_chroma_indication_flag);
     READ(vui->field_seq_flag);
@@ -514,7 +556,7 @@ bool Parser::vuiParameters(SPS* sps, NalReader& br)
         READ(vui->vui_time_scale);
         READ(vui->vui_poc_proportional_to_timing_flag);
         if (vui->vui_poc_proportional_to_timing_flag)
-            READ_UE(vui->vui_num_ticks_poc_diff_one_minus1);
+            CHECK_READ_UE(vui->vui_num_ticks_poc_diff_one_minus1, 0, POWER32SUB2);
 
         READ(vui->vui_hrd_parameters_present_flag);
         if (vui->vui_hrd_parameters_present_flag)
@@ -527,11 +569,16 @@ bool Parser::vuiParameters(SPS* sps, NalReader& br)
         READ(vui->tiles_fixed_structure_flag);
         READ(vui->motion_vectors_over_pic_boundaries_flag);
         READ(vui->restricted_ref_pic_lists_flag);
-        READ_UE(vui->min_spatial_segmentation_idc);
-        READ_UE(vui->max_bytes_per_pic_denom);
-        READ_UE(vui->max_bits_per_min_cu_denom);
-        READ_UE(vui->log2_max_mv_length_horizontal);
-        READ_UE(vui->log2_max_mv_length_vertical);
+        CHECK_READ_UE(vui->min_spatial_segmentation_idc, 0, 4095);
+        CHECK_READ_UE(vui->max_bytes_per_pic_denom, 0, 16);
+        CHECK_READ_UE(vui->max_bits_per_min_cu_denom, 0, 16);
+        CHECK_READ_UE(vui->log2_max_mv_length_horizontal, 0, 16);
+        CHECK_READ_UE(vui->log2_max_mv_length_vertical, 0, 15);
+    }
+    else {
+        vui->motion_vectors_over_pic_boundaries_flag = 1;
+        vui->log2_max_mv_length_horizontal = 15;
+        vui->log2_max_mv_length_vertical = 15;
     }
 
     return true;
@@ -559,6 +606,7 @@ bool Parser::useDefaultScalingLists(uint8_t* dstList, uint8_t* dstDcList,
             memcpy(dstList, DefaultScalingList2, 64);
         break;
     default:
+        ERROR("Can't get the scaling list by sizeId(%d)", sizeId);
         return false;
     }
 
@@ -641,15 +689,13 @@ bool Parser::scalingListData(ScalingList* dest_scaling_list, NalReader& br)
 
                 if (sizeId > 1) {
                     int32_t scaling_list_dc_coef_minus8;
-                    READ_SE(scaling_list_dc_coef_minus8);
-                    CHECK_RANGE(scaling_list_dc_coef_minus8, -7, 247);
+                    CHECK_READ_SE(scaling_list_dc_coef_minus8, -7, 247);
                     dstDcList[matrixId] = scaling_list_dc_coef_minus8 + 8;
                     nextCoef = dstDcList[matrixId];
                 }
 
                 for (uint32_t i = 0; i < coefNum; i++) {
-                    READ_SE(scaling_list_delta_coef);
-                    CHECK_RANGE(scaling_list_delta_coef, -128, 127);
+                    CHECK_READ_SE(scaling_list_delta_coef, -128, 127);
                     nextCoef = (nextCoef + scaling_list_delta_coef + 256) % 256;
                     dstList[i] = nextCoef;
                 }
@@ -679,11 +725,11 @@ bool Parser::stRefPicSet(ShortTermRefPicSet* stRef, NalReader& br,
         READ(stRef->inter_ref_pic_set_prediction_flag);
     if (stRef->inter_ref_pic_set_prediction_flag) {
         if (stRpsIdx == sps->num_short_term_ref_pic_sets)
-            READ_UE(stRef->delta_idx_minus1);
+            CHECK_READ_UE(stRef->delta_idx_minus1, 0, stRpsIdx);
         // 7-57
         refRpsIdx = stRpsIdx - (stRef->delta_idx_minus1 + 1);
         READ(stRef->delta_rps_sign);
-        READ_UE(stRef->abs_delta_rps_minus1);
+        CHECK_READ_UE(stRef->abs_delta_rps_minus1, 0, POWER15 - 1);
         // 7-58
         deltaRps = (1 - 2 * stRef->delta_rps_sign) * (stRef->abs_delta_rps_minus1 + 1);
 
@@ -741,20 +787,16 @@ bool Parser::stRefPicSet(ShortTermRefPicSet* stRef, NalReader& br,
     else {
         uint8_t maxDecPicBufferingMinus1 = sps->sps_max_dec_pic_buffering_minus1[sps->sps_max_sub_layers_minus1];
 
-        READ_UE(stRef->num_negative_pics);
-        if (stRef->num_negative_pics > maxDecPicBufferingMinus1)
-            return false;
+        CHECK_READ_UE(stRef->num_negative_pics, 0, maxDecPicBufferingMinus1);
 
-        READ_UE(stRef->num_positive_pics);
-        if (stRef->num_positive_pics > maxDecPicBufferingMinus1 - stRef->num_negative_pics)
-            return false;
+        CHECK_READ_UE(stRef->num_positive_pics, 0, maxDecPicBufferingMinus1 - stRef->num_negative_pics);
 
         // 7-61 & 7-62
         stRef->NumNegativePics = stRef->num_negative_pics;
         stRef->NumPositivePics = stRef->num_positive_pics;
 
         for (i = 0; i < stRef->num_negative_pics; i++) {
-            READ_UE(stRef->delta_poc_s0_minus1[i]);
+            CHECK_READ_UE(stRef->delta_poc_s0_minus1[i], 0, POWER15 - 1);
             if (i == 0) // 7-65
                 stRef->DeltaPocS0[i] = -(stRef->delta_poc_s0_minus1[i] + 1);
             else // 7-67
@@ -765,7 +807,7 @@ bool Parser::stRefPicSet(ShortTermRefPicSet* stRef, NalReader& br,
             stRef->UsedByCurrPicS0[i] = stRef->used_by_curr_pic_s0_flag[i];
         }
         for (i = 0; i < stRef->num_positive_pics; i++) {
-            READ_UE(stRef->delta_poc_s1_minus1[i]);
+            CHECK_READ_UE(stRef->delta_poc_s1_minus1[i], 0, POWER15 - 1);
             if (i == 0)
                 stRef->DeltaPocS1[i] = stRef->delta_poc_s1_minus1[i] + 1;
             else
@@ -807,29 +849,29 @@ bool Parser::refPicListsModification(SliceHeader* slice, NalReader& br,
 }
 
 //merge parse l0 and l1 for function predWeightTable
-#define SUB_PRED_WEIGHT_TABLE(slice, pwt, br, sps, mode)                           \
-    {                                                                              \
-        uint32_t i, j;                                                             \
-        for (i = 0; i <= slice->num_ref_idx_##mode##_active_minus1; i++)           \
-            READ_BITS(pwt->luma_weight_##mode##_flag[i], 1);                       \
-        if (sps->chroma_format_idc) {                                              \
-            for (i = 0; i <= slice->num_ref_idx_##mode##_active_minus1; i++)       \
-                READ_BITS(pwt->chroma_weight_##mode##_flag[i], 1);                 \
-        }                                                                          \
-        for (i = 0; i <= slice->num_ref_idx_##mode##_active_minus1; i++) {         \
-            if (pwt->luma_weight_##mode##_flag[i]) {                               \
-                READ_SE(pwt->delta_luma_weight_##mode[i]);                         \
-                CHECK_RANGE(pwt->delta_luma_weight_##mode[i], -128, 127);          \
-                READ_SE(pwt->luma_offset_##mode[i]);                               \
-            }                                                                      \
-            if (pwt->chroma_weight_##mode##_flag[i]) {                             \
-                for (j = 0; j < 2; j++) {                                          \
-                    READ_SE(pwt->delta_chroma_weight_##mode[i][j]);                \
-                    CHECK_RANGE(pwt->delta_chroma_weight_##mode[i][j], -128, 127); \
-                    READ_SE(pwt->delta_chroma_offset_##mode[i][j]);                \
-                }                                                                  \
-            }                                                                      \
-        }                                                                          \
+#define SUB_PRED_WEIGHT_TABLE(slice, pwt, br, sps, mode)                                 \
+    {                                                                                    \
+        uint32_t i, j;                                                                   \
+        for (i = 0; i <= slice->num_ref_idx_##mode##_active_minus1; i++)                 \
+            READ_BITS(pwt->luma_weight_##mode##_flag[i], 1);                             \
+        if (sps->chroma_format_idc) {                                                    \
+            for (i = 0; i <= slice->num_ref_idx_##mode##_active_minus1; i++)             \
+                READ_BITS(pwt->chroma_weight_##mode##_flag[i], 1);                       \
+        }                                                                                \
+        for (i = 0; i <= slice->num_ref_idx_##mode##_active_minus1; i++) {               \
+            if (pwt->luma_weight_##mode##_flag[i]) {                                     \
+                READ_SE(pwt->delta_luma_weight_##mode[i]);                               \
+                CHECK_RANGE_INT32(pwt->delta_luma_weight_##mode[i], -128, 127);          \
+                READ_SE(pwt->luma_offset_##mode[i]);                                     \
+            }                                                                            \
+            if (pwt->chroma_weight_##mode##_flag[i]) {                                   \
+                for (j = 0; j < 2; j++) {                                                \
+                    READ_SE(pwt->delta_chroma_weight_##mode[i][j]);                      \
+                    CHECK_RANGE_INT32(pwt->delta_chroma_weight_##mode[i][j], -128, 127); \
+                    READ_SE(pwt->delta_chroma_offset_##mode[i][j]);                      \
+                }                                                                        \
+            }                                                                            \
+        }                                                                                \
     }
 
 // 7.3.6.3 Weighted prediction parameters syntax
@@ -839,9 +881,9 @@ bool Parser::predWeightTable(SliceHeader* slice, NalReader& br)
     const SPS* const sps = pps->sps.get();
     PredWeightTable* const pwt = &slice->pred_weight_table;
 
-    READ_UE(pwt->luma_log2_weight_denom);
-    if (pwt->luma_log2_weight_denom > 7)
-        return false; // shall be in the range of 0 to 7, inclusive.
+    // shall be in the range of 0 to 7, inclusive.
+    CHECK_READ_UE(pwt->luma_log2_weight_denom, 0, 7);
+
     if (sps->chroma_format_idc)
         READ_SE(pwt->delta_chroma_log2_weight_denom);
 
@@ -865,9 +907,7 @@ bool Parser::parseVps(const NalUnit* nalu)
     READ(vps->vps_base_layer_internal_flag);
     READ(vps->vps_base_layer_available_flag);
     READ_BITS(vps->vps_max_layers_minus1, 6);
-    READ_BITS(vps->vps_max_sub_layers_minus1, 3);
-    if (vps->vps_max_sub_layers_minus1 >= MAXSUBLAYERS)
-        return false;
+    CHECK_READ_BITS(vps->vps_max_sub_layers_minus1, 3, 0, MAXSUBLAYERS - 1);
     READ(vps->vps_temporal_id_nesting_flag);
     SKIP(16); // vps_reserved_0xffff_16bits
     if (!profileTierLevel(&vps->profile_tier_level, br,
@@ -893,9 +933,7 @@ bool Parser::parseVps(const NalUnit* nalu)
 
     READ_BITS(vps->vps_max_layer_id, 6);
     // shall be in the range of 0 to 1023, inclusive.
-    READ_UE(vps->vps_num_layer_sets_minus1);
-    if (vps->vps_num_layer_sets_minus1 > 1023)
-        return false;
+    CHECK_READ_UE(vps->vps_num_layer_sets_minus1, 0, 1023);
 
     for (uint32_t i = 1; i <= vps->vps_num_layer_sets_minus1; i++) {
         for (uint32_t j = 0; j <= vps->vps_max_layer_id; j++)
@@ -907,19 +945,19 @@ bool Parser::parseVps(const NalUnit* nalu)
         READ(vps->vps_time_scale);
         READ(vps->vps_poc_proportional_to_timing_flag);
         if (vps->vps_poc_proportional_to_timing_flag)
-            READ_UE(vps->vps_num_ticks_poc_diff_one_minus1);
-        READ_UE(vps->vps_num_hrd_parameters);
+            CHECK_READ_UE(vps->vps_num_ticks_poc_diff_one_minus1, 0, POWER32SUB2);
+
         // vps_num_hrd_parameters shall be in the range of [0,
         // vps_num_layer_sets_minus1 + 1],
         // and vps_num_layer_sets_minus shall be in the range [0, 1023]
-        if (vps->vps_num_hrd_parameters > vps->vps_num_layer_sets_minus1 + 1)
-            return false;
+        CHECK_READ_UE(vps->vps_num_hrd_parameters, 0, vps->vps_num_layer_sets_minus1 + 1);
         vps->hrd_layer_set_idx.reserve(vps->vps_num_hrd_parameters);
         vps->cprms_present_flag.resize(vps->vps_num_hrd_parameters, 0);
+        uint32_t idxMin = vps->vps_base_layer_internal_flag ? 0 : 1;
         for (uint32_t i = 0; i < vps->vps_num_hrd_parameters; i++) {
-            uint32_t tmp;
-            READ_UE(tmp);
-            vps->hrd_layer_set_idx.push_back(tmp);
+            uint32_t hrd_layer_set_idx;
+            CHECK_READ_UE(hrd_layer_set_idx, idxMin, vps->vps_num_layer_sets_minus1);
+            vps->hrd_layer_set_idx.push_back(hrd_layer_set_idx);
             if (i > 0)
                 READ_BITS(vps->cprms_present_flag[i], 1);
             hrdParameters(&vps->hrd_parameters, br, vps->cprms_present_flag[i],
@@ -956,9 +994,7 @@ bool Parser::parseSps(const NalUnit* nalu)
         return false;
     sps->vps = vps;
 
-    READ_BITS(sps->sps_max_sub_layers_minus1, 3);
-    if (sps->sps_max_sub_layers_minus1 >= MAXSUBLAYERS)
-        return false;
+    CHECK_READ_BITS(sps->sps_max_sub_layers_minus1, 3, 0, MAXSUBLAYERS - 1);
 
     READ(sps->sps_temporal_id_nesting_flag);
 
@@ -966,14 +1002,10 @@ bool Parser::parseSps(const NalUnit* nalu)
             sps->sps_max_sub_layers_minus1))
         return false;
 
-    READ_UE(sps->sps_id);
-    if (sps->sps_id > MAXSPSCOUNT)
-        return false;
+    CHECK_READ_UE(sps->sps_id, 0, MAXSPSCOUNT);
 
-    READ_UE(sps->chroma_format_idc);
     // shall be in the range of 0 to 3, inclusive.
-    if (sps->chroma_format_idc > 3)
-        return false;
+    CHECK_READ_UE(sps->chroma_format_idc, 0, 3);
     if (sps->chroma_format_idc == 3)
         READ(sps->separate_colour_plane_flag);
 
@@ -1005,15 +1037,10 @@ bool Parser::parseSps(const NalUnit* nalu)
                              (sps->conf_win_top_offset + sps->conf_win_bottom_offset);
     }
 
-    READ_UE(sps->bit_depth_luma_minus8);
-    READ_UE(sps->bit_depth_chroma_minus8);
-    if (sps->bit_depth_luma_minus8 > 8 || sps->bit_depth_chroma_minus8 > 8)
-        return false;
+    CHECK_READ_UE(sps->bit_depth_luma_minus8, 0, 8);
+    CHECK_READ_UE(sps->bit_depth_chroma_minus8, 0, 8);
 
-    READ_UE(sps->log2_max_pic_order_cnt_lsb_minus4);
-
-    if (sps->log2_max_pic_order_cnt_lsb_minus4 > 12)
-        return false;
+    CHECK_READ_UE(sps->log2_max_pic_order_cnt_lsb_minus4, 0, 12);
 
     READ(sps->sps_sub_layer_ordering_info_present_flag);
 
@@ -1054,9 +1081,7 @@ bool Parser::parseSps(const NalUnit* nalu)
         READ_UE(sps->log2_diff_max_min_pcm_luma_coding_block_size);
         READ(sps->pcm_loop_filter_disabled_flag);
     }
-    READ_UE(sps->num_short_term_ref_pic_sets);
-    if (sps->num_short_term_ref_pic_sets > MAXSHORTTERMRPSCOUNT)
-        return false;
+    CHECK_READ_UE(sps->num_short_term_ref_pic_sets, 0, MAXSHORTTERMRPSCOUNT);
 
     for (uint32_t i = 0; i < sps->num_short_term_ref_pic_sets; i++) {
         if (!stRefPicSet(&sps->short_term_ref_pic_set[i], br, i, sps.get()))
@@ -1065,7 +1090,7 @@ bool Parser::parseSps(const NalUnit* nalu)
 
     READ(sps->long_term_ref_pics_present_flag);
     if (sps->long_term_ref_pics_present_flag) {
-        READ_UE(sps->num_long_term_ref_pics_sps);
+        CHECK_READ_UE(sps->num_long_term_ref_pics_sps, 0, 32);
         uint32_t nbits = sps->log2_max_pic_order_cnt_lsb_minus4 + 4;
         for (uint32_t i = 0; i < sps->num_long_term_ref_pics_sps; i++) {
             READ_BITS(sps->lt_ref_pic_poc_lsb_sps[i], nbits);
@@ -1108,13 +1133,8 @@ bool Parser::parsePps(const NalUnit* nalu)
     pps->uniform_spacing_flag = 1;
     pps->loop_filter_across_tiles_enabled_flag = 1;
 
-    READ_UE(pps->pps_id);
-    if (pps->pps_id > MAXPPSCOUNT)
-        return false;
-
-    READ_UE(pps->sps_id);
-    if (pps->sps_id > MAXSPSCOUNT)
-        return false;
+    CHECK_READ_UE(pps->pps_id, 0, MAXPPSCOUNT);
+    CHECK_READ_UE(pps->sps_id, 0, MAXSPSCOUNT);
 
     sps = getSps(pps->sps_id);
     if (!sps)
@@ -1137,16 +1157,16 @@ bool Parser::parsePps(const NalUnit* nalu)
     READ_BITS(pps->num_extra_slice_header_bits, 3);
     READ(pps->sign_data_hiding_enabled_flag);
     READ(pps->cabac_init_present_flag);
-    READ_UE(pps->num_ref_idx_l0_default_active_minus1);
-    READ_UE(pps->num_ref_idx_l1_default_active_minus1);
+    CHECK_READ_UE(pps->num_ref_idx_l0_default_active_minus1, 0, 14);
+    CHECK_READ_UE(pps->num_ref_idx_l1_default_active_minus1, 0, 14);
     READ_SE(pps->init_qp_minus26);
     READ(pps->constrained_intra_pred_flag);
     READ(pps->transform_skip_enabled_flag);
     READ(pps->cu_qp_delta_enabled_flag);
     if (pps->cu_qp_delta_enabled_flag)
         READ_UE(pps->diff_cu_qp_delta_depth);
-    READ_SE(pps->pps_cb_qp_offset);
-    READ_SE(pps->pps_cr_qp_offset);
+    CHECK_READ_SE(pps->pps_cb_qp_offset, -12, 12);
+    CHECK_READ_SE(pps->pps_cr_qp_offset, -12, 12);
     READ(pps->slice_chroma_qp_offsets_present_flag);
     READ(pps->weighted_pred_flag);
     READ(pps->weighted_bipred_flag);
@@ -1187,8 +1207,8 @@ bool Parser::parsePps(const NalUnit* nalu)
         READ(pps->deblocking_filter_override_enabled_flag);
         READ(pps->pps_deblocking_filter_disabled_flag);
         if (!pps->pps_deblocking_filter_disabled_flag) {
-            READ_SE(pps->pps_beta_offset_div2);
-            READ_SE(pps->pps_tc_offset_div2);
+            CHECK_READ_SE(pps->pps_beta_offset_div2, -6, 6);
+            CHECK_READ_SE(pps->pps_tc_offset_div2, -6, 6);
         }
     }
     READ(pps->pps_scaling_list_data_present_flag);
@@ -1248,29 +1268,22 @@ bool Parser::parsePps(const NalUnit* nalu)
         READ(pps->cross_component_prediction_enabled_flag);
         READ(pps->chroma_qp_offset_list_enabled_flag);
         if (pps->chroma_qp_offset_list_enabled_flag) {
-            READ_UE(pps->diff_cu_chroma_qp_offset_depth);
-            READ_UE(pps->chroma_qp_offset_list_len_minus1);
+            CHECK_READ_UE(pps->diff_cu_chroma_qp_offset_depth, 0, sps->log2_diff_max_min_luma_coding_block_size);
+            CHECK_READ_UE(pps->chroma_qp_offset_list_len_minus1, 0, 5);
             for (uint32_t i = 0; i <= pps->chroma_qp_offset_list_len_minus1; i++) {
-                READ_SE(pps->cb_qp_offset_list[i]);
-                READ_SE(pps->cr_qp_offset_list[i]);
-                CHECK_RANGE(pps->cb_qp_offset_list[i], -12, 12);
-                CHECK_RANGE(pps->cr_qp_offset_list[i], -12, 12);
+                CHECK_READ_SE(pps->cb_qp_offset_list[i], -12, 12);
+                CHECK_READ_SE(pps->cr_qp_offset_list[i], -12, 12);
             }
         }
-        READ_UE(pps->log2_sao_offset_scale_luma);
-        READ_UE(pps->log2_sao_offset_scale_chroma);
 
         // 7-4 & 7-6
         int32_t bitDepthY = 8 + sps->bit_depth_luma_minus8;
         int32_t bitDepthc = 8 + sps->bit_depth_chroma_minus8;
 
         int32_t maxValue = std::max(0, bitDepthY - 10);
-        if (pps->log2_sao_offset_scale_luma > maxValue)
-            return false;
-
+        CHECK_READ_UE(pps->log2_sao_offset_scale_luma, 0, maxValue);
         maxValue = std::max(0, bitDepthc - 10);
-        if (pps->log2_sao_offset_scale_chroma > maxValue)
-            return false;
+        CHECK_READ_UE(pps->log2_sao_offset_scale_chroma, 0, maxValue);
     }
 
     m_pps[pps->pps_id] = pps;
@@ -1288,8 +1301,10 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
     uint32_t UsedByCurrPicLt[16] = {0};
     int32_t numPicTotalCurr = 0;
 
-    if (!nalu || !slice)
+    if (!nalu || !slice) {
+        ERROR("nalu or slice is NULL");
         return false;
+    }
 
     NalReader br(nalu->m_data + NalUnit::NALU_HEAD_SIZE,
         nalu->m_size - NalUnit::NALU_HEAD_SIZE);
@@ -1298,9 +1313,7 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
     if (nalu->nal_unit_type >= NalUnit::BLA_W_LP && nalu->nal_unit_type <= NalUnit::RSV_IRAP_VCL23)
         READ(slice->no_output_of_prior_pics_flag);
 
-    READ_UE(slice->pps_id);
-    if (slice->pps_id > MAXPPSCOUNT)
-        return false;
+    CHECK_READ_UE(slice->pps_id, 0, MAXPPSCOUNT);
 
     pps = getPps(slice->pps_id);
     if (!pps)
@@ -1330,9 +1343,7 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
             SKIP(1); // slice_reserved_flag
 
         // 0 for B slice, 1 for P slice and 2 for I slice
-        READ_UE(slice->slice_type);
-        if (slice->slice_type > 2)
-            return false;
+        CHECK_READ_UE(slice->slice_type, 0, 2);
 
         if (pps->output_flag_present_flag)
             READ(slice->pic_output_flag);
@@ -1353,9 +1364,7 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
             }
             if (sps->long_term_ref_pics_present_flag) {
                 if (sps->num_long_term_ref_pics_sps > 0) {
-                    READ_UE(slice->num_long_term_sps);
-                    if (slice->num_long_term_sps > sps->num_long_term_ref_pics_sps)
-                        return false;
+                    CHECK_READ_UE(slice->num_long_term_sps, 0, sps->num_long_term_ref_pics_sps);
                 }
                 READ_UE(slice->num_long_term_pics);
                 for (uint32_t i = 0;
@@ -1363,9 +1372,7 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
                     if (i < slice->num_long_term_sps) {
                         if (sps->num_long_term_ref_pics_sps > 1) {
                             nbits = ceil(log2(sps->num_long_term_ref_pics_sps));
-                            READ_BITS(slice->lt_idx_sps[i], nbits);
-                            if (slice->lt_idx_sps[i] > sps->num_long_term_ref_pics_sps - 1)
-                                return false;
+                            CHECK_READ_BITS(slice->lt_idx_sps[i], nbits, 0, sps->num_long_term_ref_pics_sps - 1);
                         }
                     } else {
                         nbits = sps->log2_max_pic_order_cnt_lsb_minus4 + 4;
@@ -1394,9 +1401,12 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
         if (slice->isPSlice() || slice->isBSlice()) {
             READ(slice->num_ref_idx_active_override_flag);
             if (slice->num_ref_idx_active_override_flag) {
-                READ_UE(slice->num_ref_idx_l0_active_minus1);
-                if (slice->isBSlice())
-                    READ_UE(slice->num_ref_idx_l1_active_minus1);
+                // shall be in the range of 0 to 14
+                CHECK_READ_UE(slice->num_ref_idx_l0_active_minus1, 0, 14);
+                if (slice->isBSlice()) {
+                    // shall be in the range of 0 to 14
+                    CHECK_READ_UE(slice->num_ref_idx_l1_active_minus1, 0, 14);
+                }
             } else {
                 //When the current slice is a P or B slice and num_ref_idx_l0_active_minus1
                 //is not present, num_ref_idx_l0_active_minus1 is inferred to be equal to
@@ -1405,10 +1415,6 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
                 slice->num_ref_idx_l0_active_minus1 = pps->num_ref_idx_l0_default_active_minus1;
                 slice->num_ref_idx_l1_active_minus1 = pps->num_ref_idx_l1_default_active_minus1;
             }
-
-            // shall be in the range of 0 to 14
-            if (slice->num_ref_idx_l0_active_minus1 > 14 || slice->num_ref_idx_l1_active_minus1 > 14)
-                return false;
 
             // according to 7-55
             if (!slice->short_term_ref_pic_set_sps_flag)
@@ -1453,16 +1459,12 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
                 if (!predWeightTable(slice, br))
                     return false;
             }
-            READ_UE(slice->five_minus_max_num_merge_cand);
-            if (slice->five_minus_max_num_merge_cand > 4)
-                return false;
+            CHECK_READ_UE(slice->five_minus_max_num_merge_cand, 0, 4);
         }
         READ_SE(slice->qp_delta);
         if (pps->slice_chroma_qp_offsets_present_flag) {
-            READ_SE(slice->cb_qp_offset);
-            READ_SE(slice->cr_qp_offset);
-            CHECK_RANGE(slice->cb_qp_offset, -12, 12);
-            CHECK_RANGE(slice->cr_qp_offset, -12, 12);
+            CHECK_READ_SE(slice->cb_qp_offset, -12, 12);
+            CHECK_READ_SE(slice->cr_qp_offset, -12, 12);
         }
         if (pps->chroma_qp_offset_list_enabled_flag)
             READ(slice->cu_chroma_qp_offset_enabled_flag);
@@ -1471,8 +1473,8 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
         if (slice->deblocking_filter_override_flag) {
             READ(slice->deblocking_filter_disabled_flag);
             if (!slice->deblocking_filter_disabled_flag) {
-                READ_SE(slice->beta_offset_div2);
-                READ_SE(slice->tc_offset_div2);
+                CHECK_READ_SE(slice->beta_offset_div2, -6, 6);
+                CHECK_READ_SE(slice->tc_offset_div2, -6, 6);
             }
         }
         else {
@@ -1480,10 +1482,10 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
             if (!slice->deblocking_filter_disabled_flag) {
                 slice->beta_offset_div2 = pps->pps_beta_offset_div2;
                 slice->tc_offset_div2 = pps->pps_tc_offset_div2;
+                CHECK_RANGE_INT32(slice->beta_offset_div2, -6, 6);
+                CHECK_RANGE_INT32(slice->tc_offset_div2, -6, 6);
             }
         }
-        CHECK_RANGE(slice->beta_offset_div2, -6, 6);
-        CHECK_RANGE(slice->tc_offset_div2, -6, 6);
 
         if (pps->pps_loop_filter_across_slices_enabled_flag
             && (slice->sao_luma_flag
@@ -1496,10 +1498,8 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
     if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag) {
         READ_UE(slice->num_entry_point_offsets);
         if (slice->num_entry_point_offsets > 0) {
-            READ_UE(slice->offset_len_minus1);
             // the value of offset_len_minus1 shall be in the range of [0, 31]
-            if (slice->offset_len_minus1 > 31)
-                return false;
+            CHECK_READ_UE(slice->offset_len_minus1, 0, 31);
             nbits = slice->offset_len_minus1 + 1;
             slice->entry_point_offset_minus1.reserve(slice->num_entry_point_offsets);
             for (uint32_t i = 0; i < slice->num_entry_point_offsets; i++) {
@@ -1510,7 +1510,7 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
         }
     }
     if (pps->slice_segment_header_extension_present_flag) {
-        READ_UE(slice->slice_segment_header_extension_length);
+        CHECK_READ_UE(slice->slice_segment_header_extension_length, 0, 256);
         for (uint32_t i = 0; i < slice->slice_segment_header_extension_length; i++)
             SKIP(8); // slice_segment_header_extension_data_byte
     }
