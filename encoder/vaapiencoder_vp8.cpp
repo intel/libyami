@@ -79,6 +79,8 @@ YamiStatus VaapiEncoderVP8::getMaxOutSize(uint32_t* maxSize)
 void VaapiEncoderVP8::resetParams()
 {
     m_maxCodedbufSize = width() * height() * 3 / 2 + VP8_HEADER_MAX_SIZE;
+    if (ipPeriod() == 0)
+        m_videoParamCommon.intraPeriod = 1;
 }
 
 YamiStatus VaapiEncoderVP8::start()
