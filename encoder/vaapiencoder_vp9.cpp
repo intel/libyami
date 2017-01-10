@@ -93,6 +93,10 @@ YamiStatus VaapiEncoderVP9::resetParams()
     // space depending on other quantization parameters during execution. The
     // value below is a good compromise
     m_maxCodedbufSize += kMaxHeaderSize;
+
+    if (ipPeriod() == 0)
+        m_videoParamCommon.intraPeriod = 1;
+
     return YAMI_SUCCESS;
 }
 
