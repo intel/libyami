@@ -128,6 +128,7 @@ static uint32_t log2 (uint32_t num)
     return ret;
 }
 
+/* log2_max_frame_num is in the range[4, 16], specification 7.4.3.2.1 */
 static uint32_t
 hevc_get_log2_max_frame_num (uint32_t num)
 {
@@ -137,8 +138,8 @@ hevc_get_log2_max_frame_num (uint32_t num)
 
     if (ret <= 4)
         ret = 4;
-    else if (ret > 10)
-        ret = 10;
+    else if (ret > 16)
+        ret = 16;
     /* must be greater than 4 */
     return ret;
 }
