@@ -632,8 +632,8 @@ bool Parser::scalingListData(ScalingList* dest_scaling_list, NalReader& br)
     int16_t scaling_list_delta_coef;
 
     for (uint32_t sizeId = 0; sizeId < 4; sizeId++) {
-        for (uint32_t matrixId = 0; matrixId < ((sizeId == 3) ? 2 : 6);
-             matrixId++) {
+        for (uint32_t matrixId = 0; matrixId < 6;
+             matrixId += (sizeId == 3) ? 3 : 1) {
             size = 64;
             // Table 7-3
             switch (sizeId) {
@@ -655,7 +655,19 @@ bool Parser::scalingListData(ScalingList* dest_scaling_list, NalReader& br)
 
             READ_BITS(scaling_list_pred_mode_flag, 1);
             if (!scaling_list_pred_mode_flag) {
-                READ_UE(scaling_list_pred_matrix_id_delta);
+                if (sizeId < 3) {
+                    CHECK_READ_UE(scaling_list_pred_matrix_id_delta, 0, matrixId);
+                }
+                else if (3 == sizeId) {
+                    // as spec "7.4.5 Scaling list data semantics",
+                    // matrixId should be equal to 3 when scaling_list_pred_matrix_id_delta
+                    // is greater than 0.
+                    CHECK_READ_UE(scaling_list_pred_matrix_id_delta, 0, matrixId / 3);
+                }
+                else {
+                    ERROR("sizeId(%u) should be in the range of[0, 3].", sizeId);
+                    return false;
+                }
                 if (!scaling_list_pred_matrix_id_delta) {
                     if (!useDefaultScalingLists(dstList, dstDcList, sizeId, matrixId))
                         return false;
@@ -1227,8 +1239,8 @@ bool Parser::parsePps(const NalUnit* nalu)
         uint8_t* dstList = NULL;
         uint8_t* dstDcList = NULL;
         for (uint32_t sizeId = 0; sizeId < 4; sizeId++) {
-            for (uint32_t matrixId = 0; matrixId < ((sizeId == 3) ? 2 : 6);
-                 matrixId++) {
+            for (uint32_t matrixId = 0; matrixId < 6;
+                 matrixId += (sizeId == 3) ? 3 : 1) {
                 switch (sizeId) {
                 case 0: // 4x4
                     dstList = pps->scaling_list.scalingList4x4[matrixId];

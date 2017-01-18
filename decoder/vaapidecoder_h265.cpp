@@ -507,7 +507,16 @@ void fillScalingList##mxm(VAIQMatrixBufferHEVC* iqMatrix, const ScalingList* con
 FILL_SCALING_LIST(4x4)
 FILL_SCALING_LIST(8x8)
 FILL_SCALING_LIST(16x16)
-FILL_SCALING_LIST(32x32)
+void fillScalingList32x32(VAIQMatrixBufferHEVC* iqMatrix, const ScalingList* const scalingList)
+{
+    for (size_t i = 0; i < N_ELEMENTS(iqMatrix->ScalingList32x32); i++) {
+        for (size_t j = 0; j < N_ELEMENTS(UpperRightDiagonal32x32); j++) {
+            // According to spec "7.3.4 Scaling list data syntax",
+            // just use scalingList32x32[0] and scalingList32x32[3].
+            iqMatrix->ScalingList32x32[i][UpperRightDiagonal32x32[j]] = scalingList->scalingList32x32[i * 3][j];
+        }
+    }
+}
 
 #define FILL_SCALING_LIST_DC(mxm)                                                                     \
     void fillScalingListDc##mxm(VAIQMatrixBufferHEVC* iqMatrix, const ScalingList* const scalingList) \
@@ -518,7 +527,13 @@ FILL_SCALING_LIST(32x32)
     }
 
 FILL_SCALING_LIST_DC(16x16)
-FILL_SCALING_LIST_DC(32x32)
+void fillScalingListDc32x32(VAIQMatrixBufferHEVC* iqMatrix, const ScalingList* const scalingList)
+{
+    for (size_t i = 0; i < N_ELEMENTS(iqMatrix->ScalingListDC32x32); i++) {
+        // similar to scalingList32x32.
+        iqMatrix->ScalingListDC32x32[i] = scalingList->scalingListDC32x32[i * 3];
+    }
+}
 
 bool VaapiDecoderH265::fillIqMatrix(const PicturePtr& picture, const SliceHeader* const slice)
 {
