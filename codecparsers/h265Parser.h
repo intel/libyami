@@ -217,9 +217,15 @@ namespace H265 {
         uint8_t scalingList4x4[6][16];
         uint8_t scalingList8x8[6][64];
         uint8_t scalingList16x16[6][64];
-        uint8_t scalingList32x32[2][64];
+        // According to spec "7.3.4 Scaling list data syntax",
+        // we just use scalingList32x32[0] and scalingList32x32[3];
+        // as spec "7.4.5 Scaling list data semantics",
+        // matrixId as the index of scalingList32x32 can be equal to 3;
+        // so we'd better define scalingList32x32[6][] other than scalingList32x32[2][].
+        uint8_t scalingList32x32[6][64];
         uint8_t scalingListDC16x16[6];
-        uint8_t scalingListDC32x32[2];
+        // scalingListDC32x32 is similar to scalingList32x32.
+        uint8_t scalingListDC32x32[6];
     };
 
     struct RefPicListModification {
