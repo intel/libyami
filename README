@@ -31,7 +31,7 @@ Features
 --------
   * MPEG2, VC1, H.264, H.265, VP8, VP9, JPEG ad-hoc decoder
   * H.264, H.265, VP8, VP9, JPEG ad-hoc encoder
-  * Sharpening, Denoise, Deinterlace, CSC and scaling
+  * Sharpening, Denoise, Deinterlace, Hue, Saturation, Brightness, Contrast, CSC and scaling
 
 
 Requirements
