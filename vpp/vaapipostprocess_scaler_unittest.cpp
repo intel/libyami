@@ -105,6 +105,12 @@ public:
         }
     }
 
+    static void checkColorBalanceFilter(VaapiPostProcessScaler& scaler, VppColorBalanceMode mode)
+    {
+        if (COLORBALANCE_NONE != mode)
+            EXPECT_TRUE(bool(scaler.m_colorBalance[mode].filter));
+    }
+
 protected:
     /* invoked by gtest before the test */
     virtual void SetUp()
@@ -208,6 +214,57 @@ void VppSetParams(VaapiPostProcessScaler& scaler, const SharedPtr<VideoFrame>& s
     VaapiPostProcessScalerTest::checkFilter(scaler, type);
 }
 
+void VppColorBalanceSetParams(VaapiPostProcessScaler& scaler, const SharedPtr<VideoFrame>& src, const SharedPtr<VideoFrame>& dest,
+    VppColorBalanceMode mode)
+{
+    VPPColorBalanceParameter params;
+    memset(&params, 0, sizeof(params));
+    params.size = sizeof(params);
+
+    if (COLORBALANCE_COUNT == mode) {
+        params.mode = mode;
+        EXPECT_EQ(YAMI_UNSUPPORTED, scaler.setParameters(VppParamTypeColorBalance, &params));
+        return;
+    }
+
+    if (COLORBALANCE_NONE == mode) {
+        params.mode = mode;
+        EXPECT_EQ(YAMI_SUCCESS, scaler.setParameters(VppParamTypeColorBalance, &params));
+        EXPECT_EQ(YAMI_SUCCESS, scaler.process(src, dest));
+        return;
+    }
+
+    params.mode = mode;
+    params.level = COLORBALANCE_LEVEL_MIN;
+    EXPECT_EQ(YAMI_SUCCESS, scaler.setParameters(VppParamTypeColorBalance, &params));
+    EXPECT_EQ(YAMI_SUCCESS, scaler.process(src, dest));
+
+    params.mode = mode;
+    params.level = COLORBALANCE_LEVEL_MAX;
+    EXPECT_EQ(YAMI_SUCCESS, scaler.setParameters(VppParamTypeColorBalance, &params));
+    EXPECT_EQ(YAMI_SUCCESS, scaler.process(src, dest));
+
+    params.mode = mode;
+    params.level = COLORBALANCE_LEVEL_NONE;
+    EXPECT_EQ(YAMI_SUCCESS, scaler.setParameters(VppParamTypeColorBalance, &params));
+    EXPECT_EQ(YAMI_SUCCESS, scaler.process(src, dest));
+
+    params.mode = mode;
+    params.level = COLORBALANCE_LEVEL_MIN - 10;
+    EXPECT_EQ(YAMI_DRIVER_FAIL, scaler.setParameters(VppParamTypeColorBalance, &params));
+
+    params.mode = mode;
+    params.level = COLORBALANCE_LEVEL_MAX + 10;
+    EXPECT_EQ(YAMI_DRIVER_FAIL, scaler.setParameters(VppParamTypeColorBalance, &params));
+
+    params.mode = mode;
+    params.level = (COLORBALANCE_LEVEL_MIN + COLORBALANCE_LEVEL_MAX) / 2;
+    EXPECT_EQ(YAMI_SUCCESS, scaler.setParameters(VppParamTypeColorBalance, &params));
+    EXPECT_EQ(YAMI_SUCCESS, scaler.process(src, dest));
+
+    VaapiPostProcessScalerTest::checkColorBalanceFilter(scaler, mode);
+}
+
 void VppDenoise(VaapiPostProcessScaler& scaler, const SharedPtr<VideoFrame>& src, const SharedPtr<VideoFrame>& dest)
 {
     VPPDenoiseParameters params;
@@ -254,5 +311,23 @@ void VppDeinterlace(VaapiPostProcessScaler& scaler, const SharedPtr<VideoFrame>&
 VAAPIPOSTPROCESS_SCALER_TEST(Deinterlace)
 {
     vppTest(VppDeinterlace);
+}
+
+void VppColorBalance(VaapiPostProcessScaler& scaler, const SharedPtr<VideoFrame>& src, const SharedPtr<VideoFrame>& dest)
+{
+    VppParamWireframe wireFrameParams;
+    EXPECT_EQ(YAMI_INVALID_PARAM, scaler.setParameters(VppParamTypeColorBalance, &wireFrameParams));
+
+    VppColorBalanceSetParams(scaler, src, dest, COLORBALANCE_NONE);
+    VppColorBalanceSetParams(scaler, src, dest, COLORBALANCE_HUE);
+    VppColorBalanceSetParams(scaler, src, dest, COLORBALANCE_SATURATION);
+    VppColorBalanceSetParams(scaler, src, dest, COLORBALANCE_BRIGHTNESS);
+    VppColorBalanceSetParams(scaler, src, dest, COLORBALANCE_CONTRAST);
+    VppColorBalanceSetParams(scaler, src, dest, COLORBALANCE_COUNT);
+}
+
+VAAPIPOSTPROCESS_SCALER_TEST(Colorbalance)
+{
+    vppTest(VppColorBalance);
 }
 }
