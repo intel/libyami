@@ -1360,6 +1360,10 @@ bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
         return false;
     if (hrd)
         VaapiEncoderBase::fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
 #if VA_CHECK_VERSION(0, 39, 4)

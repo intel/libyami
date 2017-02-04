@@ -21,6 +21,7 @@
 #include "vaapiencoder_base.h"
 #include <assert.h>
 #include <stdint.h>
+#include <math.h>
 #include "common/common_def.h"
 #include "common/utils.h"
 #include "common/scopedlogger.h"
@@ -29,6 +30,18 @@
 #include "vaapi/vaapicontext.h"
 #include "vaapi/vaapisurfaceallocator.h"
 #include "vaapi/VaapiUtils.h"
+
+#define ADJUST_TO_RANGE(v, min, max, promp)                   \
+    do {                                                      \
+        if (v < min) {                                        \
+            WARNING("%s: %s is out of the range", promp, #v); \
+            v = min;                                          \
+        }                                                     \
+        if (v > max) {                                        \
+            WARNING("%s: %s is out of the range", promp, #v); \
+            v = max;                                          \
+        }                                                     \
+    } while (0)
 
 const uint32_t MaxOutputBuffer=5;
 namespace YamiMediaCodec{
@@ -52,14 +65,15 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamCommon.rcParams.initQP = 26;
     m_videoParamCommon.rcParams.minQP = 1;
     m_videoParamCommon.rcParams.maxQP = 51;
-    m_videoParamCommon.rcParams.bitRate= 0;
-    m_videoParamCommon.rcParams.targetPercentage= 70;
-    m_videoParamCommon.rcParams.windowSize = 500;
     m_videoParamCommon.rcParams.disableBitsStuffing = 1;
-    m_videoParamCommon.leastInputCount = 0;
-    m_videoParamCommon.rcParams.diffQPIP = 0;
-    m_videoParamCommon.rcParams.diffQPIB = 0;
     m_videoParamCommon.bitDepth = 8;
+    memset(&m_videoParamsHRD, 0, sizeof(m_videoParamsHRD));
+    m_videoParamsHRD.windowSize = 1000;
+    m_videoParamsHRD.targetPercentage = 95;
+    m_videoParamQualityLevelUpdate = false;
+    m_videoParamQualityLevel.size = sizeof(m_videoParamQualityLevel);
+    m_videoParamQualityLevel.level = 0;
+    m_vaVideoParamQualityLevel = 0;
     updateMaxOutputBufferCount();
 }
 
@@ -172,6 +186,15 @@ YamiStatus VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR v
         }
         break;
     }
+    case VideoParamsTypeQualityLevel: {
+        VideoParamsQualityLevel* qualityLevel = (VideoParamsQualityLevel*)videoEncParams;
+        if (qualityLevel->size == sizeof(VideoParamsQualityLevel)) {
+            PARAMETER_ASSIGN(*qualityLevel, m_videoParamQualityLevel);
+            ret = YAMI_SUCCESS;
+        }
+
+        break;
+    }
     default:
         ret = YAMI_SUCCESS;
         break;
@@ -192,14 +215,16 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
         VideoParamsCommon* common = (VideoParamsCommon*)videoEncParams;
         if (common->size == sizeof(VideoParamsCommon)) {
             PARAMETER_ASSIGN(m_videoParamCommon, *common);
-            if(m_videoParamCommon.rcParams.bitRate > 0)
-	         m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
-	     // Only support CQP and CBR mode now
-            if (m_videoParamCommon.rcMode != RATE_CONTROL_CBR)
+            if(m_videoParamCommon.rcParams.bitRate > 0){
+                if(m_videoParamCommon.rcMode != RATE_CONTROL_VBR)
+                    m_videoParamCommon.rcMode = RATE_CONTROL_CBR;
+            } else{
                 m_videoParamCommon.rcMode = RATE_CONTROL_CQP;
+            }
         } else
             ret = YAMI_INVALID_PARAM;
         m_maxCodedbufSize = 0; // resolution may change, recalculate max codec buffer size when it is requested
+
         break;
     }
     case VideoConfigTypeFrameRate: {
@@ -218,6 +243,28 @@ YamiStatus VaapiEncoderBase::setParameters(VideoParamConfigType type, Yami_PTR v
             ret = YAMI_INVALID_PARAM;
         }
         break;
+    case VideoParamsTypeHRD: {
+        VideoParamsHRD* videoParamsHRD = (VideoParamsHRD*)videoEncParams;
+        if (videoParamsHRD->size == sizeof(VideoParamsHRD)) {
+            PARAMETER_ASSIGN(m_videoParamsHRD, *videoParamsHRD);
+            ADJUST_TO_RANGE(m_videoParamsHRD.targetPercentage, 50, 100, "target percentage");
+        } else
+            ret = YAMI_INVALID_PARAM;
+        }
+        break;
+        case VideoParamsTypeQualityLevel: {
+            VideoParamsQualityLevel* videoQualityLevel = (VideoParamsQualityLevel*)videoEncParams;
+            if (videoQualityLevel->size == sizeof(VideoParamsQualityLevel)) {
+                if (videoQualityLevel->level != m_videoParamQualityLevel.level) {
+                    PARAMETER_ASSIGN(m_videoParamQualityLevel, *videoQualityLevel);
+                    ADJUST_TO_RANGE(m_videoParamQualityLevel.level, VIDEO_PARAMS_QUALITYLEVEL_NONE,
+                        VIDEO_PARAMS_QUALITYLEVEL_MAX, "quality level");
+                    m_videoParamQualityLevelUpdate = true;
+                }
+            }
+            else
+                ret = YAMI_INVALID_PARAM;
+        } break;
     default:
         ret = YAMI_INVALID_PARAM;
         break;
@@ -381,8 +428,15 @@ SurfacePtr VaapiEncoderBase::createSurface(const SharedPtr<VideoFrame>& frame)
 
 void VaapiEncoderBase::fill(VAEncMiscParameterHRD* hrd) const
 {
-    hrd->buffer_size = m_videoParamCommon.rcParams.bitRate * 4;
-    hrd->initial_buffer_fullness = hrd->buffer_size/2;
+    if (m_videoParamsHRD.bufferSize && m_videoParamsHRD.initBufferFullness) {
+        hrd->buffer_size = m_videoParamsHRD.bufferSize;
+        hrd->initial_buffer_fullness = m_videoParamsHRD.initBufferFullness;
+    }
+    else {
+        hrd->initial_buffer_fullness = m_videoParamCommon.rcParams.bitRate;
+        hrd->buffer_size = hrd->initial_buffer_fullness * 2;
+    }
+
     DEBUG("bitRate: %d, hrd->buffer_size: %d, hrd->initial_buffer_fullness: %d",
         m_videoParamCommon.rcParams.bitRate, hrd->buffer_size,hrd->initial_buffer_fullness);
 }
@@ -393,10 +447,11 @@ void VaapiEncoderBase::fill(VAEncMiscParameterRateControl* rateControl) const
     rateControl->initial_qp =  m_videoParamCommon.rcParams.initQP;
     rateControl->min_qp =  m_videoParamCommon.rcParams.minQP;
     /*FIXME: where to find max_qp */
-    rateControl->window_size = m_videoParamCommon.rcParams.windowSize;
-    rateControl->target_percentage = m_videoParamCommon.rcParams.targetPercentage;
+    rateControl->window_size = m_videoParamsHRD.windowSize;
+    rateControl->target_percentage = m_videoParamsHRD.targetPercentage;
     rateControl->rc_flags.bits.disable_frame_skip = m_videoParamCommon.rcParams.disableFrameSkip;
     rateControl->rc_flags.bits.disable_bit_stuffing = m_videoParamCommon.rcParams.disableBitsStuffing;
+
 }
 
 void VaapiEncoderBase::fill(VAEncMiscParameterFrameRate* frameRate) const
@@ -412,6 +467,10 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
         return false;
     if (hrd)
         fill(hrd);
+
+    if (!fillQualityLevel(picture))
+        return false;
+
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR ||
             mode == RATE_CONTROL_VBR) {
@@ -520,6 +579,7 @@ bool VaapiEncoderBase::initVA()
         ERROR("failed to create context");
         return false;
     }
+
     return true;
 }
 
@@ -617,4 +677,74 @@ YamiStatus VaapiEncoderBase::getCodecConfig(VideoEncOutputBuffer* outBuffer)
     return YAMI_SUCCESS;
 }
 
+bool VaapiEncoderBase::mapToRange(uint32_t& value,
+    uint32_t min, uint32_t max,
+    uint32_t level,
+    uint32_t minLevel, uint32_t maxLevel)
+{
+    float fValue;
+    if (minLevel >= maxLevel) {
+        ERROR("minLevel(%d) >= maxLevel(%d)", minLevel, maxLevel);
+        return false;
+    }
+    if (level > maxLevel || level < minLevel) {
+        ERROR("level(%d) not in the range[minLevel(%d), maxLevel(%d)]", level, minLevel, maxLevel);
+        return false;
+    }
+    if (min > max) {
+        ERROR("min(%d) > max(%d)", min, max);
+        return false;
+    }
+
+    fValue = min + 1.0 * (max - min) / (maxLevel - minLevel) * (level - minLevel);
+    value = roundf(fValue);
+
+    return true;
+}
+
+bool VaapiEncoderBase::mapQualityLevel()
+{
+    VAConfigAttrib attrib;
+    uint32_t qualityLevel;
+
+    attrib.type = VAConfigAttribEncQualityRange;
+    VAStatus vaStatus = vaGetConfigAttributes(m_display->getID(),
+        m_videoParamCommon.profile, m_entrypoint,
+        &attrib, 1);
+    if (vaStatus != VA_STATUS_SUCCESS || VA_ATTRIB_NOT_SUPPORTED == attrib.value) {
+        ERROR("unsupported params encode quality level setting!");
+        return false;
+    }
+
+    if (!mapToRange(qualityLevel,
+            0, attrib.value,
+            m_videoParamQualityLevel.level,
+            VIDEO_PARAMS_QUALITYLEVEL_NONE, VIDEO_PARAMS_QUALITYLEVEL_MAX))
+        return false;
+
+    m_vaVideoParamQualityLevel = qualityLevel;
+    return true;
+}
+
+bool VaapiEncoderBase::fillQualityLevel(VaapiEncPicture* picture)
+{
+    if (m_videoParamQualityLevelUpdate) {
+        if (mapQualityLevel())
+            m_videoParamQualityLevelUpdate = false;
+        else
+            return false;
+    }
+
+    if (0 == m_vaVideoParamQualityLevel)
+        return true;
+
+    VAEncMiscParameterBufferQualityLevel* qualityLevel = NULL;
+    if (picture->newMisc(VAEncMiscParameterTypeQualityLevel, qualityLevel))
+        if (qualityLevel) {
+            qualityLevel->quality_level = m_vaVideoParamQualityLevel;
+            return true;
+        }
+
+    return false;
+}
 }
