@@ -308,6 +308,8 @@ namespace H265 {
         int32_t width;
         int32_t height;
         //cropped frame
+        uint32_t croppedLeft;
+        uint32_t croppedTop;
         uint32_t croppedWidth;
         uint32_t croppedHeight;
         uint8_t bit_depth_luma_minus8; //[0, 8]

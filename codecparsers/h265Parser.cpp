@@ -1047,6 +1047,9 @@ bool Parser::parseSps(const NalUnit* nalu)
         sps->croppedHeight = sps->pic_height_in_luma_samples -
                              subHeightC[sps->chroma_format_idc] *
                              (sps->conf_win_top_offset + sps->conf_win_bottom_offset);
+
+        sps->croppedLeft = subWidthC[sps->chroma_format_idc] * sps->conf_win_left_offset;
+        sps->croppedTop = subHeightC[sps->chroma_format_idc] * sps->conf_win_top_offset;
     }
 
     CHECK_READ_UE(sps->bit_depth_luma_minus8, 0, 8);
