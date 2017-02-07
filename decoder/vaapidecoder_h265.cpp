@@ -1048,7 +1048,7 @@ SurfacePtr VaapiDecoderH265::createSurface(const SliceHeader* const slice)
     SharedPtr<SPS>& sps = slice->pps->sps;
 
     if (sps->conformance_window_flag)
-        s->setCrop(0, 0, sps->croppedWidth, sps->croppedHeight);
+        s->setCrop(sps->croppedLeft, sps->croppedTop, sps->croppedWidth, sps->croppedHeight);
     else
         s->setCrop(0, 0, sps->width, sps->height);
     return s;
