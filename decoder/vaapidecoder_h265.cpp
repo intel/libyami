@@ -1118,7 +1118,15 @@ YamiStatus VaapiDecoderH265::decodeNalu(NalUnit* nalu)
 
     if (NalUnit::TRAIL_N <= type && type <= NalUnit::CRA_NUT) {
         status = decodeSlice(nalu);
-    } else {
+    }
+    else if (NalUnit::PREFIX_SEI_NUT == type
+        || NalUnit::SUFFIX_SEI_NUT == type) {
+        //In some bitsstreams, SEI NAL units are inserted between picture NAL
+        //units which belong to the same picture. If decode the current
+        //picture when meeting a SEI NAL unit, the picture units after the SEI
+        //will not be decoded.
+    }
+    else {
         status = decodeCurrent();
         if (status != YAMI_SUCCESS)
             return status;
@@ -1136,8 +1144,6 @@ YamiStatus VaapiDecoderH265::decodeNalu(NalUnit* nalu)
                 break;
             case NalUnit::AUD_NUT:
             case NalUnit::FD_NUT:
-            case NalUnit::PREFIX_SEI_NUT:
-            case NalUnit::SUFFIX_SEI_NUT:
             default:
                 break;
         }
