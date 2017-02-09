@@ -808,7 +808,8 @@ bool Parser::stRefPicSet(ShortTermRefPicSet* stRef, NalReader& br,
         stRef->NumPositivePics = stRef->num_positive_pics;
 
         for (i = 0; i < stRef->num_negative_pics; i++) {
-            CHECK_READ_UE(stRef->delta_poc_s0_minus1[i], 0, POWER15 - 1);
+            //delta_poc_s0_minus1 is equal to -3 in some clips.
+            READ_UE(stRef->delta_poc_s0_minus1[i]);
             if (i == 0) // 7-65
                 stRef->DeltaPocS0[i] = -(stRef->delta_poc_s0_minus1[i] + 1);
             else // 7-67
@@ -819,7 +820,7 @@ bool Parser::stRefPicSet(ShortTermRefPicSet* stRef, NalReader& br,
             stRef->UsedByCurrPicS0[i] = stRef->used_by_curr_pic_s0_flag[i];
         }
         for (i = 0; i < stRef->num_positive_pics; i++) {
-            CHECK_READ_UE(stRef->delta_poc_s1_minus1[i], 0, POWER15 - 1);
+            READ_UE(stRef->delta_poc_s1_minus1[i]);
             if (i == 0)
                 stRef->DeltaPocS1[i] = stRef->delta_poc_s1_minus1[i] + 1;
             else
