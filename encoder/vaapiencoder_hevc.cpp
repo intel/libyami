@@ -857,7 +857,7 @@ VaapiEncoderHEVC::VaapiEncoderHEVC():
     m_ctbSize(8),
     m_cuSize(32),
     m_minTbSize(4),
-    m_maxTbSize(16),
+    m_maxTbSize(32),
     m_reorderState(VAAPI_ENC_REORD_WAIT_FRAMES),
     m_keyPeriod(30)
 {
