@@ -289,9 +289,107 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     return YAMI_SUCCESS;
 }
 
+bool VaapiDecoderBase::createAllocator()
+{
+    if (m_allocator)
+        return true;
+    m_display = VaapiDisplay::create(m_externalDisplay);
+    if (!m_display) {
+        ERROR("failed to create display");
+        return false;
+    }
+
+    if (!m_externalAllocator) {
+        //use internal allocator
+        m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID()), unrefAllocator);
+    }
+    else {
+        m_allocator = m_externalAllocator;
+    }
+    if (!m_allocator) {
+        m_display.reset();
+        ERROR("failed to create allocator");
+        return false;
+    }
+    return true;
+}
+
+bool VaapiDecoderBase::isSurfaceGeometryChanged() const
+{
+    return m_config.width < m_videoFormatInfo.width
+        || m_config.height < m_videoFormatInfo.height
+        || m_config.surfaceNumber != m_videoFormatInfo.surfaceNumber
+        || m_config.fourcc != m_videoFormatInfo.fourcc;
+}
+
+YamiStatus VaapiDecoderBase::ensureSurfacePool()
+{
+
+    if (!isSurfaceGeometryChanged())
+        return YAMI_SUCCESS;
+    VideoFormatInfo& info = m_videoFormatInfo;
+    m_config.width = info.surfaceWidth;
+    m_config.height = info.surfaceHeight;
+    m_config.surfaceNumber = info.surfaceNumber;
+    m_config.fourcc = info.fourcc;
+
+    if (!createAllocator())
+        return YAMI_FAIL;
+
+    m_surfacePool = VaapiDecSurfacePool::create(m_display, &m_config, m_allocator);
+    if (!m_surfacePool)
+        return YAMI_FAIL;
+    DEBUG("surface pool is created");
+
+    return YAMI_SUCCESS;
+}
+
+YamiStatus VaapiDecoderBase::ensureProfile(VAProfile profile)
+{
+    YamiStatus status;
+    status = ensureSurfacePool();
+    if (status != YAMI_SUCCESS)
+        return status;
+
+    if (!m_display || !m_surfacePool) {
+        ERROR("bug: no display or surface pool");
+        return YAMI_FAIL;
+    }
+    if (m_config.profile == profile)
+        return YAMI_SUCCESS;
+
+    m_config.profile = profile;
+    VAConfigAttrib attrib;
+    attrib.type = VAConfigAttribRTFormat;
+    attrib.value = VA_RT_FORMAT_YUV420;
+
+    ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD, &attrib, 1);
+    if (!config) {
+        ERROR("failed to create config");
+        return YAMI_FAIL;
+    }
+
+    std::vector<VASurfaceID> surfaces;
+    m_surfacePool->getSurfaceIDs(surfaces);
+    if (surfaces.empty())
+        return YAMI_FAIL;
+    int size = surfaces.size();
+    m_context = VaapiContext::create(config,
+        m_videoFormatInfo.width,
+        m_videoFormatInfo.height,
+        0, &surfaces[0], size);
+
+    if (!m_context) {
+        ERROR("create context failed");
+        return YAMI_FAIL;
+    }
+    return YAMI_SUCCESS;
+}
+
 YamiStatus VaapiDecoderBase::terminateVA(void)
 {
     INFO("base: terminate VA");
+    m_config.resetConfig();
     m_surfacePool.reset();
     m_allocator.reset();
     DEBUG("surface pool is reset");
@@ -346,6 +444,29 @@ VADisplay VaapiDecoderBase::getDisplayID()
     if (!m_display)
         return NULL;
     return m_display->getID();
+}
+
+#define CHECK(f)                        \
+    do {                                \
+        if (m_videoFormatInfo.f != f) { \
+            m_videoFormatInfo.f = f;    \
+            changed = true;             \
+        }                               \
+    } while (0)
+
+bool VaapiDecoderBase::setFormat(uint32_t width, uint32_t height, uint32_t surfaceWidth, uint32_t surfaceHeight,
+    uint32_t surfaceNumber, uint32_t fourcc)
+{
+    bool changed = false;
+    CHECK(width);
+    CHECK(height);
+    CHECK(surfaceWidth);
+    CHECK(surfaceHeight);
+    CHECK(surfaceNumber);
+    CHECK(fourcc);
+    //this not true, but it's only way to let user get format info
+    m_VAStarted = true;
+    return changed;
 }
 
 } //namespace YamiMediaCodec

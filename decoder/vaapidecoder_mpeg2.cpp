@@ -517,65 +517,18 @@ YamiStatus VaapiDecoderMPEG2::fillConfigBuffer()
         return status;
     }
 
-    m_configBuffer.width
+    uint32_t width
         = (m_sequenceExtension->horizontal_size_extension & 0x3)
           | (m_sequenceHeader->horizontal_size_value & 0xFFF);
-    m_configBuffer.height = (m_sequenceExtension->vertical_size_extension & 0x3)
+    uint32_t height = (m_sequenceExtension->vertical_size_extension & 0x3)
                             | (m_sequenceHeader->vertical_size_value & 0xFFF);
 
-    if (m_VAStart) {
-        // sequence start extension code with VA started has to conduct a
-        // port reconfiguration when stream size changes
-        if (m_configBuffer.width > m_videoFormatInfo.width
-            || m_configBuffer.height > m_videoFormatInfo.height) {
-            // need to re-start VA to generate new surfaces
-            status = VaapiDecoderBase::terminateVA();
-            if (status != YAMI_SUCCESS) {
-                return status;
-            }
-            m_VAStart = false;
-        }
-        else if (m_configBuffer.width != m_videoFormatInfo.width
-                 || m_configBuffer.height != m_videoFormatInfo.height) {
-            // VA surfaces can be re-used and client is notified
-            // public member from base class
-            m_videoFormatInfo.width = m_configBuffer.width;
-            m_videoFormatInfo.height = m_configBuffer.height;
-            m_videoFormatInfo.surfaceWidth = m_configBuffer.width;
-            m_videoFormatInfo.surfaceHeight = m_configBuffer.height;
-            m_configBuffer.surfaceWidth = m_configBuffer.width;
-            m_configBuffer.surfaceHeight = m_configBuffer.height;
-            status = YAMI_DECODE_FORMAT_CHANGE;
-        }
+    if (setFormat(width, height, width, height, kMinSurfaces + 1)) {
+        m_VAStart = false;
+        return YAMI_DECODE_FORMAT_CHANGE;
     }
-
-    if (!m_VAStart) {
-
-        m_configBuffer.profile = m_VAProfile;
-
-        DEBUG("MPEG2: start() buffer size: %d x %d m_VAProfile %x level %x",
-              m_configBuffer.width, m_configBuffer.height,
-              m_configBuffer.profile, level);
-
-        m_configBuffer.surfaceWidth = m_configBuffer.width;
-        m_configBuffer.surfaceHeight = m_configBuffer.height;
-        if (!m_configBuffer.surfaceNumber) {
-            m_configBuffer.surfaceNumber = kMinSurfaces;
-        }
-        // no information is sent to start libva at this point
-        m_configBuffer.data = NULL;
-        m_configBuffer.size = 0;
-
-        // ready to start libva
-        status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != YAMI_SUCCESS) {
-            return status;
-        }
-        m_VAStart = true;
-        status = YAMI_DECODE_FORMAT_CHANGE;
-    }
-
-    return status;
+    m_VAStart = true;
+    return ensureProfile(m_VAProfile);
 }
 
 bool VaapiDecoderMPEG2::isSliceCode(YamiParser::MPEG2::StartCodeType next_code)
@@ -908,8 +861,7 @@ YamiStatus VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
             DEBUG("decode tries for a sequence_header");
             if (!m_VAStart) {
                 status = processConfigBuffer();
-                if (status != YAMI_SUCCESS
-                    && status != YAMI_DECODE_FORMAT_CHANGE) {
+                if (status != YAMI_SUCCESS) {
                     return status;
                 }
             } else {
@@ -934,8 +886,7 @@ YamiStatus VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
             if (m_previousStartCode
                 == YamiParser::MPEG2::MPEG2_SEQUENCE_HEADER_CODE) {
                 status = processConfigBuffer();
-                if (status != YAMI_SUCCESS
-                    && status != YAMI_DECODE_FORMAT_CHANGE) {
+                if (status != YAMI_SUCCESS) {
                     return status;
                 }
             }

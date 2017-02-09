@@ -23,6 +23,7 @@
 #include "common/log.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/VaapiSurface.h"
+#include "decoder/vaapidecoder_base.h"
 #include <string.h>
 #include <assert.h>
 
@@ -31,19 +32,30 @@ namespace YamiMediaCodec{
 DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoConfigBuffer* config,
     const SharedPtr<SurfaceAllocator>& allocator )
 {
+    VideoDecoderConfig conf;
+    conf.width = config->width;
+    conf.height = config->height;
+    conf.fourcc = config->fourcc;
+    conf.surfaceNumber = config->surfaceNumber;
+    return create(display, &conf, allocator);
+}
+
+DecSurfacePoolPtr VaapiDecSurfacePool::create(const DisplayPtr& display, VideoDecoderConfig* config,
+    const SharedPtr<SurfaceAllocator>& allocator)
+{
     DecSurfacePoolPtr pool(new VaapiDecSurfacePool);
     if (!pool->init(display, config, allocator))
         pool.reset();
     return pool;
 }
 
-bool VaapiDecSurfacePool::init(const DisplayPtr& display, VideoConfigBuffer* config,
+bool VaapiDecSurfacePool::init(const DisplayPtr& display, VideoDecoderConfig* config,
     const SharedPtr<SurfaceAllocator>& allocator)
 {
     m_display = display;
     m_allocator = allocator;
-    m_allocParams.width = config->surfaceWidth;
-    m_allocParams.height = config->surfaceHeight;
+    m_allocParams.width = config->width;
+    m_allocParams.height = config->height;
     m_allocParams.fourcc = config->fourcc;
     m_allocParams.size = config->surfaceNumber;
     if (m_allocator->alloc(m_allocator.get(), &m_allocParams) != YAMI_SUCCESS) {
