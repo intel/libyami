@@ -188,7 +188,7 @@ bool VaapiDecoderH265::DPB::initLongTermRef(const PicturePtr& picture, const Sli
     }
     //(8-5)
     for (int i = 0; i < num; i++) {
-        uint16_t poc;
+        int32_t poc;
         bool used;
         if (i < slice->num_long_term_sps) {
             poc = sps->lt_ref_pic_poc_lsb_sps[slice->lt_idx_sps[i]];
