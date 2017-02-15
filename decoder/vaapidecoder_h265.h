@@ -145,7 +145,7 @@ private:
 
     SharedPtr<Parser> m_parser;
     PicturePtr  m_current;
-    uint16_t    m_prevPicOrderCntMsb;
+    int32_t     m_prevPicOrderCntMsb;
     int32_t     m_prevPicOrderCntLsb;
     int32_t     m_nalLengthSize;
     bool        m_associatedIrapNoRaslOutputFlag;
