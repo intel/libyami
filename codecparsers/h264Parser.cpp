@@ -497,6 +497,8 @@ bool Parser::parseSps(SharedPtr<SPS>& sps, const NalUnit* nalu)
 
         sps->m_cropRectWidth = width;
         sps->m_cropRectHeight = height;
+        sps->m_cropX = cropUnitX * sps->frame_crop_left_offset;
+        sps->m_cropY = cropUnitY * sps->frame_crop_top_offset;
     }
 
     m_spsMap[sps->sps_id] = sps;

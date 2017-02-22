@@ -283,6 +283,8 @@ struct SPS {
 
     int32_t m_width;
     int32_t m_height;
+    int32_t m_cropX;
+    int32_t m_cropY;
     int32_t m_cropRectWidth;
     int32_t m_cropRectHeight;
 };

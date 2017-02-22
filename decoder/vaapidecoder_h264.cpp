@@ -1632,7 +1632,7 @@ SurfacePtr VaapiDecoderH264::createSurface(const SliceHeader* const slice)
     SharedPtr<SPS>& sps = slice->m_pps->m_sps;
 
     if (sps->frame_cropping_flag)
-        s->setCrop(0, 0, sps->m_cropRectWidth, sps->m_cropRectHeight);
+        s->setCrop(sps->m_cropX, sps->m_cropY, sps->m_cropRectWidth, sps->m_cropRectHeight);
     else
         s->setCrop(0, 0, sps->m_width, sps->m_height);
     return s;
