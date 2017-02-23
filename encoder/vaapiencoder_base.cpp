@@ -186,6 +186,14 @@ YamiStatus VaapiEncoderBase::getParameters(VideoParamConfigType type, Yami_PTR v
         }
         break;
     }
+    case VideoParamsTypeHRD: {
+        VideoParamsHRD* videoParamsHRD = (VideoParamsHRD*)videoEncParams;
+        if (videoParamsHRD->size == sizeof(VideoParamsHRD)) {
+            PARAMETER_ASSIGN(*videoParamsHRD, m_videoParamsHRD);
+            ret = YAMI_SUCCESS;
+        }
+        break;
+    }
     case VideoParamsTypeQualityLevel: {
         VideoParamsQualityLevel* qualityLevel = (VideoParamsQualityLevel*)videoEncParams;
         if (qualityLevel->size == sizeof(VideoParamsQualityLevel)) {
