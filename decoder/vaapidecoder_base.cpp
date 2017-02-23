@@ -283,8 +283,8 @@ bool VaapiDecoderBase::createAllocator()
 
 bool VaapiDecoderBase::isSurfaceGeometryChanged() const
 {
-    return m_config.width < m_videoFormatInfo.width
-        || m_config.height < m_videoFormatInfo.height
+    return m_config.width < m_videoFormatInfo.surfaceWidth
+        || m_config.height < m_videoFormatInfo.surfaceHeight
         || m_config.surfaceNumber != m_videoFormatInfo.surfaceNumber
         || m_config.fourcc != m_videoFormatInfo.fourcc;
 }
