@@ -54,8 +54,8 @@ script:
   - ./autogen.sh --prefix=/opt/yami
   - make -j8 ; sudo make install
 
-#after_success:
- #       - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
+after_success:
+        - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
 
 notifications:
 # Emails are sent to the committer's git-configured email address by default,
