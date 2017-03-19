@@ -25,6 +25,8 @@
 #include "vaapidecoder_vp9.h"
 
 namespace YamiMediaCodec{
+#define VP9_SURFACE_NUM 8
+
 typedef VaapiDecoderVP9::PicturePtr PicturePtr;
 
 static VAProfile profileMap(VP9_PROFILE src_profile)
@@ -59,25 +61,18 @@ YamiStatus VaapiDecoderVP9::start(VideoConfigBuffer* buffer)
 {
     DEBUG("VP9: start() buffer size: %d x %d", buffer->width,
           buffer->height);
+    if (!(buffer->flag & HAS_VA_PROFILE))
+        buffer->profile = VAProfileVP9Profile0;
+    //VP9_SURFACE_NUM reference frame
+    if (!(buffer->flag & HAS_SURFACE_NUMBER))
+        buffer->surfaceNumber = VP9_SURFACE_NUM;
 
-    buffer->profile = VAProfileVP9Profile0;
     m_parser->bit_depth = VP9_BITS_8;
-    //8 reference frame
-    buffer->surfaceNumber = 8;
-
 
     DEBUG("disable native graphics buffer");
     m_configBuffer = *buffer;
     m_configBuffer.data = NULL;
     m_configBuffer.size = 0;
-
-    if (m_configBuffer.width && m_configBuffer.height) {
-        m_configBuffer.surfaceWidth = ALIGN8(m_configBuffer.width);
-        m_configBuffer.surfaceHeight = ALIGN32(m_configBuffer.height);
-        YamiStatus status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != YAMI_SUCCESS)
-            return status;
-    }
 
     return YAMI_SUCCESS;
 }
@@ -97,10 +92,16 @@ void VaapiDecoderVP9::stop(void)
 
 void VaapiDecoderVP9::flush(void)
 {
+    flush(true);
+}
+
+void VaapiDecoderVP9::flush(bool discardOutput)
+{
     m_parser.reset(vp9_parser_new(), vp9_parser_free);
     m_reference.clear();
     m_reference.resize(VP9_REF_FRAMES);
-    VaapiDecoderBase::flush();
+    if (discardOutput)
+        VaapiDecoderBase::flush();
 }
 
 YamiStatus VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
@@ -109,38 +110,14 @@ YamiStatus VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
     if (vp9_profile == VAProfileNone) {
         return YAMI_FATAL_ERROR;
     }
-    // only reset va context when there is a larger frame
-    if (m_configBuffer.width < hdr->width
-        || m_configBuffer.height < hdr->height
-        || m_configBuffer.profile != vp9_profile) {
-        INFO("frame size changed, reconfig codec. orig size %d x %d, profile %d, new size: %d x %d, profile %d",
-            m_configBuffer.width, m_configBuffer.height, m_configBuffer.profile,
-            hdr->width, hdr->height, vp9_profile);
-        YamiStatus status = VaapiDecoderBase::terminateVA();
-        if (status != YAMI_SUCCESS)
-            return status;
-        m_configBuffer.width = hdr->width;
-        m_configBuffer.height = hdr->height;
-        m_configBuffer.surfaceWidth = ALIGN8(hdr->width);
-        m_configBuffer.surfaceHeight = ALIGN32(hdr->height);
-        m_configBuffer.profile = vp9_profile;
-        if (m_parser->bit_depth == VP9_BITS_10)
-            m_configBuffer.fourcc = YAMI_FOURCC_P010;
 
-        status = VaapiDecoderBase::start(&m_configBuffer);
-        if (status != YAMI_SUCCESS)
-            return status;
+    uint32_t fourcc = (m_parser->bit_depth == VP9_BITS_10) ? YAMI_FOURCC_P010 : YAMI_FOURCC_NV12;
+
+    if (setFormat(hdr->width, hdr->height, ALIGN8(hdr->width), ALIGN32(hdr->height), VP9_SURFACE_NUM, fourcc)) {
         return YAMI_DECODE_FORMAT_CHANGE;
-    } else if ((m_videoFormatInfo.width != hdr->width
-        || m_videoFormatInfo.height != hdr->height) &&
-        (!hdr->show_existing_frame)) {
-        // notify client of resolution change, no need to reset hw context
-            INFO("frame size changed, reconfig codec. orig size %d x %d, new size: %d x %d\n", m_videoFormatInfo.width, m_videoFormatInfo.height, hdr->width, hdr->height);
-            m_videoFormatInfo.width = hdr->width;
-            m_videoFormatInfo.height = hdr->height;
-            return YAMI_DECODE_FORMAT_CHANGE;
     }
-    return YAMI_SUCCESS;
+
+    return ensureProfile(vp9_profile);
 }
 
 bool VaapiDecoderVP9::fillReference(VADecPictureParameterBufferVP9* param, const Vp9FrameHdr* hdr)
@@ -340,8 +317,10 @@ static bool parse_super_frame(std::vector<uint32_t>& frameSize, const uint8_t* d
 YamiStatus VaapiDecoderVP9::decode(VideoDecodeBuffer* buffer)
 {
     YamiStatus status;
-    if (!buffer)
-        return YAMI_DECODE_INVALID_DATA;
+    if (!buffer || !buffer->data) {
+        flush(false);
+        return YAMI_SUCCESS;
+    }
     uint8_t* data = buffer->data;
     size_t  size = buffer->size;
     uint8_t* end = data + size;
