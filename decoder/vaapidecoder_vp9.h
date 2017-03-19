@@ -34,6 +34,7 @@ class VaapiDecoderVP9:public VaapiDecoderBase {
     virtual YamiStatus reset(VideoConfigBuffer*);
     virtual void stop(void);
     virtual void flush(void);
+    void flush(bool discardOutput);
     virtual YamiStatus decode(VideoDecodeBuffer*);
 
   private:
