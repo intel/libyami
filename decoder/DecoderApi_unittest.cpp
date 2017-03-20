@@ -241,7 +241,7 @@ TEST_P(DecodeApiTest, Format_Change)
 
         YamiStatus status = decoder->decode(&buffer);
         if (prevFormat.width != info.m_width
-            || prevFormat.width != info.m_width) {
+            || prevFormat.height != info.m_height) {
             EXPECT_EQ(YAMI_DECODE_FORMAT_CHANGE, status);
         }
         while (checkOutput(decoder, prevFormat))
