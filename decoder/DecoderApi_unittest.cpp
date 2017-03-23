@@ -96,6 +96,15 @@ static FrameData g_vp9data[] = {
     g_EOF,
 };
 
+static FrameData g_jpegdata[] = {
+    g_jpeg1_8x8,
+    g_jpeg2_8x8,
+    g_jpeg_16x16,
+    g_jpeg1_8x8,
+    g_jpeg2_8x8,
+    g_EOF,
+};
+
 class TestDecodeFrames {
 public:
     typedef SharedPtr<TestDecodeFrames> Shared;
@@ -354,5 +363,6 @@ INSTANTIATE_TEST_CASE_P(
         TestDecodeFrames::create(g_h264data, YAMI_MIME_H264),
         TestDecodeFrames::create(g_h265data, YAMI_MIME_H265),
         TestDecodeFrames::create(g_vp8data, YAMI_MIME_VP8),
-        TestDecodeFrames::create(g_vp9data, YAMI_MIME_VP9)));
+        TestDecodeFrames::create(g_vp9data, YAMI_MIME_VP9),
+        TestDecodeFrames::create(g_jpegdata, YAMI_MIME_JPEG)));
 }
