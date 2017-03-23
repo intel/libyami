@@ -47,6 +47,8 @@ private:
 
     YamiStatus finish();
 
+    YamiStatus ensureContext();
+
     SharedPtr<VaapiDecoderJPEG::Impl> m_impl;
     PicturePtr m_picture;
 
