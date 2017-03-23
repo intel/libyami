@@ -43,6 +43,8 @@ using ::std::ref;
 
 namespace YamiMediaCodec {
 
+#define JPEG_SURFACE_NUM 2
+
 struct Slice {
     Slice() : data(NULL), start(0) , length(0) { }
 
@@ -77,29 +79,18 @@ public:
         if (!data || !size)
             return YAMI_SUCCESS;
 
-        /*
-         * Reset the parser if we have a new data pointer; this is common for
-         * MJPEG. If the data pointer is the same, then the assumption is that
-         * we are continuing after previously suspending due to an SOF
-         * YAMI_DECODE_FORMAT_CHANGE.
-         */
-        if (m_slice.data != data)
-            m_parser.reset();
-
-        if (!m_parser) { /* First call or new data */
-            Parser::Callback defaultCallback =
-                bind(&Impl::onMarker, ref(*this));
-            Parser::Callback sofCallback =
-                bind(&Impl::onStartOfFrame, ref(*this));
-            m_slice.data = data;
-            m_parser.reset(new Parser(data, size));
-            m_parser->registerCallback(M_SOI, defaultCallback);
-            m_parser->registerCallback(M_EOI, defaultCallback);
-            m_parser->registerCallback(M_SOS, defaultCallback);
-            m_parser->registerCallback(M_DHT, defaultCallback);
-            m_parser->registerCallback(M_DQT, defaultCallback);
-            m_parser->registerStartOfFrameCallback(sofCallback);
-        }
+        Parser::Callback defaultCallback =
+            bind(&Impl::onMarker, ref(*this));
+        Parser::Callback sofCallback =
+            bind(&Impl::onStartOfFrame, ref(*this));
+        m_slice.data = data;
+        m_parser.reset(new Parser(data, size));
+        m_parser->registerCallback(M_SOI, defaultCallback);
+        m_parser->registerCallback(M_EOI, defaultCallback);
+        m_parser->registerCallback(M_SOS, defaultCallback);
+        m_parser->registerCallback(M_DHT, defaultCallback);
+        m_parser->registerCallback(M_DQT, defaultCallback);
+        m_parser->registerStartOfFrameCallback(sofCallback);
 
         if (!m_parser->parse())
             m_decodeStatus = YAMI_FAIL;
@@ -343,8 +334,8 @@ YamiStatus VaapiDecoderJPEG::loadHuffmanTables()
 
 YamiStatus VaapiDecoderJPEG::decode(VideoDecodeBuffer* buffer)
 {
-    if (!buffer)
-        return YAMI_FAIL;
+    if (!buffer || !buffer->data)
+        return YAMI_SUCCESS;
 
     m_currentPTS = buffer->timeStamp;
 
@@ -400,44 +391,7 @@ YamiStatus VaapiDecoderJPEG::start(VideoConfigBuffer* buffer)
 {
     DEBUG("%s", __func__);
 
-    m_configBuffer = *buffer;
-    m_configBuffer.surfaceNumber = 2;
-    m_configBuffer.profile = VAProfileJPEGBaseline;
-
-    /* We can't start until decoding has started */
-    if (!m_impl.get())
-        return YAMI_SUCCESS;
-
-    const FrameHeader::Shared frame = m_impl->frameHeader();
-
-    /*
-     * We don't expect the user to call start() after a failed decode() attempt.
-     * But since the user can, we must check if we have a valid frame header
-     * before we can use it.  That is, m_parser could be initialized but the
-     * frame header might not be.
-     */
-    if (!frame)
-        return YAMI_FAIL;
-
-    if (!frame->isBaseline) {
-        ERROR("Unsupported JPEG profile. Only JPEG Baseline is supported.");
-        return YAMI_FAIL;
-    }
-
-    m_configBuffer.width = frame->imageWidth;
-    m_configBuffer.height = frame->imageHeight;
-    m_configBuffer.surfaceWidth = frame->imageWidth;
-    m_configBuffer.surfaceHeight = frame->imageHeight;
-    m_configBuffer.fourcc = getFourcc(frame);
-    if (!m_configBuffer.fourcc) {
-        return YAMI_UNSUPPORTED;
-    }
-
-    /* Now we can actually start */
-    if (VaapiDecoderBase::start(&m_configBuffer) != YAMI_SUCCESS)
-        return YAMI_FAIL;
-
-    return YAMI_DECODE_FORMAT_CHANGE;
+    return YAMI_SUCCESS;
 }
 
 YamiStatus VaapiDecoderJPEG::finish()
@@ -453,6 +407,10 @@ YamiStatus VaapiDecoderJPEG::finish()
     }
 
     YamiStatus status;
+    status = ensureContext();
+    if (status != YAMI_SUCCESS) {
+        return status;
+    }
     status = createPicture(m_picture, m_currentPTS);
     if (status != YAMI_SUCCESS) {
         ERROR("Could not create a VAAPI picture.");
@@ -460,7 +418,9 @@ YamiStatus VaapiDecoderJPEG::finish()
     }
 
     m_picture->m_timeStamp = m_currentPTS;
-
+    SurfacePtr surf;
+    surf = m_picture->getSurface();
+    surf->setCrop(0, 0, m_videoFormatInfo.width, m_videoFormatInfo.height);
 
     status = fillSliceParam();
     if (status !=  YAMI_SUCCESS) {
@@ -508,4 +468,21 @@ YamiStatus VaapiDecoderJPEG::reset(VideoConfigBuffer* buffer)
     return VaapiDecoderBase::reset(buffer);
 }
 
+YamiStatus VaapiDecoderJPEG::ensureContext()
+{
+    const FrameHeader::Shared frame = m_impl->frameHeader();
+    if (!frame->isBaseline) {
+        ERROR("Unsupported JPEG profile. Only JPEG Baseline is supported.");
+        return YAMI_FAIL;
+    }
+
+    if (!getFourcc(frame)) {
+        return YAMI_UNSUPPORTED;
+    }
+    if (setFormat(frame->imageWidth, frame->imageHeight, frame->imageWidth,
+            frame->imageHeight, JPEG_SURFACE_NUM, getFourcc(frame))) {
+        return YAMI_DECODE_FORMAT_CHANGE;
+    }
+    return ensureProfile(VAProfileJPEGBaseline);
+}
 }
