@@ -345,11 +345,10 @@ TEST_P(JPEGTest, Decode_SimpleMulti)
 
     ASSERT_EQ(YAMI_SUCCESS, decoder.start(&config));
 
-    // Decode returns format change after it decodes the SOF segment.
+    // Decode returns format change for the first frame decoding at first time.
     ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
 
-    // Resume decoding.  The decoder will continue where it left off (after the
-    // SOF segment) when we pass the same buffer as previous call.
+    // Decode has been initiated by the last "decoder.decode(&buffer)" call.
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
 
     output = decoder.getOutput();
@@ -361,11 +360,7 @@ TEST_P(JPEGTest, Decode_SimpleMulti)
     buffer.size = paramSize; // Length of second jpeg image data
     buffer.timeStamp = 1;
 
-    // Decode returns format change after it decodes the SOF segment.
-    ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
-
-    // Resume decoding.  The decoder will continue where it left off (after the
-    // SOF segment) when we pass the same buffer as previous call.
+    //Decode the seconde jpeg image.
     ASSERT_EQ(YAMI_SUCCESS, decoder.decode(&buffer));
 
     output = decoder.getOutput();
@@ -377,12 +372,7 @@ TEST_P(JPEGTest, Decode_SimpleMulti)
     buffer.size = mjpeg.size();  // Length of entire mjpeg
     buffer.timeStamp = 3;
 
-    // Decode returns format change after it decodes the first SOF segment.
-    ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
-
-    // Resume decoding.  The decoder will continue where it left off (after the
-    // SOF segment) when we pass the same buffer as previous call.  In this
-    // case, the decode should fail since it encounters a second image in the
+    // In this case, the decode should fail since it encounters a second image in the
     // buffer.
     ASSERT_EQ(YAMI_FAIL, decoder.decode(&buffer));
 }
@@ -403,16 +393,9 @@ TEST_P(JPEGTest, Decode_SimpleTruncated)
         buffer.timeStamp = 0;
 
         ASSERT_EQ(YAMI_SUCCESS, decoder.start(&config));
-        if (i > 176) { // Has full SOF0 segment
-            ASSERT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer));
-        }
-
+        //decode always return YAMI_FAIL since it doesn't have enough data.
         EXPECT_EQ(YAMI_FAIL, decoder.decode(&buffer));
         EXPECT_EQ(YAMI_FAIL, decoder.decode(&buffer));
-
-        if (i < 160) { // No SOF0 segment
-            EXPECT_EQ(YAMI_FAIL, decoder.start(&config));
-        }
     }
 }
 
