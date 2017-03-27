@@ -33,6 +33,9 @@ before_install:
   - git clone https://github.com/01org/libva.git
   - (cd libva && ./autogen.sh && ./configure --prefix=/usr && sudo make install)
 
+env:
+  global:
+  - secure: U98K339VAi03XX6dJB2GMpJAw/t4ejesPsTFgCTsCcTWAAkZpuFgleM4ufbTcrVNPbs46/7ake7hS7fzWaxOjQ8Jz8W78KWHVSTJ/tATrCACfYFvzBerM7MywEGErx2Np8qtcLgJdYuLoRej7FjZ1TDNUW00OgtF0ShvQ0aiFZM=
  
 addons:
   coverity_scan:
@@ -55,7 +58,7 @@ script:
   - make check
 
 after_success:
-        - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
+  - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
 
 notifications:
 # Emails are sent to the committer's git-configured email address by default,
@@ -63,9 +66,9 @@ notifications:
 # public project, just go to travis-ci.org and flip the switch on for
 # your project.  To configure your git email address, use:
 #     git config --global user.email me@example.com
-  email:
-    on_success: always
-    on_failure: always
+email:
+  on_success: always
+  on_failure: always
 
 # Slack notifications
 #
