@@ -45,6 +45,7 @@ bool NalReader::read(const uint8_t*& nal, int32_t& nalSize)
     const uint8_t* nalEnd;
     if (m_asWhole) {
         nalEnd = m_end;
+        m_next = m_end;
     } else {
         nalEnd = searchNalStart();
     }
