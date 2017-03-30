@@ -129,6 +129,15 @@ UTILS_TEST(guessResolutionOverflow) {
     EXPECT_FALSE(guessResolution(sstream.str().c_str(), w, h));
     EXPECT_EQ(w, 0);
     EXPECT_EQ(h, 0);
+
+    sstream.str("");
+    sstream << long(std::numeric_limits<int>::max()) * 2 + 3
+            << "x"
+            << long(std::numeric_limits<int>::max()) * 3 + 2;
+
+    EXPECT_FALSE(guessResolution(sstream.str().c_str(), w, h));
+    EXPECT_EQ(w, 0);
+    EXPECT_EQ(h, 0);
 }
 
 struct BppEntry {
