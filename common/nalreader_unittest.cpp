@@ -53,20 +53,26 @@ const std::array<uint8_t, 39> g_data = {
     0x12
 };
 
-const std::array<int32_t, 5> g_nsizes = {9, 4, 6, 12, 7};
+const std::array<int32_t, 5> g_nsizes = { 6, 1, 3, 9, 4 };
 
 NALREADER_TEST(ReadAsUnits) {
     const uint8_t* nal;
-    int32_t offset(1), size;
+    const uint32_t start(3); //start code size
+    int32_t size; //NAL unit size
+    int32_t offset(1); //to skip 1 junk byte in g_data
 
-    NalReader reader(&g_data[0], g_data.size(), false);
+    NalReader reader(&g_data[0], g_data.size(), 0, false);
 
     for (unsigned n(0); n < g_nsizes.size(); ++n) {
+        //For unit reads, the NalReader returns buffer contents between each
+        //start code prefix, start code prefix is not included in read result;
+        //"nal": buffer contents;
+        //"size": buffer length;
         EXPECT_TRUE(reader.read(nal, size));
         EXPECT_EQ(size, g_nsizes[n]);
         for (int32_t i(0); i < size; ++i)
-            EXPECT_EQ(nal[i], g_data[i+offset]);
-        offset += size;
+            EXPECT_EQ(nal[i], g_data[i + offset + start]);
+        offset += (size + start);
     }
 
     EXPECT_FALSE(reader.read(nal, size));
@@ -75,14 +81,17 @@ NALREADER_TEST(ReadAsUnits) {
 NALREADER_TEST(ReadAsWhole) {
     const uint8_t* nal;
     int32_t size;
+    const int32_t offset = 4; // 1 initial junk byte + first start code
 
-    NalReader reader(&g_data[0], g_data.size(), true);
-
+    NalReader reader(&g_data[0], g_data.size(), 0, true);
+    //For whole read, the NalReader returns entire buffer contents after
+    //first start code. That is, the first start code prefix is not included
+    //in the result.
     EXPECT_TRUE(reader.read(nal, size));
-    EXPECT_EQ((size_t)size, g_data.size());
+    EXPECT_EQ((size_t)(size + offset), g_data.size());
 
     for (int32_t i(0); i < size; ++i)
-        EXPECT_EQ(nal[i], g_data[i]);
+        EXPECT_EQ(nal[i], g_data[i + offset]);
 
     EXPECT_FALSE(reader.read(nal, size));
 }
