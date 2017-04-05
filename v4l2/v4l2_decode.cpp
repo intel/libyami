@@ -810,6 +810,11 @@ void V4l2Decoder::getInputJob()
         return;
     }
     consumeInput();
+    if (!m_decoder->getFormatInfo()) {
+        DEBUG("need more data to detect output format");
+        post(bind(&V4l2Decoder::getInputJob, this));
+        return;
+    }
     m_state = kGetOutput;
     post(bind(&V4l2Decoder::getOutputJob, this));
 }
