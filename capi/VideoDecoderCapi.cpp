@@ -32,7 +32,7 @@ public:
     {
     }
 
-private:
+public:
     SharedPtr<VideoFrame> frame;
 };
 
