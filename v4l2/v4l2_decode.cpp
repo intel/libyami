@@ -528,9 +528,9 @@ public:
 #include "egl/egl_vaapi_image.h"
 class EglOutput : public V4l2Decoder::Output {
 public:
-    EglOutput(V4l2Decoder* decoder)
+    EglOutput(V4l2Decoder* decoder, VideoDataMemoryType memory_type)
         : V4l2Decoder::Output(decoder)
-        , m_memoryType(VIDEO_DATA_MEMORY_TYPE_DRM_NAME)
+        , m_memoryType(memory_type)
     {
     }
     virtual int32_t requestBuffers(uint32_t count)
@@ -1266,7 +1266,7 @@ int32_t V4l2Decoder::setFrameMemoryType(VideoDataMemoryType memory_type)
 #ifdef __ENABLE_EGL__
     if (memory_type == VIDEO_DATA_MEMORY_TYPE_DRM_NAME
         || memory_type == VIDEO_DATA_MEMORY_TYPE_DMA_BUF)
-        m_output.reset(new EglOutput(this));
+        m_output.reset(new EglOutput(this, memory_type));
 #endif
     if (!m_output) {
         ERROR("unspported memory type %d", memory_type);
