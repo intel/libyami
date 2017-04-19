@@ -1,7 +1,20 @@
-libyami NEWS -- summary of changes.  2016-12-20
+libyami NEWS -- summary of changes.  2017-04-19
 Copyright (c) 2010, The WebM Project authors.
-Copyright (C) 2011-2016 Intel Corporation
+Copyright (C) 2011-2017 Intel Corporation
 Copyright (C) 2015-2016 Alibaba
+
+libyami 1.2.0(API:0.5.0) release, work with libva 1.8.1 release
+=====================
+Major improvements:
++180c3d5 improve vp9 10 bit decoder conformance
++8d29d2d improve h265 8/10 bit decoder conformance
++5b09484 add decoder/display zero-copy API.
++e46f03b use decoder/display zero copy API in v4l2 decoder
++441ee54 expose vp9 qp setting to the user.
+
+We change API to from 0.4.0 to 0.5.0 for following interface changes.
++1fe162e get/set surface in SurfaceAllocParams
++7560ce7 add VIDEO_DATA_MEMORY_TYPE_EXTERNAL_DMA_BUF
 
 libyami 1.1.0(API:0.4.0) release, work with libva 1.7.3 release
 =====================
