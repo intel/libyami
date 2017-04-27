@@ -57,6 +57,10 @@ typedef struct {
     VAProfile profile;
     uint32_t flag;
     uint32_t fourcc;
+    //xxxLayer - how many layers to decode; if 0, decode all layers.
+    uint32_t temporalLayer;
+    uint32_t spacialLayer;
+    uint32_t qualityLayer;
 }VideoConfigBuffer;
 
 typedef struct {

@@ -72,6 +72,7 @@ class VaapiDecoderVP8:public VaapiDecoderBase {
     virtual void stop(void);
     virtual void flush(void);
     virtual YamiStatus decode(VideoDecodeBuffer* buffer);
+    bool targetTemporalFrame();
 
   private:
       YamiStatus allocNewPicture();

@@ -513,6 +513,9 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
             break;
         }
 
+        if (!targetTemporalFrame())
+            return YAMI_SUCCESS;
+
         if (m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME) {
             status = ensureContext();
             if (status != YAMI_SUCCESS)
@@ -564,4 +567,27 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
     return status;
 }
 
+bool VaapiDecoderVP8::targetTemporalFrame()
+{
+    switch (m_configBuffer.temporalLayer) {
+    case 0: //decode all layers.
+        return true;
+    case 1:
+        if ((m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME) ||
+            m_frameHdr.refresh_last)
+            return true;
+        break;
+    case 2:
+        if ((m_frameHdr.key_frame == Vp8FrameHeader::KEYFRAME) ||
+            m_frameHdr.refresh_last || m_frameHdr.refresh_golden_frame)
+            return true;
+        break;
+    case 3:
+        return true;
+    default: //decode all layers.
+        return true;
+    }
+
+    return false;
+}
 }
