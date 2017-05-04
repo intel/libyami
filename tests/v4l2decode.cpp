@@ -184,6 +184,7 @@ uint32_t k_extraOutputFrameCount = 2;
 static std::vector<uint8_t*> inputFrames;
 static std::vector<struct RawFrameData> rawOutputFrames;
 
+#if !__ENABLE_V4L2_GLX__
 static VideoDataMemoryType memoryType = VIDEO_DATA_MEMORY_TYPE_DRM_NAME;
 static const char* typeStrDrmName = "drm-name";
 static const char* typeStrDmaBuf = "dma-buf";
@@ -194,6 +195,7 @@ static const char* memoryTypeStr = typeStrDrmName;
 #define IS_DMA_BUF()   (!strcmp(memoryTypeStr, typeStrDmaBuf))
 #define IS_RAW_DATA()   (!strcmp(memoryTypeStr, typeStrRawData))
 // #define IS_ANDROID_NATIVE_BUFFER()   (!strcmp(memoryTypeStr, typeStrAndroidNativeBuffer))
+#endif
 
 static FILE* outfp = NULL;
 #ifndef ANDROID
@@ -491,7 +493,7 @@ int main(int argc, char** argv)
     // set output frame memory type
 #if __ENABLE_V4L2_OPS__
     SIMULATE_V4L2_OP(SetParameter)(fd, "frame-memory-type", memoryTypeStr);
-#else
+#elif !__ENABLE_V4L2_GLX__
     SIMULATE_V4L2_OP(FrameMemoryType)(fd, memoryType);
 #endif
 
