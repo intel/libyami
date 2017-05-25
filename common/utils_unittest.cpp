@@ -47,7 +47,7 @@ UTILS_TEST(guessFourcc) {
     EXPECT_EQ(guessFourcc("test.xbgr"), (uint32_t)YAMI_FOURCC_XBGR);
 
     EXPECT_EQ(guessFourcc("test.txt"), (uint32_t)YAMI_FOURCC_I420);
-    EXPECT_EQ(guessFourcc("test"), (uint32_t)YAMI_FOURCC_I420);
+    EXPECT_EQ(guessFourcc("test"), (uint32_t)0);
 
     EXPECT_EQ(guessFourcc("test.I420"), (uint32_t)YAMI_FOURCC_I420);
     EXPECT_EQ(guessFourcc("test.NV12"), (uint32_t)YAMI_FOURCC_NV12);

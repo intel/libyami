@@ -56,7 +56,7 @@ uint32_t guessFourcc(const char* fileName)
         }
     }
 
-    return YAMI_FOURCC_I420;
+    return 0;
 }
 
 bool guessResolution(const char* filename, int& w, int& h)
