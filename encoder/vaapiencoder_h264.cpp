@@ -121,7 +121,7 @@ h264_get_slice_type (VaapiPictureType type)
     return -1;
 }
 
-/* Get log2_max_frame_num value for H.264 specification */
+/* Get log2_max_frame_num value for H.264 specification 7.4.2.1.1 */
 static uint32_t
 h264_get_log2_max_frame_num (uint32_t num)
 {
@@ -133,8 +133,8 @@ h264_get_log2_max_frame_num (uint32_t num)
     }
     if (ret <= 4)
         ret = 4;
-    else if (ret > 10)
-        ret = 10;
+    else if (ret > 16)
+        ret = 16;
     /* must be greater than 4 */
     return ret;
 }
