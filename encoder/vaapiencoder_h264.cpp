@@ -860,7 +860,6 @@ VaapiEncoderH264::VaapiEncoderH264()
     m_videoParamAVC.enableDeblockFilter = true;
     m_videoParamAVC.deblockAlphaOffsetDiv2 = 2;
     m_videoParamAVC.deblockBetaOffsetDiv2 = 2;
-    m_videoParamAVC.temporalLayerNum = 1;
     m_videoParamAVC.priorityId = 0;
     m_videoParamAVC.enablePrefixNalUnit = false;
     m_maxOutputBuffer = H264_MIN_TEMPORAL_GOP;
