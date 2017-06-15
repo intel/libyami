@@ -669,6 +669,7 @@ YamiStatus VaapiEncoderBase::getOutput(VideoEncOutputBuffer* outBuffer, bool wit
         return ret;
 
     outBuffer->timeStamp = picture->m_timeStamp;
+    outBuffer->temporalID = picture->m_temporalID;
     checkCodecData(outBuffer);
     return YAMI_SUCCESS;
 }
@@ -697,6 +698,7 @@ YamiStatus VaapiEncoderBase::getOutput(VideoEncOutputBuffer* outBuffer, VideoEnc
     if (data)
         memcpy(MVBuffer->data, data, mappedSize);
     outBuffer->timeStamp = picture->m_timeStamp;
+    outBuffer->temporalID = picture->m_temporalID;
     checkCodecData(outBuffer);
     return YAMI_SUCCESS;
 }
