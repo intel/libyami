@@ -26,6 +26,7 @@
 #include "vaapicodedbuffer.h"
 #include "vaapiencpicture.h"
 #include <algorithm>
+#include <vector>
 
 namespace YamiMediaCodec{
 
@@ -49,6 +50,52 @@ public:
     }
 };
 
+struct RefFlags
+{
+    /* exactly same things in VAEncPictureParameterBufferVP8 */
+    uint32_t refresh_golden_frame           : 1;
+    uint32_t refresh_alternate_frame        : 1;
+    uint32_t refresh_last                   : 1;
+    uint32_t copy_buffer_to_golden          : 2;
+    uint32_t copy_buffer_to_alternate       : 2;
+    uint32_t no_ref_last                    : 1;
+    uint32_t no_ref_gf                      : 1;
+    uint32_t no_ref_arf                     : 1;
+
+    RefFlags()
+    {
+        memset(this, 0, sizeof(RefFlags));
+
+    }
+};
+
+class Vp8Encoder {
+public:
+    virtual void getRefFlags(RefFlags&, uint8_t temporalLayer) const = 0;
+    virtual void getLayerIds(std::vector<uint32_t>& ids) const = 0;
+    virtual bool getErrorResilient() const = 0;
+    virtual bool getRefreshEntropyProbs() const = 0;
+    virtual uint8_t getTemporalLayer(uint32_t frameNum) const = 0;
+};
+
+class Vp8EncoderNormal : public Vp8Encoder {
+public:
+    void getRefFlags(RefFlags&, uint8_t temporalLayer) const;
+    void getLayerIds(std::vector<uint32_t>& ids) const { ASSERT(0 && "not suppose call this"); }
+    bool getErrorResilient() const { return false; }
+    bool getRefreshEntropyProbs() const { return false; }
+    uint8_t getTemporalLayer(uint32_t frameNum) const { return 0; }
+};
+
+void Vp8EncoderNormal::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer) const
+{
+    refFlags.refresh_last = 1;
+    refFlags.refresh_golden_frame = 0;
+    refFlags.copy_buffer_to_golden = 1;
+    refFlags.refresh_alternate_frame = 0;
+    refFlags.copy_buffer_to_alternate = 2;
+
+}
 VaapiEncoderVP8::VaapiEncoderVP8():
 	m_frameCount(0),
 	m_qIndex(VP8_DEFAULT_QP)
@@ -81,6 +128,7 @@ void VaapiEncoderVP8::resetParams()
     m_maxCodedbufSize = width() * height() * 3 / 2 + VP8_HEADER_MAX_SIZE;
     if (ipPeriod() == 0)
         m_videoParamCommon.intraPeriod = 1;
+    m_encoder.reset(new Vp8EncoderNormal());
 }
 
 YamiStatus VaapiEncoderVP8::start()
@@ -94,7 +142,9 @@ void VaapiEncoderVP8::flush()
 {
     FUNC_ENTER();
     m_frameCount = 0;
-    m_reference.clear();
+    m_last.reset();
+    m_golden.reset();
+    m_alt.reset();
     VaapiEncoderBase::flush();
 }
 
@@ -170,25 +220,34 @@ bool VaapiEncoderVP8::fill(VAEncSequenceParameterBufferVP8* seqParam) const
     seqParam->frame_height = height();
     seqParam->bits_per_second = bitRate();
     seqParam->intra_period = intraPeriod();
+    seqParam->error_resilient = m_encoder->getErrorResilient();
     return true;
 }
 
+void VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const RefFlags& refFlags) const
+{
+    picParam->pic_flags.bits.refresh_golden_frame = refFlags.refresh_golden_frame;
+    picParam->pic_flags.bits.refresh_alternate_frame = refFlags.refresh_alternate_frame;
+    picParam->pic_flags.bits.refresh_last = refFlags.refresh_last;
+    picParam->pic_flags.bits.copy_buffer_to_golden = refFlags.copy_buffer_to_golden;
+    picParam->pic_flags.bits.copy_buffer_to_alternate = refFlags.copy_buffer_to_alternate;
+    picParam->ref_flags.bits.no_ref_last = refFlags.no_ref_last;
+    picParam->ref_flags.bits.no_ref_gf = refFlags.no_ref_gf;
+    picParam->ref_flags.bits.no_ref_arf = refFlags.no_ref_arf;
+}
 /* Fills in VA picture parameter buffer */
 bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const PicturePtr& picture,
-                           const SurfacePtr& surface) const
-{
-    picParam->reconstructed_frame = surface->getID();
-    if (picture->m_type == VAAPI_PICTURE_P) {
-        picParam->pic_flags.bits.frame_type = 1;
-        ReferenceQueue::const_iterator it = m_reference.begin();
-        picParam->ref_arf_frame = (*it++)->getID();
-        picParam->ref_gf_frame = (*it++)->getID();
-        picParam->ref_last_frame = (*it)->getID();
-        picParam->pic_flags.bits.refresh_last = 1;
-        picParam->pic_flags.bits.refresh_golden_frame = 0;
-        picParam->pic_flags.bits.copy_buffer_to_golden = 1;
-        picParam->pic_flags.bits.refresh_alternate_frame = 0;
-        picParam->pic_flags.bits.copy_buffer_to_alternate = 2;
+                            const SurfacePtr& surface, RefFlags& refFlags) const
+ {
+     picParam->reconstructed_frame = surface->getID();
+     if (picture->m_type == VAAPI_PICTURE_P) {
+         picParam->pic_flags.bits.frame_type = 1;
+        picParam->ref_arf_frame = m_alt->getID();
+        picParam->ref_gf_frame = m_golden->getID();
+        picParam->ref_last_frame = m_last->getID();
+
+        m_encoder->getRefFlags(refFlags, 0);
+        fill(picParam, refFlags);
     } else {
         picParam->ref_last_frame = VA_INVALID_SURFACE;
         picParam->ref_gf_frame = VA_INVALID_SURFACE;
@@ -242,11 +301,12 @@ bool VaapiEncoderVP8::ensureSequence(const PicturePtr& picture)
 }
 
 bool VaapiEncoderVP8::ensurePicture (const PicturePtr& picture,
-                                     const SurfacePtr& surface)
+                                     const SurfacePtr& surface,
+                                     RefFlags& refFlags)
 {
     VAEncPictureParameterBufferVP8 *picParam;
 
-    if (!picture->editPicture(picParam) || !fill(picParam, picture, surface)) {
+    if (!picture->editPicture(picParam) || !fill(picParam, picture, surface, refFlags)) {
         ERROR("failed to create picture parameter buffer (PPS)");
         return false;
     }
@@ -264,17 +324,43 @@ bool VaapiEncoderVP8::ensureQMatrix (const PicturePtr& picture)
     return true;
 }
 
-bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfacePtr& recon)
+/* Section 9.7 */
+const SurfacePtr& VaapiEncoderVP8::referenceUpdate(
+    const SurfacePtr& to, const SurfacePtr& from,
+    const SurfacePtr& recon, bool refresh, uint32_t copy) const
 {
-
-    if (pic->m_type == VAAPI_PICTURE_I) {
-        m_reference.clear();
-        m_reference.insert(m_reference.end(), MAX_REFERECNE_FRAME, recon);
-    } else {
-        m_reference.pop_front();
-        m_reference.push_back(recon);
+    if (refresh)
+        return recon;
+    switch (copy) {
+        case 0:
+            return to;
+        case 1:
+            return m_last;
+        case 2:
+            return from;
+        default:
+            ASSERT(0 && "invalid copy to flags");
+            return to;
     }
 
+}
+
+bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfacePtr& recon, const RefFlags& refFlags)
+{
+    if (VAAPI_PICTURE_I == pic->m_type) {
+        m_last = recon;
+        m_golden = recon;
+        m_alt = recon;
+    }
+    else {
+        /* 9.7 and 9.8 */
+        m_golden = referenceUpdate(m_golden, m_alt, recon,
+            refFlags.refresh_golden_frame, refFlags.copy_buffer_to_golden);
+        m_alt = referenceUpdate(m_alt, m_golden, recon,
+            refFlags.refresh_alternate_frame, refFlags.copy_buffer_to_alternate);
+        if (refFlags.refresh_last)
+            m_last = recon;
+    }
     return true;
 }
 
@@ -291,7 +377,8 @@ YamiStatus VaapiEncoderVP8::encodePicture(const PicturePtr& picture)
     if (!ensureMiscParams (picture.get()))
         return ret;
 
-    if (!ensurePicture(picture, reconstruct))
+    RefFlags refFlags;
+    if (!ensurePicture(picture, reconstruct, refFlags))
         return ret;
 
     if (!ensureQMatrix(picture))
@@ -300,7 +387,7 @@ YamiStatus VaapiEncoderVP8::encodePicture(const PicturePtr& picture)
     if (!picture->encode())
         return ret;
 
-    if (!referenceListUpdate (picture, reconstruct))
+    if (!referenceListUpdate(picture, reconstruct, refFlags))
         return ret;
 
     return YAMI_SUCCESS;
