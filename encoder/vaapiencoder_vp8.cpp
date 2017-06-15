@@ -33,6 +33,14 @@ namespace YamiMediaCodec{
 //golden, alter, last
 #define MAX_REFERECNE_FRAME 3
 #define VP8_DEFAULT_QP     40
+#define VP8_MAX_TEMPORAL_LAYER_NUM 3
+
+#define VP8_MIN_TEMPORAL_GOP 4
+
+static uint32_t VP8TempIds[VP8_MAX_TEMPORAL_LAYER_NUM][VP8_MIN_TEMPORAL_GOP]
+    = { { 0, 0, 0, 0 },
+        { 0, 1, 0, 1 },
+        { 0, 2, 1, 2 } };
 
 class VaapiEncPictureVP8 : public VaapiEncPicture
 {
@@ -96,6 +104,57 @@ void Vp8EncoderNormal::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer) co
     refFlags.copy_buffer_to_alternate = 2;
 
 }
+class Vp8EncoderSvct : public Vp8Encoder {
+public:
+    Vp8EncoderSvct(uint8_t layerIndex)
+        : m_layerIndex(layerIndex % VP8_MAX_TEMPORAL_LAYER_NUM)
+    {
+    }
+    void getRefFlags(RefFlags&, uint8_t temporalLayer) const;
+    void getLayerIds(std::vector<uint32_t>& ids) const;
+
+    bool getErrorResilient() const { return true; }
+    bool getRefreshEntropyProbs() const { return false; }
+    uint8_t getTemporalLayer(uint32_t frameNum) const;
+
+private:
+    uint8_t m_layerIndex;
+};
+
+uint8_t Vp8EncoderSvct::getTemporalLayer(uint32_t frameNum) const
+{
+    return VP8TempIds[m_layerIndex][frameNum % VP8_MIN_TEMPORAL_GOP];
+}
+
+void Vp8EncoderSvct::getLayerIds(std::vector<uint32_t>& ids) const
+{
+    for (uint32_t i = 0; i < VP8_MIN_TEMPORAL_GOP; i++)
+        ids.push_back(VP8TempIds[m_layerIndex][i]);
+}
+
+void Vp8EncoderSvct::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer) const
+{
+    switch (temporalLayer) {
+    case 2:
+        refFlags.refresh_alternate_frame = 1;
+        //let drop the third layer's frames on terrible network condition.
+        refFlags.no_ref_arf = 1;
+        break;
+    case 1:
+        refFlags.refresh_golden_frame = 1;
+        refFlags.no_ref_arf = 1;
+        break;
+    case 0:
+        refFlags.refresh_last = 1;
+        refFlags.no_ref_gf = 1;
+        refFlags.no_ref_arf = 1;
+        break;
+    default:
+        ERROR("temporal layer %d is out of the range[0, 2].", temporalLayer);
+        break;
+    }
+}
+
 VaapiEncoderVP8::VaapiEncoderVP8():
 	m_frameCount(0),
 	m_qIndex(VP8_DEFAULT_QP)
@@ -128,7 +187,20 @@ void VaapiEncoderVP8::resetParams()
     m_maxCodedbufSize = width() * height() * 3 / 2 + VP8_HEADER_MAX_SIZE;
     if (ipPeriod() == 0)
         m_videoParamCommon.intraPeriod = 1;
-    m_encoder.reset(new Vp8EncoderNormal());
+
+    uint8_t layerIndex = m_videoParamCommon.temporalLayers.numLayersMinus1;
+    for (uint32_t i = 0; i < layerIndex; i++) {
+        uint32_t expTemId = (1 << (layerIndex - i));
+        m_svctFrameRate[i].frameRateDenom = expTemId;
+        m_svctFrameRate[i].frameRateNum = fps();
+    }
+
+    if (layerIndex > 0) {
+        m_encoder.reset(new Vp8EncoderSvct(layerIndex));
+    }
+    else {
+        m_encoder.reset(new Vp8EncoderNormal());
+    }
 }
 
 YamiStatus VaapiEncoderVP8::start()
@@ -192,6 +264,7 @@ YamiStatus VaapiEncoderVP8::doEncode(const SurfacePtr& surface, uint64_t timeSta
     else
         picture->m_type = VAAPI_PICTURE_P;
 
+    picture->m_temporalID = m_encoder->getTemporalLayer(m_frameCount % keyFramePeriod());
     m_frameCount++;
 
     m_qIndex = (initQP() > minQP() && initQP() < maxQP()) ? initQP() : VP8_DEFAULT_QP;
@@ -234,6 +307,10 @@ void VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const RefFl
     picParam->ref_flags.bits.no_ref_last = refFlags.no_ref_last;
     picParam->ref_flags.bits.no_ref_gf = refFlags.no_ref_gf;
     picParam->ref_flags.bits.no_ref_arf = refFlags.no_ref_arf;
+    if (!picParam->ref_flags.bits.no_ref_last)
+        picParam->ref_flags.bits.first_ref = 0x01;
+    if (!picParam->ref_flags.bits.no_ref_gf)
+        picParam->ref_flags.bits.second_ref = 0x02;
 }
 /* Fills in VA picture parameter buffer */
 bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const PicturePtr& picture,
@@ -246,7 +323,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
         picParam->ref_gf_frame = m_golden->getID();
         picParam->ref_last_frame = m_last->getID();
 
-        m_encoder->getRefFlags(refFlags, 0);
+        m_encoder->getRefFlags(refFlags, picture->m_temporalID);
         fill(picParam, refFlags);
     } else {
         picParam->ref_last_frame = VA_INVALID_SURFACE;
@@ -255,6 +332,7 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
     }
 
     picParam->coded_buf = picture->getCodedBufferID();
+    picParam->ref_flags.bits.temporal_id = picture->m_temporalID;
 
     picParam->pic_flags.bits.show_frame = 1;
     /*TODO: multi partition*/
@@ -361,6 +439,32 @@ bool VaapiEncoderVP8::referenceListUpdate (const PicturePtr& pic, const SurfaceP
         if (refFlags.refresh_last)
             m_last = recon;
     }
+    return true;
+}
+/* Generates additional control parameters */
+bool VaapiEncoderVP8::ensureMiscParams(VaapiEncPicture* picture)
+{
+    VideoRateControl mode = rateControlMode();
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
+        if (m_videoParamCommon.temporalLayers.numLayersMinus1 > 0) {
+            VAEncMiscParameterTemporalLayerStructure* layerParam = NULL;
+            if (!picture->newMisc(VAEncMiscParameterTypeTemporalLayerStructure,
+                    layerParam))
+                return false;
+
+            std::vector<uint32_t> ids;
+            m_encoder->getLayerIds(ids);
+            if (layerParam) {
+                layerParam->number_of_layers = m_videoParamCommon.temporalLayers.numLayersMinus1 + 1;
+                layerParam->periodicity = ids.size();
+                std::copy(ids.begin(), ids.end(), layerParam->layer_id);
+            }
+        }
+    }
+
+    if (!VaapiEncoderBase::ensureMiscParams(picture))
+        return false;
+
     return true;
 }
 

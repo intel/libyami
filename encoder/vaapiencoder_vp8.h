@@ -48,6 +48,7 @@ public:
 
 protected:
     virtual YamiStatus doEncode(const SurfacePtr&, uint64_t timeStamp, bool forceKeyFrame = false);
+    virtual bool ensureMiscParams(VaapiEncPicture*);
 
 private:
     friend class FactoryTest<IVideoEncoder, VaapiEncoderVP8>;
