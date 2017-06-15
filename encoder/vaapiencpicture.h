@@ -63,6 +63,7 @@ class VaapiEncPicture:public VaapiPicture {
 #endif
 
     CodedBufferPtr m_codedBuffer;
+    uint8_t m_temporalID;
 
   private:
     bool doRender();

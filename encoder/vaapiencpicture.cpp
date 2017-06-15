@@ -30,7 +30,8 @@ namespace YamiMediaCodec{
 VaapiEncPicture::VaapiEncPicture(const ContextPtr& context,
                                  const SurfacePtr & surface,
                                  int64_t timeStamp)
-:VaapiPicture(context, surface, timeStamp)
+: VaapiPicture(context, surface, timeStamp)
+, m_temporalID(0)
 {
 }
 
