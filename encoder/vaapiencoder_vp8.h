@@ -26,11 +26,14 @@
 namespace YamiMediaCodec{
 
 class VaapiEncPictureVP8;
+class Vp8Encoder;
+struct RefFlags;
 class VaapiEncoderVP8 : public VaapiEncoderBase {
 public:
     //shortcuts, It's intended to elimilate codec diffrence
     //to make template for other codec implelmentation.
     typedef SharedPtr<VaapiEncPictureVP8> PicturePtr;
+    typedef SharedPtr<Vp8Encoder> Vp8EncoderPtr;
     typedef SurfacePtr ReferencePtr;
 
     VaapiEncoderVP8();
@@ -52,12 +55,15 @@ private:
 
     YamiStatus encodePicture(const PicturePtr&);
     bool fill(VAEncSequenceParameterBufferVP8*) const;
-    bool fill(VAEncPictureParameterBufferVP8*, const PicturePtr&, const SurfacePtr&) const ;
+    void fill(VAEncPictureParameterBufferVP8*, const RefFlags&) const;
+    bool fill(VAEncPictureParameterBufferVP8*, const PicturePtr&, const SurfacePtr&, RefFlags&) const;
     bool fill(VAQMatrixBufferVP8* qMatrix) const;
     bool ensureSequence(const PicturePtr&);
-    bool ensurePicture (const PicturePtr&, const SurfacePtr&);
+    bool ensurePicture (const PicturePtr&, const SurfacePtr&, RefFlags&);
     bool ensureQMatrix (const PicturePtr&);
-    bool referenceListUpdate (const PicturePtr&, const SurfacePtr&);
+    const SurfacePtr& referenceUpdate(const SurfacePtr& to, const SurfacePtr& from,
+        const SurfacePtr& recon, bool refresh, uint32_t copy) const;
+    bool referenceListUpdate (const PicturePtr&, const SurfacePtr&, const RefFlags&);
 
     void resetParams();
 
@@ -69,8 +75,10 @@ private:
 
     int m_qIndex;
 
-    typedef std::deque<SurfacePtr> ReferenceQueue;
-    std::deque<SurfacePtr> m_reference;
+    SurfacePtr m_last;
+    SurfacePtr m_golden;
+    SurfacePtr m_alt;
+    Vp8EncoderPtr m_encoder;
 
     /**
      * VaapiEncoderFactory registration result. This encoder is registered in
