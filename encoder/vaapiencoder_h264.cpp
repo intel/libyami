@@ -821,12 +821,12 @@ private:
 class VaapiEncoderH264Ref
 {
 public:
-    VaapiEncoderH264Ref(const PicturePtr& picture, const SurfacePtr& surface):
-        m_frameNum(picture->m_frameNum),
-        m_poc(picture->m_poc),
-        m_pic(surface), 
-        m_temporalId(picture->m_temporalId), 
-        m_diffPicNumMinus1(0)
+    VaapiEncoderH264Ref(const PicturePtr& picture, const SurfacePtr& surface)
+        : m_frameNum(picture->m_frameNum)
+        , m_poc(picture->m_poc)
+        , m_pic(surface)
+        , m_temporalId(picture->m_temporalId)
+        , m_diffPicNumMinus1(0)
     {
     }
     uint32_t m_frameNum;
@@ -962,34 +962,6 @@ void VaapiEncoderH264::checkSvcTempLimitaion()
             = 1 << (uint32_t)ceil(log2(intraPeriod())); // make sure Gop is 2^n.
     }
 
-    // check every layer bitrate is set for BRC
-    if (bitRate()) {
-        uint32_t* layerBitRate = m_videoParamCommon.rcParams.layerBitRate;
-
-        if (layerBitRate[m_temporalLayerNum - 1] != bitRate())
-            layerBitRate[m_temporalLayerNum - 1] = bitRate();
-
-#if VA_CHECK_VERSION(0, 39, 4)
-        bool resetLayerBitRate = false;
-        uint32_t i;
-        for (i = 0; i < m_temporalLayerNum - 1; i++) {
-            if (!layerBitRate[i] || layerBitRate[i] >= layerBitRate[i + 1]) {
-                ERROR(" layer bit rate setting error, need to be reset ");
-                resetLayerBitRate = true;
-                break;
-            }
-        }
-
-        if (resetLayerBitRate) {
-            for (i = 0; i < m_temporalLayerNum - 1; i++)
-                layerBitRate[i] = bitRate()
-                                  / (1 << (m_temporalLayerNum - 1 - i));
-        }
-#else
-        if (m_isSvcT)
-            ERROR("For SVC-T BRC, please make sure libva version >= 0.39.4");
-#endif
-    }
 }
 
 void VaapiEncoderH264::resetParams ()
@@ -1011,7 +983,7 @@ void VaapiEncoderH264::resetParams ()
     DEBUG("resetParams, ensureCodedBufferSize");
     ensureCodedBufferSize();
 
-    m_temporalLayerNum = m_videoParamAVC.temporalLayerNum;
+    m_temporalLayerNum = m_videoParamCommon.temporalLayers.numLayersMinus1 + 1;
 
     // enable prefix nal unit for simulcast or svc-t
     if (m_temporalLayerNum > 1 || m_videoParamAVC.priorityId)
@@ -1019,6 +991,12 @@ void VaapiEncoderH264::resetParams ()
 
     checkProfileLimitation();
     checkSvcTempLimitaion();
+
+    for (uint32_t i = 0; i < m_videoParamCommon.temporalLayers.numLayersMinus1; i++) {
+        uint32_t expTemId = (1 << (m_temporalLayerNum - 1 - i));
+        m_svctFrameRate[i].frameRateDenom = expTemId;
+        m_svctFrameRate[i].frameRateNum = fps();
+    }
 
     if (intraPeriod() == 0) {
         ERROR("intra period must larger than 0");
@@ -1326,44 +1304,9 @@ void VaapiEncoderH264::fill(
 }
 #endif
 
-void VaapiEncoderH264::fill(VAEncMiscParameterRateControl* rateControl,
-                            uint32_t temporalId) const
-{
-    VaapiEncoderBase::fill(rateControl);
-
-    rateControl->bits_per_second
-        = m_videoParamCommon.rcParams.layerBitRate[temporalId];
-#if VA_CHECK_VERSION(0, 39, 4)
-    rateControl->rc_flags.bits.temporal_id = temporalId;
-#endif
-}
-
-void VaapiEncoderH264::fill(VAEncMiscParameterFrameRate* frameRate,
-                            uint32_t temporalId) const
-{
-    uint32_t expTemId = (1 << (m_temporalLayerNum - 1 - temporalId));
-    if (fps() % expTemId == 0)
-        frameRate->framerate = fps() / expTemId;
-    else
-        frameRate->framerate = (expTemId << 16 | fps());
-
-#if VA_CHECK_VERSION(0, 39, 4)
-    frameRate->framerate_flags.bits.temporal_id = temporalId;
-#endif
-}
-
 /* Generates additional control parameters */
 bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
 {
-    VAEncMiscParameterHRD* hrd = NULL;
-    if (!picture->newMisc(VAEncMiscParameterTypeHRD, hrd))
-        return false;
-    if (hrd)
-        VaapiEncoderBase::fill(hrd);
-
-    if (!fillQualityLevel(picture))
-        return false;
-
     VideoRateControl mode = rateControlMode();
     if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
 #if VA_CHECK_VERSION(0, 39, 4)
@@ -1376,21 +1319,11 @@ bool VaapiEncoderH264::ensureMiscParams(VaapiEncPicture* picture)
                 fill(layerParam);
         }
 #endif
-        for (uint32_t i = 0; i < m_temporalLayerNum; i++) {
-            VAEncMiscParameterRateControl* rateControl = NULL;
-            if (!picture->newMisc(VAEncMiscParameterTypeRateControl,
-                                  rateControl))
-                return false;
-            if (rateControl)
-                fill(rateControl, i);
-
-            VAEncMiscParameterFrameRate* frameRate = NULL;
-            if (!picture->newMisc(VAEncMiscParameterTypeFrameRate, frameRate))
-                return false;
-            if (frameRate)
-                fill(frameRate, i);
-        }
     }
+
+    if (!VaapiEncoderBase::ensureMiscParams(picture))
+        return false;
+
     return true;
 }
 

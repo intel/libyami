@@ -100,9 +100,11 @@ protected:
 
     //rate control related things
     void fill(VAEncMiscParameterHRD*) const ;
-    void fill(VAEncMiscParameterRateControl*) const ;
-    void fill(VAEncMiscParameterFrameRate*) const;
+    void fill(VAEncMiscParameterRateControl*, uint32_t temporalID = 0) const;
+    void fill(VAEncMiscParameterFrameRate*, uint32_t temporalID) const;
     virtual bool ensureMiscParams(VaapiEncPicture*);
+    bool ensureRateControl(VaapiEncPicture* picture, uint32_t temporalID);
+    bool ensureFrameRate(VaapiEncPicture* picture, uint32_t temporalID);
 
     //properties
     VideoProfile profile() const;
@@ -181,6 +183,7 @@ protected:
     uint32_t m_vaVideoParamQualityLevel;
     uint32_t m_maxOutputBuffer; // max count of frames are encoding in parallel, it hurts performance when m_maxOutputBuffer is too big.
     uint32_t m_maxCodedbufSize;
+    VideoFrameRate m_svctFrameRate[TEMPORAL_LAYER_LENGTH_MAX];
 
 private:
     bool initVA();
