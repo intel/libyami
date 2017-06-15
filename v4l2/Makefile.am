@@ -10,8 +10,8 @@ libyamiv4l2_source_c += ../egl/egl_util.c ../egl/egl_vaapi_image.cpp
 endif
 
 libyamiv4l2_source_h = \
-	v4l2_wrapper.h \
-	v4l2codec_device_ops.h \
+	../interface/v4l2_wrapper.h \
+	../interface/v4l2codec_device_ops.h \
 	$(NULL)
 
 libyamiv4l2_source_h_priv = \
