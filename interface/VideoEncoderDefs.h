@@ -174,7 +174,6 @@ typedef struct VideoRateControlParams {
     uint32_t disableBitsStuffing;
     int8_t diffQPIP;// P frame qp minus initQP
     int8_t diffQPIB;// B frame qp minus initQP
-    uint32_t layerBitRate[32]; // specify each scalable layer bitrate
 }VideoRateControlParams;
 
 typedef struct SliceNum {
@@ -245,7 +244,6 @@ typedef struct VideoParamsAVC {
     bool  enableDeblockFilter;
     int8_t deblockAlphaOffsetDiv2; //same as slice_alpha_c0_offset_div2 defined in h264 spec 7.4.3
     int8_t deblockBetaOffsetDiv2; //same as slice_beta_offset_div2 defined in h264 spec 7.4.3
-    uint32_t temporalLayerNum;
     uint32_t priorityId;
     // enable prefix NAL unit defined as h264 spec G.3.42.
     // It can be used for h264 simucast or svc-t encoding.
