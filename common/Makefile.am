@@ -9,7 +9,7 @@ libyami_common_source_c = \
 	$(NULL)
 
 libyami_common_source_h = \
-	YamiVersion.h \
+	../interface/YamiVersion.h \
 	$(NULL)
 
 libyami_common_source_h_priv = \

@@ -482,7 +482,7 @@ AC_CONFIG_FILES([Makefile
 AC_OUTPUT([
          pkgconfig/libyami.pc
          pkgconfig/libyami_v4l2.pc
-         common/YamiVersion.h
+         interface/YamiVersion.h
 ])
 
 # Print a configuration summary

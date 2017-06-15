@@ -4,8 +4,8 @@ libyami_capi_source_c = \
 	$(NULL)
 
 libyami_capi_source_h = \
-	VideoDecoderCapi.h \
-	VideoEncoderCapi.h \
+	../interface/VideoDecoderCapi.h \
+	../interface/VideoEncoderCapi.h \
 	$(NULL)
 
 libyami_capi_source_h_priv = \
