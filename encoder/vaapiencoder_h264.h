@@ -68,8 +68,6 @@ private:
 #if VA_CHECK_VERSION(0, 39, 4)
     void fill(VAEncMiscParameterTemporalLayerStructure*) const;
 #endif
-    void fill(VAEncMiscParameterRateControl*, uint32_t temporalId) const;
-    void fill(VAEncMiscParameterFrameRate*, uint32_t temporalId) const;
     bool fill(VAEncSequenceParameterBufferH264*) const;
     bool fill(VAEncPictureParameterBufferH264*, const PicturePtr&, const SurfacePtr&) const ;
     bool ensureSequenceHeader(const PicturePtr&, const VAEncSequenceParameterBufferH264* const);
