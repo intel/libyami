@@ -98,6 +98,26 @@ protected:
 #endif
 };
 
+#if defined(__ENABLE_X11__)
+bool haveX11Display()
+{
+    Display* display = XOpenDisplay(NULL);
+    if (display) {
+        XCloseDisplay(display);
+        return true;
+    }
+    return false;
+}
+#endif
+
+const std::string getFullTestName()
+{
+    const ::testing::TestInfo* const info = ::testing::UnitTest::GetInstance()->current_test_info();
+    return std::string(info->test_case_name())
+        + std::string(".")
+        + std::string(info->name());
+}
+
 #define VAAPI_DISPLAY_TEST(name) \
     TEST_F(VaapiDisplayTest, name)
 
@@ -154,6 +174,14 @@ VAAPI_DISPLAY_TEST(CreateInvalidHandleVA) {
 
 #if defined(__ENABLE_X11__)
 VAAPI_DISPLAY_TEST(CreateX11) {
+
+    if (!haveX11Display()) {
+        RecordProperty("skipped", true);
+        std::cout << "[  SKIPPED ] " << getFullTestName()
+                  << " We can't test this in terminal, we need a X11 window for this" << std::endl;
+        return;
+    }
+
     // Let yami create the native display
     NativeDisplay native = {0, NATIVE_DISPLAY_X11};
     DisplayPtr display = VaapiDisplay::create(native);
@@ -250,6 +278,14 @@ VAAPI_DISPLAY_TEST(CreateVA) {
 
 #if defined(__ENABLE_X11__)
 VAAPI_DISPLAY_TEST(CompatibleX11) {
+
+    if (!haveX11Display()) {
+        RecordProperty("skipped", true);
+        std::cout << "[  SKIPPED ] " << getFullTestName()
+                  << " We can't test this in terminal, we need a X11 window for this" << std::endl;
+        return;
+    }
+
     NativeDisplay native = {openX11Handle(), NATIVE_DISPLAY_X11};
     DisplayPtr display = VaapiDisplay::create(native);
 
