@@ -41,6 +41,7 @@
 // system headers
 #include <algorithm>
 #include <stdint.h>
+#include <deque>
 
 namespace YamiMediaCodec {
 
@@ -209,15 +210,49 @@ class DecodeApiTest
       public ::testing::WithParamInterface<TestDecodeFrames::Shared> {
 };
 
-bool checkOutput(SharedPtr<IVideoDecoder>& decoder, VideoFormatInfo& format)
+bool checkOutput(SharedPtr<IVideoDecoder>& decoder, std::deque<VideoFormatInfo>& formats)
 {
     SharedPtr<VideoFrame> output(decoder->getOutput());
     bool gotOutput = bool(output);
     if (gotOutput) {
-        EXPECT_EQ(format.width, output->crop.width);
-        EXPECT_EQ(format.height, output->crop.height);
+        int size = (int)formats.size();
+        EXPECT_GT(size, 0);
+
+        const VideoFormatInfo& format = formats.front();
+
+        if (format.width != output->crop.width
+            || format.height != output->crop.height) {
+            formats.pop_front();
+            EXPECT_GT(size, 1);
+
+            const VideoFormatInfo& f = formats.front();
+            EXPECT_EQ(f.width, output->crop.width);
+            EXPECT_EQ(f.height, output->crop.height);
+        }
+
+        //Consider a corner case here, nalu based h264 decoder.
+        //We have three frames with different resolution. R1 R2 R3.
+        //When we decode R3, it will generate format change, and we send R3 again.
+        //The h264 decoder will cache R3 and wait for AUD or next frame to decide
+        //it's a complete frame. So R3 is not *really* decoded,  It only has R1, R2 decoded.
+        //According to h264 decode logical, IDR frame R2 will make all previous frames bumped.
+        //But it does not include himself. So we only get R1 output.
+        //So the formats will include three resolution R1, R2, R3
+        size = (int)formats.size();
+        EXPECT_LE(size, 3);
+
     }
     return gotOutput;
+}
+
+bool isFormatChanged(const std::deque<VideoFormatInfo>& formats, const FrameInfo& info)
+{
+    if (formats.size() == 0) {
+        //no format yet any frame will generate format change
+        return true;
+    }
+    const VideoFormatInfo& format = formats.back();
+    return (format.width != info.m_width) || (format.height != info.m_height);
 }
 
 TEST_P(DecodeApiTest, Format_Change)
@@ -243,30 +278,23 @@ TEST_P(DecodeApiTest, Format_Change)
     uint32_t inFrames = 0;
     uint32_t outFrames = 0;
     //keep previous resolution
-    VideoFormatInfo prevFormat;
-    memset(&prevFormat, 0, sizeof(prevFormat));
+    std::deque<VideoFormatInfo> formats;
 
     while (frames.getFrame(buffer, info)) {
 
         YamiStatus status = decoder->decode(&buffer);
-        if (prevFormat.width != info.m_width
-            || prevFormat.height != info.m_height) {
+        if (isFormatChanged(formats, info)) {
             EXPECT_EQ(YAMI_DECODE_FORMAT_CHANGE, status);
         }
-        while (checkOutput(decoder, prevFormat))
-            outFrames++;
-
         if (status == YAMI_DECODE_FORMAT_CHANGE) {
-            //we need ouptut all previous frames
-            EXPECT_EQ(inFrames, outFrames);
 
             //check format
             const VideoFormatInfo* format = decoder->getFormatInfo();
             ASSERT_TRUE(format);
             EXPECT_EQ(info.m_width, format->width);
             EXPECT_EQ(info.m_height, format->height);
+            formats.push_back(*format);
             allocator->onFormatChange(format);
-            prevFormat = *format;
 
             //send buffer again
             EXPECT_EQ(YAMI_SUCCESS, decoder->decode(&buffer));
@@ -275,12 +303,17 @@ TEST_P(DecodeApiTest, Format_Change)
             EXPECT_EQ(YAMI_SUCCESS, status);
         }
         inFrames++;
+        while (checkOutput(decoder, formats))
+            outFrames++;
+
+
     }
     //drain the decoder
     EXPECT_EQ(YAMI_SUCCESS, decoder->decode(NULL));
-    while (checkOutput(decoder, prevFormat))
+    while (checkOutput(decoder, formats))
         outFrames++;
     EXPECT_TRUE(inFrames > 0);
+    EXPECT_EQ((int)formats.size(), 1);
     EXPECT_EQ(inFrames, outFrames);
 }
 
