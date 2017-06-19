@@ -164,9 +164,7 @@ void VaapiDecoderBase::flush(void)
 {
 
     INFO("base: flush()");
-    if (m_surfacePool) {
-        m_surfacePool->flush();
-    }
+    m_output.clear();
 
     m_currentPTS = INVALID_PTS;
 }
@@ -174,10 +172,11 @@ void VaapiDecoderBase::flush(void)
 SharedPtr<VideoFrame> VaapiDecoderBase::getOutput()
 {
     SharedPtr<VideoFrame> frame;
-    DecSurfacePoolPtr& pool = m_surfacePool;
-    if (!pool)
+    if (m_output.empty())
         return frame;
-    return pool->getOutput();
+    frame = m_output.front();
+    m_output.pop_front();
+    return frame;
 }
 
 const VideoFormatInfo *VaapiDecoderBase::getFormatInfo(void)
@@ -396,13 +395,23 @@ SurfacePtr VaapiDecoderBase::createSurface()
     return surface;
 }
 
+struct VaapiDecoderBase::VideoFrameRecycler {
+    VideoFrameRecycler(const SurfacePtr& surface)
+        : m_surface(surface)
+    {
+    }
+    void operator()(VideoFrame* frame) {}
+private:
+    SurfacePtr m_surface;
+};
+
 YamiStatus VaapiDecoderBase::outputPicture(const PicturePtr& picture)
 {
-    //TODO: reorder poc
-    return m_surfacePool->output(picture->getSurface(),
-               picture->m_timeStamp)
-        ? YAMI_SUCCESS
-        : YAMI_FAIL;
+    SurfacePtr surface = picture->getSurface();
+    SharedPtr<VideoFrame> frame(surface->m_frame.get(), VideoFrameRecycler(surface));
+    frame->timeStamp = picture->m_timeStamp;
+    m_output.push_back(frame);
+    return YAMI_SUCCESS;
 }
 
 VADisplay VaapiDecoderBase::getDisplayID()
