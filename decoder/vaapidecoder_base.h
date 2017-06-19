@@ -114,6 +114,11 @@ class VaapiDecoderBase:public IVideoDecoder {
     SharedPtr<SurfaceAllocator> m_allocator;
     SharedPtr<SurfaceAllocator> m_externalAllocator;
 
+    /* output queue*/
+    typedef std::deque<SharedPtr<VideoFrame> > OutputQueue;
+    OutputQueue m_output;
+
+
     bool m_VAStarted;
 
     uint64_t m_currentPTS;
@@ -122,6 +127,8 @@ class VaapiDecoderBase:public IVideoDecoder {
       bool createAllocator();
       YamiStatus ensureSurfacePool();
       VideoDecoderConfig m_config;
+
+      struct VideoFrameRecycler;
 
 #ifdef __ENABLE_DEBUG__
     int renderPictureCount;

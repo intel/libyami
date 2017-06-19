@@ -174,44 +174,4 @@ SurfacePtr VaapiDecSurfacePool::acquire()
     return surface;
 }
 
-struct VaapiDecSurfacePool::VideoFrameRecycler {
-    VideoFrameRecycler(const SurfacePtr& surface)
-        : m_surface(surface)
-    {
-    }
-    void operator()(VideoFrame* frame) {}
-private:
-    SurfacePtr m_surface;
-};
-
-bool VaapiDecSurfacePool::output(const SurfacePtr& surface, int64_t timeStamp)
-{
-    AutoLock lock(m_lock);
-    SharedPtr<VideoFrame> frame(surface->m_frame.get(), VideoFrameRecycler(surface));
-    frame->timeStamp = timeStamp;
-    m_output.push_back(frame);
-    return true;
-}
-
-SharedPtr<VideoFrame> VaapiDecSurfacePool::getOutput()
-{
-    SharedPtr<VideoFrame> frame;
-    AutoLock lock(m_lock);
-    if (m_output.empty())
-        return frame;
-    frame = m_output.front();
-    m_output.pop_front();
-    return frame;
-}
-
-void VaapiDecSurfacePool::flush()
-{
-    OutputQueue q;
-    {
-        //the VideoFrame deconstructor will triggle putSurface, we can't hold the lock to call it 
-        AutoLock lock(m_lock);
-        q.swap(m_output);
-    }
-}
-
 } //namespace YamiMediaCodec

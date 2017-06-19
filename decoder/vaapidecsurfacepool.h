@@ -62,14 +62,6 @@ public:
     void getSurfaceIDs(std::vector<VASurfaceID>& ids);
     /// get a free surface
     SurfacePtr acquire();
-    /// push surface to output queue
-    bool output(const SurfacePtr&, int64_t timetamp);
-    /// get surface from output queue
-    SharedPtr<VideoFrame> getOutput();
-
-    //flush everything in ouptut queue
-    void flush();
-
     ~VaapiDecSurfacePool();
 
 
@@ -93,10 +85,6 @@ private:
     std::deque<intptr_t> m_freed;
     std::set<intptr_t> m_used;
 
-    /* output queue*/
-    typedef std::deque<SharedPtr<VideoFrame> > OutputQueue;
-    OutputQueue m_output;
-
     Lock m_lock;
 
     //for external allocator
@@ -104,7 +92,6 @@ private:
     SurfaceAllocParams m_allocParams;
 
     struct SurfaceRecycler;
-    struct VideoFrameRecycler;
 
     DISALLOW_COPY_AND_ASSIGN(VaapiDecSurfacePool);
 };
