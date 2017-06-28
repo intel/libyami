@@ -42,7 +42,8 @@ BitReader::BitReader(const uint8_t* pdata, uint32_t size)
     , m_loadBytes(0)
     , m_bitsInCache(0)
 {
-    assert(pdata && size);
+    if (size)
+        assert(pdata);
 }
 
 void BitReader::loadDataToCache(uint32_t nbytes)
