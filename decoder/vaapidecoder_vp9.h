@@ -54,6 +54,9 @@ class VaapiDecoderVP9:public VaapiDecoderBase {
     ParserPtr m_parser;
     std::vector<SurfacePtr> m_reference;
 
+    //Can't decode p frame without key.
+    bool m_gotKeyFrame;
+
     /**
      * VaapiDecoderFactory registration result. This decoder is registered in
      * vaapidecoder_host.cpp
