@@ -73,4 +73,27 @@ BITREADER_TEST(NoOverflow)
     EXPECT_EQ(0u, reader.getRemainingBitsCount());
 }
 
+void checkBitreadEmpty(BitReader& reader)
+{
+    EXPECT_TRUE(reader.end());
+    EXPECT_EQ(0u, reader.getPos());
+    EXPECT_EQ(0u,
+        reader.getRemainingBitsCount());
+    bool b;
+    EXPECT_FALSE(reader.readT(b));
+    EXPECT_TRUE(reader.end());
+}
+
+BITREADER_TEST(NullInit)
+{
+    uint8_t data = 0;
+    BitReader r1(&data, 0);
+    checkBitreadEmpty(r1);
+
+    BitReader r2(NULL, 0);
+    checkBitreadEmpty(r2);
+
+    EXPECT_DEATH(BitReader r3(NULL, 1), "");
+}
+
 } // namespace YamiParser
