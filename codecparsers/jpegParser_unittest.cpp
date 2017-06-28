@@ -240,7 +240,8 @@ JPEG_PARSER_TEST(Construct_InvalidParams)
     std::array<uint8_t, 1> data = {0x00};
 
     // invalid size
-    EXPECT_DEATH(Parser(&data[0], 0), "");
+    Parser parser(&data[0], 0);
+    EXPECT_FALSE(parser.parse());
 }
 
 JPEG_PARSER_TEST(Parse_NoSOI)
