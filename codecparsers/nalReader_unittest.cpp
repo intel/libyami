@@ -55,4 +55,31 @@ NALREADER_TEST(ReadBeyondBoundary)
     EXPECT_EQ(0, reader.readSe());
 }
 
+void checkBitreadEmpty(NalReader& reader)
+{
+    EXPECT_TRUE(reader.end());
+    EXPECT_EQ(0u, reader.getPos());
+    EXPECT_EQ(0u,
+        reader.getRemainingBitsCount());
+
+    uint32_t u;
+    int32_t s;
+    EXPECT_FALSE(reader.readUe(u));
+    EXPECT_FALSE(reader.readSe(s));
+
+    EXPECT_TRUE(reader.end());
+}
+
+NALREADER_TEST(NullInit)
+{
+    uint8_t data = 0;
+    NalReader r1(&data, 0);
+    checkBitreadEmpty(r1);
+
+    NalReader r2(NULL, 0);
+    checkBitreadEmpty(r2);
+
+    EXPECT_DEATH(NalReader r3(NULL, 1), "");
+}
+
 } // namespace YamiParser
