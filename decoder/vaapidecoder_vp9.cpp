@@ -47,6 +47,7 @@ static VAProfile profileMap(VP9_PROFILE src_profile)
 }
 
 VaapiDecoderVP9::VaapiDecoderVP9()
+    : m_gotKeyFrame(false)
 {
     m_parser.reset(vp9_parser_new(), vp9_parser_free);
     m_reference.resize(VP9_REF_FRAMES);
@@ -97,6 +98,7 @@ void VaapiDecoderVP9::flush(void)
 
 void VaapiDecoderVP9::flush(bool discardOutput)
 {
+    m_gotKeyFrame = false;
     m_parser.reset(vp9_parser_new(), vp9_parser_free);
     m_reference.clear();
     m_reference.resize(VP9_REF_FRAMES);
@@ -346,6 +348,15 @@ YamiStatus VaapiDecoderVP9::decode(const uint8_t* data, uint32_t size, uint64_t 
         return YAMI_OUT_MEMORY;
     if (vp9_parse_frame_header(m_parser.get(), &hdr, data, size) != VP9_PARSER_OK)
         return YAMI_DECODE_INVALID_DATA;
+    if (VP9_KEY_FRAME == hdr.frame_type) {
+        m_gotKeyFrame = true;
+    }
+    else {
+        if (!m_gotKeyFrame) {
+            WARNING("Can't decode p frame without key");
+            return YAMI_DECODE_INVALID_DATA;
+        }
+    }
     if (hdr.first_partition_size + hdr.frame_header_length_in_bytes > size)
         return YAMI_DECODE_INVALID_DATA;
     return decode(&hdr, data, size, timeStamp);
