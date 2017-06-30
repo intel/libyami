@@ -106,6 +106,14 @@ static FrameData g_jpegdata[] = {
     g_EOF,
 };
 
+static const std::string getFullTestName()
+{
+    const ::testing::TestInfo* const info = ::testing::UnitTest::GetInstance()->current_test_info();
+    return std::string(info->test_case_name())
+        + std::string(".")
+        + std::string(info->name());
+}
+
 class TestDecodeFrames {
 public:
     typedef SharedPtr<TestDecodeFrames> Shared;
@@ -297,7 +305,14 @@ TEST_P(DecodeApiTest, Format_Change)
             allocator->onFormatChange(format);
 
             //send buffer again
-            EXPECT_EQ(YAMI_SUCCESS, decoder->decode(&buffer));
+            status = decoder->decode(&buffer);
+            if (YAMI_UNSUPPORTED == status) {
+                RecordProperty("skipped", true);
+                std::cout << "[  SKIPPED ] " << getFullTestName()
+                          << " Hw does not support this decoder." << std::endl;
+                return;
+            }
+            EXPECT_EQ(YAMI_SUCCESS, status);
         }
         else {
             EXPECT_EQ(YAMI_SUCCESS, status);
@@ -364,7 +379,14 @@ TEST_P(DecodeApiTest, Flush)
                 allocator->onFormatChange(format);
 
                 //send buffer again
-                EXPECT_EQ(YAMI_SUCCESS, decoder->decode(&buffer));
+                status = decoder->decode(&buffer);
+                if (YAMI_UNSUPPORTED == status) {
+                    RecordProperty("skipped", true);
+                    std::cout << "[  SKIPPED ] " << getFullTestName()
+                              << " Hw does not support this decoder." << std::endl;
+                    return;
+                }
+                EXPECT_EQ(YAMI_SUCCESS, status);
             }
             else {
                 EXPECT_EQ(YAMI_SUCCESS, status);
