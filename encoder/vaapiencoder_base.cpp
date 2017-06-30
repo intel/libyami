@@ -539,6 +539,7 @@ void unrefAllocator(SurfaceAllocator* allocator)
 bool VaapiEncoderBase::initVA()
 {
     VAConfigAttrib attrib, *pAttrib = NULL;
+    ConfigPtr config;
     int32_t attribCount = 0;
     FUNC_ENTER();
 
@@ -555,8 +556,8 @@ bool VaapiEncoderBase::initVA()
         attribCount = 1;
     }
 
-    ConfigPtr config = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, pAttrib, attribCount);
-    if (!config) {
+    YamiStatus status = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, pAttrib, attribCount, config);
+    if (YAMI_SUCCESS != status) {
         ERROR("failed to create config");
         return false;
     }
