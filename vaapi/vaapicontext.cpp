@@ -79,27 +79,27 @@ static bool checkProfileCompatible(const DisplayPtr& display, VAProfile& profile
     return true;
 }
 
-ConfigPtr VaapiConfig::create(const DisplayPtr& display,
-                                     VAProfile profile, VAEntrypoint entry,
-                                     VAConfigAttrib *attribList, int numAttribs)
+YamiStatus VaapiConfig::create(const DisplayPtr& display,
+    VAProfile profile, VAEntrypoint entry,
+    VAConfigAttrib* attribList, int numAttribs,
+    ConfigPtr& confg)
 {
-    ConfigPtr ret;
     if (!display)
-        return ret;
+        return YAMI_FAIL;
     VAStatus vaStatus;
     VAConfigID config;
 
     if (!checkProfileCompatible(display, profile)){
         ERROR("Unsupport profile");
-        return ret;
+        return YAMI_UNSUPPORTED;
     }
 
     vaStatus = vaCreateConfig(display->getID(), profile, entry, attribList, numAttribs, &config);
 
     if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
-        return ret;
-    ret.reset(new VaapiConfig(display, config));
-    return ret;
+        return YAMI_FAIL;
+    confg.reset(new VaapiConfig(display, config));
+    return YAMI_SUCCESS;
 }
 
 VaapiConfig::VaapiConfig(const DisplayPtr& display, VAConfigID config)

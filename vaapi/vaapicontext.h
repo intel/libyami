@@ -27,8 +27,8 @@ class VaapiConfig
 {
 friend class VaapiContext;
 public:
-    static ConfigPtr create(const DisplayPtr&, VAProfile, VAEntrypoint,
-                    VAConfigAttrib *attribList, int numAttribs);
+    static YamiStatus create(const DisplayPtr&, VAProfile, VAEntrypoint,
+        VAConfigAttrib* attribList, int numAttribs, ConfigPtr& confg);
     ~VaapiConfig();
 private:
     VaapiConfig(const DisplayPtr&, VAConfigID);

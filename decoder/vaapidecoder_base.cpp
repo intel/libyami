@@ -213,12 +213,12 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
     VAConfigAttrib attrib;
     attrib.type = VAConfigAttribRTFormat;
     attrib.value = VA_RT_FORMAT_YUV420;
+    ConfigPtr config;
 
-
-    ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD,&attrib, 1);
-    if (!config) {
+    YamiStatus status = VaapiConfig::create(m_display, profile, VAEntrypointVLD, &attrib, 1, config);
+    if (YAMI_SUCCESS != status) {
         ERROR("failed to create config");
-        return YAMI_FAIL;
+        return status;
     }
 
     if (!m_externalAllocator) {
@@ -328,11 +328,12 @@ YamiStatus VaapiDecoderBase::ensureProfile(VAProfile profile)
     VAConfigAttrib attrib;
     attrib.type = VAConfigAttribRTFormat;
     attrib.value = VA_RT_FORMAT_YUV420;
+    ConfigPtr config;
 
-    ConfigPtr config = VaapiConfig::create(m_display, profile, VAEntrypointVLD, &attrib, 1);
-    if (!config) {
+    status = VaapiConfig::create(m_display, profile, VAEntrypointVLD, &attrib, 1, config);
+    if (YAMI_SUCCESS != status) {
         ERROR("failed to create config");
-        return YAMI_FAIL;
+        return status;
     }
 
     std::vector<VASurfaceID> surfaces;

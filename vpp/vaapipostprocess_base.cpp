@@ -43,8 +43,9 @@ YamiStatus VaapiPostProcessBase::initVA(const NativeDisplay& display)
         return YAMI_DRIVER_FAIL;
     }
 
-    ConfigPtr config = VaapiConfig::create(m_display, VAProfileNone, VAEntrypointVideoProc, NULL, 0);
-    if (!config) {
+    ConfigPtr config;
+    YamiStatus status = VaapiConfig::create(m_display, VAProfileNone, VAEntrypointVideoProc, NULL, 0, config);
+    if (YAMI_SUCCESS != status) {
         ERROR("failed to create config");
         return YAMI_NO_CONFIG;
     }
