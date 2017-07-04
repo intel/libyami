@@ -137,7 +137,7 @@ void Vp8EncoderSvct::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer) cons
     switch (temporalLayer) {
     case 2:
         refFlags.refresh_alternate_frame = 1;
-        //let drop the third layer's frames on terrible network condition.
+        //allow to drop the third layer's frames on terrible network condition.
         refFlags.no_ref_arf = 1;
         break;
     case 1:
@@ -457,7 +457,9 @@ bool VaapiEncoderVP8::ensureMiscParams(VaapiEncPicture* picture)
             if (layerParam) {
                 layerParam->number_of_layers = m_videoParamCommon.temporalLayers.numLayersMinus1 + 1;
                 layerParam->periodicity = ids.size();
-                std::copy(ids.begin(), ids.end(), layerParam->layer_id);
+                for (uint32_t i = 1; i < layerParam->periodicity; i++)
+                    layerParam->layer_id[i - 1] = ids[i];
+                layerParam->layer_id[layerParam->periodicity - 1] = ids[0];
             }
         }
     }
