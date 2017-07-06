@@ -79,23 +79,25 @@ struct RefFlags
 
 class Vp8Encoder {
 public:
-    virtual void getRefFlags(RefFlags&, uint8_t temporalLayer) const = 0;
+    virtual void getRefFlags(RefFlags&, uint8_t temporalLayer) = 0;
     virtual void getLayerIds(std::vector<uint32_t>& ids) const = 0;
     virtual bool getErrorResilient() const = 0;
     virtual bool getRefreshEntropyProbs() const = 0;
     virtual uint8_t getTemporalLayer(uint32_t frameNum) const = 0;
+    virtual void resetRefNum() = 0;
 };
 
 class Vp8EncoderNormal : public Vp8Encoder {
 public:
-    void getRefFlags(RefFlags&, uint8_t temporalLayer) const;
+    void getRefFlags(RefFlags&, uint8_t temporalLayer);
     void getLayerIds(std::vector<uint32_t>& ids) const { ASSERT(0 && "not suppose call this"); }
     bool getErrorResilient() const { return false; }
     bool getRefreshEntropyProbs() const { return false; }
     uint8_t getTemporalLayer(uint32_t frameNum) const { return 0; }
+    void resetRefNum() { return; }
 };
 
-void Vp8EncoderNormal::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer) const
+void Vp8EncoderNormal::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer)
 {
     refFlags.refresh_last = 1;
     refFlags.refresh_golden_frame = 0;
@@ -108,18 +110,26 @@ class Vp8EncoderSvct : public Vp8Encoder {
 public:
     Vp8EncoderSvct(uint8_t layerIndex)
         : m_layerIndex(layerIndex % VP8_MAX_TEMPORAL_LAYER_NUM)
+        , m_goldenRefreshed(false)
     {
     }
-    void getRefFlags(RefFlags&, uint8_t temporalLayer) const;
+    void getRefFlags(RefFlags&, uint8_t temporalLayer);
     void getLayerIds(std::vector<uint32_t>& ids) const;
 
     bool getErrorResilient() const { return true; }
     bool getRefreshEntropyProbs() const { return false; }
     uint8_t getTemporalLayer(uint32_t frameNum) const;
+    void resetRefNum();
 
 private:
     uint8_t m_layerIndex;
+    bool m_goldenRefreshed;
 };
+
+void Vp8EncoderSvct::resetRefNum()
+{
+    m_goldenRefreshed = false;
+}
 
 uint8_t Vp8EncoderSvct::getTemporalLayer(uint32_t frameNum) const
 {
@@ -132,22 +142,26 @@ void Vp8EncoderSvct::getLayerIds(std::vector<uint32_t>& ids) const
         ids.push_back(VP8TempIds[m_layerIndex][i]);
 }
 
-void Vp8EncoderSvct::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer) const
+void Vp8EncoderSvct::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer)
 {
+    refFlags.no_ref_arf = 1;
     switch (temporalLayer) {
     case 2:
+        if (!m_goldenRefreshed)
+            refFlags.no_ref_gf = 1;
         refFlags.refresh_alternate_frame = 1;
-        //allow to drop the third layer's frames on terrible network condition.
-        refFlags.no_ref_arf = 1;
+        //allow to drop the third layer's frames on terrible network condition,
+        //so the third layer's frames don't reference to each other.
         break;
     case 1:
+        if (!m_goldenRefreshed)
+            refFlags.no_ref_gf = 1;
         refFlags.refresh_golden_frame = 1;
-        refFlags.no_ref_arf = 1;
+        m_goldenRefreshed = true;
         break;
     case 0:
         refFlags.refresh_last = 1;
         refFlags.no_ref_gf = 1;
-        refFlags.no_ref_arf = 1;
         break;
     default:
         ERROR("temporal layer %d is out of the range[0, 2].", temporalLayer);
@@ -312,23 +326,30 @@ void VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const RefFl
     if (!picParam->ref_flags.bits.no_ref_gf)
         picParam->ref_flags.bits.second_ref = 0x02;
 }
+
 /* Fills in VA picture parameter buffer */
 bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const PicturePtr& picture,
                             const SurfacePtr& surface, RefFlags& refFlags) const
- {
-     picParam->reconstructed_frame = surface->getID();
-     if (picture->m_type == VAAPI_PICTURE_P) {
-         picParam->pic_flags.bits.frame_type = 1;
-        picParam->ref_arf_frame = m_alt->getID();
-        picParam->ref_gf_frame = m_golden->getID();
-        picParam->ref_last_frame = m_last->getID();
+{
+    picParam->reconstructed_frame = surface->getID();
+    picParam->ref_last_frame = VA_INVALID_SURFACE;
+    picParam->ref_gf_frame = VA_INVALID_SURFACE;
+    picParam->ref_arf_frame = VA_INVALID_SURFACE;
 
+    if (picture->m_type == VAAPI_PICTURE_P) {
+        picParam->pic_flags.bits.frame_type = 1;
         m_encoder->getRefFlags(refFlags, picture->m_temporalID);
+        if (!refFlags.no_ref_arf)
+            picParam->ref_arf_frame = m_alt->getID();
+        if (!refFlags.no_ref_gf)
+            picParam->ref_gf_frame = m_golden->getID();
+        if (!refFlags.no_ref_last)
+            picParam->ref_last_frame = m_last->getID();
+
         fill(picParam, refFlags);
-    } else {
-        picParam->ref_last_frame = VA_INVALID_SURFACE;
-        picParam->ref_gf_frame = VA_INVALID_SURFACE;
-        picParam->ref_arf_frame = VA_INVALID_SURFACE;
+    }
+    else {
+        m_encoder->resetRefNum();
     }
 
     picParam->coded_buf = picture->getCodedBufferID();
