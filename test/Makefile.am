@@ -30,7 +30,7 @@ unittest_LDFLAGS = \
 	$(NULL)
 
 unittest_LDADD = \
-	libyami_encoder.la \
+	$(top_builddir)/encoder/libyami_encoder.la \
 	$(top_builddir)/common/libyami_common.la \
 	$(top_builddir)/vaapi/libyami_vaapi.la \
 	$(top_builddir)/codecparsers/libyami_codecparser.la \
@@ -42,6 +42,7 @@ unittest_CPPFLAGS = \
 	$(LIBVA_CFLAGS) \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/interface \
+	-I$(top_srcdir)/encoder \
 	$(NULL)
 
 unittest_CXXFLAGS = \
@@ -65,7 +66,7 @@ unittest_host_LDFLAGS = \
 	$(NULL)
 
 unittest_host_LDADD = \
-	libyami_encoder.la \
+	$(top_builddir)/encoder/libyami_encoder.la \
 	$(top_builddir)/common/libyami_common.la \
 	$(top_builddir)/vaapi/libyami_vaapi.la \
 	$(top_builddir)/codecparsers/libyami_codecparser.la \
@@ -77,6 +78,7 @@ unittest_host_CPPFLAGS = \
 	$(LIBVA_CFLAGS) \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/interface \
+	-I$(top_srcdir)/encoder \
 	$(NULL)
 
 unittest_host_CXXFLAGS = \
@@ -87,3 +89,6 @@ unittest_host_CXXFLAGS = \
 check-local: unittest unittest_host
 	$(builddir)/unittest
 	$(builddir)/unittest_host
+
+DISTCLEANFILES = \
+	Makefile.in

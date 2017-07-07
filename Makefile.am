@@ -17,6 +17,10 @@ if ENABLE_V4L2
 SUBDIRS +=  v4l2
 endif
 
+if ENABLE_UNITTESTS
+SUBDIRS +=  test
+endif
+
 libyami_source_h = \
 	interface/Yami.h \
 	interface/YamiC.h \

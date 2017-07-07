@@ -477,7 +477,8 @@ AC_CONFIG_FILES([Makefile
                  v4l2/Makefile
                  capi/Makefile
                  doc/Makefile
-                 pkgconfig/Makefile])
+                 pkgconfig/Makefile
+                 test/Makefile])
 
 AC_OUTPUT([
          pkgconfig/libyami.pc
