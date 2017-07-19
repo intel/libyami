@@ -210,6 +210,9 @@ void VaapiEncoderVP8::resetParams()
     }
 
     if (layerIndex > 0) {
+#ifndef __ENABLE_VP8_SVCT__
+        ERROR("Please enable \"--enable-vp8svct\" during compilation!");
+#endif
         m_encoder.reset(new Vp8EncoderSvct(layerIndex));
     }
     else {
@@ -318,6 +321,8 @@ void VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const RefFl
     picParam->pic_flags.bits.refresh_last = refFlags.refresh_last;
     picParam->pic_flags.bits.copy_buffer_to_golden = refFlags.copy_buffer_to_golden;
     picParam->pic_flags.bits.copy_buffer_to_alternate = refFlags.copy_buffer_to_alternate;
+
+#ifdef __ENABLE_VP8_SVCT__
     picParam->ref_flags.bits.no_ref_last = refFlags.no_ref_last;
     picParam->ref_flags.bits.no_ref_gf = refFlags.no_ref_gf;
     picParam->ref_flags.bits.no_ref_arf = refFlags.no_ref_arf;
@@ -325,6 +330,7 @@ void VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const RefFl
         picParam->ref_flags.bits.first_ref = 0x01;
     if (!picParam->ref_flags.bits.no_ref_gf)
         picParam->ref_flags.bits.second_ref = 0x02;
+#endif
 }
 
 /* Fills in VA picture parameter buffer */
@@ -353,7 +359,9 @@ bool VaapiEncoderVP8::fill(VAEncPictureParameterBufferVP8* picParam, const Pictu
     }
 
     picParam->coded_buf = picture->getCodedBufferID();
+#ifdef __ENABLE_VP8_SVCT__
     picParam->ref_flags.bits.temporal_id = picture->m_temporalID;
+#endif
 
     picParam->pic_flags.bits.show_frame = 1;
     /*TODO: multi partition*/
