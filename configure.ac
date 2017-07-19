@@ -307,6 +307,16 @@ fi
 AM_CONDITIONAL(BUILD_VP8_ENCODER,
     [test "x$enable_vp8enc" = "xyes"])
 
+AC_ARG_ENABLE(vp8svct,
+    [AC_HELP_STRING([--enable-vp8svct],
+        [enable vp8 SVC-T encoding @<:@default=no@:>@])],
+    [], [enable_vp8svct="no"])
+
+if test "$enable_vp8enc" = "yes" -a "$enable_vp8svct" = "yes"; then
+    AC_DEFINE([__ENABLE_VP8_SVCT__], [1],
+        [Defined to 1 if --enable-vp8enc="yes" and --enable-vp8svct="yes"])
+fi
+
 dnl vp9 encoder
 AC_ARG_ENABLE(vp9enc,
     [AC_HELP_STRING([--enable-vp9enc],
