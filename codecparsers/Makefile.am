@@ -129,7 +129,7 @@ libyami_codecparser_la_SOURCES     = $(libyami_codecparser_source_c)
 libyami_codecparser_la_LDFLAGS     = $(libyami_codecparser_ldflags) $(AM_LDFLAGS)
 libyami_codecparser_la_CPPFLAGS    = $(libyami_codecparser_cppflags) $(AM_CPPFLAGS)
 
-if ENABLE_UNITTESTS
+if ENABLE_TESTS
 include Makefile.unittest
 endif
 

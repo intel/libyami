@@ -64,10 +64,6 @@ if test "$enable_debug" = "yes"; then
         [Defined to 1 if --enable-debug="yes"])
 fi
 
-GTEST_LIB_CHECK([1.7.0], [:], [:])
-AM_CONDITIONAL([ENABLE_UNITTESTS],
-    [test "x$HAVE_GTEST" = "xyes"])
-
 AC_ARG_ENABLE(dmabuf,
     [AC_HELP_STRING([--enable-dmabuf],
         [support dma_buf buffer sharing @<:@default=no@:>@])],
@@ -392,6 +388,13 @@ fi
 AM_CONDITIONAL(ENABLE_DOCS,
     [test "$enable_docs" = "yes"])
 
+AC_ARG_ENABLE([tests],
+    [AC_HELP_STRING([--enable-tests],
+        [build unit tests @<:@default=no@:>@])],
+    [], [enable_tests="no"])
+
+AM_CONDITIONAL(ENABLE_TESTS, test "$enable_tests" = "yes")
+
 AC_SUBST([AM_CFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Werror"])
 AC_SUBST([AM_CXXFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Wno-missing-braces -Werror"])
 
@@ -487,6 +490,7 @@ AC_CONFIG_FILES([Makefile
                  v4l2/Makefile
                  capi/Makefile
                  doc/Makefile
+                 gtestsrc/Makefile
                  pkgconfig/Makefile])
 
 AC_OUTPUT([
@@ -522,7 +526,7 @@ AC_MSG_RESULT([
     Build decoders ................... :$DECODERS
     Build encoders ....................:$ENCODERS
     Build vpps ........................:$VPPS
-    Build gtest unit tests ........... : $HAVE_GTEST
+    Build gtest unit tests ........... : $enable_tests
     Build documentation .............. : $enable_docs
     Enable debug ..................... : $enable_debug
     Installation prefix .............. : $prefix

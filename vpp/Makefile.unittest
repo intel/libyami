@@ -17,26 +17,25 @@ unittest_SOURCES += \
 endif
 
 unittest_LDFLAGS = \
-	$(GTEST_LDFLAGS) \
 	$(AM_LDFLAGS) \
+	-pthread \
 	$(NULL)
 
 unittest_LDADD = \
 	libyami_vpp.la \
 	$(top_builddir)/vaapi/libyami_vaapi.la \
 	$(top_builddir)/common/libyami_common.la \
-	$(GTEST_LIBS) \
+	$(top_srcdir)/gtestsrc/libgtest.la \
 	$(NULL)
 
 unittest_CPPFLAGS = \
-	$(GTEST_CPPFLAGS) \
 	$(LIBVA_CFLAGS) \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/interface \
+	-I$(top_srcdir)/gtestsrc/gtest/include \
 	$(NULL)
 
 unittest_CXXFLAGS = \
-	$(GTEST_CXXFLAGS) \
 	$(AM_CXXFLAGS) \
 	$(NULL)
 
@@ -51,26 +50,25 @@ unittest_host_SOURCES = \
 	$(NULL)
 
 unittest_host_LDFLAGS = \
-	$(GTEST_LDFLAGS) \
 	$(AM_LDFLAGS) \
+	-pthread \
 	$(NULL)
 
 unittest_host_LDADD = \
 	libyami_vpp.la \
 	$(top_builddir)/vaapi/libyami_vaapi.la \
 	$(top_builddir)/common/libyami_common.la \
-	$(GTEST_LIBS) \
+	$(top_srcdir)/gtestsrc/libgtest.la \
 	$(NULL)
 
 unittest_host_CPPFLAGS = \
-	$(GTEST_CPPFLAGS) \
 	$(LIBVA_CFLAGS) \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/interface \
+	-I$(top_srcdir)/gtestsrc/gtest/include \
 	$(NULL)
 
 unittest_host_CXXFLAGS = \
-	$(GTEST_CXXFLAGS) \
 	$(AM_CXXFLAGS) \
 	$(NULL)
 

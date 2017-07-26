@@ -8,25 +8,26 @@ unittest_SOURCES = \
         Thread_unittest.cpp \
 	$(NULL)
 
+
+
 unittest_LDFLAGS = \
-	$(GTEST_LDFLAGS) \
 	$(AM_LDFLAGS) \
+	-pthread \
 	$(NULL)
 
 unittest_LDADD = \
 	libyami_common.la \
-	$(GTEST_LIBS) \
+	$(top_srcdir)/gtestsrc/libgtest.la \
 	$(NULL)
 
 unittest_CPPFLAGS = \
-	$(GTEST_CPPFLAGS) \
 	$(LIBVA_CFLAGS) \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/interface \
+	-I$(top_srcdir)/gtestsrc/gtest/include \
 	$(NULL)
 
 unittest_CXXFLAGS = \
-	$(GTEST_CXXFLAGS) \
 	$(AM_CXXFLAGS) \
 	$(NULL)
 

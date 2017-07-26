@@ -96,33 +96,15 @@ Testing
 Unit Tests
 
   The gtest framework library <https://github.com/google/googletest> is required
-  in order to write and compile unit tests in libyami.  The gtest project does
-  not recommend using a pre-compiled gtest package, unfortunately.  So you will
-  need to compile the gtest library from source.  The latest release can be
-  downloaded from the release archive at:
+  in order to write and compile unit tests in libyami. To make it convenient to 
+  use, we add gtest source to subdirectory `gtestsrc`. The gtest documentation 
+  can be found in their source tree under `docs` (online or in the subdirectory 
+  `gtestsrc`).
 
-    <https://github.com/google/googletest/releases>
+  To build gtest and enable the unit tests, when configuring libyami you need to
+  specify:
 
-  The gtest documentation can be found in their source tree under `docs` (online
-  or in the downloaded source archive).
-
-  To build gtest you need:
-
-     cd ${GTEST_DIR}
-
-     autoreconf -v --install
-
-     ./configure --disable-shared --enable-static
-
-     make
-
-
-  To enable the unit tests, when configuring libyami you need to specify:
-
-    --enable-gtest=${GTEST_DIR}
-
-  where ${GTEST_DIR} is the path to where you compiled the gtest library.
-
+    --enable-tests
 
 Contributing
 ------------

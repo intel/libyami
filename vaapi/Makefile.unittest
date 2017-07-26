@@ -6,14 +6,14 @@ unittest_SOURCES = \
 	$(NULL)
 
 unittest_LDFLAGS = \
-	$(GTEST_LDFLAGS) \
 	$(AM_LDFLAGS) \
+	-pthread \
 	$(NULL)
 
 unittest_LDADD = \
 	libyami_vaapi.la \
 	$(top_builddir)/common/libyami_common.la \
-	$(GTEST_LIBS) \
+	$(top_srcdir)/gtestsrc/libgtest.la \
 	$(NULL)
 
 if ENABLE_X11
@@ -21,14 +21,13 @@ unittest_LDADD += $(X11_LIBS)
 endif
 
 unittest_CPPFLAGS = \
-	$(GTEST_CPPFLAGS) \
 	$(LIBVA_CFLAGS) \
 	$(AM_CPPFLAGS) \
 	-I$(top_srcdir)/interface \
+	-I$(top_srcdir)/gtestsrc/gtest/include \
 	$(NULL)
 
 unittest_CXXFLAGS = \
-	$(GTEST_CXXFLAGS) \
 	$(AM_CXXFLAGS) \
 	$(NULL)
 

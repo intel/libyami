@@ -58,7 +58,7 @@ libyamiv4l2_la_SOURCES     = $(libyamiv4l2_source_c)
 libyamiv4l2_la_LDFLAGS     = $(libyamiv4l2_ldflags) $(AM_LDFLAGS)
 libyamiv4l2_la_CPPFLAGS    = $(libyamiv4l2_cppflags) $(AM_CPPFLAGS)
 
-if ENABLE_UNITTESTS
+if ENABLE_TESTS
 -include Makefile.unittest
 endif
 
