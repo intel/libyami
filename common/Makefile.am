@@ -50,7 +50,7 @@ libyami_common_la_SOURCES     = $(libyami_common_source_c)
 libyami_common_la_LDFLAGS     = $(libyami_common_ldflags) $(AM_LDFLAGS)
 libyami_common_la_CPPFLAGS    = $(libyami_common_cppflags) $(AM_CPPFLAGS)
 
-if ENABLE_UNITTESTS
+if ENABLE_TESTS
 include Makefile.unittest
 endif
 

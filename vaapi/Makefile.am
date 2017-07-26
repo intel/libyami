@@ -46,7 +46,7 @@ libyami_vaapi_la_SOURCES     = $(libyami_vaapi_source_c)
 libyami_vaapi_la_LDFLAGS     = $(libyami_vaapi_ldflags) $(AM_LDFLAGS)
 libyami_vaapi_la_CPPFLAGS    = $(libyami_vaapi_cppflags) $(AM_CPPFLAGS)
 
-if ENABLE_UNITTESTS
+if ENABLE_TESTS
 include Makefile.unittest
 endif
 

@@ -90,7 +90,7 @@ libyami_vpp_la_SOURCES      = $(libyami_vpp_source_c)
 libyami_vpp_la_LDFLAGS      = $(libyami_vpp_ldflags) $(AM_LDFLAGS)
 libyami_vpp_la_CPPFLAGS     = $(libyami_vpp_cppflags) $(AM_CPPFLAGS)
 
-if ENABLE_UNITTESTS
+if ENABLE_TESTS
 include Makefile.unittest
 endif
 

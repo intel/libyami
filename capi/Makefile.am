@@ -34,8 +34,8 @@ libyami_capi_la_SOURCES     = $(libyami_capi_source_c)
 libyami_capi_la_LDFLAGS     = $(libyami_capi_ldflags) $(AM_LDFLAGS)
 libyami_capi_la_CPPFLAGS    = $(libyami_capi_cppflags) $(AM_CPPFLAGS)
 
-if ENABLE_UNITTESTS
--include Makefile.unittest
+if ENABLE_TESTS
+include Makefile.unittest
 endif
 
 DISTCLEANFILES = \
