@@ -107,8 +107,9 @@ public:
 
     static void checkColorBalanceFilter(VaapiPostProcessScaler& scaler, VppColorBalanceMode mode)
     {
-        if (COLORBALANCE_NONE != mode)
+        if (COLORBALANCE_NONE != mode) {
             EXPECT_TRUE(bool(scaler.m_colorBalance[mode].filter));
+	}
     }
 
 protected:

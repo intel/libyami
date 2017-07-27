@@ -107,8 +107,9 @@ VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
     SurfacePtr surface(new VaapiSurface(dest));
     VaapiVppPicture picture(m_context, surface);
     VAProcPipelineParameterBuffer* vppParam;
-    if (!picture.editVppParam(vppParam))
+    if (!picture.editVppParam(vppParam)) {
         return YAMI_OUT_MEMORY;
+    }
     VARectangle srcCrop, destCrop;
     if (fillRect(srcCrop, src->crop))
         vppParam->surface_region = &srcCrop;
