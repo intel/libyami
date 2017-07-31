@@ -779,7 +779,6 @@ private:
         , m_poc(0)
         , m_isReference(true)
         , m_priorityId(0)
-        , m_temporalId(0)
     {
     }
 
@@ -815,7 +814,6 @@ private:
     StreamHeaderPtr m_headers;
     bool m_isReference;
     uint32_t m_priorityId;
-    uint32_t m_temporalId;
 };
 
 class VaapiEncoderH264Ref
@@ -825,7 +823,7 @@ public:
         : m_frameNum(picture->m_frameNum)
         , m_poc(picture->m_poc)
         , m_pic(surface)
-        , m_temporalId(picture->m_temporalId)
+        , m_temporalId(picture->m_temporalID)
         , m_diffPicNumMinus1(0)
     {
     }
@@ -1218,8 +1216,8 @@ YamiStatus VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeSta
 
     picture->m_poc = m_frameIndex * 2;
     picture->m_priorityId = m_videoParamAVC.priorityId;
-    picture->m_temporalId = getTemporalId(m_temporalLayerNum, m_frameIndex);
-    DEBUG("m_temporalId is %d", picture->m_temporalId);
+    picture->m_temporalID = getTemporalId(m_temporalLayerNum, m_frameIndex);
+    DEBUG("m_temporalID is %d", picture->m_temporalID);
     m_frameIndex++;
     return YAMI_SUCCESS;
 }
@@ -1395,7 +1393,7 @@ bool  VaapiEncoderH264::pictureReferenceListSet (
 
     for (i = 0; i < m_refList.size(); i++) {
         assert(picture->m_poc != m_refList[i]->m_poc);
-        if (picture->m_temporalId >= m_refList[i]->m_temporalId) {
+        if (picture->m_temporalID >= m_refList[i]->m_temporalId) {
             m_refList[i]->m_diffPicNumMinus1 =
                 picture->m_frameNum - m_refList[i]->m_frameNum - 1;
             if (picture->m_poc > m_refList[i]->m_poc) {
@@ -1593,7 +1591,7 @@ bool VaapiEncoderH264::addPackedPrefixNalUnit(const PicturePtr& picture) const
     bs.writeBits(1, 1); /* no_inter_layer_pred_flag */
     bs.writeBits(0, 3); /* dependency_id */
     bs.writeBits(0, 4); /* quality_id */
-    bs.writeBits(picture->m_temporalId, 3);
+    bs.writeBits(picture->m_temporalID, 3);
     bs.writeBits(0, 1); /* use_ref_base_pic_flag */
     bs.writeBits(1, 1); /* discardable_flag */
     bs.writeBits(1, 1); /* output_flag */
