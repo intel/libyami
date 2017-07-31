@@ -153,13 +153,13 @@ typedef struct VideoFrameRate {
     uint32_t frameRateNum;
     uint32_t frameRateDenom;
 }VideoFrameRate;
-typedef struct VideoTemproalLayers {
+typedef struct VideoTemporalLayers {
     //layer 0 bitrate is bitRate[0]
     //...
     //layer highest birate is VideoParamsCommon.rcParams.bitRate
     uint8_t numLayersMinus1;
     uint32_t bitRate[TEMPORAL_LAYER_LENGTH_MAX];
-} VideoTemproalLayers;
+} VideoTemporalLayers;
 
 typedef struct VideoResolution {
     uint32_t width;
@@ -221,7 +221,7 @@ typedef struct VideoParamsCommon {
     uint8_t level;
     VideoResolution resolution;
     VideoFrameRate frameRate;
-    VideoTemproalLayers temporalLayers;
+    VideoTemporalLayers temporalLayers;
     uint32_t intraPeriod;
     uint32_t ipPeriod;
     uint32_t numRefFrames;
