@@ -58,6 +58,15 @@ bool V4l2Encoder::start()
     streamFormat.streamFormat = AVC_STREAM_FORMAT_ANNEXB;
     m_encoder->setParameters(VideoConfigTypeAVCStreamFormat, &streamFormat);
 
+    if (m_svct) {
+        VideoTemporalLayers layers;
+        layers.numLayersMinus1 = 1; // It is two layers actually
+        layers.bitRate[0] = m_videoParams.rcParams.bitRate / 2;
+        layers.bitRate[1] = m_videoParams.rcParams.bitRate;
+
+        m_videoParams.temporalLayers = layers;
+    }
+
     status = m_encoder->setParameters(VideoParamsTypeCommon, &m_videoParams);
     ASSERT(status == YAMI_SUCCESS);
 
@@ -194,6 +203,12 @@ bool V4l2Encoder::giveOutputBuffer(struct v4l2_buffer *dqbuf)
     ASSERT(m_outputBufferSpace);
     if (outputBuffer->flag & ENCODE_BUFFERFLAG_SYNCFRAME)
         dqbuf->flags = V4L2_BUF_FLAG_KEYFRAME;
+
+
+    if (m_svct &&  (m_videoParams.temporalLayers.numLayersMinus1 > 0)
+            && (outputBuffer->temporalID == m_videoParams.temporalLayers.numLayersMinus1)) {
+        dqbuf->flags |= V4L2_BUF_FLAG_NON_REF;
+    }
 
     return true;
 }

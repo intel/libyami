@@ -72,6 +72,7 @@ typedef SharedPtr < V4l2CodecBase > V4l2CodecPtr;
 V4l2CodecBase::V4l2CodecBase()
     : m_memoryType(VIDEO_DATA_MEMORY_TYPE_RAW_COPY)
     , m_started(false)
+    , m_svct(false)
     , m_hasEvent(false)
     , m_inputThreadCond(m_frameLock[INPUT])
     , m_outputThreadCond(m_frameLock[OUTPUT])
