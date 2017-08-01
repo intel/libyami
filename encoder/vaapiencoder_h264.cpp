@@ -1825,6 +1825,7 @@ bool VaapiEncoderH264::addSliceHeaders (const PicturePtr& picture) const
         sliceParam->idr_pic_id = m_idrNum;
         sliceParam->pic_order_cnt_lsb = picture->m_poc % m_maxPicOrderCnt;
 
+        sliceParam->direct_spatial_mv_pred_flag = 1;
         sliceParam->num_ref_idx_active_override_flag = 1;
         if (picture->m_type != VAAPI_PICTURE_I && m_refList0.size() > 0)
             sliceParam->num_ref_idx_l0_active_minus1 = m_refList0.size() - 1;
