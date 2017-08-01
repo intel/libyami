@@ -107,6 +107,13 @@ int32_t YamiV4L2_FrameMemoryType(int32_t fd, VideoDataMemoryType memory_type)
     return v4l2Codec->setFrameMemoryType(memory_type);
 }
 
+int32_t YamiV4L2_SvcT(int32_t fd, bool enable)
+{
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+    ASSERT(v4l2Codec);
+    return v4l2Codec->setSvcT(enable);
+}
+
 int32_t YamiV4L2_Ioctl(int32_t fd, int command, void* arg)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -242,7 +249,11 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
         Display* x11Display = (Display*)ptr;
         DEBUG("x11Display: %p", x11Display);
         ret = v4l2Codec->setXDisplay(x11Display);
-    #endif
+#endif
+    } else if(!(strcmp(key, "encode-mode"))) {
+        if (!strcmp(value, "svct")) {
+            ret = v4l2Codec->setSvcT(true);
+        }
     } else {
         ERROR("unsupported parameter key: %s\n", key);
     }

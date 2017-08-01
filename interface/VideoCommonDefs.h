@@ -87,6 +87,10 @@ extern "C" {
 
 #define YAMI_FOURCC_R210 YAMI_FOURCC('R', '2', '1', '0')
 
+#ifndef V4L2_BUF_FLAG_NON_REF
+#define V4L2_BUF_FLAG_NON_REF 0x00200000
+#endif
+
 typedef enum {
     NATIVE_DISPLAY_AUTO,    // decided by yami
     NATIVE_DISPLAY_X11,

@@ -75,6 +75,7 @@ class V4l2CodecBase {
     static V4l2CodecPtr createCodec(const char* name, int32_t flags);
     bool close ();
     virtual int32_t setFrameMemoryType(VideoDataMemoryType memory_type) {m_memoryType = memory_type; return 0;} ;
+    virtual int32_t setSvcT(bool enable) {m_svct = enable; return 0;};
     virtual int32_t ioctl(int request, void* arg);
     int32_t poll(bool poll_device, bool* event_pending);
     int32_t setDeviceEvent(int index);
@@ -122,6 +123,7 @@ class V4l2CodecBase {
     bool m_threadOn[2];
     int32_t m_fd[2]; // 0 for device event, 1 for interrupt
     bool m_started;
+    bool m_svct;
 
     NativeDisplay m_nativeDisplay;
 
