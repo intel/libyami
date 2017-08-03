@@ -83,21 +83,6 @@ static const H264LevelLimits LevelLimits[] = {
     {51, 983040, 2},
 };
 
-#define H264_MIN_TEMPORAL_GOP 8
-#define H264_MAX_TEMPORAL_LAYER_NUM 4
-
-static uint32_t H264TempIds[H264_MAX_TEMPORAL_LAYER_NUM][H264_MIN_TEMPORAL_GOP]
-    = { { 0, 0, 0, 0, 0, 0, 0, 0 },
-        { 0, 1, 0, 1, 0, 1, 0, 1 },
-        { 0, 2, 1, 2, 0, 2, 1, 2 },
-        { 0, 3, 2, 3, 1, 3, 2, 3 } };
-
-static const float H264LayerFps[H264_MAX_TEMPORAL_LAYER_NUM] = { 7.5, 15, 30, 60 };
-
-static inline uint32_t getTemporalId(uint32_t temporalLayerNum, uint32_t frameIndex){
-     return H264TempIds[temporalLayerNum - 1][frameIndex % H264_MIN_TEMPORAL_GOP];
-}
-
 static inline bool
 _poc_greater_than (uint32_t poc1, uint32_t poc2, uint32_t max_poc)
 {
@@ -242,8 +227,8 @@ bit_writer_write_trailing_bits(BitWriter *bitwriter)
 
 static BOOL
 bit_writer_write_sei(BitWriter* bitwriter,
-                     const VAEncSequenceParameterBufferH264* const seq,
-                     uint32_t temporalLayerNum)
+    const VAEncSequenceParameterBufferH264* const seq,
+    uint32_t temporalLayerNum, const LayerFrameRates& svctFrameRate)
 {
     BitWriter scalabilityInfoWriter;
     uint32_t i;
@@ -283,8 +268,9 @@ bit_writer_write_sei(BitWriter* bitwriter,
         scalabilityInfoWriter.writeBits(0, 1); // layer_output_flag[i]
 
         scalabilityInfoWriter.writeBits(0, 2); // constant_frm_bitrate_idc[i]
-        scalabilityInfoWriter.writeBits((int)floor(H264LayerFps[i] * 256 + 0.5),
-                                        16); // avg_frm_rate
+        float layerFps = (1.0 * svctFrameRate[i].frameRateNum) / svctFrameRate[i].frameRateDenom;
+        scalabilityInfoWriter.writeBits((int)floor(layerFps * 256 + 0.5),
+            16); // avg_frm_rate
 
         bit_writer_put_ue(&scalabilityInfoWriter,
                           seq->picture_width_in_mbs
@@ -592,11 +578,11 @@ class VaapiEncStreamHeaderH264
     typedef std::vector<uint8_t> Header;
 public:
     void setSEI(const VAEncSequenceParameterBufferH264* const seqParam,
-                uint32_t temporalLayerNum)
+        uint32_t temporalLayerNum, const LayerFrameRates& svctFrameRate)
     {
         ASSERT(m_sei.empty());
         BitWriter bs;
-        bit_writer_write_sei(&bs, seqParam, temporalLayerNum);
+        bit_writer_write_sei(&bs, seqParam, temporalLayerNum, svctFrameRate);
         bsToHeader(m_sei, bs);
     }
 
@@ -988,11 +974,13 @@ void VaapiEncoderH264::resetParams ()
 
     checkProfileLimitation();
     checkSvcTempLimitaion();
-
-    for (uint32_t i = 0; i < m_videoParamCommon.temporalLayers.numLayersMinus1; i++) {
-        uint32_t expTemId = (1 << (m_temporalLayerNum - 1 - i));
-        m_svctFrameRate[i].frameRateDenom = expTemId;
-        m_svctFrameRate[i].frameRateNum = fps();
+    if (m_isSvcT) {
+        VideoFrameRate frameRate;
+        frameRate.frameRateDenom = frameRateDenom();
+        frameRate.frameRateNum = frameRateNum();
+        m_temporalLayerID.reset(new AvcLayerID(frameRate, m_videoParamCommon.temporalLayerIDs, m_videoParamCommon.temporalLayers.numLayersMinus1));
+        m_temporalLayerID->getLayerFrameRates(m_svctFrameRate);
+        assert(m_temporalLayerID->getLayerNum() == (m_videoParamCommon.temporalLayers.numLayersMinus1 + 1));
     }
 
     if (intraPeriod() == 0) {
@@ -1216,7 +1204,10 @@ YamiStatus VaapiEncoderH264::reorder(const SurfacePtr& surface, uint64_t timeSta
 
     picture->m_poc = m_frameIndex * 2;
     picture->m_priorityId = m_videoParamAVC.priorityId;
-    picture->m_temporalID = getTemporalId(m_temporalLayerNum, m_frameIndex);
+    if (m_isSvcT)
+        picture->m_temporalID = m_temporalLayerID->getTemporalLayer(m_frameIndex);
+    else
+        picture->m_temporalID = 0;
     DEBUG("m_temporalID is %d", picture->m_temporalID);
     m_frameIndex++;
     return YAMI_SUCCESS;
@@ -1293,11 +1284,13 @@ YamiStatus VaapiEncoderH264::getCodecConfig(VideoEncOutputBuffer* outBuffer)
 void VaapiEncoderH264::fill(
     VAEncMiscParameterTemporalLayerStructure* layerParam) const
 {
+    LayerIDs ids;
+    m_temporalLayerID->getLayerIds(ids);
     layerParam->number_of_layers = m_temporalLayerNum;
-    layerParam->periodicity = H264_MIN_TEMPORAL_GOP;
+    layerParam->periodicity = ids.size();
 
     for (uint32_t i = 0; i < layerParam->periodicity; i++)
-        layerParam->layer_id[i] = getTemporalId(m_temporalLayerNum, i + 1);
+        layerParam->layer_id[i] = ids[(i + 1) % layerParam->periodicity];
 }
 #endif
 
@@ -1539,7 +1532,7 @@ bool VaapiEncoderH264::ensureSequenceHeader(const PicturePtr& picture,const VAEn
 {
     m_headers.reset(new VaapiEncStreamHeaderH264());
     if (m_isSvcT)
-        m_headers->setSEI(sequence, m_temporalLayerNum);
+        m_headers->setSEI(sequence, m_temporalLayerNum, m_svctFrameRate);
     m_headers->setSPS(sequence, profile());
     return true;
 }

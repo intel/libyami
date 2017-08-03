@@ -114,6 +114,7 @@ private:
     uint32_t m_mbHeight;
     bool m_isSvcT;
     uint32_t m_temporalLayerNum;
+    TemporalLayerIDPtr m_temporalLayerID;
 
     /* re-ordering */
     std::list<PicturePtr> m_reorderFrameList;
