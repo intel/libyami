@@ -1290,7 +1290,7 @@ void VaapiEncoderHEVC::shortRfsUpdate(const PicturePtr& picture)
     m_shortRFS.inter_ref_pic_set_prediction_flag = 0;
 
     if (intraPeriod() > 1 && m_refList0.size()) {
-        m_shortRFS.num_negative_pics         = 1;
+        m_shortRFS.num_negative_pics         = m_refList0.size();
         m_shortRFS.delta_poc_s0_minus1[0]  = picture->m_poc - m_refList0[0]->m_poc - 1;
         m_shortRFS.used_by_curr_pic_s0_flag[0] = 1;
         if (m_numBFrames && m_refList1.size()) {
@@ -1304,7 +1304,7 @@ void VaapiEncoderHEVC::shortRfsUpdate(const PicturePtr& picture)
 
     for (i = 1; i < m_shortRFS.num_negative_pics; i++)
     {
-        m_shortRFS.delta_poc_s0_minus1[i]                 = 0;
+        m_shortRFS.delta_poc_s0_minus1[i]                 = m_refList0[i - 1]->m_poc - m_refList0[i]->m_poc - 1;
         m_shortRFS.used_by_curr_pic_s0_flag[i]            = 1;
     }
 
