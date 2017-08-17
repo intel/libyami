@@ -8,7 +8,7 @@ m4_define([yami_api_major_version], 0)
 # update this for every release when micro version large than zero
 m4_define([yami_api_minor_version], 5)
 # change this for any api change
-m4_define([yami_api_micro_version], 2)
+m4_define([yami_api_micro_version], 3)
 m4_define([yami_api_version],
     [yami_api_major_version.yami_api_minor_version.yami_api_micro_version])
 
