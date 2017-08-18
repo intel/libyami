@@ -308,6 +308,9 @@ bool Parser::firstMarker()
 
 bool Parser::nextMarker()
 {
+    if (m_input.getRemainingBitsCount() == 0)
+        return false;
+
     const uint8_t* const end = m_data + m_size - 1;
     const uint8_t* const start = m_data + currentBytePosition();
     const uint8_t* current = start;
