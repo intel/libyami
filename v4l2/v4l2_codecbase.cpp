@@ -551,7 +551,10 @@ int32_t V4l2CodecBase::poll(bool poll_device, bool* event_pending)
       return -1;
     }
 
-    *event_pending = m_hasEvent;
+    {
+        YamiMediaCodec::AutoLock locker(m_codecLock);
+        *event_pending = m_hasEvent;
+    }
 
     // clear event
     if (pollfds[1].revents & POLLIN)
@@ -560,10 +563,20 @@ int32_t V4l2CodecBase::poll(bool poll_device, bool* event_pending)
     return 0;
 }
 
+bool V4l2CodecBase::hasCodecEvent()
+{
+        YamiMediaCodec::AutoLock locker(m_codecLock);
+        return m_hasEvent;
+}
+
 void V4l2CodecBase::setCodecEvent()
 {
-    YamiMediaCodec::AutoLock locker(m_codecLock);
-    m_hasEvent = true;
+    {
+        YamiMediaCodec::AutoLock locker(m_codecLock);
+        m_hasEvent = true;
+    }
+    //notify user about this
+    setDeviceEvent(0);
 }
 
 void V4l2CodecBase::clearCodecEvent()
