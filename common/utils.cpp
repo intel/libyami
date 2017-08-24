@@ -17,8 +17,6 @@
 #include "config.h"
 #endif
 
-#include "utils.h"
-
 #include "common/common_def.h"
 #include "common/log.h"
 
@@ -34,6 +32,8 @@
 #include <cstdlib>
 #include <limits>
 
+//put it after va.h to fix the I420 redefine issue
+#include "utils.h"
 namespace YamiMediaCodec{
 
 uint32_t guessFourcc(const char* fileName)
