@@ -108,7 +108,7 @@ class V4l2CodecBase {
     virtual bool outputPulse(uint32_t &index) = 0; // index of decode output is decided by libyami, not FIFO of m_framesTodo[OUTPUT]
     virtual bool recycleInputBuffer(struct v4l2_buffer *qbuf) {return true; }
     virtual bool recycleOutputBuffer(int32_t index) {return true;};
-    virtual bool hasCodecEvent() {return m_hasEvent;}
+    virtual bool hasCodecEvent();
     virtual void setCodecEvent();
     virtual void clearCodecEvent();
     virtual void releaseCodecLock(bool lockable) {};

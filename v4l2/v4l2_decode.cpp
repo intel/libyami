@@ -103,6 +103,7 @@ public:
     Output(V4l2Decoder* decoder)
         : m_decoder(decoder)
     {
+        memset(&m_lastFormat, 0, sizeof(m_lastFormat));
     }
     virtual void setDecodeAllocator(DecoderPtr decoder)
     {
@@ -110,7 +111,7 @@ public:
     }
     virtual int32_t requestBuffers(uint32_t count) = 0;
     virtual void output(SharedPtr<VideoFrame>& frame) = 0;
-    virtual bool isAlloccationDone() = 0;
+    virtual bool isAllocationDone() = 0;
     virtual bool isOutputReady() = 0;
     virtual int32_t deque(struct v4l2_buffer* buf) = 0;
     virtual int32_t queue(struct v4l2_buffer* buf)
@@ -124,6 +125,36 @@ public:
     }
     virtual void streamOff()
     {
+        //nothing for base
+    }
+    void flush()
+    {
+        //forget pending format change on flush
+        m_pendingFormat.reset();
+    }
+
+    bool setFormat(const VideoFormatInfo* format)
+    {
+        DEBUG("last format = %dx%dx%d@%x",
+             m_lastFormat.surfaceWidth, m_lastFormat.surfaceHeight,
+             m_lastFormat.surfaceNumber, m_lastFormat.fourcc);
+        if (m_pendingFormat) {
+            DEBUG("pending format = %dx%dx%d@%x",
+                m_pendingFormat->surfaceWidth, m_pendingFormat->surfaceHeight,
+                m_pendingFormat->surfaceNumber, m_pendingFormat->fourcc);
+        }
+        bool changed = m_lastFormat.surfaceWidth != format->surfaceWidth
+            || m_lastFormat.surfaceHeight != format->surfaceHeight
+            || m_lastFormat.surfaceNumber != format->surfaceNumber
+            || m_lastFormat.fourcc != format->fourcc;
+        if (changed) {
+            DEBUG("format changed to %dx%dx%d@%x",
+                format->surfaceWidth, format->surfaceHeight,
+                format->surfaceNumber, format->fourcc);
+            m_pendingFormat.reset(new VideoFormatInfo);
+            *m_pendingFormat = *format;
+        }
+        return changed;
     }
 
 protected:
@@ -139,6 +170,7 @@ protected:
     }
     void getTimeStamp(uint32_t index, struct timeval& timeStamp)
     {
+        DEBUG("index = %d, size = %d", (int)index, (int)m_frameInfo.size());
         ASSERT(index < m_frameInfo.size());
         INT64_TO_TIMEVAL(m_frameInfo[index].timeStamp, timeStamp);
     }
@@ -158,9 +190,21 @@ protected:
         getTimeStamp(index, buf->timestamp);
     }
 
+    void finishFormatChangeIfNeeded()
+    {
+        DEBUG("m_pendingFormat = %d", !!m_pendingFormat);
+        if (m_pendingFormat) {
+            m_lastFormat = *m_pendingFormat;
+            m_pendingFormat.reset();
+        }
+    }
+
     V4l2Decoder* m_decoder;
     vector<FrameInfo> m_frameInfo;
     Lock m_lock;
+    VideoFormatInfo m_lastFormat;
+    //format changed but caller did not allocate buffer for us.
+    SharedPtr<VideoFormatInfo> m_pendingFormat;
 };
 
 class SurfaceGetter {
@@ -242,6 +286,12 @@ public:
         return true;
     }
 
+    void removeAllSurfaces()
+    {
+        m_used.clear();
+        m_freed.clear();
+    }
+
 private:
     bool takeOneFree(intptr_t* surface, uint32_t flag)
     {
@@ -263,7 +313,7 @@ private:
     bool setFlag(intptr_t surface, uint32_t flag)
     {
         UsedMap::iterator it = m_used.find(surface);
-        DEBUG("set %x to %s", (uint32_t)surface, getOwnerName(flag));
+        DEBUG("%s takes %x", getOwnerName(flag), (uint32_t)surface);
         if (it == m_used.end()) {
             ERROR("set owner to %s failed for %x", getOwnerName(flag), (uint32_t)surface);
             return false;
@@ -274,7 +324,7 @@ private:
     YamiStatus clearFlag(intptr_t surface, uint32_t flag)
     {
         UsedMap::iterator it = m_used.find(surface);
-        DEBUG("clear %x to %s", (uint32_t)surface, getOwnerName(flag));
+        DEBUG("return %x from %s", (uint32_t)surface, getOwnerName(flag));
 
         if (it == m_used.end()) {
             ERROR("clear wrong surface id = %x", (uint32_t)surface);
@@ -334,6 +384,10 @@ public:
                     destorySurface(m_surfaces[i]);
                 }
             }
+            m_getter->removeAllSurfaces();
+            m_surfaceMap.clear();
+        } else {
+            finishFormatChangeIfNeeded();
         }
         m_surfaces.resize(count, VA_INVALID_SURFACE);
         requestFrameInfo(count);
@@ -351,10 +405,14 @@ public:
         ASSERT(it != m_surfaceMap.end());
         outputFrame(it->second, frame);
     }
-    virtual bool isAlloccationDone()
+    virtual bool isAllocationDone()
     {
-        return m_surfaceMap.size() == m_count;
+        bool ret = !m_pendingFormat && m_surfaceMap.size() == m_count;
+        DEBUG("is allocation done = %d, pending format = %d, size = %d, count = %d",
+            ret, !!m_pendingFormat, (int)m_surfaceMap.size(), m_count);
+        return ret;
     }
+
     virtual bool isOutputReady()
     {
         return true;
@@ -550,6 +608,9 @@ public:
             m_eglVaapiImages.push_back(image);
         }
         requestFrameInfo(count);
+        if (count) {
+            finishFormatChangeIfNeeded();
+        }
         return 0;
     }
     int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t bufferIndex, void* eglImage)
@@ -566,13 +627,20 @@ public:
             ERROR("bug: can't get index");
             return;
         }
-        ASSERT(index < m_eglVaapiImages.size());
+        if (!(index < m_eglVaapiImages.size())) {
+            ERROR("index = %d, size = %d", (int)index, (int)m_eglVaapiImages.size());
+            ASSERT(index < m_eglVaapiImages.size());
+        }
         m_eglVaapiImages[index]->blt(frame);
         outputFrame(index, frame);
     }
-    bool isAlloccationDone()
+    bool isAllocationDone()
     {
-        return !m_eglVaapiImages.empty();
+        bool ret = !m_pendingFormat && !m_eglVaapiImages.empty();
+        DEBUG("is allocation done = %d, pending format = %d, is empty = %d",
+            ret, !!m_pendingFormat, m_eglVaapiImages.empty());
+
+        return ret;
     }
     bool isOutputReady()
     {
@@ -603,7 +671,6 @@ V4l2Decoder::V4l2Decoder()
 {
     memset(&m_inputFormat, 0, sizeof(m_inputFormat));
     memset(&m_outputFormat, 0, sizeof(m_outputFormat));
-    memset(&m_lastFormat, 0, sizeof(m_lastFormat));
     m_output.reset(new ExternalDmaBufOutput(this));
 }
 
@@ -737,16 +804,6 @@ int32_t V4l2Decoder::ioctl(int command, void* arg)
     }
 }
 
-bool V4l2Decoder::needReallocation(const VideoFormatInfo* format)
-{
-    bool ret = m_lastFormat.surfaceWidth != format->surfaceWidth
-        || m_lastFormat.surfaceHeight != format->surfaceHeight
-        || m_lastFormat.surfaceNumber != format->surfaceNumber
-        || m_lastFormat.fourcc != format->fourcc;
-    m_lastFormat = *format;
-    return ret;
-}
-
 VideoDecodeBuffer* V4l2Decoder::peekInput()
 {
     uint32_t index;
@@ -786,21 +843,27 @@ void V4l2Decoder::getInputJob()
     YamiStatus status = m_decoder->decode(inputBuffer);
     DEBUG("decode %d, return %d", (int)inputBuffer->size, (int)status);
     if (status == YAMI_DECODE_FORMAT_CHANGE) {
+        DEBUG("decoder return format change");
+        m_state = kFormatChanged;
+        //now we need this format in output.
         const VideoFormatInfo* outFormat = m_decoder->getFormatInfo();
         PCHECK(outFormat);
-
-        if (needReallocation(outFormat)) {
-            m_state = kWaitAllocation;
-        }
-        setCodecEvent();
-        DEBUG("early out, format changed to %dx%d, surface size is %dx%d",
-            outFormat->width, outFormat->height, outFormat->surfaceWidth, outFormat->surfaceHeight);
+        m_output->setFormat(outFormat);
+        //drain output
+        getOutputJob();
         return;
     }
     if (status == YAMI_DECODE_NO_SURFACE) {
-        m_state = kWaitSurface;
-        DEBUG("early out, no surface");
-        return;
+        if (m_output->isAllocationDone()) {
+            m_state = kWaitSurface;
+            DEBUG("early out, no surface");
+            return;
+        } else {
+            DEBUG("need relocation");
+            m_state = kWaitAllocation;
+            setCodecEvent();
+            return;
+        }
     }
     consumeInput();
     if (!m_decoder->getFormatInfo()) {
@@ -827,21 +890,34 @@ void V4l2Decoder::getOutputJob()
 {
     PCHECK(m_thread.isCurrent());
     PCHECK(bool(m_decoder));
-    if (m_state != kGetOutput) {
-        DEBUG("early out, state = %d", m_state);
+    if (m_state != kGetOutput && m_state != kFormatChanged) {
+        DEBUG("early out, state = %d, change = %d", m_state, kFormatChanged);
         return;
     }
     while (m_output->isOutputReady()) {
         SharedPtr<VideoFrame> frame = m_decoder->getOutput();
         if (!frame) {
-            DEBUG("early out, no frame");
-            m_state = kGetInput;
-            post(bind(&V4l2Decoder::getInputJob, this));
-            return;
+            if (m_state == kFormatChanged && !m_output->isAllocationDone()) {
+                DEBUG("need relocation");
+                m_state = kWaitAllocation;
+                setCodecEvent();
+                return;
+            } else {
+                DEBUG("early out, no frame");
+                m_state = kGetInput;
+                post(bind(&V4l2Decoder::getInputJob, this));
+                return;
+            }
         }
         m_output->output(frame);
     }
-    m_state = kWaitOutput;
+    if (m_state == kGetOutput) {
+        m_state = kWaitOutput;
+    }
+    else {
+        ASSERT(m_state == kFormatChanged);
+        DEBUG("format change, wait more output buffers");
+    }
 }
 
 void V4l2Decoder::outputReadyJob()
@@ -849,6 +925,9 @@ void V4l2Decoder::outputReadyJob()
     PCHECK(m_thread.isCurrent());
     if (m_state == kWaitOutput) {
         m_state = kGetOutput;
+        getOutputJob();
+    } else if (m_state == kFormatChanged) {
+        //try to drain output
         getOutputJob();
     }
     else if (m_state == kWaitSurface) {
@@ -861,7 +940,7 @@ void V4l2Decoder::checkAllocationJob()
 {
     PCHECK(m_thread.isCurrent());
     if (m_state == kWaitAllocation) {
-        if (m_output->isAlloccationDone()) {
+        if (m_output->isAllocationDone()) {
             m_state = kGetInput;
             getInputJob();
         }
@@ -891,6 +970,7 @@ int32_t V4l2Decoder::onQueueBuffer(v4l2_buffer* buf)
         post(bind(&V4l2Decoder::inputReadyJob, this));
         return 0;
     }
+    DEBUG("queue output index = %d", buf->index);
 
     m_output->queue(buf);
     post(bind(&V4l2Decoder::outputReadyJob, this));
@@ -910,9 +990,15 @@ int32_t V4l2Decoder::onDequeBuffer(v4l2_buffer* buf)
             ERROR_RETURN(EAGAIN);
         }
         buf->index = index;
+        DEBUG("dequeue input index = %d", buf->index);
         return 0;
     }
-    return m_output->deque(buf);
+
+    int32_t ret = m_output->deque(buf);
+    if (!ret)
+        DEBUG("dequeue output index = %d", buf->index);
+
+    return ret;
 }
 int32_t V4l2Decoder::onStreamOn(uint32_t type)
 {
@@ -943,7 +1029,7 @@ void V4l2Decoder::flushDecoderJob()
 {
     if (m_decoder)
         m_decoder->flush();
-    m_out.clearPipe();
+    m_output->flush();
     m_state = kStopped;
 }
 int32_t V4l2Decoder::onStreamOff(uint32_t type)
@@ -962,6 +1048,8 @@ int32_t V4l2Decoder::onStreamOff(uint32_t type)
     }
     m_outputOn = false;
     m_output->streamOff();
+    m_out.clearPipe();
+
     return 0;
 }
 

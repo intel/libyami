@@ -93,7 +93,6 @@ private:
     void post(Job job);
     VideoDecodeBuffer* peekInput();
     void consumeInput();
-    bool needReallocation(const VideoFormatInfo*);
 
     bool m_inputOn;
     v4l2_format m_inputFormat;
@@ -122,7 +121,6 @@ private:
     State m_state;
     SharedPtr<Output> m_output;
     BufferPipe<uint32_t> m_out;
-    VideoFormatInfo m_lastFormat;
     DisplayPtr m_display;
     DecoderPtr m_decoder;
     std::vector<uint8_t> m_codecData;
