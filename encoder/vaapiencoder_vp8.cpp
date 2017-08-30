@@ -33,14 +33,6 @@ namespace YamiMediaCodec{
 //golden, alter, last
 #define MAX_REFERECNE_FRAME 3
 #define VP8_DEFAULT_QP     40
-#define VP8_MAX_TEMPORAL_LAYER_NUM 3
-
-#define VP8_MIN_TEMPORAL_GOP 4
-
-static uint32_t VP8TempIds[VP8_MAX_TEMPORAL_LAYER_NUM][VP8_MIN_TEMPORAL_GOP]
-    = { { 0, 0, 0, 0 },
-        { 0, 1, 0, 1 },
-        { 0, 2, 1, 2 } };
 
 class VaapiEncPictureVP8 : public VaapiEncPicture
 {
@@ -80,21 +72,24 @@ struct RefFlags
 class Vp8Encoder {
 public:
     virtual void getRefFlags(RefFlags&, uint8_t temporalLayer) = 0;
-    virtual void getLayerIds(std::vector<uint32_t>& ids) const = 0;
+    virtual void getLayerIds(LayerIDs& ids) const = 0;
     virtual bool getErrorResilient() const = 0;
     virtual bool getRefreshEntropyProbs() const = 0;
     virtual uint8_t getTemporalLayer(uint32_t frameNum) const = 0;
+    virtual uint8_t getLayerNum() const = 0;
+    virtual void getLayerFrameRates(LayerFrameRates& frameRates) const = 0;
     virtual void resetRefNum() = 0;
-    virtual ~Vp8Encoder() {}
 };
 
 class Vp8EncoderNormal : public Vp8Encoder {
 public:
     void getRefFlags(RefFlags&, uint8_t temporalLayer);
-    void getLayerIds(std::vector<uint32_t>& ids) const { ASSERT(0 && "not suppose call this"); }
+    void getLayerIds(LayerIDs& ids) const { ASSERT(0 && "not suppose call this"); }
     bool getErrorResilient() const { return false; }
     bool getRefreshEntropyProbs() const { return false; }
     uint8_t getTemporalLayer(uint32_t frameNum) const { return 0; }
+    uint8_t getLayerNum() const { return 1; }
+    void getLayerFrameRates(LayerFrameRates& frameRates) const { return; }
     void resetRefNum() { return; }
 };
 
@@ -109,22 +104,26 @@ void Vp8EncoderNormal::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer)
 }
 class Vp8EncoderSvct : public Vp8Encoder {
 public:
-    Vp8EncoderSvct(uint8_t layerIndex)
+    Vp8EncoderSvct(const VideoFrameRate& frameRate, const VideoTemporalLayerIDs& layerIDs, uint8_t layerIndex)
         : m_layerIndex(layerIndex % VP8_MAX_TEMPORAL_LAYER_NUM)
         , m_goldenRefreshed(false)
     {
+        m_layerIDs.reset(new Vp8LayerID(frameRate, layerIDs, m_layerIndex));
     }
     void getRefFlags(RefFlags&, uint8_t temporalLayer);
-    void getLayerIds(std::vector<uint32_t>& ids) const;
+    void getLayerIds(LayerIDs& ids) const;
+    void getLayerFrameRates(LayerFrameRates& frameRates) const { return m_layerIDs->getLayerFrameRates(frameRates); }
 
     bool getErrorResilient() const { return true; }
     bool getRefreshEntropyProbs() const { return false; }
     uint8_t getTemporalLayer(uint32_t frameNum) const;
+    uint8_t getLayerNum() const { return m_layerIDs->getLayerNum(); }
     void resetRefNum();
 
 private:
     uint8_t m_layerIndex;
     bool m_goldenRefreshed;
+    TemporalLayerIDPtr m_layerIDs;
 };
 
 void Vp8EncoderSvct::resetRefNum()
@@ -134,13 +133,12 @@ void Vp8EncoderSvct::resetRefNum()
 
 uint8_t Vp8EncoderSvct::getTemporalLayer(uint32_t frameNum) const
 {
-    return VP8TempIds[m_layerIndex][frameNum % VP8_MIN_TEMPORAL_GOP];
+    return m_layerIDs->getTemporalLayer(frameNum);
 }
 
-void Vp8EncoderSvct::getLayerIds(std::vector<uint32_t>& ids) const
+void Vp8EncoderSvct::getLayerIds(LayerIDs& ids) const
 {
-    for (uint32_t i = 0; i < VP8_MIN_TEMPORAL_GOP; i++)
-        ids.push_back(VP8TempIds[m_layerIndex][i]);
+    m_layerIDs->getLayerIds(ids);
 }
 
 void Vp8EncoderSvct::getRefFlags(RefFlags& refFlags, uint8_t temporalLayer)
@@ -203,18 +201,17 @@ void VaapiEncoderVP8::resetParams()
     if (ipPeriod() == 0)
         m_videoParamCommon.intraPeriod = 1;
 
+    VideoFrameRate frameRate;
+    frameRate.frameRateDenom = frameRateDenom();
+    frameRate.frameRateNum = frameRateNum();
     uint8_t layerIndex = m_videoParamCommon.temporalLayers.numLayersMinus1;
-    for (uint32_t i = 0; i < layerIndex; i++) {
-        uint32_t expTemId = (1 << (layerIndex - i));
-        m_svctFrameRate[i].frameRateDenom = expTemId;
-        m_svctFrameRate[i].frameRateNum = fps();
-    }
-
     if (layerIndex > 0) {
 #ifndef __ENABLE_VP8_SVCT__
-        ERROR("Please enable \"--enable-vp8svct\" during compilation!");
+        assert(0 && "Please enable --enable-vp8svct during compilation!");
 #endif
-        m_encoder.reset(new Vp8EncoderSvct(layerIndex));
+        m_encoder.reset(new Vp8EncoderSvct(frameRate, m_videoParamCommon.temporalLayerIDs, layerIndex));
+        m_encoder->getLayerFrameRates(m_svctFrameRate);
+        assert((layerIndex + 1) == m_encoder->getLayerNum());
     }
     else {
         m_encoder.reset(new Vp8EncoderNormal());
@@ -482,7 +479,7 @@ bool VaapiEncoderVP8::ensureMiscParams(VaapiEncPicture* picture)
                     layerParam))
                 return false;
 
-            std::vector<uint32_t> ids;
+            LayerIDs ids;
             m_encoder->getLayerIds(ids);
             if (layerParam) {
                 layerParam->number_of_layers = m_videoParamCommon.temporalLayers.numLayersMinus1 + 1;
