@@ -23,6 +23,7 @@
 #include "common/log.h"
 #include "common/surfacepool.h"
 #include "vaapiencpicture.h"
+#include "vaapilayerid.h"
 #include "vaapi/VaapiBuffer.h"
 #include "vaapi/vaapiptrs.h"
 #include "vaapi/VaapiSurface.h"
@@ -183,7 +184,7 @@ protected:
     uint32_t m_vaVideoParamQualityLevel;
     uint32_t m_maxOutputBuffer; // max count of frames are encoding in parallel, it hurts performance when m_maxOutputBuffer is too big.
     uint32_t m_maxCodedbufSize;
-    VideoFrameRate m_svctFrameRate[TEMPORAL_LAYER_LENGTH_MAX];
+    LayerFrameRates m_svctFrameRate;
 
 private:
     bool initVA();

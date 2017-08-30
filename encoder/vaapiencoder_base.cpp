@@ -75,7 +75,6 @@ VaapiEncoderBase::VaapiEncoderBase():
     m_videoParamQualityLevel.level = 0;
     m_vaVideoParamQualityLevel = 0;
     updateMaxOutputBufferCount();
-    memset(m_svctFrameRate, 0, sizeof(m_svctFrameRate));
 }
 
 VaapiEncoderBase::~VaapiEncoderBase()
