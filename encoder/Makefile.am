@@ -3,6 +3,7 @@ libyami_encoder_source_c = \
 	vaapiencpicture.cpp \
 	vaapiencoder_base.cpp \
 	vaapiencoder_host.cpp \
+	vaapilayerid.cpp \
 	$(NULL)
 
 if BUILD_H264_ENCODER
@@ -36,6 +37,7 @@ libyami_encoder_source_h_priv = \
 	vaapicodedbuffer.h \
 	vaapiencpicture.h \
 	vaapiencoder_base.h \
+	vaapilayerid.h \
 	$(NULL)
 
 if BUILD_H264_ENCODER
