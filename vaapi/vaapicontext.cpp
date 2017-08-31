@@ -42,16 +42,10 @@ static bool checkH264Profile(VAProfile& profile, vector<VAProfile>& profileList)
 
     if (result != profileList.end()){
         profile = *result;
-    } else{
-        // VAProfileH264Baseline is super profile for VAProfileH264ConstrainedBaseline
-        // old i965 driver incorrectly claims supporting VAProfileH264Baseline, but not VAProfileH264ConstrainedBaseline
-        if (profile == VAProfileH264ConstrainedBaseline && std::count(profileList.begin(), profileList.end(), VAProfileH264Baseline))
-            profile = VAProfileH264Baseline;
-        else
-            return false;
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 static bool checkProfileCompatible(const DisplayPtr& display, VAProfile& profile)

@@ -528,7 +528,6 @@ struct ProfileMapItem {
 };
 
 const ProfileMapItem g_profileMap[] = {
-    { PROFILE_H264_BASELINE, VAProfileH264Baseline },
     { PROFILE_H264_CONSTRAINED_BASELINE, VAProfileH264ConstrainedBaseline },
     { PROFILE_H264_MAIN, VAProfileH264Main },
     { PROFILE_H264_HIGH, VAProfileH264High },

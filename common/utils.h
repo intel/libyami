@@ -16,10 +16,10 @@
 #ifndef utils_h
 #define utils_h
 
-#include "VideoCommonDefs.h"
-
 #include <stdint.h>
+#include <va/va.h>
 
+#include "VideoCommonDefs.h"
 
 #ifndef VA_FOURCC_I420
 #define VA_FOURCC_I420 VA_FOURCC('I','4','2','0')

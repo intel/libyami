@@ -168,7 +168,6 @@ static uint8_t h264_get_profile_idc(VideoProfile profile)
 {
     uint8_t idc;
     switch (profile) {
-    case PROFILE_H264_BASELINE:
     case PROFILE_H264_CONSTRAINED_BASELINE:
         idc = 66;
         break;
@@ -342,7 +341,7 @@ bit_writer_write_sps(BitWriter* bitwriter,
     uint32_t mb_adaptive_frame_field = !seq->seq_fields.bits.frame_mbs_only_flag;
     uint32_t i = 0;
 
-    constraint_set0_flag = profile == PROFILE_H264_BASELINE;
+    constraint_set0_flag = 0;
     constraint_set1_flag = profile <= PROFILE_H264_MAIN;
     constraint_set2_flag = 0;
     constraint_set3_flag = 0;
@@ -916,9 +915,6 @@ void VaapiEncoderH264::checkProfileLimitation()
     VAProfile& profile = m_videoParamCommon.profile;
 
     switch (profile) {
-    case VAProfileH264Baseline:
-        // only Constrained Baseline supported right now
-        profile = VAProfileH264ConstrainedBaseline;
     case VAProfileH264ConstrainedBaseline:
         if (ipPeriod() > 1) {
             WARNING("H264 baseline profile can not support B frame encoding");
