@@ -1022,6 +1022,15 @@ void VaapiEncoderH264::resetParams ()
 
     m_maxRefFrames =
         m_maxRefList0Count + m_maxRefList1Count;
+    if (m_isSvcT) {
+        uint32_t refFrameNum = m_temporalLayerID->getMiniRefFrameNum();
+        if (refFrameNum > m_maxOutputBuffer) {
+            ERROR("Reference frame number %d > output buffer %d", refFrameNum, m_maxOutputBuffer);
+            assert(false);
+        }
+        if (m_maxRefFrames < refFrameNum)
+            m_maxRefFrames = refFrameNum;
+    }
 
     assert((uint32_t)(1 << (m_temporalLayerNum - 1)) <= m_maxOutputBuffer);
     CLIP(m_maxRefFrames, (uint32_t)(1 << (m_temporalLayerNum - 1)), m_maxOutputBuffer);

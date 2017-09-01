@@ -36,6 +36,7 @@ const uint8_t AvcLayerID::m_avcTempIds[H264_MAX_TEMPORAL_LAYER_NUM][H264_MIN_TEM
 
 TemporalLayerID::TemporalLayerID(const VideoFrameRate& frameRate, const VideoTemporalLayerIDs& layerIDs, const uint8_t* defaultIDs, uint8_t defaultIDsLen)
 {
+    m_miniRefFrameNum = 0;
     if (layerIDs.numIDs) {
         m_idPeriod = layerIDs.numIDs;
         for (uint32_t i = 0; i < layerIDs.numIDs; i++)
@@ -95,6 +96,11 @@ void TemporalLayerID::calculateFramerate(const VideoFrameRate& frameRate)
     return;
 }
 
+uint8_t TemporalLayerID::getMiniRefFrameNum() const
+{
+    return m_miniRefFrameNum;
+}
+
 void TemporalLayerID::checkLayerIDs(uint8_t maxLayerLength) const
 {
     LayerIDs tempIDs = m_ids;
@@ -129,5 +135,26 @@ AvcLayerID::AvcLayerID(const VideoFrameRate& frameRate, const VideoTemporalLayer
     : TemporalLayerID(frameRate, layerIDs, m_avcTempIds[layerIndex], H264_MIN_TEMPORAL_GOP)
 {
     checkLayerIDs(H264_MAX_TEMPORAL_LAYER_NUM);
+    calculateMiniRefNum();
+}
+
+void AvcLayerID::calculateMiniRefNum()
+{
+    uint8_t max = 0;
+    const uint8_t LAYER0 = 0;
+    //The current frame of layer0 should be in the refList
+    uint8_t refFrameNum = 1;
+    for (uint8_t i = 0; i < m_idPeriod; i++) {
+        if (LAYER0 == m_ids[i]) {
+            if (max < refFrameNum)
+                max = refFrameNum;
+            //The current frame of layer0 should be in the refList
+            refFrameNum = 1;
+        }
+        else {
+            refFrameNum++;
+        }
+    }
+    m_miniRefFrameNum = max > refFrameNum ? max : refFrameNum;
 }
 }
