@@ -15,6 +15,7 @@ libyami_vaapi_source_h_priv = \
 	VaapiUtils.h \
 	vaapidisplay.h \
 	vaapicontext.h \
+	vaapistreamable.h \
 	vaapisurfaceallocator.h \
 	$(NULL)
 

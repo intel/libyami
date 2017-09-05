@@ -24,6 +24,7 @@
 #include "common/common_def.h"
 #include "vaapi/vaapidisplay.h"
 #include "vaapi/VaapiUtils.h"
+#include "vaapi/vaapistreamable.h"
 #include <algorithm>
 #include <vector>
 
@@ -84,14 +85,17 @@ YamiStatus VaapiConfig::create(const DisplayPtr& display,
     VAConfigID config;
 
     if (!checkProfileCompatible(display, profile)){
-        ERROR("Unsupport profile");
+        ERROR("Unsupported profile %s.\n", toString(profile).c_str());
         return YAMI_UNSUPPORTED;
     }
 
     vaStatus = vaCreateConfig(display->getID(), profile, entry, attribList, numAttribs, &config);
 
-    if (!checkVaapiStatus(vaStatus, "vaCreateConfig "))
+    if (!checkVaapiStatus(vaStatus, "vaCreateConfig ")) {
+        ERROR("Unable to create config for profile: %s and entrypoint: %s.\n",
+              toString(profile).c_str(), toString(entry).c_str());
         return YAMI_FAIL;
+    }
     confg.reset(new VaapiConfig(display, config));
     return YAMI_SUCCESS;
 }
