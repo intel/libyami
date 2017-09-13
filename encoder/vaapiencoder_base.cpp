@@ -508,8 +508,7 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
         return false;
 
     VideoRateControl mode = rateControlMode();
-    if (mode == RATE_CONTROL_CBR ||
-            mode == RATE_CONTROL_VBR) {
+    if (mode == RATE_CONTROL_CBR || mode == RATE_CONTROL_VBR) {
         //+1 for the highest layer
         uint32_t layers = m_videoParamCommon.temporalLayers.numLayersMinus1 + 1;
         for (uint32_t i = 0; i < layers; i++) {
@@ -519,6 +518,15 @@ bool VaapiEncoderBase::ensureMiscParams (VaapiEncPicture* picture)
                 return false;
         }
     }
+#ifdef ENABLE_HEVC_ENC_ON_STUDIO_VA
+    //need to create misc parameter even though don't fill any value,
+    //or else the picture's quality will be low.
+    else {
+        VAEncMiscParameterRateControl* rateControl = NULL;
+        if (!picture->newMisc(VAEncMiscParameterTypeRateControl, rateControl))
+            return false;
+    }
+#endif
     return true;
 }
 
