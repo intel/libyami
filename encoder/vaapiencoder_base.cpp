@@ -570,7 +570,7 @@ void unrefAllocator(SurfaceAllocator* allocator)
 
 bool VaapiEncoderBase::initVA()
 {
-    VAConfigAttrib attrib, *pAttrib = NULL;
+    VAConfigAttrib attrib[2], *pAttrib = NULL;
     ConfigPtr config;
     int32_t attribCount = 0;
     FUNC_ENTER();
@@ -582,10 +582,26 @@ bool VaapiEncoderBase::initVA()
     }
 
     if (RATE_CONTROL_NONE != m_videoParamCommon.rcMode) {
-        attrib.type = VAConfigAttribRateControl;
-        attrib.value = m_videoParamCommon.rcMode;
-        pAttrib = &attrib;
+        attrib[0].type = VAConfigAttribRateControl;
+        attrib[0].value = m_videoParamCommon.rcMode;
+        pAttrib = attrib;
         attribCount = 1;
+#ifdef __ENABLE_H265_ENC_ON_STUDIO_VA__
+        /*
+        It's necessary to pass two attribute:
+        VAConfigAttribRTFormat and VAConfigAttribRateControl to libva;
+        The value of VAConfigAttribRateControl should be "VA_RC_MB|VA_RC_CBR" not RATE_CONTROL_CBR;
+        Or else, HEVC encoding will end up with an error: attribute not supported.
+        */
+        if (RATE_CONTROL_CBR == m_videoParamCommon.rcMode) {
+            attrib[0].type = VAConfigAttribRTFormat;
+            attrib[0].value = 0;
+            attrib[1].type = VAConfigAttribRateControl;
+            attrib[1].value = VA_RC_MB | VA_RC_CBR; //RATE_CONTROL_CBR
+            pAttrib = attrib;
+            attribCount = 2;
+        }
+#endif
     }
 
     YamiStatus status = VaapiConfig::create(m_display, m_videoParamCommon.profile, m_entrypoint, pAttrib, attribCount, config);
