@@ -395,6 +395,16 @@ AC_ARG_ENABLE([tests],
 
 AM_CONDITIONAL(ENABLE_TESTS, test "$enable_tests" = "yes")
 
+AC_ARG_ENABLE(media-studio-va,
+    [AC_HELP_STRING([--enable-media-studio-va],
+        [enable being based on media studio libva @<:@default=no@:>@])],
+    [], [enable_media_studio_va="no"])
+
+if test "$enable_media_studio_va" = "yes"; then
+    AC_DEFINE([__ENABLE_MEDIA_STUDIO_VA__], [1],
+        [Defined to 1 if --enable-media-studio-va="yes"])
+fi
+
 AC_SUBST([AM_CFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Werror"])
 AC_SUBST([AM_CXXFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Wno-missing-braces -Werror"])
 
