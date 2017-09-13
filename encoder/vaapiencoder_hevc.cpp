@@ -1688,10 +1688,14 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
 
 bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 {
+#ifndef ENABLE_HEVC_ENC_ON_STUDIO_VA
+    //fill sps for every frame,
+    //or else, occasionally, m_seqParam will be modified by vaCreateBuffer() when vaCreateBuffer()
+    //is called to create m_picParam;
     if (picture->m_type != VAAPI_PICTURE_I) {
         return true;
     }
-
+#endif
     if (!picture->editSequence(m_seqParam) || !fill(m_seqParam)) {
         ERROR("failed to create sequence parameter buffer (SPS)");
         return false;
