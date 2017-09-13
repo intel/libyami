@@ -1250,6 +1250,9 @@ bool  VaapiEncoderHEVC::pictureReferenceListSet (
     m_refList0.clear();
     m_refList1.clear();
 
+    if (picture->m_type == VAAPI_PICTURE_I)
+        return true;
+
     for (i = 0; i < m_refList.size(); i++) {
         assert(picture->m_poc != m_refList[i]->m_poc);
         if (picture->m_poc > m_refList[i]->m_poc) {
@@ -1704,9 +1707,7 @@ bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 
 bool VaapiEncoderHEVC::ensurePicture (const PicturePtr& picture, const SurfacePtr& surface)
 {
-
-    if (picture->m_type != VAAPI_PICTURE_I &&
-            !pictureReferenceListSet(picture)) {
+    if (!pictureReferenceListSet(picture)) {
         ERROR ("reference list reorder failed");
         return false;
     }
