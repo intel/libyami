@@ -42,6 +42,10 @@
 #define StaticPointerCast std::static_pointer_cast
 #define EnableSharedFromThis std::enable_shared_from_this
 
+#ifdef __ENABLE_MEDIA_STUDIO_VA__
+#define ENABLE_HEVC_ENC_ON_STUDIO_VA 1
+#endif
+
 #endif // __cplusplus
 
 #ifdef __cplusplus

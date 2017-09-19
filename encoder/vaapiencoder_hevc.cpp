@@ -1250,6 +1250,9 @@ bool  VaapiEncoderHEVC::pictureReferenceListSet (
     m_refList0.clear();
     m_refList1.clear();
 
+    if (picture->m_type == VAAPI_PICTURE_I)
+        return true;
+
     for (i = 0; i < m_refList.size(); i++) {
         assert(picture->m_poc != m_refList[i]->m_poc);
         if (picture->m_poc > m_refList[i]->m_poc) {
@@ -1685,10 +1688,14 @@ bool VaapiEncoderHEVC::addSliceHeaders (const PicturePtr& picture) const
 
 bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 {
+#ifndef ENABLE_HEVC_ENC_ON_STUDIO_VA
+    //fill sps for every frame,
+    //or else, occasionally, m_seqParam will be modified by vaCreateBuffer() when vaCreateBuffer()
+    //is called to create m_picParam;
     if (picture->m_type != VAAPI_PICTURE_I) {
         return true;
     }
-
+#endif
     if (!picture->editSequence(m_seqParam) || !fill(m_seqParam)) {
         ERROR("failed to create sequence parameter buffer (SPS)");
         return false;
@@ -1704,9 +1711,7 @@ bool VaapiEncoderHEVC::ensureSequence(const PicturePtr& picture)
 
 bool VaapiEncoderHEVC::ensurePicture (const PicturePtr& picture, const SurfacePtr& surface)
 {
-
-    if (picture->m_type != VAAPI_PICTURE_I &&
-            !pictureReferenceListSet(picture)) {
+    if (!pictureReferenceListSet(picture)) {
         ERROR ("reference list reorder failed");
         return false;
     }
