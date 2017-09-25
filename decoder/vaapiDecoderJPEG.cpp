@@ -357,8 +357,11 @@ YamiStatus VaapiDecoderJPEG::decode(VideoDecodeBuffer* buffer)
 //get frame fourcc, return 0 for unsupport format
 static uint32_t getFourcc(const FrameHeader::Shared& frame)
 {
+    if (frame->components.size() == 1) // monochrome image
+        RETURN_FORMAT(YAMI_FOURCC_Y800);
+
     if (frame->components.size() != 3) {
-        ERROR("unsupported compoent size %d", (int)frame->components.size());
+        ERROR("unsupported component size %d", (int)frame->components.size());
         return 0;
     }
     int h1 = frame->components[0]->hSampleFactor;
