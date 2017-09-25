@@ -47,6 +47,8 @@ void unmapImage(VADisplay display, const VAImage& image)
 uint32_t getRtFormat(uint32_t fourcc)
 {
     switch (fourcc) {
+    case YAMI_FOURCC_Y800:
+        return VA_RT_FORMAT_YUV400;
     case YAMI_FOURCC_NV12:
     case YAMI_FOURCC_I420:
     case YAMI_FOURCC_YV12:
