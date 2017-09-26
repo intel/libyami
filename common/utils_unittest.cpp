@@ -154,6 +154,7 @@ const static BppEntry bppEntrys[] = {
     { YAMI_FOURCC_422H, 3, 2 },
     { YAMI_FOURCC_422V, 3, 2 },
     { YAMI_FOURCC_444P, 3, 3 },
+    { YAMI_FOURCC_Y800, 1, 1 },
     { YAMI_FOURCC_P010, 2, 3 },
     { YAMI_FOURCC_YUY2, 1, 2 },
     { YAMI_FOURCC_UYVY, 1, 2 },
@@ -167,7 +168,6 @@ const static BppEntry bppEntrys[] = {
 //we do not want check all unsupported formats, it will introduce too many dependency on libva
 const static uint32_t unsupported[] = {
     0,
-    YAMI_FOURCC_Y800,
     YAMI_FOURCC_411P,
     YAMI_FOURCC_ARGB,
 };
