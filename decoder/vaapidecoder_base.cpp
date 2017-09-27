@@ -356,6 +356,7 @@ YamiStatus VaapiDecoderBase::ensureProfile(VAProfile profile)
 YamiStatus VaapiDecoderBase::terminateVA(void)
 {
     INFO("base: terminate VA");
+    m_output.clear();
     m_config.resetConfig();
     m_surfacePool.reset();
     m_allocator.reset();
