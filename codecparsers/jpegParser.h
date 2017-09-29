@@ -256,6 +256,7 @@ private:
 
     bool m_sawSOI;
     bool m_sawEOI;
+    bool m_sawSOS;
 
     unsigned m_restartInterval;
 };
