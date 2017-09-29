@@ -237,6 +237,7 @@ Parser::Parser(const uint8_t* data, const uint32_t size)
     , m_callbacks()
     , m_sawSOI(false)
     , m_sawEOI(false)
+    , m_sawSOS(false)
     , m_restartInterval(0)
 {
 }
@@ -318,8 +319,10 @@ bool Parser::nextMarker()
 
     do {
         match = std::find(current, end, 0xFF);
-        if (match == end)
+        if (match == end) {
+            skipBytes(std::distance(start, match) + 1);
             return false;
+        }
         if (*(match + 1) < 0xFF && *(match + 1) >= M_SOF0)
             break;
         current = match + 1;
@@ -342,7 +345,27 @@ bool Parser::parse()
                 return false;
             }
         } else if (!nextMarker()) {
-            return m_sawEOI;
+            if (m_sawSOS && !m_sawEOI) {
+                // NOTE: By standard, a missing EOI technically means the image
+                // is corrupt.  However, there are many images in the wild where
+                // a missing EOI is the only corruption to the image (i.e. the
+                // entropy-coded data and headers are still intact).  This can
+                // happen, for example, when the image was encoded by a buggy
+                // application that forgets to append the EOI to the final
+                // image.  If a missing EOI is the only issue, then decoders can
+                // still successfully decode it.  However, a missing EOI does
+                // not necessarily mean the rest of the image is intact.  That
+                // is, there is no guarantee that the final decoded output will
+                // produce the desired result.  Either way, we insert a fake
+                // EOI marker here to give decoders a chance to decode the
+                // image.
+                WARNING("No EOI marker found on input... inserting one now");
+                m_current.marker = M_EOI;
+                m_current.position = currentBytePosition() - 1;
+                m_current.length = 0;
+            } else {
+                return m_sawEOI;
+            }
         }
 
         DEBUG("%s (byte:0x%02x position:%u)", __func__,
@@ -611,6 +634,8 @@ bool Parser::parseSOS()
 
     m_scanHeader->al = m_scanHeader->ah & 15;
     m_scanHeader->ah = (m_scanHeader->ah >> 4) & 15;
+
+    m_sawSOS = true;
 
     return true;
 }

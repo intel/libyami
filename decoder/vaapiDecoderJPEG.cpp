@@ -135,8 +135,13 @@ private:
                 + m_parser->current().length;
             break;
         case M_EOI:
-            m_slice.length = m_parser->current().position - m_slice.start;
-            m_decodeStatus = m_finishHandler();
+            if (m_slice.start >= m_parser->current().position) {
+                // we can't have zero or negative length
+                m_decodeStatus = YAMI_FAIL;
+            } else {
+                m_slice.length = m_parser->current().position - m_slice.start;
+                m_decodeStatus = m_finishHandler();
+            }
             break;
         case M_DQT:
             m_quantizationTables = m_parser->quantTables();

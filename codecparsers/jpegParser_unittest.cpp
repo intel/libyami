@@ -128,6 +128,7 @@ protected:
     MEMBER_VARIABLE(Parser::Callbacks, m_callbacks);
     MEMBER_VARIABLE(bool, m_sawSOI);
     MEMBER_VARIABLE(bool, m_sawEOI);
+    MEMBER_VARIABLE(bool, m_sawSOS);
     MEMBER_VARIABLE(unsigned, m_restartInterval);
 
 #undef MEMBER_VARIABLE
@@ -520,7 +521,18 @@ JPEG_PARSER_TEST(Parse_SimpleTruncated)
 
     for (size_t i(1); i < size; ++i) {
         Parser parser(&g_SimpleJPEG[0], i);
-        EXPECT_FALSE(parser.parse());
+
+        const bool result = parser.parse();
+
+        if (!m_sawSOS(parser)) {
+            EXPECT_FALSE(result) << i;
+        } else {
+            // If parser successfully parses an SOS but does not encounter an
+            // EOI marker at the end of the input, then it will insert a fake EOI
+            // marker and succeed to allow decoders to still attempt to decode
+            // the available entropy-coded data.
+            EXPECT_TRUE(result) << i;
+        }
     }
 }
 

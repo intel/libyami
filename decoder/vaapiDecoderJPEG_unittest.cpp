@@ -263,9 +263,10 @@ public:
     template<std::size_t N>
     static Shared create(
         const std::array<uint8_t, N>& data,
-        const std::string& fourcc)
+        const std::string& fourcc,
+        const uint32_t sliceStart)
     {
-        Shared buffer(new TestDecodeBuffer(fourcc));
+        Shared buffer(new TestDecodeBuffer(fourcc, sliceStart));
         buffer->data = const_cast<uint8_t*>(data.data());
         buffer->size = data.size();
         buffer->timeStamp = 0;
@@ -284,11 +285,15 @@ public:
     }
 
 private:
-    TestDecodeBuffer(const std::string& fourcc)
+    TestDecodeBuffer(const std::string& fourcc, const uint32_t sliceStart)
         : m_fourcc(fourcc)
+        , m_sliceStart(sliceStart)
     { }
 
     std::string m_fourcc;
+
+public:
+    const uint32_t m_sliceStart;
 };
 
 class JPEGTest
@@ -381,7 +386,7 @@ TEST_P(JPEGTest, Decode_SimpleTruncated)
 {
     const size_t size(GetParam()->size);
 
-    for (size_t i(1); i < size; ++i){
+    for (size_t i(1); i < size; ++i) {
         VaapiDecoderJPEG decoder;
         VideoConfigBuffer config;
         VideoDecodeBuffer buffer;
@@ -393,9 +398,20 @@ TEST_P(JPEGTest, Decode_SimpleTruncated)
         buffer.timeStamp = 0;
 
         ASSERT_EQ(YAMI_SUCCESS, decoder.start(&config));
-        //decode always return YAMI_FAIL since it doesn't have enough data.
-        EXPECT_EQ(YAMI_FAIL, decoder.decode(&buffer));
-        EXPECT_EQ(YAMI_FAIL, decoder.decode(&buffer));
+
+        if (i <= GetParam()->m_sliceStart + 1) {
+            // decode always return YAMI_FAIL since it doesn't have enough data.
+            EXPECT_EQ(YAMI_FAIL, decoder.decode(&buffer)) << i;
+            EXPECT_EQ(YAMI_FAIL, decoder.decode(&buffer)) << i;
+        } else {
+            // The decoder has enough data to produce a slice for encoding
+            // but does not encounter an EOI marker, so a fake EOI is inserted.
+            // This means the decoder will still attempt to decode the slice
+            // but cannot guarantee the final decoded output is correct since
+            // the slice may not actually be complete.
+            EXPECT_EQ(YAMI_DECODE_FORMAT_CHANGE, decoder.decode(&buffer)) << i;
+            EXPECT_EQ(YAMI_SUCCESS, decoder.decode(&buffer)) << i;
+        }
     }
 }
 
@@ -408,9 +424,9 @@ void PrintTo(const TestDecodeBuffer::Shared& t, std::ostream* os)
 INSTANTIATE_TEST_CASE_P(
     VaapiDecoder, JPEGTest,
     ::testing::Values(
-        TestDecodeBuffer::create(g_Simple444P, "444P"),
-        TestDecodeBuffer::create(g_SimpleIMC3, "IMC3"),
-        TestDecodeBuffer::create(g_Simple422H, "422H"),
-        TestDecodeBuffer::create(g_Simple422V, "422V")));
+        TestDecodeBuffer::create(g_Simple444P, "444P", 623),
+        TestDecodeBuffer::create(g_SimpleIMC3, "IMC3", 313),
+        TestDecodeBuffer::create(g_Simple422H, "422H", 321),
+        TestDecodeBuffer::create(g_Simple422V, "422V", 318)));
 
 }
