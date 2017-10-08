@@ -631,17 +631,10 @@ bool V4l2Decoder::inputPulse(uint32_t index)
     return true; // always return true for decode; simply ignored unsupported nal
 }
 
-#ifdef __ENABLE_WAYLAND__
 bool V4l2Decoder::outputPulse(uint32_t& index)
 {
     return true;
 }
-#elif __ENABLE_EGL__
-bool V4l2Decoder::outputPulse(uint32_t& index)
-{
-    return true;
-}
-#endif
 
 bool V4l2Decoder::recycleOutputBuffer(int32_t index)
 {
