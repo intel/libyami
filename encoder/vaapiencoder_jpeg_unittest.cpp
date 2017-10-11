@@ -230,6 +230,48 @@ VAAPIENCODER_JPEG_TEST(Factory) {
     doFactoryTest(mimeTypes);
 }
 
+VAAPIENCODER_JPEG_TEST(QualityParamSetGet) {
+    VaapiEncoderJpeg encoder;
+    VideoParamsQualityLevel quality = {
+        .size = sizeof(VideoParamsQualityLevel), .level = 0u};
+
+    // default quality level
+    EXPECT_EQ(YAMI_SUCCESS,
+        encoder.getParameters(VideoParamsTypeQualityLevel, &quality));
+    EXPECT_EQ(quality.level, 50u);
+
+    // out of low range limit clamps to low range
+    quality.level = 0u;
+    EXPECT_EQ(YAMI_SUCCESS,
+        encoder.setParameters(VideoParamsTypeQualityLevel, &quality));
+    quality.level = 0u;
+    EXPECT_EQ(YAMI_SUCCESS,
+        encoder.getParameters(VideoParamsTypeQualityLevel, &quality));
+    EXPECT_EQ(quality.level, 1u);
+
+    // in valid range
+    for (uint32_t q(1u); q <= 100; ++q) {
+        quality.level = q;
+        EXPECT_EQ(YAMI_SUCCESS,
+            encoder.setParameters(VideoParamsTypeQualityLevel, &quality));
+        quality.level = 0u;
+        EXPECT_EQ(YAMI_SUCCESS,
+            encoder.getParameters(VideoParamsTypeQualityLevel, &quality));
+        EXPECT_EQ(quality.level, q);
+    }
+
+    // out of high range limit clamps to high range
+    for (uint32_t q(101u); q < 256; ++q) {
+        quality.level = q;
+        EXPECT_EQ(YAMI_SUCCESS,
+            encoder.setParameters(VideoParamsTypeQualityLevel, &quality));
+        quality.level = 0u;
+        EXPECT_EQ(YAMI_SUCCESS,
+            encoder.getParameters(VideoParamsTypeQualityLevel, &quality));
+        EXPECT_EQ(quality.level, 100u);
+    }
+}
+
 class SimpleDataTest
     : public VaapiEncoderJpegTest
     , public ::testing::WithParamInterface<const char*>
@@ -284,12 +326,20 @@ VAAPIENCODER_JPEG_TEST_SIMPLE_DATA(Encode)
     ASSERT_FALSE(HasFailure());
 
     VaapiEncoderJpeg encoder;
+    VideoParamsQualityLevel quality = {.size = sizeof(VideoParamsQualityLevel)};
     VideoParamsCommon parameters = {.size = sizeof(VideoParamsCommon)};
 
-    encoder.getParameters(VideoParamsTypeCommon, &parameters);
+    EXPECT_EQ(YAMI_SUCCESS,
+        encoder.getParameters(VideoParamsTypeCommon, &parameters));
     parameters.resolution.width = 10;
     parameters.resolution.height = 10;
-    encoder.setParameters(VideoParamsTypeCommon, &parameters);
+    EXPECT_EQ(YAMI_SUCCESS,
+        encoder.setParameters(VideoParamsTypeCommon, &parameters));
+
+    // verify default jpeg quality level
+    EXPECT_EQ(YAMI_SUCCESS,
+        encoder.getParameters(VideoParamsTypeQualityLevel, &quality));
+    EXPECT_EQ(quality.level, 50u);
 
     ASSERT_EQ(YAMI_SUCCESS, encoder.start());
 
@@ -308,6 +358,12 @@ VAAPIENCODER_JPEG_TEST_SIMPLE_DATA(Encode)
     output.format = OUTPUT_EVERYTHING;
 
     EXPECT_EQ(YAMI_SUCCESS, encoder.getOutput(&output, false));
+
+    // Verify jpeg quality level did not get changed during encode
+    quality.level = 0u;
+    EXPECT_EQ(YAMI_SUCCESS,
+        encoder.getParameters(VideoParamsTypeQualityLevel, &quality));
+    EXPECT_EQ(quality.level, 50u);
 }
 
 INSTANTIATE_TEST_CASE_P(
