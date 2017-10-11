@@ -100,7 +100,7 @@ static const size_t JPEG_HEADER_SIZE = 83 + (YamiParser::JPEG::DCTSIZE2 * 2)
 
 typedef std::array<uint8_t, JPEG_HEADER_SIZE> JPEGHeader;
 
-int buildJpegHeader(JPEGHeader& header, int picture_width, int picture_height)
+int buildJpegHeader(JPEGHeader& header, int picture_width, int picture_height, unsigned quality)
 {
     using namespace ::YamiParser::JPEG;
 
@@ -130,7 +130,14 @@ int buildJpegHeader(JPEGHeader& header, int picture_width, int picture_height)
     header[++idx] = 0x00; // Thumbnail width
     header[++idx] = 0x00; // Thumbnail height
 
-    // Quantization Tables
+    // Quantization Tables.
+    //
+    // Application is responsible for scaling and normalizing the quantization
+    // tables in the packed header.
+
+    // Normalize quality factor
+    quality = (quality < 50) ? (5000/quality) : (200 - (quality * 2));
+
     const QuantTables& quantTables = Defaults::instance().quantTables();
     for (size_t i(0); i < 2; ++i) {
         const QuantTable::Shared& quantTable = quantTables[i];
@@ -146,8 +153,11 @@ int buildJpegHeader(JPEGHeader& header, int picture_width, int picture_height)
         // Precision (4-bit high) = 0, Index (4-bit low) = i
         header[++idx] = static_cast<uint8_t>(i);
 
-        for (size_t j(0); j < DCTSIZE2; ++j)
-            header[++idx] = static_cast<uint8_t>(quantTable->values[j]);
+        for (size_t j(0); j < DCTSIZE2; ++j) {
+            unsigned scaled = (quantTable->values[j] * quality) / 100;
+            scaled = std::min(255u, std::max(1u, scaled));
+            header[++idx] = static_cast<uint8_t>(scaled);
+        }
     }
 
     // Start of Frame - Baseline
@@ -245,11 +255,11 @@ public:
      VAHuffmanTableBufferJPEGBaseline huffTableParam;
 };
 
-VaapiEncoderJpeg::VaapiEncoderJpeg():
-    quality(50)
+VaapiEncoderJpeg::VaapiEncoderJpeg()
 {
     m_videoParamCommon.profile = VAProfileJPEGBaseline;
     m_entrypoint = VAEntrypointEncPicture;
+    m_videoParamQualityLevel.level = 50;
 }
 
 YamiStatus VaapiEncoderJpeg::getMaxOutSize(uint32_t* maxSize)
@@ -291,6 +301,22 @@ YamiStatus VaapiEncoderJpeg::setParameters(VideoParamConfigType type, Yami_PTR v
         return YAMI_INVALID_PARAM;
 
     switch (type) {
+
+    // override base class quality settings since it tries to map to a range
+    // that does not correspond to valid JPEG quality range.
+    case VideoParamsTypeQualityLevel: {
+            VideoParamsQualityLevel* videoQualityLevel = (VideoParamsQualityLevel*)videoEncParams;
+            if (videoQualityLevel->size == sizeof(VideoParamsQualityLevel)) {
+                if (videoQualityLevel->level != m_videoParamQualityLevel.level) {
+                    PARAMETER_ASSIGN(m_videoParamQualityLevel, *videoQualityLevel);
+                    m_videoParamQualityLevel.level =
+                        std::min(100u, std::max(1u, m_videoParamQualityLevel.level));
+                }
+            } else {
+                status = YAMI_INVALID_PARAM;
+            }
+        }
+        break;
     default:
         status = VaapiEncoderBase::setParameters(type, videoEncParams);
         break;
@@ -345,12 +371,18 @@ bool VaapiEncoderJpeg::fill(VAEncPictureParameterBufferJPEG * picParam, const Pi
     picParam->num_scan = 1;
     // Supporting only upto 3 components maximum
     picParam->num_components = 3;
-    picParam->quality = quality;
+    picParam->quality = m_videoParamQualityLevel.level;
+
+    DEBUG("picture encode quality = %d", picParam->quality);
+
     return TRUE;
 }
 
 bool VaapiEncoderJpeg::fill(VAQMatrixBufferJPEG * qMatrix) const
 {
+    // Fill the raw, unscaled quant tables for VAAPI.  The VAAPI driver is
+    // responsible for scaling the quantization tables based on picture
+    // parameter quality.
     const QuantTable::Shared luminance = Defaults::instance().quantTables()[0];
     qMatrix->load_lum_quantiser_matrix = 1;
     for (size_t i = 0; i < ::YamiParser::JPEG::DCTSIZE2; i++) {
@@ -477,7 +509,8 @@ bool VaapiEncoderJpeg::addSliceHeaders (const PicturePtr& picture) const
 {
     unsigned int length_in_bits;
     JPEGHeader header;
-    length_in_bits = buildJpegHeader(header, width(), height());
+    DEBUG("header encode quality = %d", m_videoParamQualityLevel.level);
+    length_in_bits = buildJpegHeader(header, width(), height(), m_videoParamQualityLevel.level);
 
     if(!picture->addPackedHeader(VAEncPackedHeaderRawData, header.data(), length_in_bits))
         return false;

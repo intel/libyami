@@ -60,8 +60,6 @@ private:
 
     void resetParams();
 
-    unsigned char quality;
-
     /**
      * VaapiEncoderFactory registration result. This encoder is registered in
      * vaapiencoder_host.cpp
