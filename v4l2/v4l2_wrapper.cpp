@@ -114,6 +114,13 @@ int32_t YamiV4L2_SvcT(int32_t fd, bool enable)
     return v4l2Codec->setSvcT(enable);
 }
 
+int32_t YamiV4L2_SetThumbnailMode(int32_t fd, bool enable)
+{
+    V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
+    ASSERT(v4l2Codec);
+    return v4l2Codec->setThumbnailMode(enable);
+}
+
 int32_t YamiV4L2_Ioctl(int32_t fd, int command, void* arg)
 {
     V4l2CodecPtr v4l2Codec = _findCodecFromFd(fd);
@@ -253,6 +260,10 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
     } else if(!(strcmp(key, "encode-mode"))) {
         if (!strcmp(value, "svct")) {
             ret = v4l2Codec->setSvcT(true);
+        }
+    } else if (!(strcmp(key, "decode-mode"))) {
+        if (!strcmp(value, "thumbnail")) {
+            ret = v4l2Codec->setThumbnailMode(true);
         }
     } else {
         ERROR("unsupported parameter key: %s\n", key);
