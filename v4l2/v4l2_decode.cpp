@@ -480,9 +480,9 @@ protected:
             return YAMI_FAIL;
         }
         if (params->size > m_surfaces.size()) {
-            ERROR("require size > surface size (%d > %d)", (int)params->size, (int)m_surfaces.size());
-            return YAMI_FAIL;
+            DEBUG("ATTENTION!!! require size > surface size (%d > %d), m_isThumbnailMode = %d", (int)params->size, (int)m_surfaces.size(), m_decoder->m_isThumbnailMode);
         }
+
         params->surfaces = &m_surfaces[0];
         params->size = m_surfaces.size();
         params->user = m_getter.get();
@@ -855,6 +855,8 @@ void V4l2Decoder::getInputJob()
     }
     if (status == YAMI_DECODE_NO_SURFACE) {
         if (m_output->isAllocationDone()) {
+            m_state = kGetOutput;
+            getOutputJob();
             m_state = kWaitSurface;
             DEBUG("early out, no surface");
             return;
@@ -1242,6 +1244,10 @@ void V4l2Decoder::startDecoderJob()
     config.height = m_inputFormat.fmt.pix_mp.height;
     config.data = &m_codecData[0];
     config.size = m_codecData.size();
+    if (m_isThumbnailMode) {
+        DEBUG("enable lowlatency mode");
+        config.enableLowLatency = true;
+    }
 
     status = m_decoder->start(&config);
     if (status != YAMI_SUCCESS) {
@@ -1310,8 +1316,12 @@ int32_t V4l2Decoder::getCtrlTask(v4l2_control* ctrl)
     if (!outFormat)
         return EINVAL;
 
-    //TODO: query this from outFormat;
-    ctrl->value = outFormat->surfaceNumber;
+    if (m_isThumbnailMode) {
+        ctrl->value = 1;
+    } else {
+        //TODO: query this from outFormat;
+        ctrl->value = outFormat->surfaceNumber;
+    }
     return 0;
 }
 
