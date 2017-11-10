@@ -401,6 +401,8 @@ AC_ARG_ENABLE(media-studio-va,
     [], [enable_media_studio_va="no"])
 
 if test "$enable_media_studio_va" = "yes"; then
+    AC_DEFINE([__ENABLE_STUDIO_VA__], [1],
+        [Defined to 1 to enable yami based on studio va])
     AC_DEFINE([__ENABLE_H265_ENC_ON_STUDIO_VA__], [1],
         [Defined to 1 to enable H265 encoding when --enable-media-studio-va="yes"])
 fi
