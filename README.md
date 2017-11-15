@@ -49,8 +49,8 @@ Requirements
 ------------
 Hardware requirements
 
-  * Intel Sandybridge, Ivybridge, Haswell, Broadwell, Skylake, Kaby Lake(HD Graphics)
-  * Intel Baytrail, Braswell, Apollo Lake
+  * Intel Sandybridge, Ivybridge, Haswell, Broadwell, Skylake, Kaby Lake (HD Graphics)
+  * Intel Bay Trail, Braswell, Apollo Lake, Gemini Lake
 
 
 Sources
