@@ -19,6 +19,7 @@
 #endif
 
 #include "vaapi/vaapidisplay.h"
+#include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -130,7 +131,12 @@ class NativeDisplayDrm : public NativeDisplayBase{
         if (acceptValidExternalHandle(display))
             return true;
 
-        m_handle = open("/dev/dri/renderD128", O_RDWR);
+        m_handle = -1;
+        const char* device_env = getenv("VA_DRM_DEVICE");
+        if (device_env)
+            m_handle = open(device_env, O_RDWR);
+        if (m_handle < 0)
+            m_handle = open("/dev/dri/renderD128", O_RDWR);
         if (m_handle < 0)
             m_handle = open("/dev/dri/card0", O_RDWR);
         m_selfCreated = true;
