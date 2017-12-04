@@ -919,9 +919,6 @@ void VaapiEncoderH264::checkProfileLimitation()
     VAProfile& profile = m_videoParamCommon.profile;
 
     switch (profile) {
-    case VAProfileH264Baseline:
-        // only Constrained Baseline supported right now
-        profile = VAProfileH264ConstrainedBaseline;
     case VAProfileH264ConstrainedBaseline:
         if (ipPeriod() > 1) {
             WARNING("H264 baseline profile can not support B frame encoding");
