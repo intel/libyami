@@ -1345,11 +1345,6 @@ bool VaapiDecoderH264::fillPicture(const PicturePtr& picture,
     picParam->seq_fields.bits.delta_pic_order_always_zero_flag
         = sps->delta_pic_order_always_zero_flag;
 
-    picParam->num_slice_groups_minus1 = pps->num_slice_groups_minus1;
-    picParam->slice_group_map_type = pps->slice_group_map_type;
-    picParam->slice_group_change_rate_minus1
-        = pps->slice_group_change_rate_minus1;
-
     picParam->pic_init_qp_minus26 = pps->pic_init_qp_minus26;
     picParam->pic_init_qs_minus26 = pps->pic_init_qs_minus26;
     picParam->chroma_qp_index_offset = pps->chroma_qp_index_offset;
