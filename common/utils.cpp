@@ -40,7 +40,7 @@ uint32_t guessFourcc(const char* fileName)
         "I420", "NV12", "YV12",
         "P010",
         "YUY2", "UYVY",
-        "RGBX", "BGRX", "XRGB", "XBGR",
+        "RGBX", "BGRX", "XRGB", "XBGR", "RG16",
         //for jpeg
         "444P", "422V", "422H", "IMC3"
     };
@@ -160,6 +160,7 @@ const static ResolutionEntry resolutionEntrys[] = {
     { YAMI_FOURCC_RGBA, 1, { 8 }, { 2 } },
     { YAMI_FOURCC_BGRX, 1, { 8 }, { 2 } },
     { YAMI_FOURCC_BGRA, 1, { 8 }, { 2 } },
+    { YAMI_FOURCC_RGB565, 1, { 4 }, { 2 } },
 };
 
 /* l is length in pixel*/

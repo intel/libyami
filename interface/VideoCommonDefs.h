@@ -84,7 +84,7 @@ extern "C" {
 #define YAMI_FOURCC_ARGB YAMI_FOURCC('A', 'R', 'G', 'B')
 #define YAMI_FOURCC_XBGR YAMI_FOURCC('X', 'B', 'G', 'R')
 #define YAMI_FOURCC_ABGR YAMI_FOURCC('A', 'B', 'G', 'R')
-
+#define YAMI_FOURCC_RGB565 YAMI_FOURCC('R', 'G', '1', '6')
 #define YAMI_FOURCC_R210 YAMI_FOURCC('R', '2', '1', '0')
 
 #ifndef V4L2_BUF_FLAG_NON_REF
