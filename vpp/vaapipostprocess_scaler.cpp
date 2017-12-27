@@ -65,6 +65,7 @@ VaapiPostProcessScaler::VaapiPostProcessScaler()
 {
     m_denoise.level = DENOISE_LEVEL_NONE;
     m_sharpening.level = SHARPENING_LEVEL_NONE;
+    m_transform = VPP_TRANSFORM_NONE;
 }
 
 bool VaapiPostProcessScaler::getFilters(std::vector<VABufferID>& filters)
@@ -125,8 +126,22 @@ VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
         vppParam->filters = &filters[0];
         vppParam->num_filters = (unsigned int)filters.size();
     }
+    vppParam->rotation_state = mapToVARotationState(m_transform);
 
     return picture.process() ? YAMI_SUCCESS : YAMI_FAIL;
+}
+uint32_t VaapiPostProcessScaler::mapToVARotationState(VppTransform vppTransform)
+{
+    switch (vppTransform) {
+    case VPP_TRANSFORM_ROT_90:
+        return VA_ROTATION_90;
+    case VPP_TRANSFORM_ROT_180:
+        return VA_ROTATION_180;
+    case VPP_TRANSFORM_ROT_270:
+        return VA_ROTATION_270;
+    default:
+        return VA_ROTATION_NONE;
+    }
 }
 
 bool VaapiPostProcessScaler::mapToRange(
@@ -394,7 +409,15 @@ VaapiPostProcessScaler::setParameters(VppParamType type, void* vppParam)
 
         return setColorBalanceParam(*colorbalance);
     }
+    else if (type == VppParamTypeTransform) {
+        VppParamTransform* param = (VppParamTransform*)vppParam;
+        if (param->size != sizeof(VppParamTransform)) {
+            return YAMI_INVALID_PARAM;
+        }
+        m_transform = (VppTransform)param->transform;
+
+        return YAMI_SUCCESS;
+    }
     return VaapiPostProcessBase::setParameters(type, vppParam);
 }
-
 }
