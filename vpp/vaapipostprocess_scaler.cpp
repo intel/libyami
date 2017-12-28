@@ -80,6 +80,9 @@ bool VaapiPostProcessScaler::getFilters(std::vector<VABufferID>& filters)
     if (m_deinterlace.filter) {
         filters.push_back(m_deinterlace.filter->getID());
     }
+    if ((ensureColorBalanceFilter() == YAMI_SUCCESS) && m_colorBalance.filter) {
+        filters.push_back(m_colorBalance.filter->getID());
+    }
 
     return !filters.empty();
 }
@@ -383,5 +386,35 @@ VaapiPostProcessScaler::setParameters(VppParamType type, void* vppParam)
         return YAMI_SUCCESS;
     }
     return VaapiPostProcessBase::setParameters(type, vppParam);
+}
+
+YamiStatus VaapiPostProcessScaler::ensureColorBalanceFilter()
+{
+    if (m_colorBalanceChanged) {
+        if (!m_colorBalance.colorBalance.size()) {
+            if (m_colorBalance.filter)
+                m_colorBalance.filter.reset();
+            m_colorBalanceChanged = false;
+            return YAMI_SUCCESS;
+        }
+
+        VAProcFilterParameterBufferColorBalance colorBalanceVAParam[VAProcColorBalanceCount + 1];
+        uint32_t i = 0;
+        for (ColorBalanceMapItr itr = m_colorBalance.colorBalance.begin(); itr != m_colorBalance.colorBalance.end(); itr++, i++)
+            colorBalanceVAParam[i] = itr->second;
+
+        m_colorBalance.filter = VaapiBuffer::create(m_context,
+            VAProcFilterParameterBufferType,
+            sizeof(VAProcFilterParameterBufferColorBalance),
+            (void*)colorBalanceVAParam,
+            NULL,
+            m_colorBalance.colorBalance.size());
+
+        if (!m_colorBalance.filter)
+            return YAMI_DRIVER_FAIL;
+        m_colorBalanceChanged = false;
+    }
+
+    return YAMI_SUCCESS;
 }
 }

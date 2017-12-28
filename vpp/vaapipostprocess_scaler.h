@@ -77,6 +77,7 @@ private:
     YamiStatus setDeinterlaceParam(const VPPDeinterlaceParameters&);
     YamiStatus createDeinterlaceFilter(const VPPDeinterlaceParameters&);
     YamiStatus setColorBalanceParam(const VPPColorBalanceParameter&);
+    YamiStatus ensureColorBalanceFilter();
 
     ProcParams m_denoise;
     ProcParams m_sharpening;
