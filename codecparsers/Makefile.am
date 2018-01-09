@@ -2,7 +2,6 @@ libyami_codecparser_source_c = \
 	bitReader.cpp \
 	bitWriter.cpp \
 	nalReader.cpp \
-	dboolhuff.c \
 	$(NULL)
 
 if BUILD_JPEG_PARSER
@@ -80,9 +79,6 @@ libyami_codecparser_source_h_priv += \
 	$(NULL)
 endif
 
-libyami_codecparser_source_h_priv += \
-	dboolhuff.h \
-	$(NULL)
 EXTRA_DIST = dboolhuff.LICENSE dboolhuff.PATENTS dboolhuff.AUTHORS
 
 if BUILD_H265_DECODER
