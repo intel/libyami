@@ -43,11 +43,13 @@ const bool OclPostProcessWireframe::s_registered =
 }
 #endif
 
+#ifdef __BUILD_VPP__
 #include "vaapipostprocess_scaler.h"
 namespace YamiMediaCodec {
 const bool VaapiPostProcessScaler::s_registered =
     VaapiPostProcessFactory::register_<VaapiPostProcessScaler>(YAMI_VPP_SCALER);
 }
+#endif
 
 using namespace YamiMediaCodec;
 

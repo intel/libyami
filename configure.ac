@@ -399,6 +399,19 @@ fi
 AM_CONDITIONAL(BUILD_OCL_FILTERS,
     [test "x$enable_oclfilters" = "xyes"])
 
+dnl vpp
+AC_ARG_ENABLE(vpp,
+    [AC_HELP_STRING([--enable-vpp],
+        [build with vpp support <:@default=yes@:>@])],
+    [], [enable_vpp="yes"])
+
+AM_CONDITIONAL(BUILD_VPP,
+    [test "x$enable_vpp" = "xyes" -o "x$enable_oclfilters" = "xyes"])
+
+if test "$enable_vpp" = "yes"; then
+    AC_DEFINE([__BUILD_VPP__], [1],
+        [Defined to 1 if --enable-vpp="yes"])
+fi
 
 # dnl Doxygen
 AC_ARG_ENABLE(docs,

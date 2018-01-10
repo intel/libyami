@@ -1,9 +1,14 @@
 libyami_vpp_source_c = \
-	vaapipostprocess_base.cpp \
 	vaapipostprocess_host.cpp \
+	$(NULL)
+
+if BUILD_VPP
+libyami_vpp_source_c += \
+	vaapipostprocess_base.cpp \
 	vaapipostprocess_scaler.cpp \
 	vaapivpppicture.cpp \
 	$(NULL)
+endif
 
 if BUILD_OCL_FILTERS
 libyami_vpp_source_c += ../ocl/oclcontext.cpp
