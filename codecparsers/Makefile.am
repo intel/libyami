@@ -1,11 +1,16 @@
 libyami_codecparser_source_c = \
-	bitWriter.cpp \
 	$(NULL)
 
 if BUILD_DECODER
 libyami_codecparser_source_c += \
 	bitReader.cpp \
 	nalReader.cpp \
+	$(NULL)
+endif
+
+if BUILD_ENCODER
+libyami_codecparser_source_c += \
+	bitWriter.cpp \
 	$(NULL)
 endif
 
@@ -54,13 +59,18 @@ libyami_codecparser_source_c += \
 endif
 
 libyami_codecparser_source_h_priv = \
-	bitWriter.h \
 	$(NULL)
 
 if BUILD_DECODER
 libyami_codecparser_source_h_priv += \
 	bitReader.h \
 	nalReader.h \
+	$(NULL)
+endif
+
+if BUILD_ENCODER
+libyami_codecparser_source_h_priv += \
+	bitWriter.h \
 	$(NULL)
 endif
 

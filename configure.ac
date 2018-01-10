@@ -360,6 +360,18 @@ dnl jpeg parser
 AM_CONDITIONAL(BUILD_JPEG_PARSER,
     [test "x$enable_jpegdec" = "xyes" -o "x$enable_jpegenc" = "xyes"])
 
+ENABLE_ENCODER="yes"
+if test "$enable_h264enc" != "yes" -a \
+        "$enable_jpegenc" != "yes" -a \
+        "$enable_vp8enc" != "yes" -a \
+        "$enable_vp9enc" != "yes" -a \
+        "$enable_h265enc" != "yes"; then
+    ENABLE_ENCODER="no"
+fi
+
+AM_CONDITIONAL(BUILD_ENCODER,
+    [test "x$ENABLE_ENCODER" = "xyes"])
+
 dnl encoder getmv
 AC_ARG_ENABLE(getmv,
     [AC_HELP_STRING([--enable-getmv],

@@ -1,10 +1,15 @@
 libyami_encoder_source_c = \
+	vaapiencoder_host.cpp \
+	$(NULL)
+
+if BUILD_ENCODER
+libyami_encoder_source_c += \
 	vaapicodedbuffer.cpp \
 	vaapiencpicture.cpp \
 	vaapiencoder_base.cpp \
-	vaapiencoder_host.cpp \
 	vaapilayerid.cpp \
 	$(NULL)
+endif
 
 if BUILD_H264_ENCODER
 libyami_encoder_source_c += vaapiencoder_h264.cpp
