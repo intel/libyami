@@ -261,6 +261,21 @@ fi
 AM_CONDITIONAL(BUILD_FAKE_DECODER,
     [test "x$enable_fakedec" = "xyes"])
 
+ENABLE_DECODER="yes"
+if test "$enable_mpeg2dec" != "yes" -a \
+        "$enable_vp8dec" != "yes" -a \
+        "$enable_vp9dec" != "yes" -a \
+        "$enable_jpegdec" != "yes" -a \
+        "$enable_h264dec" != "yes" -a \
+        "$enable_h265dec" != "yes" -a \
+        "$enable_vc1dec" != "yes" -a \
+        "$enable_fakedec" != "yes"; then
+    ENABLE_DECODER="no"
+fi
+
+AM_CONDITIONAL(BUILD_DECODER,
+    [test "x$ENABLE_DECODER" = "xyes"])
+
 dnl h264 encoder
 AC_ARG_ENABLE(h264enc,
     [AC_HELP_STRING([--enable-h264enc],

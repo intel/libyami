@@ -1,9 +1,14 @@
 libyami_decoder_source_c = \
-	vaapidecoder_base.cpp \
 	vaapidecoder_host.cpp \
+	$(NULL)
+
+if BUILD_DECODER
+libyami_decoder_source_c += \
+	vaapidecoder_base.cpp \
 	vaapidecsurfacepool.cpp \
 	vaapidecpicture.cpp \
 	$(NULL)
+endif
 
 if BUILD_MPEG2_DECODER
 libyami_decoder_source_c += vaapidecoder_mpeg2.cpp
