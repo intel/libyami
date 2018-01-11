@@ -435,6 +435,10 @@ AC_ARG_ENABLE([tests],
 
 AM_CONDITIONAL(ENABLE_TESTS, test "$enable_tests" = "yes")
 
+AM_CONDITIONAL(BUILD_THREAD,
+    [test "$enable_tests" = "yes" -o \
+          "$enable_v4l2" = "yes"])
+
 AC_ARG_ENABLE(media-studio-va,
     [AC_HELP_STRING([--enable-media-studio-va],
         [enable being based on media studio libva @<:@default=no@:>@])],
