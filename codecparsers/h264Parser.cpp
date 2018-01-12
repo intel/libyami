@@ -434,6 +434,7 @@ bool Parser::parseSps(SharedPtr<SPS>& sps, const NalUnit* nalu)
     }
 
     READ_UE(sps->num_ref_frames);
+    ASSERT(sps->num_ref_frames <= H264_MAX_REFRENCE_SURFACE_NUMBER);
     READ(sps->gaps_in_frame_num_value_allowed_flag);
     READ_UE(sps->pic_width_in_mbs_minus1);
     READ_UE(sps->pic_height_in_map_units_minus1);

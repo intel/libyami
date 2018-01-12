@@ -54,6 +54,7 @@ typedef struct {
     int32_t surfaceHeight;
     int32_t frameRate;
     int32_t surfaceNumber;
+    uint32_t extraSurfaceNum;
     VAProfile profile;
     uint32_t flag;
     uint32_t fourcc;
