@@ -40,6 +40,7 @@ extra_includes = \
 libyami_common_cppflags = \
 	$(LIBVA_CFLAGS) \
 	-I$(top_srcdir)/interface \
+	-I$(top_builddir)/interface \
 	$(extra_includes) \
 	$(NULL)
 
