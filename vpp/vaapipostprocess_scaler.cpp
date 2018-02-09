@@ -126,10 +126,13 @@ VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
         vppParam->filters = &filters[0];
         vppParam->num_filters = (unsigned int)filters.size();
     }
+#if VA_CHECK_VERSION(1, 1, 0)
     vppParam->rotation_state = mapToVARotationState(m_transform);
+#endif
 
     return picture.process() ? YAMI_SUCCESS : YAMI_FAIL;
 }
+
 uint32_t VaapiPostProcessScaler::mapToVARotationState(VppTransform vppTransform)
 {
     switch (vppTransform) {
@@ -410,13 +413,16 @@ VaapiPostProcessScaler::setParameters(VppParamType type, void* vppParam)
         return setColorBalanceParam(*colorbalance);
     }
     else if (type == VppParamTypeTransform) {
+#if VA_CHECK_VERSION(1, 1, 0)
         VppParamTransform* param = (VppParamTransform*)vppParam;
         if (param->size != sizeof(VppParamTransform)) {
             return YAMI_INVALID_PARAM;
         }
         m_transform = (VppTransform)param->transform;
-
         return YAMI_SUCCESS;
+#else
+        return YAMI_INVALID_PARAM;
+#endif
     }
     return VaapiPostProcessBase::setParameters(type, vppParam);
 }
