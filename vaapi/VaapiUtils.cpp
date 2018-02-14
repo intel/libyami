@@ -68,6 +68,10 @@ uint32_t getRtFormat(uint32_t fourcc)
     case YAMI_FOURCC_RGBA:
     case YAMI_FOURCC_BGRX:
     case YAMI_FOURCC_BGRA:
+    case YAMI_FOURCC_XRGB:
+    case YAMI_FOURCC_ARGB:
+    case YAMI_FOURCC_XBGR:
+    case YAMI_FOURCC_ABGR:
         return VA_RT_FORMAT_RGB32;
     case YAMI_FOURCC_RGB565:
         return VA_RT_FORMAT_RGB16;
