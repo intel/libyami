@@ -40,7 +40,9 @@ uint32_t guessFourcc(const char* fileName)
         "I420", "NV12", "YV12",
         "P010",
         "YUY2", "UYVY",
-        "RGBX", "BGRX", "XRGB", "XBGR", "RG16",
+        "RGBX", "RGBA", "BGRX", "BGRA",
+        "XRGB", "ARGB", "XBGR", "ABGR",
+        "RG16",
         //for jpeg
         "444P", "422V", "422H", "IMC3"
     };
@@ -56,6 +58,7 @@ uint32_t guessFourcc(const char* fileName)
             }
         }
     }
+    ERROR("can't find fourcc for %s, return i420", extension);
 
     return YAMI_FOURCC_I420;
 }
@@ -160,6 +163,10 @@ const static ResolutionEntry resolutionEntrys[] = {
     { YAMI_FOURCC_RGBA, 1, { 8 }, { 2 } },
     { YAMI_FOURCC_BGRX, 1, { 8 }, { 2 } },
     { YAMI_FOURCC_BGRA, 1, { 8 }, { 2 } },
+    { YAMI_FOURCC_XRGB, 1, { 8 }, { 2 } },
+    { YAMI_FOURCC_ARGB, 1, { 8 }, { 2 } },
+    { YAMI_FOURCC_XBGR, 1, { 8 }, { 2 } },
+    { YAMI_FOURCC_ABGR, 1, { 8 }, { 2 } },
     { YAMI_FOURCC_RGB565, 1, { 4 }, { 2 } },
 };
 
