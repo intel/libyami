@@ -20,6 +20,7 @@
 
 #include "PooledFrameAllocator.h"
 #include <common/log.h>
+#include <vaapi/VaapiUtils.h>
 
 namespace YamiMediaCodec {
 
@@ -54,13 +55,25 @@ bool PooledFrameAllocator::setFormat(uint32_t fourcc, int width, int height)
     std::vector<VASurfaceID> surfaces;
     surfaces.resize(m_poolsize);
 
+    uint32_t rtFormat = getRtFormat(fourcc);
+    if (!rtFormat) {
+        return false;
+    }
+
+    uint32_t vaFourcc = fourcc;
+    if (fourcc == YAMI_FOURCC_R210) {
+        //workaround for libva, currently libva will use ARGB as fourcc for 10 bits RGB
+        //it's not good,  we need change this. add dedicate fourcc for 10 bits
+        vaFourcc = YAMI_FOURCC_ARGB;
+    }
+
     VASurfaceAttrib attrib;
     attrib.flags = VA_SURFACE_ATTRIB_SETTABLE;
     attrib.type = VASurfaceAttribPixelFormat;
     attrib.value.type = VAGenericValueTypeInteger;
-    attrib.value.value.i = fourcc;
+    attrib.value.value.i = vaFourcc;
 
-    VAStatus status = vaCreateSurfaces(*m_display, VA_RT_FORMAT_YUV420, width, height,
+    VAStatus status = vaCreateSurfaces(*m_display, rtFormat, width, height,
             &surfaces[0], surfaces.size(),
             &attrib, 1);
 
