@@ -75,6 +75,10 @@ uint32_t getRtFormat(uint32_t fourcc)
         return VA_RT_FORMAT_RGB32;
     case YAMI_FOURCC_RGB565:
         return VA_RT_FORMAT_RGB16;
+#ifdef VA_RT_FORMAT_RGB32_10BPP
+    case YAMI_FOURCC_R210:
+        return VA_RT_FORMAT_RGB32_10BPP;
+#endif
     }
     ERROR("get rt format for %.4s failed", (char*)&fourcc);
     return 0;
