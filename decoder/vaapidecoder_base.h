@@ -56,7 +56,10 @@ struct VideoDecoderConfig {
     }
     void resetConfig()
     {
-        memset(this, 0, sizeof(*this));
+        width = 0;
+        height = 0;
+        fourcc = 0;
+        surfaceNumber = 0;
         profile = VAProfileNone;
     }
 };

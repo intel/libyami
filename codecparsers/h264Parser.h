@@ -290,12 +290,12 @@ struct SPS {
 };
 
 struct PPS {
+    PPS();
     ~PPS();
 
     uint32_t pps_id;
     uint32_t sps_id;
 
-    SharedPtr<SPS> m_sps;
 
     bool entropy_coding_mode_flag;
     bool pic_order_present_flag;
@@ -323,6 +323,8 @@ struct PPS {
     uint8_t scaling_lists_4x4[6][16];
     uint8_t scaling_lists_8x8[6][64];
     int8_t second_chroma_qp_index_offset;
+    SharedPtr<SPS> m_sps;
+    //Because these variables is non pod type, it can not use memset and use offsetof to weed out it
 };
 
 struct RefPicListModification {
@@ -368,7 +370,7 @@ struct DecRefPicMarking {
 
 class SliceHeader {
 public:
-    SliceHeader() { memset(&pred_weight_table, 0, sizeof(pred_weight_table)); }
+    SliceHeader();
     bool parseHeader(Parser* nalparser, NalUnit* nalu);
 
 private:
@@ -380,7 +382,6 @@ private:
 public:
     uint32_t first_mb_in_slice;
     uint32_t slice_type;
-    SharedPtr<PPS> m_pps;
     uint8_t colour_plane_id;
     uint16_t frame_num;
     bool field_pic_flag;
@@ -419,6 +420,8 @@ public:
 
     //the number of emulation prevention bytes
     uint32_t m_emulationPreventionBytes;
+    SharedPtr<PPS> m_pps;
+    //Because these variables is non pod type, it can not use memset and use offsetof to weed out it
 };
 
 class Parser {

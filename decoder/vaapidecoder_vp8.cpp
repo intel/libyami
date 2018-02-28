@@ -406,8 +406,6 @@ VaapiDecoderVP8::VaapiDecoderVP8()
     m_frameHeight = 0;
     m_buffer = 0;
     m_frameSize = 0;
-    memset(&m_frameHdr, 0, sizeof(m_frameHdr));
-    memset(&m_parser, 0, sizeof(Vp8Parser));
 
     // m_yModeProbs[4];
     // m_uvModeProbs[3];
@@ -506,7 +504,7 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
             break;
         }
 
-        memset(&m_frameHdr, 0, sizeof(m_frameHdr));
+        m_frameHdr = Vp8FrameHeader();
         result = m_parser.ParseFrame(m_buffer,m_frameSize,&m_frameHdr);
         status = getStatus(result);
         if (status != YAMI_SUCCESS) {

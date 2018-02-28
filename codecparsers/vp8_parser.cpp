@@ -43,6 +43,7 @@
 
 #include "vp8_parser.h"
 #include "common/log.h"
+#include <cstddef>
 
 namespace YamiParser {
 
@@ -84,6 +85,9 @@ Vp8FrameHeader::Vp8FrameHeader() {
 }
 
 Vp8Parser::Vp8Parser() : stream_(NULL), bytes_left_(0) {
+  memset(&curr_segmentation_hdr_, 0, offsetof(Vp8SegmentationHeader, segment_feature_mode));
+  memset(&curr_loopfilter_hdr_, 0, offsetof(Vp8LoopFilterHeader, type));
+  memset(&curr_entropy_hdr_, 0, sizeof(curr_entropy_hdr_));
 }
 
 Vp8Parser::~Vp8Parser() {
@@ -95,7 +99,7 @@ Vp8ParserResult Vp8Parser::ParseFrame(const uint8_t* ptr,
   stream_ = ptr;
   bytes_left_ = frame_size;
 
-  memset(fhdr, 0, sizeof(*fhdr));
+  *fhdr = Vp8FrameHeader();
   fhdr->data = stream_;
   fhdr->frame_size = bytes_left_;
 
