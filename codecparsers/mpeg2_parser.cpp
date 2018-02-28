@@ -188,7 +188,7 @@ namespace MPEG2 {
             return false;
         }
 
-        memset(&m_slice, 0, sizeof(Slice));
+        m_slice = Slice();
 
         m_slice.sliceData = nalData;
         m_slice.sliceDataSize = nalSize;
@@ -456,7 +456,7 @@ namespace MPEG2 {
         bitReaderInit(&bitReader);
         SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
 
-        memset(&m_quantMatrixExtension, 0, sizeof(QuantMatrixExtension));
+        m_quantMatrixExtension = QuantMatrixExtension();
 
         // extension_start_code_identifier
         READ_BITS_OR_RETURN(
@@ -676,7 +676,7 @@ namespace MPEG2 {
             return false;
         }
 
-        memset(&m_sequenceHdr, 0, sizeof(SeqHeader));
+        m_sequenceHdr = SeqHeader();
 
         BitReader bitReader(nalData, nalSize);
         bitReaderInit(&bitReader);

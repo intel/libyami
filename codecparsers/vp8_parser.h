@@ -68,12 +68,13 @@ struct Vp8SegmentationHeader {
   bool segmentation_enabled;
   bool update_mb_segmentation_map;
   bool update_segment_feature_data;
-  SegmentFeatureMode segment_feature_mode;
 
   int8_t quantizer_update_value[kMaxMBSegments];
   int8_t lf_update_value[kMaxMBSegments];
   static const int kDefaultSegmentProb = 255;
   uint8_t segment_prob[kNumMBFeatureTreeProbs];
+  SegmentFeatureMode segment_feature_mode;
+  //Because these variables is non pod type, it can not use memset and use offsetof to weed out it
 };
 
 const size_t kNumBlockContexts = 4;
@@ -82,7 +83,6 @@ const size_t kNumBlockContexts = 4;
 // in Vp8FrameHeader's constructor.
 struct Vp8LoopFilterHeader {
   enum Type { LOOP_FILTER_TYPE_NORMAL = 0, LOOP_FILTER_TYPE_SIMPLE = 1 };
-  Type type;
   uint8_t level;
   uint8_t sharpness_level;
   bool loop_filter_adj_enable;
@@ -90,6 +90,8 @@ struct Vp8LoopFilterHeader {
 
   int8_t ref_frame_delta[kNumBlockContexts];
   int8_t mb_mode_delta[kNumBlockContexts];
+  Type type;
+  //Because these variables is non pod type, it can not use memset and use offsetof to weed out it
 };
 
 // Member of Vp8FrameHeader and will be 0-initialized

@@ -1238,7 +1238,6 @@ YamiStatus VaapiDecoderH264::decodePps(NalUnit* nalu)
 {
     SharedPtr<PPS> pps(new PPS());
 
-    memset(pps.get(), 0, sizeof(PPS));
     if (!m_parser.parsePps(pps, nalu)) {
         return YAMI_DECODE_INVALID_DATA;
     }
@@ -1727,7 +1726,7 @@ YamiStatus VaapiDecoderH264::decodeSlice(NalUnit* nalu)
     SliceHeader* slice = currSlice.get();
     YamiStatus status;
 
-    memset(slice, 0, sizeof(SliceHeader));
+    *slice = SliceHeader();
 
     if (!slice->parseHeader(&m_parser, nalu))
         return YAMI_DECODE_INVALID_DATA;
