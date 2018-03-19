@@ -65,15 +65,18 @@ YamiStatus VaapiDecoderVP9::start(VideoConfigBuffer* buffer)
     if (!(buffer->flag & HAS_VA_PROFILE))
         buffer->profile = VAProfileVP9Profile0;
     //VP9_SURFACE_NUM reference frame
-    if (!(buffer->flag & HAS_SURFACE_NUMBER))
+    if (!(buffer->flag & HAS_SURFACE_NUMBER) || buffer->surfaceNumber < 1)
         buffer->surfaceNumber = VP9_SURFACE_NUM;
-
-    m_parser->bit_depth = VP9_BITS_8;
 
     DEBUG("disable native graphics buffer");
     m_configBuffer = *buffer;
     m_configBuffer.data = NULL;
     m_configBuffer.size = 0;
+
+    m_parser->bit_depth = VP9_BITS_8;
+
+    if (m_configBuffer.extraSurfaceNum > 0)
+        m_extraSurfaceNum = m_configBuffer.extraSurfaceNum;
 
     return YAMI_SUCCESS;
 }
@@ -115,9 +118,8 @@ YamiStatus VaapiDecoderVP9::ensureContext(const Vp9FrameHdr* hdr)
 
     uint32_t fourcc = (m_parser->bit_depth == VP9_BITS_10) ? YAMI_FOURCC_P010 : YAMI_FOURCC_NV12;
 
-    if (setFormat(hdr->width, hdr->height, ALIGN8(hdr->width), ALIGN32(hdr->height), VP9_SURFACE_NUM, fourcc)) {
+    if (setFormat(hdr->width, hdr->height, ALIGN8(hdr->width), ALIGN32(hdr->height), m_configBuffer.surfaceNumber, fourcc))
         return YAMI_DECODE_FORMAT_CHANGE;
-    }
 
     return ensureProfile(vp9_profile);
 }

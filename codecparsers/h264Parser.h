@@ -38,6 +38,8 @@
 namespace YamiParser {
 namespace H264 {
 
+#define H264_MAX_REFRENCE_SURFACE_NUMBER 16
+
 #define MAX_SPS_ID 31
 #define MAX_PPS_ID 255
 #define MAX_IDR_PIC_ID 65535

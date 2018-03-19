@@ -48,6 +48,7 @@ VaapiDecoderBase::VaapiDecoderBase()
     memset(&m_videoFormatInfo, 0, sizeof(VideoFormatInfo));
     memset(&m_configBuffer, 0, sizeof(m_configBuffer));
     m_configBuffer.fourcc = YAMI_FOURCC_NV12;
+    m_extraSurfaceNum = 0;
 }
 
 VaapiDecoderBase::~VaapiDecoderBase()
@@ -223,7 +224,10 @@ VaapiDecoderBase::setupVA(uint32_t numSurface, VAProfile profile)
 
     if (!m_externalAllocator) {
         //use internal allocator
-        m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID()), unrefAllocator);
+        if (m_extraSurfaceNum)
+            m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID(), m_extraSurfaceNum), unrefAllocator);
+        else
+            m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID()), unrefAllocator);
     } else {
         m_allocator = m_externalAllocator;
     }
@@ -267,7 +271,10 @@ bool VaapiDecoderBase::createAllocator()
 
     if (!m_externalAllocator) {
         //use internal allocator
-        m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID()), unrefAllocator);
+        if (m_extraSurfaceNum)
+            m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID(), m_extraSurfaceNum), unrefAllocator);
+        else
+            m_allocator.reset(new VaapiSurfaceAllocator(m_display->getID()), unrefAllocator);
     }
     else {
         m_allocator = m_externalAllocator;

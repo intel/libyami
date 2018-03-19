@@ -261,6 +261,21 @@ fi
 AM_CONDITIONAL(BUILD_FAKE_DECODER,
     [test "x$enable_fakedec" = "xyes"])
 
+ENABLE_DECODER="yes"
+if test "$enable_mpeg2dec" != "yes" -a \
+        "$enable_vp8dec" != "yes" -a \
+        "$enable_vp9dec" != "yes" -a \
+        "$enable_jpegdec" != "yes" -a \
+        "$enable_h264dec" != "yes" -a \
+        "$enable_h265dec" != "yes" -a \
+        "$enable_vc1dec" != "yes" -a \
+        "$enable_fakedec" != "yes"; then
+    ENABLE_DECODER="no"
+fi
+
+AM_CONDITIONAL(BUILD_DECODER,
+    [test "x$ENABLE_DECODER" = "xyes"])
+
 dnl h264 encoder
 AC_ARG_ENABLE(h264enc,
     [AC_HELP_STRING([--enable-h264enc],
@@ -345,6 +360,18 @@ dnl jpeg parser
 AM_CONDITIONAL(BUILD_JPEG_PARSER,
     [test "x$enable_jpegdec" = "xyes" -o "x$enable_jpegenc" = "xyes"])
 
+ENABLE_ENCODER="yes"
+if test "$enable_h264enc" != "yes" -a \
+        "$enable_jpegenc" != "yes" -a \
+        "$enable_vp8enc" != "yes" -a \
+        "$enable_vp9enc" != "yes" -a \
+        "$enable_h265enc" != "yes"; then
+    ENABLE_ENCODER="no"
+fi
+
+AM_CONDITIONAL(BUILD_ENCODER,
+    [test "x$ENABLE_ENCODER" = "xyes"])
+
 dnl encoder getmv
 AC_ARG_ENABLE(getmv,
     [AC_HELP_STRING([--enable-getmv],
@@ -372,6 +399,19 @@ fi
 AM_CONDITIONAL(BUILD_OCL_FILTERS,
     [test "x$enable_oclfilters" = "xyes"])
 
+dnl vpp
+AC_ARG_ENABLE(vpp,
+    [AC_HELP_STRING([--enable-vpp],
+        [build with vpp support <:@default=yes@:>@])],
+    [], [enable_vpp="yes"])
+
+AM_CONDITIONAL(BUILD_VPP,
+    [test "x$enable_vpp" = "xyes" -o "x$enable_oclfilters" = "xyes"])
+
+if test "$enable_vpp" = "yes"; then
+    AC_DEFINE([__BUILD_VPP__], [1],
+        [Defined to 1 if --enable-vpp="yes"])
+fi
 
 # dnl Doxygen
 AC_ARG_ENABLE(docs,
@@ -394,6 +434,10 @@ AC_ARG_ENABLE([tests],
     [], [enable_tests="no"])
 
 AM_CONDITIONAL(ENABLE_TESTS, test "$enable_tests" = "yes")
+
+AM_CONDITIONAL(BUILD_THREAD,
+    [test "$enable_tests" = "yes" -o \
+          "$enable_v4l2" = "yes"])
 
 AC_ARG_ENABLE(media-studio-va,
     [AC_HELP_STRING([--enable-media-studio-va],

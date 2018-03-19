@@ -1,12 +1,21 @@
 libyami_common_source_c = \
 	log.cpp \
 	utils.cpp \
-	nalreader.cpp \
 	surfacepool.cpp \
 	PooledFrameAllocator.cpp \
 	YamiVersion.cpp \
+	$(NULL)
+
+if BUILD_THREAD
+libyami_common_source_c += \
 	Thread.cpp \
 	$(NULL)
+endif
+
+if BUILD_DECODER
+libyami_common_source_c += nalreader.cpp \
+	$(NULL)
+endif
 
 libyami_common_source_h = \
 	../interface/YamiVersion.h \
@@ -19,18 +28,32 @@ libyami_common_source_h_priv = \
 	log.h \
 	utils.h \
 	common_def.h \
-	nalreader.h \
 	videopool.h \
 	surfacepool.h \
+	$(NULL)
+
+if BUILD_THREAD
+libyami_common_source_h_priv += \
 	Thread.h \
 	$(NULL)
+endif
+
+if BUILD_DECODER
+libyami_common_source_h_priv += nalreader.h \
+	$(NULL)
+endif
 
 libyami_common_ldflags = \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(LIBVA_LIBS) \
 	$(LIBVA_DRM_LIBS) \
+	$(NULL)
+
+if BUILD_THREAD
+libyami_common_ldflags += \
 	-lpthread \
 	$(NULL)
+endif
 
 #to compile within yocto
 extra_includes = \

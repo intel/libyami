@@ -16,7 +16,6 @@ LOCAL_SRC_FILES := \
         vp8parser.c \
         vp9quant.c \
         vp9parser.c\
-        dboolhuff.c \
         jpegparser.c \
         parserutils.c \
         nalutils.c \
