@@ -147,7 +147,6 @@ namespace H264 {
         void checkH264Pps(Parser& parser, const NalUnit* nalu)
         {
             SharedPtr<PPS> pps(new PPS());
-            memset(pps.get(), 0, sizeof(PPS));
 
             ASSERT_EQ(NAL_PPS, nalu->nal_unit_type);
             ASSERT_TRUE(parser.parsePps(pps, nalu));
@@ -173,7 +172,6 @@ namespace H264 {
         void checkH264SliceHeader(Parser& parser, NalUnit* nalu)
         {
             SharedPtr<SliceHeader> slice(new SliceHeader);
-            memset(slice.get(), 0, sizeof(SliceHeader));
 
             ASSERT_EQ(NAL_SLICE_IDR, nalu->nal_unit_type);
             ASSERT_TRUE(slice->parseHeader(&parser, nalu));
