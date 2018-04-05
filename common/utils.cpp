@@ -73,7 +73,7 @@ bool guessResolution(const char* filename, int& w, int& h)
 {
     enum {
         STATE_START,
-        STATE_WDITH,
+        STATE_WIDTH,
         STATE_X,
         STATE_HEIGHT,
         STATE_END,
@@ -88,12 +88,11 @@ bool guessResolution(const char* filename, int& w, int& h)
             {
                 if (isdigit(*p)) {
                     tokStart = p;
-                    state = STATE_WDITH;
+                    state = STATE_WIDTH;
                 }
                 break;
             }
-            case STATE_WDITH:
-            {
+            case STATE_WIDTH: {
                 if (*p == 'x' || *p == 'X') {
                     state = STATE_X;
                     if (!getInt(tokStart, w)) {
