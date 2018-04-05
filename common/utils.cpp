@@ -27,12 +27,9 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <sstream>
 #include <string.h>
 #include <sys/time.h>
 #include <va/va.h>
-#include <cstdlib>
-#include <limits>
 
 namespace YamiMediaCodec{
 
@@ -72,39 +69,33 @@ bool guessResolution(const char* filename, int& w, int& h)
         STATE_END,
     };
     int state = STATE_START;
-    std::string strFilename(filename);
+    const char* p = filename;
     const char* tokStart = NULL;
-    long width = 0;
-    long hight = 0;
-
     w = h = 0;
-    uint32_t i = 0;
-    for (i = 0; i < strFilename.length(); i++) {
+    while (*p != '\0') {
         switch (state) {
             case STATE_START:
             {
-                if (isdigit(strFilename[i])) {
-                    tokStart = &(strFilename[i]);
+                if (isdigit(*p)) {
+                    tokStart = p;
                     state = STATE_WDITH;
                 }
                 break;
             }
             case STATE_WDITH:
             {
-                if (strFilename[i] == 'x' || strFilename[i] == 'X') {
+                if (*p == 'x' || *p == 'X') {
                     state = STATE_X;
-                    strFilename[i] = ' ';
-                    width = std::strtol(tokStart, NULL, 10);
-                }
-                else if (!isdigit(strFilename[i])) {
+                    sscanf(tokStart, "%d", &w);
+                } else if (!isdigit(*p)){
                     state = STATE_START;
                 }
                 break;
             }
             case STATE_X:
             {
-                if (isdigit(strFilename[i])) {
-                    tokStart = &(strFilename[i]);
+                if (isdigit(*p)) {
+                    tokStart = p;
                     state  = STATE_HEIGHT;
                 } else {
                     state = STATE_START;
@@ -113,32 +104,23 @@ bool guessResolution(const char* filename, int& w, int& h)
             }
             case STATE_HEIGHT:
             {
-                if (!isdigit(strFilename[i])) {
+                if (!isdigit(*p)) {
                     state = STATE_END;
-                    strFilename[i] = ' ';
-                    hight = std::strtol(tokStart, NULL, 10);
+                    sscanf(tokStart, "%d", &h);
                 }
                 break;
             }
         }
         if (state == STATE_END)
             break;
+        p++;
     }
-
     //conner case
-    if (strFilename.length() == i && state == STATE_HEIGHT)
-        hight = std::strtol(tokStart, NULL, 10);
-
-    long maxInt = std::numeric_limits<int>::max();
-    if (width > maxInt || hight > maxInt) {
-        w = 0;
-        h = 0;
+    if (*p == '\0' && state == STATE_HEIGHT) {
+        if (!isdigit(*p)) {
+            sscanf(tokStart, "%d", &h);
+        }
     }
-    else {
-        w = width;
-        h = hight;
-    }
-
     return w && h;
 }
 
