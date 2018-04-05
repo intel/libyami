@@ -27,6 +27,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <sstream>
 #include <string.h>
 #include <sys/time.h>
 #include <va/va.h>
@@ -59,6 +60,15 @@ uint32_t guessFourcc(const char* fileName)
     return YAMI_FOURCC_I420;
 }
 
+//do not use sscanf to get int, the function will make guessResolutionOverflow failed
+//see http://www.kumobius.com/2013/08/c-string-to-int/ for detials
+static bool getInt(const char* tokStart, int& v)
+{
+    std::istringstream iss(tokStart);
+    iss >> v;
+    return !iss.fail();
+}
+
 bool guessResolution(const char* filename, int& w, int& h)
 {
     enum {
@@ -86,7 +96,9 @@ bool guessResolution(const char* filename, int& w, int& h)
             {
                 if (*p == 'x' || *p == 'X') {
                     state = STATE_X;
-                    sscanf(tokStart, "%d", &w);
+                    if (!getInt(tokStart, w)) {
+                        state = STATE_START;
+                    }
                 } else if (!isdigit(*p)){
                     state = STATE_START;
                 }
@@ -106,7 +118,9 @@ bool guessResolution(const char* filename, int& w, int& h)
             {
                 if (!isdigit(*p)) {
                     state = STATE_END;
-                    sscanf(tokStart, "%d", &h);
+                    if (!getInt(tokStart, h)) {
+                        state = STATE_START;
+                    }
                 }
                 break;
             }
@@ -117,11 +131,10 @@ bool guessResolution(const char* filename, int& w, int& h)
     }
     //conner case
     if (*p == '\0' && state == STATE_HEIGHT) {
-        if (!isdigit(*p)) {
-            sscanf(tokStart, "%d", &h);
-        }
+        if (!getInt(tokStart, h))
+            return false;
     }
-    return w && h;
+    return w > 0 && h > 0;
 }
 
 struct ResolutionEntry {
