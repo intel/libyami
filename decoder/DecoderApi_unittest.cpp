@@ -268,12 +268,12 @@ TEST_P(DecodeApiTest, Format_Change)
     NativeDisplay nativeDisplay;
     memset(&nativeDisplay, 0, sizeof(nativeDisplay));
     DisplayPtr display = VaapiDisplay::create(nativeDisplay);
-    DecodeSurfaceAllocator* allocator = new DecodeSurfaceAllocator(display);
 
     SharedPtr<IVideoDecoder> decoder;
     TestDecodeFrames frames = *GetParam();
     decoder.reset(createVideoDecoder(frames.getMime()), releaseVideoDecoder);
     ASSERT_TRUE(bool(decoder));
+    DecodeSurfaceAllocator* allocator = new DecodeSurfaceAllocator(display);
 
     decoder->setAllocator(allocator);
 
@@ -282,6 +282,7 @@ TEST_P(DecodeApiTest, Format_Change)
     ASSERT_EQ(YAMI_SUCCESS, decoder->start(&config));
 
     VideoDecodeBuffer buffer;
+    memset(&buffer, 0, sizeof(buffer));
     FrameInfo info;
     uint32_t inFrames = 0;
     uint32_t outFrames = 0;
@@ -337,12 +338,12 @@ TEST_P(DecodeApiTest, Flush)
     NativeDisplay nativeDisplay;
     memset(&nativeDisplay, 0, sizeof(nativeDisplay));
     DisplayPtr display = VaapiDisplay::create(nativeDisplay);
-    DecodeSurfaceAllocator* allocator = new DecodeSurfaceAllocator(display);
 
     SharedPtr<IVideoDecoder> decoder;
     TestDecodeFrames frames = *GetParam();
     decoder.reset(createVideoDecoder(frames.getMime()), releaseVideoDecoder);
     ASSERT_TRUE(bool(decoder));
+    DecodeSurfaceAllocator* allocator = new DecodeSurfaceAllocator(display);
 
     decoder->setAllocator(allocator);
 
@@ -351,6 +352,7 @@ TEST_P(DecodeApiTest, Flush)
     ASSERT_EQ(YAMI_SUCCESS, decoder->start(&config));
 
     VideoDecodeBuffer buffer;
+    memset(&buffer, 0, sizeof(buffer));
     FrameInfo info;
     int64_t timeBeforeFlush = 0;
     int64_t timeCurrent = 0;
