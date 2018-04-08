@@ -63,4 +63,5 @@ FACTORY_TEST(Create) {
     EXPECT_TRUE(dynamic_cast<const B*>(a) == NULL);
 
     delete a;
+    delete z;
 }
