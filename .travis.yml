@@ -30,14 +30,14 @@ before_install:
   - sudo apt-get install -y libv4l-0
   - sudo apt-get install -y libv4l-dev
   - sudo apt-get install -y libcogl-gles2-dev
-  - git clone https://github.com/01org/libva.git
+  - git clone https://github.com/intel/libva.git
   - (cd libva && ./autogen.sh && ./configure --prefix=/usr && sudo make install)
 
  
 addons:
   coverity_scan:
     project:
-      name: "01org/libyami"
+      name: "intel/libyami"
       description: "Build submitted via Travis CI"
     notification_email: <email address>
     build_command_prepend: "./autogen.sh; ./configure --prefix=/opt/yami --enable-h264enc --enable-jpegenc --enable-vp8enc --enable-vp9enc --enable-h265enc --enable-mpeg2dec --enable-vp8dec --enable-vp9dec --enable-jpegdec --enable-h264dec --enable-h265dec --enable-vc1dec --enable-v4l2"
