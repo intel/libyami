@@ -140,6 +140,11 @@ Bugs can be reported in the github system at:
   <https://github.com/01org/libyami/issues/new>
 
 
+## Reporting a security issue
+
+Please mail to secure-opensource@intel.com directly for security issue
+
+
 FAQ
 ---
 https://github.com/01org/libyami/wiki/FAQ
