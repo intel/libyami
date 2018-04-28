@@ -954,7 +954,7 @@ int32_t V4l2Decoder::onQueueBuffer(v4l2_buffer* buf)
     CHECK(buf);
     uint32_t type = buf->type;
     CHECK(type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
-        || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+        || type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
 
     if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
         CHECK(buf->memory == V4L2_MEMORY_MMAP);
@@ -984,7 +984,7 @@ int32_t V4l2Decoder::onDequeBuffer(v4l2_buffer* buf)
     CHECK(buf);
     uint32_t type = buf->type;
     CHECK(type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
-        || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+        || type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
     if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
         CHECK(m_inputOn);
         uint32_t index;
@@ -1005,7 +1005,7 @@ int32_t V4l2Decoder::onDequeBuffer(v4l2_buffer* buf)
 int32_t V4l2Decoder::onStreamOn(uint32_t type)
 {
     CHECK(type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
-        || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+        || type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
 
     if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
 
@@ -1037,7 +1037,7 @@ void V4l2Decoder::flushDecoderJob()
 int32_t V4l2Decoder::onStreamOff(uint32_t type)
 {
     CHECK(type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
-        || V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
+        || type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE);
     if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
         if (m_inputOn) {
             post(bind(&V4l2Decoder::flushDecoderJob, this));
@@ -1083,7 +1083,7 @@ int32_t V4l2Decoder::onRequestBuffers(const v4l2_requestbuffers* req)
     uint32_t type = req->type;
     uint32_t count = req->count;
     CHECK(type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE
-        || V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
+        || type == V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE);
     if (type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
         CHECK(req->memory == V4L2_MEMORY_MMAP);
         return sendTask(bind(&V4l2Decoder::requestInputBuffers, this, count));
