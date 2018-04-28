@@ -54,12 +54,18 @@ UTILS_TEST(guessFourcc) {
     EXPECT_EQ(guessFourcc("test.YV12"), (uint32_t)YAMI_FOURCC_YV12);
     EXPECT_EQ(guessFourcc("test.YUY2"), (uint32_t)YAMI_FOURCC_YUY2);
     EXPECT_EQ(guessFourcc("test.UYVY"), (uint32_t)YAMI_FOURCC_UYVY);
+
     EXPECT_EQ(guessFourcc("test.RGBX"), (uint32_t)YAMI_FOURCC_RGBX);
     EXPECT_EQ(guessFourcc("test.BGRX"), (uint32_t)YAMI_FOURCC_BGRX);
     EXPECT_EQ(guessFourcc("test.XRGB"), (uint32_t)YAMI_FOURCC_XRGB);
     EXPECT_EQ(guessFourcc("test.XBGR"), (uint32_t)YAMI_FOURCC_XBGR);
 
-    EXPECT_EQ(guessFourcc("test.RG16"), (uint32_t)YAMI_FOURCC_RG16);
+    EXPECT_EQ(guessFourcc("test.RGBA"), (uint32_t)YAMI_FOURCC_RGBA);
+    EXPECT_EQ(guessFourcc("test.BGRA"), (uint32_t)YAMI_FOURCC_BGRA);
+    EXPECT_EQ(guessFourcc("test.ARGB"), (uint32_t)YAMI_FOURCC_ARGB);
+    EXPECT_EQ(guessFourcc("test.ABGR"), (uint32_t)YAMI_FOURCC_ABGR);
+
+    EXPECT_EQ(guessFourcc("test.RG16"), (uint32_t)YAMI_FOURCC_RGB565);
 }
 
 UTILS_TEST(guessResolutionBasic) {
@@ -154,11 +160,18 @@ const static BppEntry bppEntrys[] = {
     { YAMI_FOURCC_P010, 2, 3 },
     { YAMI_FOURCC_YUY2, 1, 2 },
     { YAMI_FOURCC_UYVY, 1, 2 },
+
     { YAMI_FOURCC_RGBX, 1, 4 },
-    { YAMI_FOURCC_RGBA, 1, 4 },
     { YAMI_FOURCC_BGRX, 1, 4 },
+    { YAMI_FOURCC_XRGB, 1, 4 },
+    { YAMI_FOURCC_XBGR, 1, 4 },
+
+    { YAMI_FOURCC_RGBA, 1, 4 },
     { YAMI_FOURCC_BGRA, 1, 4 },
-    { YAMI_FOURCC_RG16, 1, 2 },
+    { YAMI_FOURCC_ARGB, 1, 4 },
+    { YAMI_FOURCC_ABGR, 1, 4 },
+
+    { YAMI_FOURCC_RGB565, 1, 2 },
 };
 
 //check selected unsupported format.
@@ -166,7 +179,6 @@ const static BppEntry bppEntrys[] = {
 const static uint32_t unsupported[] = {
     0,
     YAMI_FOURCC_411P,
-    YAMI_FOURCC_ARGB,
 };
 
 UTILS_TEST(getPlaneResolution)
