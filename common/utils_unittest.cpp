@@ -66,6 +66,7 @@ UTILS_TEST(guessFourcc) {
     EXPECT_EQ(guessFourcc("test.ABGR"), (uint32_t)YAMI_FOURCC_ABGR);
 
     EXPECT_EQ(guessFourcc("test.RG16"), (uint32_t)YAMI_FOURCC_RGB565);
+    EXPECT_EQ(guessFourcc("test.R210"), (uint32_t)YAMI_FOURCC_R210);
 }
 
 UTILS_TEST(guessResolutionBasic) {
@@ -172,6 +173,7 @@ const static BppEntry bppEntrys[] = {
     { YAMI_FOURCC_ABGR, 1, 4 },
 
     { YAMI_FOURCC_RGB565, 1, 2 },
+    { YAMI_FOURCC_R210, 1, 4 },
 };
 
 //check selected unsupported format.
