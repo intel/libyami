@@ -173,7 +173,8 @@ int32_t YamiV4L2_SetWaylandDisplay(int32_t fd, struct wl_display* wlDisplay)
 
     return ret;
 }
-#else
+#endif //__ENABLE_WAYLAND__
+
 #if defined(__ENABLE_X11__)
 int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
 {
@@ -186,7 +187,8 @@ int32_t YamiV4L2_SetXDisplay(int32_t fd, Display *x11Display)
 
      return ret;
 }
-#endif
+#endif //__ENABLE_X11__
+
 #if defined(__ENABLE_EGL__)
 int32_t YamiV4L2_UseEglImage(int fd, /*EGLDisplay*/void* eglDisplay, /*EGLContext*/void* eglContext, unsigned int bufferIndex, void* eglImage)
 {
@@ -194,7 +196,7 @@ int32_t YamiV4L2_UseEglImage(int fd, /*EGLDisplay*/void* eglDisplay, /*EGLContex
     ASSERT(v4l2Codec);
     return v4l2Codec->useEglImage(eglDisplay, eglContext, bufferIndex, eglImage);
 }
-#endif
+#endif //__ENABLE_EGL__
 
 int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd)
 {
@@ -206,7 +208,7 @@ int32_t YamiV4L2_SetDrmFd(int32_t fd, int drm_fd)
 
      return ret;
 }
-#endif
+
 #if defined(__ENABLE_V4L2_OPS__)
 extern "C" int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value);
 int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
@@ -250,13 +252,14 @@ int32_t YamiV4L2_SetParameter(int32_t fd, const char* key, const char* value)
         struct wl_display* wlDisplay = (struct wl_display*)ptr;
         DEBUG("wlDisplay: %p", wlDisplay);
         ret = v4l2Codec->setWaylandDisplay(wlDisplay);
-#elif defined(__ENABLE_X11__)
+#endif //__ENABLE_WAYLAND__
+#if defined(__ENABLE_X11__)
     } else if (!strcmp(key, "x11-display")) {
         uintptr_t ptr = (uintptr_t)atoll(value);
         Display* x11Display = (Display*)ptr;
         DEBUG("x11Display: %p", x11Display);
         ret = v4l2Codec->setXDisplay(x11Display);
-#endif
+#endif //__ENABLE_X11__
     } else if(!(strcmp(key, "encode-mode"))) {
         if (!strcmp(value, "svct")) {
             ret = v4l2Codec->setSvcT(true);
