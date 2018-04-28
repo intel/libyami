@@ -634,7 +634,7 @@ bool V4l2CodecBase::setWaylandDisplay(struct wl_display* wlDisplay)
     m_nativeDisplay.handle = (intptr_t)wlDisplay;
     return true;
 };
-#else
+#endif //__ENABLE_WAYLAND__
 
 #if defined(__ENABLE_X11__)
 bool V4l2CodecBase::setXDisplay(Display* x11Display)
@@ -644,8 +644,6 @@ bool V4l2CodecBase::setXDisplay(Display* x11Display)
     return true;
 };
 #endif //__ENABLE_X11__
-
-#endif //__ENABLE_WAYLAND__
 
 bool V4l2CodecBase::setDrmFd(int fd)
 {

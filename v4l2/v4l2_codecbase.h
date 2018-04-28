@@ -88,9 +88,11 @@ class V4l2CodecBase {
 
 #if defined(__ENABLE_WAYLAND__)
     bool setWaylandDisplay(struct wl_display*);
-#elif defined(__ENABLE_X11__)
+#endif //__ENABLE_WAYLAND__
+
+#if defined(__ENABLE_X11__)
     bool setXDisplay(Display*);
-#endif
+#endif //__ENABLE_X11__
 
 #if defined(__ENABLE_EGL__)
     virtual int32_t useEglImage(EGLDisplay eglDisplay, EGLContext eglContext, uint32_t buffer_index, void* egl_image) {return 0;};
