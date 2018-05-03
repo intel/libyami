@@ -67,7 +67,7 @@ private:
                   bool newStream, bool contextChanged,
                   uint32_t maxDecFrameBuffering);
         bool add(const PicturePtr&);
-        bool outputReadyFrames();
+        void outputReadyFrame(const PicturePtr&);
         void initReference(const PicturePtr&, const SliceHeader* const);
         void flush();
 
@@ -127,8 +127,6 @@ private:
         uint32_t m_maxNumRefFrames;
         uint32_t m_maxDecFrameBuffering;
         YamiParser::H264::DecRefPicMarking m_decRefPicMarking;
-        bool m_isOutputStarted;
-        int32_t m_lastOutputPoc;
     };
 
     YamiStatus decodeNalu(NalUnit*);
