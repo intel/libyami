@@ -35,6 +35,13 @@ typedef enum {
     HAS_VA_PROFILE = 0x08,
 } VIDEO_BUFFER_FLAG;
 
+typedef enum {
+    //this will tell decoder, we have the whole frame.
+    //so the decoder can do decode immediately
+    //else they may need to wait for next frame boundary
+    VIDEO_DECODE_BUFFER_FLAG_FRAME_END = 0x1,
+} VIDEO_DECODE_BUFFER_FLAG;
+
 typedef struct {
     uint8_t *data;
     size_t size;
