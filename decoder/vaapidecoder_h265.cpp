@@ -1187,6 +1187,11 @@ YamiStatus VaapiDecoderH265::decode(VideoDecodeBuffer* buffer)
             }
         }
     }
+
+    if (buffer->flag & VIDEO_DECODE_BUFFER_FLAG_FRAME_END) {
+        //send current buffer to libva
+        decodeCurrent();
+    }
     return lastError;
 }
 
