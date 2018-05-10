@@ -27,6 +27,7 @@
 #include "common/log.h"
 #include "common/lock.h"
 #include "vaapi/VaapiUtils.h"
+#include <inttypes.h>
 
 using std::list;
 /**
@@ -304,7 +305,7 @@ DisplayPtr DisplayCache::createDisplay(const NativeDisplay& nativeDisplay)
     vaapiDisplay.reset();
 
     //crate new one
-    DEBUG("nativeDisplay: (type : %d), (handle : %ld)", nativeDisplay.type, nativeDisplay.handle);
+    DEBUG("nativeDisplay: (type : %d), (handle : %" PRIxPTR ")", nativeDisplay.type, nativeDisplay.handle);
 
     switch (nativeDisplay.type) {
     case NATIVE_DISPLAY_AUTO:

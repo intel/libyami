@@ -32,6 +32,7 @@
 // config.h defines macros for log.h to define log levels
 #include "common/log.h"
 #include "mpeg2_parser.h"
+#include <inttypes.h>
 
 namespace YamiParser {
 namespace MPEG2 {
@@ -255,7 +256,7 @@ namespace MPEG2 {
             return false;
 
 
-        DEBUG("slice header size                  : %ld",
+        DEBUG("slice header size                  : %" PRIu64 "",
               m_slice.sliceHeaderSize);
         DEBUG("slice number                       : %x",
               m_slice.verticalPosition);
@@ -269,7 +270,7 @@ namespace MPEG2 {
               m_slice.intra_slice);
         DEBUG("extra_bit_slice                    : %x",
               m_slice.extra_bit_slice);
-        DEBUG("slice size                         : %ld",
+        DEBUG("slice size                         : %" PRIu64 "",
               m_slice.sliceDataSize);
         DEBUG("size left on buffer                : %d", nalSize);
         DEBUG("slice data                         : %p",
