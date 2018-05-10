@@ -21,6 +21,7 @@
 #include <string.h>
 #include "common/log.h"
 #include "vaapidecoder_vp8.h"
+#include <inttypes.h>
 
 using ::YamiParser::Vp8Parser;
 using ::YamiParser::Vp8FrameHeader;
@@ -495,7 +496,7 @@ YamiStatus VaapiDecoderVP8::decode(VideoDecodeBuffer* buffer)
     m_buffer = buffer->data;
     m_frameSize = buffer->size;
 
-    DEBUG("VP8: Decode(bufsize =%d, timestamp=%ld)", m_frameSize,
+    DEBUG("VP8: Decode(bufsize =%d, timestamp=%" PRIu64 ")", m_frameSize,
         m_currentPTS);
 
     do {

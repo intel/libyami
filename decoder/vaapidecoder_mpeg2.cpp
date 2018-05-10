@@ -24,6 +24,7 @@
 #include "vaapidecoder_mpeg2.h"
 
 #include <string.h>
+#include <inttypes.h>
 
 using YamiParser::MPEG2::Slice;
 using YamiParser::MPEG2::PictureCodingExtension;
@@ -134,7 +135,7 @@ VaapiDecoderMPEG2::DPB::insertPictureToReferences(const PicturePtr& picture)
 
 YamiStatus VaapiDecoderMPEG2::DPB::insertPicture(const PicturePtr& picture)
 {
-    INFO("insertPicture to DPB size %lu", m_referencePictures.size());
+    INFO("insertPicture to DPB size %zu", m_referencePictures.size());
 
     YamiStatus status = YAMI_SUCCESS;
 
@@ -172,7 +173,7 @@ YamiStatus VaapiDecoderMPEG2::DPB::insertPicture(const PicturePtr& picture)
         }
     }
 
-    DEBUG("insertPicture returns dpb size %lu", m_referencePictures.size());
+    DEBUG("insertPicture returns dpb size %zu", m_referencePictures.size());
     return status;
 }
 
@@ -887,7 +888,7 @@ YamiStatus VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
     m_stream->time_stamp = buffer->timeStamp;
     m_currentPTS = buffer->timeStamp;
 
-    DEBUG("decode size %ld timeStamp %ld", m_stream->streamSize,
+    DEBUG("decode size %ld timeStamp %" PRIu64 "", m_stream->streamSize,
           m_stream->time_stamp);
 
     if (m_stream->streamSize < YamiParser::MPEG2::kStartCodeSize) {
