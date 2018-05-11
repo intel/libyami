@@ -106,6 +106,49 @@ static FrameData g_jpegdata[] = {
     g_EOF,
 };
 
+static FrameData g_h264data_lowlatency[] = {
+    g_avc8x8I,
+    g_avc8x8P,
+    g_avc8x16,
+    g_avc16x16,
+    g_avc8x8I,
+    g_avc8x8P,
+    g_avc8x8I,
+    g_avc8x8P,
+    g_EOF,
+};
+
+static FrameData g_vp8data_lowlatency[] = {
+    g_vp8_8x8I,
+    g_vp8_8x8P1,
+    g_vp8_8x8P2,
+    g_vp8_16x16,
+    g_vp8_8x8I,
+    g_vp8_8x8P1,
+    g_vp8_8x8P2,
+    g_EOF,
+};
+
+static FrameData g_vp9data_lowlatency[] = {
+    g_vp9_8x8I,
+    g_vp9_8x8P1,
+    g_vp9_8x8P2,
+    g_vp9_16x16,
+    g_vp9_8x8I,
+    g_vp9_8x8P1,
+    g_vp9_8x8P2,
+    g_EOF,
+};
+
+static FrameData g_jpegdata_lowlatency[] = {
+    g_jpeg1_8x8,
+    g_jpeg2_8x8,
+    g_jpeg_16x16,
+    g_jpeg1_8x8,
+    g_jpeg2_8x8,
+    g_EOF,
+};
+
 static const std::string getFullTestName()
 {
     const ::testing::TestInfo* const info = ::testing::UnitTest::GetInstance()->current_test_info();
@@ -214,6 +257,11 @@ private:
 };
 
 class DecodeApiTest
+    : public ::testing::Test,
+      public ::testing::WithParamInterface<TestDecodeFrames::Shared> {
+};
+
+class DecodeApiTestLowlatency
     : public ::testing::Test,
       public ::testing::WithParamInterface<TestDecodeFrames::Shared> {
 };
@@ -408,6 +456,46 @@ TEST_P(DecodeApiTest, Flush)
     EXPECT_EQ(outFrames, size);
 }
 
+TEST_P(DecodeApiTestLowlatency, Format_Change)
+{
+    SharedPtr<IVideoDecoder> decoder;
+    TestDecodeFrames frames = *GetParam();
+    decoder.reset(createVideoDecoder(frames.getMime()), releaseVideoDecoder);
+    ASSERT_TRUE(bool(decoder));
+
+    VideoConfigBuffer config;
+    memset(&config, 0, sizeof(config));
+    config.enableLowLatency = true;
+    ASSERT_EQ(YAMI_SUCCESS, decoder->start(&config));
+
+    VideoDecodeBuffer buffer;
+    memset(&buffer, 0, sizeof(buffer));
+    FrameInfo info;
+    uint32_t inFrames = 0;
+    uint32_t outFrames = 0;
+    //keep previous resolution
+
+    while (frames.getFrame(buffer, info)) {
+        buffer.flag = VIDEO_DECODE_BUFFER_FLAG_FRAME_END;
+        YamiStatus status = decoder->decode(&buffer);
+        if (status == YAMI_DECODE_FORMAT_CHANGE) {
+
+            //send buffer again
+            status = decoder->decode(&buffer);
+            if (YAMI_UNSUPPORTED == status) {
+                RecordProperty("skipped", true);
+                std::cout << "[  SKIPPED ] " << getFullTestName()
+                          << " Hw does not support this decoder." << std::endl;
+                return;
+            }
+        }
+        inFrames++;
+        while (bool(decoder->getOutput()))
+            outFrames++;
+        EXPECT_EQ(inFrames, outFrames);
+    }
+}
+
 /** Teach Google Test how to print a TestDecodeFrames::Shared object */
 void PrintTo(const TestDecodeFrames::Shared& t, std::ostream* os)
 {
@@ -422,4 +510,12 @@ INSTANTIATE_TEST_CASE_P(
         TestDecodeFrames::create(g_vp8data, YAMI_MIME_VP8),
         TestDecodeFrames::create(g_vp9data, YAMI_MIME_VP9),
         TestDecodeFrames::create(g_jpegdata, YAMI_MIME_JPEG)));
+
+INSTANTIATE_TEST_CASE_P(
+    VaapiDecoderLowlatency, DecodeApiTestLowlatency,
+    ::testing::Values(
+        TestDecodeFrames::create(g_h264data_lowlatency, YAMI_MIME_H264),
+        TestDecodeFrames::create(g_vp8data_lowlatency, YAMI_MIME_VP8),
+        TestDecodeFrames::create(g_vp9data_lowlatency, YAMI_MIME_VP9),
+        TestDecodeFrames::create(g_jpegdata_lowlatency, YAMI_MIME_JPEG)));
 }
