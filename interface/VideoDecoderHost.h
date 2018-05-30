@@ -22,7 +22,6 @@
 #include <vector>
 #include <VideoDecoderInterface.h>
 
-extern "C" { // for dlsym usage
 /** \file VideoDecoderHost.h
 */
 
@@ -39,5 +38,4 @@ std::vector<std::string> getVideoDecoderMimeTypes();
 
 typedef YamiMediaCodec::IVideoDecoder *(*YamiCreateVideoDecoderFuncPtr) (const char *mimeType);
 typedef void (*YamiReleaseVideoDecoderFuncPtr)(YamiMediaCodec::IVideoDecoder * p);
-}
 #endif                          /* VIDEO_DECODER_HOST_H_ */

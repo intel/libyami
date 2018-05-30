@@ -56,8 +56,6 @@ const bool VaapiEncoderVP9::s_registered
     = VaapiEncoderFactory::register_<VaapiEncoderVP9>(YAMI_MIME_VP9);
 #endif
 
-extern "C" {
-
 IVideoEncoder* createVideoEncoder(const char* mimeType) {
     if (!mimeType) {
         ERROR("NULL mime type.");
@@ -82,5 +80,3 @@ std::vector<std::string> getVideoEncoderMimeTypes()
 {
     return VaapiEncoderFactory::keys();
 }
-
-} // extern "C"
