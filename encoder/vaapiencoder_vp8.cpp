@@ -79,6 +79,7 @@ public:
     virtual uint8_t getLayerNum() const = 0;
     virtual void getLayerFrameRates(LayerFrameRates& frameRates) const = 0;
     virtual void resetRefNum() = 0;
+    virtual ~Vp8Encoder() {}
 };
 
 class Vp8EncoderNormal : public Vp8Encoder {
