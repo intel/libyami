@@ -4,18 +4,16 @@ include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
         vaapipicture.cpp \
-        vaapibuffer.cpp \
-        vaapiimage.cpp \
-        vaapisurface.cpp\
-        vaapiimageutils.cpp \
-        vaapiutils.cpp \
+        VaapiBuffer.cpp \
+        VaapiSurface.cpp\
+        VaapiUtils.cpp \
         vaapidisplay.cpp \
         vaapicontext.cpp \
-        vaapiimagepool.cpp \
         vaapisurfaceallocator.cpp \
 
 LOCAL_C_INCLUDES:= \
         $(LOCAL_PATH)/.. \
+        $(LOCAL_PATH)/../interface \
         external/libcxx/include \
         $(TARGET_OUT_HEADERS)/libva
 
@@ -26,7 +24,8 @@ LOCAL_SHARED_LIBRARIES := \
         libc++ \
 
 LOCAL_CPPFLAGS += \
-        --rtti
+	-frtti
 
+LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE := libyami_vaapi
 include $(BUILD_STATIC_LIBRARY)

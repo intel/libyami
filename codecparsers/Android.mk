@@ -3,31 +3,28 @@ include $(CLEAR_VARS)
 include $(LOCAL_PATH)/../common.mk
 
 LOCAL_SRC_FILES := \
-        bitreader.c \
-        bytereader.c \
-        bytewriter.c \
-        h264parser.c \
-        h265parser.c \
-        mpegvideoparser.c \
-        mpeg4parser.c \
-        vc1parser.c \
-        vp8utils.c \
-        vp8rangedecoder.c \
-        vp8parser.c \
+        bitReader.cpp \
+        bitWriter.cpp \
+        h264Parser.cpp \
+        h265Parser.cpp \
+        jpegParser.cpp \
+        mpeg2_parser.cpp \
+        nalReader.cpp \
+        vc1Parser.cpp \
+        vp8_bool_decoder.cpp \
+        vp8_parser.cpp \
+        vp9parser.cpp \
         vp9quant.c \
-        vp9parser.c\
         dboolhuff.c \
-        jpegparser.c \
-        parserutils.c \
-        nalutils.c \
-        bitwriter.c
 
 LOCAL_C_INCLUDES := \
         $(LOCAL_PATH)/.. \
+        $(LOCAL_PATH)/../interface
 
 LOCAL_SHARED_LIBRARIES := \
         libcutils \
         liblog
 
+LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE := libcodecparser
 include $(BUILD_STATIC_LIBRARY)
