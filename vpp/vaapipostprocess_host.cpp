@@ -51,8 +51,6 @@ const bool VaapiPostProcessScaler::s_registered =
 
 using namespace YamiMediaCodec;
 
-extern "C" {
-
 IVideoPostProcess *createVideoPostProcess(const char *mimeType)
 {
     if (!mimeType) {
@@ -80,5 +78,3 @@ std::vector<std::string> getVideoPostProcessMimeTypes()
 {
     return VaapiPostProcessFactory::keys();
 }
-
-} // extern "C"
