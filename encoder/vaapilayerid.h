@@ -43,6 +43,7 @@ public:
     virtual uint8_t getMiniRefFrameNum() const;
 
     void checkLayerIDs(uint8_t maxLayerLength = 0) const;
+    virtual ~TemporalLayerID() {}
 
 private:
     void calculateFramerate(const VideoFrameRate& frameRate);
