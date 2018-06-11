@@ -22,8 +22,16 @@ else
     autoreconf -v --install || exit $?
 fi
 
+export CFLAGS="-D_FORTIFY_SOURCE=2 -fPIE -fPIC -fstack-protector"
+export CXXFLAGS="-D_FORTIFY_SOURCE=2 -fPIE -fPIC -fstack-protector"
+export LDFLAGS="-z noexecstack -z relro -z now -pie"
+
 cd "$olddir"
 
 if test -z "$NOCONFIGURE"; then
     $srcdir/configure "$@" && echo "Now type 'make' to compile $PROJECT."
 fi
+
+unset CFLAGS
+unset CXXFLAGS
+unset LDFLAGS
