@@ -37,11 +37,13 @@ libyami_la_LDFLAGS = \
 	$(LIBYAMI_LT_LDFLAGS) \
 	$(LIBVA_LIBS) \
 	$(LIBVA_DRM_LIBS) \
+	$(LDFLAGS) \
 	$(NULL)
 
 libyami_la_CPPFLAGS = \
 	$(LIBVA_CFLAGS) \
 	$(LIBVA_DRM_CFLAGS) \
+	$(CFLAGS) \
 	$(NULL)
 
 libyami_la_LIBADD = common/libyami_common.la \
@@ -73,6 +75,7 @@ libyami_v4l2_la_LDFLAGS = \
 	$(AM_LDFLAGS) \
 	$(LIBVA_LIBS) \
 	$(LIBVA_DRM_LIBS) \
+	$(LDFLAGS) \
 	$(NULL)
 
 libyami_v4l2_la_LIBADD = libyami.la \
