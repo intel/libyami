@@ -405,8 +405,12 @@ if test "$enable_media_studio_va" = "yes"; then
         [Defined to 1 to enable H265 encoding when --enable-media-studio-va="yes"])
 fi
 
-AC_SUBST([AM_CFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Werror"])
-AC_SUBST([AM_CXXFLAGS], ["-g -O2 -Wall -Wno-unused-function -Wno-cpp -Wno-missing-braces -Werror"])
+AC_SUBST([AM_CFLAGS], ["-g -O2 -fPIE -fPIC -fstack-protector -Wall -Wno-unused-function -Wno-cpp -Werror"])
+AC_SUBST([AM_CXXFLAGS], ["-g -O2 -fPIE -fPIC -fstack-protector -Wall -Wno-unused-function -Wno-cpp -Wno-missing-braces -Werror"])
+
+#Add flags for SDL signoff called SDL325 - Compile With Defenses Enabled
+AC_SUBST([AM_CPPFLAGS], ["-D_FORTIFY_SOURCE=2"])
+AC_SUBST([AM_LDFLAGS], ["-z noexecstack -z relro -z now -pie"])
 
 # Checks for programs.
 AC_DISABLE_STATIC
