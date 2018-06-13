@@ -11,6 +11,7 @@ libgtest_la_SOURCES = \
 libgtest_la_CXXFLAGS = \
 	-I$(top_srcdir)/gtestsrc/gtest \
 	-I$(top_srcdir)/gtestsrc/gtest/include \
+	$(AM_CXXFLAGS) \
 	$(NULL)
 
 EXTRA_DIST = \
