@@ -667,7 +667,7 @@ bool Parser::parseDAC()
 
         length -= 2;
 
-        if (index < 0 || index >= (2 * NUM_ARITH_TBLS)) {
+        if (index >= (2 * NUM_ARITH_TBLS)) {
             ERROR("Invalid DAC Index");
             return false;
         }
@@ -775,7 +775,7 @@ bool Parser::parseDHT()
             huffTables = &m_dcHuffTables;
         }
 
-        if (index < 0 || index >= NUM_HUFF_TBLS) {
+        if (index >= NUM_HUFF_TBLS) {
             ERROR("Bad Huff Table Index");
             return false;
         }
