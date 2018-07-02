@@ -151,7 +151,7 @@ h264_get_cpb_nal_factor(VideoProfile profile)
 
 static uint8_t h264_get_profile_idc(VideoProfile profile)
 {
-    uint8_t idc;
+    uint8_t idc = 66;
     switch (profile) {
     case PROFILE_H264_CONSTRAINED_BASELINE:
         idc = 66;
