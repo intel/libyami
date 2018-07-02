@@ -42,7 +42,8 @@ LOCAL_CFLAGS := \
 
 LOCAL_SHARED_LIBRARIES := \
         liblog \
-        libc++
+        libc++ \
+        libva \
 
 LOCAL_PROPRIETARY_MODULE := true
 LOCAL_MODULE := libyami_encoder

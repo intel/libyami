@@ -15,7 +15,8 @@ LOCAL_C_INCLUDES:= \
 
 LOCAL_SHARED_LIBRARIES := \
         liblog \
-        libc++
+        libc++ \
+        libva \
 
 LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
 
