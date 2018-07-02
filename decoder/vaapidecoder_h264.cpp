@@ -612,6 +612,7 @@ bool VaapiDecoderH264::DPB::modifyReferenceList(const PicturePtr& picture,
         refPicListModify = slice->ref_pic_list_modification_l1;
     } else {
         assert(0);
+        return false;
     }
 
     if (!refPicListModifyFlag)
