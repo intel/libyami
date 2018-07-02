@@ -108,7 +108,7 @@ public:
         return m_parser->scanHeader();
     }
 
-    const unsigned restartInterval() const
+    unsigned restartInterval() const
     {
         return m_parser->restartInterval();
     }
