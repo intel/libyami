@@ -702,7 +702,8 @@ namespace MPEG2 {
 
         if (!readQuantMatrixOrDefault(quantMatrices->load_non_intra_quantiser_matrix,
                                  quantMatrices->non_intra_quantiser_matrix,
-                                 &kDefaultNonIntraBlockMatrix[0]));
+                                 &kDefaultNonIntraBlockMatrix[0]))
+            return false;
 
         DEBUG("horizontal_size_value            : %x",
               m_sequenceHdr.horizontal_size_value);
