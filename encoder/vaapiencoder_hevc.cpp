@@ -145,7 +145,7 @@ hevc_get_log2_max_frame_num (uint32_t num)
 
 static uint8_t hevc_get_profile_idc(VideoProfile profile)
 {
-    uint8_t idc;
+    uint8_t idc = 1;
     switch (profile) {
     case PROFILE_H265_MAIN:
         idc =  1;
@@ -1300,7 +1300,7 @@ void VaapiEncoderHEVC::shortRfsUpdate(const PicturePtr& picture)
             m_shortRFS.num_positive_pics      = 1;
             m_shortRFS.delta_poc_s1_minus1[0]  = m_refList1[0]->m_poc - picture->m_poc - 1;
             m_shortRFS.used_by_curr_pic_s1_flag[0]            = 1;
-			
+
             DEBUG("m_refList1_size is %zu\n", m_refList1.size());
         }
     }
