@@ -318,7 +318,7 @@ namespace H265 {
         bool sps_sub_layer_ordering_info_present_flag;
         uint8_t sps_max_dec_pic_buffering_minus1[MAXSUBLAYERS];
         uint8_t sps_max_num_reorder_pics[MAXSUBLAYERS];
-        uint8_t sps_max_latency_increase_plus1[MAXSUBLAYERS];
+        uint32_t sps_max_latency_increase_plus1[MAXSUBLAYERS];
         uint8_t log2_min_luma_coding_block_size_minus3;
         uint8_t log2_diff_max_min_luma_coding_block_size;
         uint8_t log2_min_transform_block_size_minus2;
