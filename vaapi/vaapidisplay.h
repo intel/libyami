@@ -19,7 +19,6 @@
 
 #include "vaapi/vaapiptrs.h"
 #include <va/va.h>
-#include <va/va_tpi.h>
 #ifdef HAVE_VA_X11
 #include <va/va_x11.h>
 #endif
