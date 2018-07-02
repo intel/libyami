@@ -428,8 +428,7 @@ namespace H265 {
         SharedPtr<SPS> sps;
     };
 
-    class NalUnit {
-    public:
+    struct NalUnit {
         enum {
             NALU_HEAD_SIZE = 2,
             NALU_MIN_SIZE = 4
@@ -486,7 +485,6 @@ namespace H265 {
         /* nal should be a complete nal unit without start code or length bytes */
         bool parseNaluHeader(const uint8_t* nal, size_t size);
 
-    public:
         const uint8_t* m_data;
         uint32_t m_size;
 
