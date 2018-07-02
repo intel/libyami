@@ -494,7 +494,8 @@ bit_writer_write_sps(BitWriter* bitwriter,
         }
         /* vcl_hrd_parameters_present_flag */
         bitwriter->writeBits(0, 1);
-        if (nal_hrd_parameters_present_flag || 0/*vcl_hrd_parameters_present_flag*/) {
+        bool vcl_hrd_parameters_present_flag = false;
+        if (nal_hrd_parameters_present_flag || vcl_hrd_parameters_present_flag) {
             /* low_delay_hrd_flag */
             bitwriter->writeBits(0, 1);
         }
