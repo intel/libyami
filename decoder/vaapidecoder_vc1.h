@@ -18,25 +18,16 @@
 #define vaapidecoder_vc1_h
 
 #include "codecparsers/vc1Parser.h"
-#include "vaapidecoder_base.h"
+#include "common/Functional.h"
 #include "va/va.h"
+#include "vaapidecoder_base.h"
+#include <deque>
 
 namespace YamiMediaCodec {
-class VaapiDecPictureVC1 : public VaapiDecPicture {
-public:
-    VaapiDecPictureVC1(const ContextPtr& context, const SurfacePtr& surface,
-                         int64_t timeStamp)
-        : VaapiDecPicture(context, surface, timeStamp)
-        , m_picOutputFlag(false)
-    {
-    }
-    VaapiDecPictureVC1() {}
-    bool m_picOutputFlag;
-private:
-};
+
 class VaapiDecoderVC1 : public VaapiDecoderBase {
 public:
-    typedef SharedPtr<VaapiDecPictureVC1> PicturePtr;
+    typedef SharedPtr<VaapiDecPicture> PicturePtr;
     VaapiDecoderVC1();
     virtual ~VaapiDecoderVC1();
     virtual YamiStatus start(VideoConfigBuffer*);
@@ -47,21 +38,33 @@ public:
 private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderVC1>;
     friend class VaapiDecoderVC1Test;
-    void bumpAll();
     YamiStatus ensureContext();
-    YamiStatus outputPicture(const PicturePtr& picture);
     YamiStatus decode(uint8_t*, uint32_t, uint64_t);
     bool ensureSlice(PicturePtr&, void*, int);
     bool ensurePicture(PicturePtr&);
     bool makeBitPlanes(PicturePtr&, VAPictureParameterBufferVC1*);
+    YamiStatus outputPicture(const PicturePtr&);
     YamiParser::VC1::Parser m_parser;
 
     const static uint32_t VC1_MAX_REFRENCE_SURFACE_NUMBER = 2;
 
-    //m_dpb[0] stores forward reference picture
-    //m_dpb[1] stores backward reference picture
-    PicturePtr m_dpb[2];
-    int32_t m_dpbIdx;
+    class DPB {
+        typedef std::function<YamiStatus(const PicturePtr&)> OutputCallback;
+
+    public:
+        typedef VaapiDecoderVC1::PicturePtr PicturePtr;
+
+        std::deque<PicturePtr> m_refs;
+        DPB(const OutputCallback& output);
+        void add(const PicturePtr&, YamiParser::VC1::FrameHdr&);
+        void flush();
+        bool notEnoughReference(YamiParser::VC1::FrameHdr&);
+
+    private:
+        OutputCallback m_output;
+    };
+
+    DPB m_dpb;
     bool m_sliceFlag;
 
     /**
