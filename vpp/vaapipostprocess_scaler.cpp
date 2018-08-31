@@ -230,6 +230,8 @@ static VAProcDeinterlacingType getDeinterlaceMode(VppDeinterlaceMode mode)
     switch (mode) {
     case DEINTERLACE_MODE_BOB:
         return VAProcDeinterlacingBob;
+    case DEINTERLACE_MODE_MOTION_ADAPTIVE:
+        return VAProcDeinterlacingMotionAdaptive;
     default:
         break;
     }
@@ -311,6 +313,8 @@ YamiStatus VaapiPostProcessScaler::setDeinterlaceParam(const VPPDeinterlaceParam
             //only support bob yet
             if (caps[i].type == VAProcDeinterlacingBob) {
                 supported.insert(DEINTERLACE_MODE_BOB);
+            } else if (caps[i].type == VAProcDeinterlacingMotionAdaptive) {
+                supported.insert(DEINTERLACE_MODE_MOTION_ADAPTIVE);
             }
         }
     }
