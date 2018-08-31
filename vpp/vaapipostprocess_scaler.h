@@ -18,9 +18,10 @@
 #define vaapipostprocess_scaler_h
 
 #include "vaapipostprocess_base.h"
-#include <vector>
-#include <set>
+#include <deque>
 #include <map>
+#include <set>
+#include <vector>
 
 namespace YamiMediaCodec{
 
@@ -58,6 +59,7 @@ private:
 
     typedef std::map<VppColorBalanceMode, ColorBalanceParam> ColorBalanceMap;
     typedef ColorBalanceMap::iterator ColorBalanceMapItr;
+    typedef std::deque<SharedPtr<VideoFrame> > ReferenceList;
     uint32_t mapToVARotationState(VppTransform vppTransform);
 
     bool mapToRange(float& value, float min, float max,
@@ -80,11 +82,23 @@ private:
     YamiStatus setColorBalanceParam(const VPPColorBalanceParameter&);
     YamiStatus createColorBalanceFilters(ColorBalanceParam& clrBalance, const VPPColorBalanceParameter& vppClrBalance);
 
+    void setReference(VAProcPipelineParameterBuffer&,
+        std::vector<VASurfaceID>& forward,
+        std::vector<VASurfaceID>& backward);
+    static void setReference(VASurfaceID*& references,
+        uint32_t& numReferences,
+        std::vector<VASurfaceID>& temporary, /*temporary spcae for va*/
+        const ReferenceList& refs);
+    void updateReference(const SharedPtr<VideoFrame>& current);
+
     ProcParams m_denoise;
     ProcParams m_sharpening;
     DeinterlaceParams m_deinterlace;
     ColorBalanceMap m_colorBalance;
     VppTransform m_transform;
+
+    ReferenceList m_forward;
+    ReferenceList m_backward;
 
     /**
      * VaapiPostProcessFactory registration result. This postprocess is
