@@ -82,6 +82,8 @@ typedef enum VppDeinterlaceMode {
     DEINTERLACE_MODE_NONE,
     DEINTERLACE_MODE_WEAVE = DEINTERLACE_MODE_NONE,
     DEINTERLACE_MODE_BOB,
+    DEINTERLACE_MODE_MOTION_ADAPTIVE,
+    DEINTERLACE_MODE_MOTION_COMPENSATED,
 } VppDeinterlaceMode;
 
 typedef struct VPPDeinterlaceParameters {

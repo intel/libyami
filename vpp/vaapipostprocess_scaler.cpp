@@ -88,6 +88,43 @@ bool VaapiPostProcessScaler::getFilters(std::vector<VABufferID>& filters)
     return !filters.empty();
 }
 
+void VaapiPostProcessScaler::setReference(VASurfaceID*& reference,
+    uint32_t& numReference,
+    std::vector<VASurfaceID>& temporary, /*temporary spcae for va*/
+    const ReferenceList& ref)
+{
+    ReferenceList::const_iterator it;
+    for (it = ref.begin(); it != ref.end(); ++it) {
+        temporary.push_back((VASurfaceID)(*it)->surface);
+    }
+    if (!temporary.empty()) {
+        reference = &temporary[0];
+        numReference = (uint32_t)temporary.size();
+    }
+}
+
+void VaapiPostProcessScaler::setReference(VAProcPipelineParameterBuffer& param,
+    std::vector<VASurfaceID>& forward,
+    std::vector<VASurfaceID>& backward)
+{
+    setReference(param.forward_references,
+        param.num_forward_references,
+        forward,
+        m_forward);
+    setReference(param.backward_references,
+        param.num_backward_references,
+        backward,
+        m_backward);
+}
+
+void VaapiPostProcessScaler::updateReference(const SharedPtr<VideoFrame>& current)
+{
+    if (m_deinterlace.mode == DEINTERLACE_MODE_MOTION_ADAPTIVE || m_deinterlace.mode == DEINTERLACE_MODE_MOTION_COMPENSATED) {
+        m_forward.clear();
+        m_forward.push_back(current);
+    }
+}
+
 YamiStatus
 VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
     const SharedPtr<VideoFrame>& dest)
@@ -129,8 +166,12 @@ VaapiPostProcessScaler::process(const SharedPtr<VideoFrame>& src,
 #if VA_CHECK_VERSION(1, 1, 0)
     vppParam->rotation_state = mapToVARotationState(m_transform);
 #endif
-
-    return picture.process() ? YAMI_SUCCESS : YAMI_FAIL;
+    std::vector<VASurfaceID> forward, backward;
+    setReference(*vppParam, forward, backward);
+    if (!picture.process())
+        return YAMI_FAIL;
+    updateReference(src);
+    return YAMI_SUCCESS;
 }
 
 uint32_t VaapiPostProcessScaler::mapToVARotationState(VppTransform vppTransform)
@@ -230,6 +271,10 @@ static VAProcDeinterlacingType getDeinterlaceMode(VppDeinterlaceMode mode)
     switch (mode) {
     case DEINTERLACE_MODE_BOB:
         return VAProcDeinterlacingBob;
+    case DEINTERLACE_MODE_MOTION_ADAPTIVE:
+        return VAProcDeinterlacingMotionAdaptive;
+    case DEINTERLACE_MODE_MOTION_COMPENSATED:
+        return VAProcDeinterlacingMotionCompensated;
     default:
         break;
     }
@@ -311,10 +356,20 @@ YamiStatus VaapiPostProcessScaler::setDeinterlaceParam(const VPPDeinterlaceParam
             //only support bob yet
             if (caps[i].type == VAProcDeinterlacingBob) {
                 supported.insert(DEINTERLACE_MODE_BOB);
+            } else if (caps[i].type == VAProcDeinterlacingMotionAdaptive) {
+                supported.insert(DEINTERLACE_MODE_MOTION_ADAPTIVE);
+            } else if (caps[i].type == VAProcDeinterlacingMotionCompensated) {
+                supported.insert(DEINTERLACE_MODE_MOTION_COMPENSATED);
             }
         }
     }
     VppDeinterlaceMode mode = deinterlace.mode;
+    if (mode != m_deinterlace.mode && mode != DEINTERLACE_MODE_MOTION_ADAPTIVE && mode != DEINTERLACE_MODE_MOTION_ADAPTIVE) {
+        //mode changed, and it not need forward reference
+        m_forward.clear();
+        ASSERT(m_backward.empty());
+    }
+
     if (mode == DEINTERLACE_MODE_NONE) {
         m_deinterlace.filter.reset();
         return YAMI_SUCCESS;
