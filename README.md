@@ -15,7 +15,7 @@ and decodes them leverage hardware acceleration.
 
   * Copyright (c) 2010, The WebM Project authors.
 
-  * Copyright (C) 2011-2017 Intel Corporation
+  * Copyright (C) 2011-2018 Intel Corporation
 
   * Copyright (C) 2015-2016 Alibaba
 
