@@ -49,15 +49,14 @@ private:
         BufObjectPtr filter; //send to va;
     };
 
-    struct ColorBalanceParam {
+    typedef std::map<VppColorBalanceMode, VAProcFilterParameterBufferColorBalance> ColorBalanceMap;
+    typedef ColorBalanceMap::iterator ColorBalanceMapItr;
+
+    struct ColorBalanceParams {
         BufObjectPtr filter; //send to va;
-        int32_t level; //send to va
-        VAProcColorBalanceType type; //query from va
-        VAProcFilterValueRange range; //query from va
+        ColorBalanceMap colorBalance;
     };
 
-    typedef std::map<VppColorBalanceMode, ColorBalanceParam> ColorBalanceMap;
-    typedef ColorBalanceMap::iterator ColorBalanceMapItr;
     uint32_t mapToVARotationState(VppTransform vppTransform);
 
     bool mapToRange(float& value, float min, float max,
@@ -78,12 +77,13 @@ private:
     YamiStatus setDeinterlaceParam(const VPPDeinterlaceParameters&);
     YamiStatus createDeinterlaceFilter(const VPPDeinterlaceParameters&);
     YamiStatus setColorBalanceParam(const VPPColorBalanceParameter&);
-    YamiStatus createColorBalanceFilters(ColorBalanceParam& clrBalance, const VPPColorBalanceParameter& vppClrBalance);
+    YamiStatus ensureColorBalanceFilter();
 
     ProcParams m_denoise;
     ProcParams m_sharpening;
     DeinterlaceParams m_deinterlace;
-    ColorBalanceMap m_colorBalance;
+    ColorBalanceParams m_colorBalance;
+    bool m_colorBalanceChanged;
     VppTransform m_transform;
 
     /**
