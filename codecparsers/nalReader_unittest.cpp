@@ -82,4 +82,35 @@ NALREADER_TEST(NullInit)
     EXPECT_DEATH(NalReader r3(NULL, 1), "");
 }
 
+NALREADER_TEST(GetPosForEPB)
+{
+    //0x0, 0x0, 0x3, is emulation prevention byte
+    const uint8_t data[] = {
+        0x0, 0x0, 0x3, 0x0,
+        0x0, 0x0, 0x0, 0x0,
+        0x1
+    };
+    NalReader r(data, sizeof(data));
+    EXPECT_EQ(0u, r.getPos());
+
+    r.skip(1);
+    EXPECT_EQ(1u, r.getPos());
+
+    r.skip(7);
+    EXPECT_EQ(8u, r.getPos());
+
+    r.skip(8);
+    //we are reach the epb
+    EXPECT_EQ(24u, r.getPos());
+
+    r.skip(8);
+    EXPECT_EQ(32u, r.getPos());
+
+    r.skip(32);
+
+    uint8_t b;
+    EXPECT_TRUE(r.readT(b));
+    EXPECT_EQ(1u, b);
+}
+
 } // namespace YamiParser
