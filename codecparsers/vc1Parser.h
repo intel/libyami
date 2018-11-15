@@ -272,6 +272,22 @@ namespace VC1 {
         bool parseFrameHeaderAdvanced(BitReader*);
         std::vector<uint8_t> m_rbdu;
     };
+
+    struct RBDU {
+        enum {
+            SLICE_HEADER = 0X0B,
+            FIELD_HEADER = 0X0C,
+            FRAME_HEADER = 0x0D,
+            ENTRY_POINT_HEADER = 0x0E,
+            SEQUENCE_HEADER = 0x0F,
+            FORBIDDEN_START = 0x80,
+            FORBIDDEN_END = 0xFF,
+        };
+        bool parse(const uint8_t* rbdu, int32_t rbduSize);
+        uint8_t type;
+        const uint8_t* data;
+        uint32_t size;
+    };
 }
 }
 #endif

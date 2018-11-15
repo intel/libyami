@@ -18,11 +18,12 @@
 #include "config.h"
 #endif
 
-#include "vc1Parser.h"
-#include "common/log.h"
 #include "common/common_def.h"
-#include <cstring>
+#include "common/log.h"
+#include "common/nalreader.h"
+#include "vc1Parser.h"
 #include <cassert>
+#include <cstring>
 
 #define READ(f)                             \
     do {                                    \
@@ -178,27 +179,24 @@ namespace VC1 {
 
     bool Parser::parseCodecData(uint8_t* data, uint32_t size)
     {
-        int32_t offset;
-        offset = searchStartCode(data, size);
-        if (offset < 0) {
-            if (!parseSequenceHeader(data, size))
+        int32_t nalSize;
+        const uint8_t* nal;
+        YamiMediaCodec::NalReader r(data, size);
+        while (r.read(nal, nalSize)) {
+            RBDU rbdu;
+            if (!rbdu.parse(nal, nalSize)) {
+                ERROR("invalid rbdu");
                 return false;
-        }
-        else {
-            while (1) {
-                data += (offset + 4);
-                size -= (offset + 4);
-                if (data[-1] == 0xF) {
-                    if (!parseSequenceHeader(data, size))
-                        return false;
-                }
-                else if (data[-1] == 0xE) {
-                    if (!parseEntryPointHeader(data, size))
-                        return false;
-                }
-                offset = searchStartCode(data, size);
-                if (offset < 0)
-                    break;
+            }
+            uint8_t type = rbdu.type;
+            if (type == RBDU::SEQUENCE_HEADER) {
+                if (!parseSequenceHeader(rbdu.data, rbdu.size))
+                    return false;
+            } else if (type == RBDU::ENTRY_POINT_HEADER) {
+                if (!parseEntryPointHeader(rbdu.data, rbdu.size))
+                    return false;
+            } else {
+                WARNING("unknow bdu type = %d", type);
             }
         }
         return true;
@@ -1148,6 +1146,18 @@ namespace VC1 {
             m_frameHdr.transacfrm = getFirst01Bit(br, 0, 2);
             READ(m_frameHdr.intra_transform_dc_table);
         }
+        return true;
+    }
+
+    bool RBDU::parse(const uint8_t* rbdu, int32_t rbduSize)
+    {
+        if (!rbdu || rbduSize <= 1)
+            return false;
+        type = rbdu[0];
+        if (type >= FORBIDDEN_START && type <= FORBIDDEN_END)
+            return false;
+        data = rbdu + 1;
+        size = rbduSize - 1;
         return true;
     }
 }
