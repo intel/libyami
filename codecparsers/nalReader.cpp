@@ -143,4 +143,20 @@ void NalReader::rbspTrailingBits()
         skip(1); /*rbsp_alignment_zero_bit, equal to 0*/
 }
 
+uint64_t NalReader::getPos() const
+{
+    uint32_t count = m_bitsInCache / 8;
+    const uint8_t* p = m_stream + m_loadBytes - 1;
+    uint32_t epb = 0;
+    while (count > 0) {
+        if (isEmulationBytes(p))
+            epb++;
+        else
+            count--;
+        p--;
+    }
+    //some epb loaded in cache, but we are not reach it yet
+    return (static_cast<uint64_t>(m_loadBytes - epb) << 3) - m_bitsInCache;
+}
+
 } /*namespace YamiParser*/
