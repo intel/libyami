@@ -27,7 +27,7 @@
 
 #define READ(f)                             \
     do {                                    \
-        if (!br->readT(f)) {                \
+        if (!br.readT(f)) {                 \
             ERROR("failed to read %s", #f); \
             return false;                   \
         }                                   \
@@ -35,7 +35,7 @@
 
 #define READ_BITS(f, bits)                                   \
     do {                                                     \
-        if (!br->readT(f, bits)) {                           \
+        if (!br.readT(f, bits)) {                            \
             ERROR("failed to read %d bits to %s", bits, #f); \
             return false;                                    \
         }                                                    \
@@ -43,7 +43,7 @@
 
 #define SKIP(bits)                                 \
     do {                                           \
-        if (!br->skip(bits)) {                     \
+        if (!br.skip(bits)) {                      \
             ERROR("failed to skip %d bits", bits); \
             return false;                          \
         }                                          \
@@ -51,7 +51,7 @@
 
 #define PEEK(f, bits)                                        \
     do {                                                     \
-        if (!br->peek(f, bits)) {                            \
+        if (!br.peek(f, bits)) {                             \
             ERROR("failed to peek %d bits to %s", bits, #f); \
             return false;                                    \
         }                                                    \
@@ -202,75 +202,23 @@ namespace VC1 {
         return true;
     }
 
-    bool Parser::parseFrameHeader(uint8_t*& data, uint32_t& size)
+    bool Parser::parseFrameHeader(const uint8_t* data, uint32_t size)
     {
         bool ret = false;
         m_mbWidth = (m_seqHdr.coded_width + 15) >> 4;
         m_mbHeight = (m_seqHdr.coded_height + 15) >> 4;
         mallocBitPlanes();
         memset(&m_frameHdr, 0, sizeof(m_frameHdr));
-        if (!convertToRbdu(data, size))
-            return false;
-        BitReader bitReader(&m_rbdu[0], m_rbdu.size());
+        RbduReader br(data, size);
         if (m_seqHdr.profile != PROFILE_ADVANCED) {
-            ret = parseFrameHeaderSimpleMain(&bitReader);
+            ret = parseFrameHeaderSimpleMain(br);
         }
         else {
             /* support advanced profile */
-            ret = parseFrameHeaderAdvanced(&bitReader);
+            ret = parseFrameHeaderAdvanced(br);
         }
-        m_frameHdr.macroblock_offset = bitReader.getPos();
+        m_frameHdr.macroblock_offset = br.getPos() - br.getEpbCnt() * 8;
         return ret;
-    }
-
-    int32_t Parser::searchStartCode(uint8_t* data, uint32_t size)
-    {
-        uint8_t* pos;
-        const uint8_t startCode[] = { 0x00, 0x00, 0x01 };
-        pos = std::search(data, data + size, startCode, startCode + 3);
-        return (pos == data + size) ? (-1) : (pos - data);
-    }
-
-    bool Parser::convertToRbdu(uint8_t*& data, uint32_t& size)
-    {
-        uint8_t* pos;
-        int32_t offset, i = 0;
-        const uint8_t startCode[] = { 0x00, 0x00, 0x03 };
-
-        if (m_seqHdr.profile == PROFILE_ADVANCED) {
-            while (1) {
-                /*skip for ununsed bdu types*/
-                /*data and size are input and output parameters*/
-                offset = searchStartCode(data, size);
-                if (offset >= 0) {
-                    data += (offset + 4);
-                    size -= (offset + 4);
-                }
-                if ((offset < 0) || (data[-1] == 0xD))
-                    break;
-            }
-            if (offset < 0) {
-                size = 0;
-                return false;
-            }
-        }
-        m_rbdu.clear();
-        /*extraction of rbdu from ebdu*/
-        while (1) {
-            pos = std::search(data + i, data + size, startCode, startCode + 3);
-            if (pos == data + size) {
-                m_rbdu.insert(m_rbdu.end(), data + i, pos);
-                break;
-            }
-            if (pos[3] <= 0x03) {
-                m_rbdu.insert(m_rbdu.end(), data + i, pos + 2);
-            }
-            else {
-                m_rbdu.insert(m_rbdu.end(), data + i, pos + 3);
-            }
-            i = pos - data + 3;
-        }
-        return (size > 0);
     }
 
     /*Table 3: Sequence layer bitstream for Advanced Profile*/
@@ -279,8 +227,7 @@ namespace VC1 {
     bool Parser::parseSequenceHeader(const uint8_t* data, uint32_t size)
     {
         uint32_t i;
-        BitReader bitReader(data, size);
-        BitReader* br = &bitReader;
+        RbduReader br(data, size);
         READ_BITS(m_seqHdr.profile, 2);
         if (m_seqHdr.profile != PROFILE_ADVANCED) {
             /* skip reserved bits */
@@ -377,8 +324,7 @@ namespace VC1 {
     bool Parser::parseEntryPointHeader(const uint8_t* data, uint32_t size)
     {
         uint8_t i;
-        BitReader bitReader(data, size);
-        BitReader* br = &bitReader;
+        RbduReader br(data, size);
         READ(m_entryPointHdr.broken_link);
         READ(m_entryPointHdr.closed_entry);
         READ(m_entryPointHdr.panscan_flag);
@@ -418,21 +364,19 @@ namespace VC1 {
         return true;
     }
 
-    bool Parser::parseSliceHeader(uint8_t* data, uint32_t size)
+    bool Parser::parseSliceHeader(const uint8_t* data, uint32_t size)
     {
         bool temp;
-        BitReader* br;
         bool ret = true;
         if (m_seqHdr.profile != PROFILE_ADVANCED)
             return false;
-        BitReader bitReader(data, size);
-        br = &bitReader;
+        RbduReader br(data, size);
         READ_BITS(m_sliceHdr.slice_addr, 9);
         READ(temp);
         if (temp)
-            ret = parseFrameHeaderAdvanced(&bitReader);
+            ret = parseFrameHeaderAdvanced(br);
 
-        m_sliceHdr.macroblock_offset = bitReader.getPos();
+        m_sliceHdr.macroblock_offset = br.getPos() - br.getEpbCnt() * 8;
         return ret;
     }
 
@@ -448,7 +392,7 @@ namespace VC1 {
         m_bitPlanes.forwardmb.resize(size);
     }
 
-    bool Parser::decodeVLCTable(BitReader* br, uint16_t* out,
+    bool Parser::decodeVLCTable(RbduReader& br, uint16_t* out,
         const VLCTable* table, uint32_t tableLen)
     {
         uint32_t i = 0;
@@ -470,7 +414,7 @@ namespace VC1 {
     }
 
     /* 8.7.3.6 Row-skip mode*/
-    bool Parser::decodeRowskipMode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
+    bool Parser::decodeRowskipMode(RbduReader& br, uint8_t* data, uint32_t width, uint32_t height)
     {
         uint32_t i, j;
         for (j = 0; j < height; j++) {
@@ -489,7 +433,7 @@ namespace VC1 {
     }
 
     /* 8.7.3.7 Column-skip mode*/
-    bool Parser::decodeColskipMode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
+    bool Parser::decodeColskipMode(RbduReader& br, uint8_t* data, uint32_t width, uint32_t height)
     {
         uint32_t i, j;
         for (i = 0; i < width; i++) {
@@ -509,7 +453,7 @@ namespace VC1 {
     }
 
     /* Table 80: Norm-2/Diff-2 Code Table */
-    bool Parser::decodeNorm2Mode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
+    bool Parser::decodeNorm2Mode(RbduReader& br, uint8_t* data, uint32_t width, uint32_t height)
     {
         uint32_t i;
         bool temp;
@@ -546,7 +490,7 @@ namespace VC1 {
         return true;
     }
 
-    bool Parser::decodeNorm6Mode(BitReader* br, uint8_t* data, uint32_t width, uint32_t height)
+    bool Parser::decodeNorm6Mode(RbduReader& br, uint8_t* data, uint32_t width, uint32_t height)
     {
         uint32_t i = 0, j = 0;
         uint16_t temp;
@@ -613,7 +557,7 @@ namespace VC1 {
             }
     }
 
-    bool Parser::decodeBitPlane(BitReader* br, uint8_t* data, bool* isRaw)
+    bool Parser::decodeBitPlane(RbduReader& br, uint8_t* data, bool* isRaw)
     {
         uint32_t i, invert;
         uint16_t mode;
@@ -655,7 +599,7 @@ namespace VC1 {
 
     /*Table 24: VOPDQUANT in picture header(Refer to 7.1.1.31)*/
     /*7.1.1.31.6 Picture Quantizer Differential(PQDIFF)(3 bits)*/
-    bool Parser::parseVopdquant(BitReader* br, uint8_t dquant)
+    bool Parser::parseVopdquant(RbduReader& br, uint8_t dquant)
     {
         if (dquant == 2) {
             m_frameHdr.dq_frame = 0;
@@ -697,19 +641,19 @@ namespace VC1 {
         return true;
     }
 
-    int32_t Parser::getFirst01Bit(BitReader* br, bool val, uint32_t len)
+    int32_t Parser::getFirst01Bit(RbduReader& br, bool val, uint32_t len)
     {
         uint32_t i = 0;
         while (i < len) {
             //TODO: check read beyond boundary here, it may need change so many functions
-            if (br->read(1) == val)
+            if (br.read(1) == val)
                 break;
             i++;
         }
         return i;
     }
 
-    uint8_t Parser::getMVMode(BitReader* br, uint8_t pQuant, bool isMvMode2)
+    uint8_t Parser::getMVMode(RbduReader& br, uint8_t pQuant, bool isMvMode2)
     {
         int32_t temp = 0;
         uint8_t MVMode = 0;
@@ -742,7 +686,7 @@ namespace VC1 {
         return MVMode;
     }
 
-    bool Parser::decodeBFraction(BitReader* br)
+    bool Parser::decodeBFraction(RbduReader& br)
     {
         uint16_t bfraction;
         if (!decodeVLCTable(br, &bfraction, BFractionVLCTable, N_ELEMENTS(BFractionVLCTable)))
@@ -759,7 +703,7 @@ namespace VC1 {
     /*Table 17: Progressive BI picture layer bitstream for Main Profile*/
     /*Table 19: Progressive P picture layer bitstream for Simple and Main Profile*/
     /*Table 21: Progressive B picture layer bitstream for Main Profile*/
-    bool Parser::parseFrameHeaderSimpleMain(BitReader* br)
+    bool Parser::parseFrameHeaderSimpleMain(RbduReader& br)
     {
         bool temp;
         m_frameHdr.interpfrm = 0;
@@ -888,7 +832,7 @@ namespace VC1 {
 
     /* 9.1.1.43 P Reference Distance*/
     /* Table 106: REFDIST VLC Table*/
-    bool Parser::getRefDist(BitReader* br, uint8_t& refDist)
+    bool Parser::getRefDist(RbduReader& br, uint8_t& refDist)
     {
         uint32_t vlcSize;
         PEEK(vlcSize, 2);
@@ -908,7 +852,7 @@ namespace VC1 {
     /*Table 83: Interlaced Frame P picture layer bitstream for Advanced Profile*/
     /*Table 84: Interlaced Frame B picture layer bitstream for Advanced Profile*/
     /*Table 85: Picture Layer bitstream for Field 1 of Interlace Field Picture for Advanced Profile*/
-    bool Parser::parseFrameHeaderAdvanced(BitReader* br)
+    bool Parser::parseFrameHeaderAdvanced(RbduReader& br)
     {
         uint32_t temp;
         if (m_seqHdr.interlace) {

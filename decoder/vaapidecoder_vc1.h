@@ -39,8 +39,16 @@ private:
     friend class FactoryTest<IVideoDecoder, VaapiDecoderVC1>;
     friend class VaapiDecoderVC1Test;
     YamiStatus ensureContext();
-    YamiStatus decode(uint8_t*, uint32_t, uint64_t);
-    bool ensureSlice(PicturePtr&, void*, int);
+
+    YamiStatus decodeFrame(PicturePtr& picture,
+        const uint8_t* data, uint32_t size, uint64_t pts);
+    YamiStatus decodeField(const PicturePtr& picture,
+        const uint8_t* data, uint32_t size);
+    YamiStatus decodeSlice(const PicturePtr& picture,
+        const uint8_t* data, uint32_t size);
+
+    YamiStatus ensureSlice(const PicturePtr&, const uint8_t* data, uint32_t size,
+        uint32_t mbOffset, uint32_t sliceAddr = 0);
     bool ensurePicture(PicturePtr&);
     bool makeBitPlanes(PicturePtr&, VAPictureParameterBufferVC1*);
     YamiStatus outputPicture(const PicturePtr&);
@@ -65,7 +73,6 @@ private:
     };
 
     DPB m_dpb;
-    bool m_sliceFlag;
 
     /**
      * VaapiDecoderFactory registration result. This decoder is registered in

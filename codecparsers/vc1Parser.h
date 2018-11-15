@@ -17,9 +17,9 @@
 #ifndef __VC1_PARSER_H__
 #define __VC1_PARSER_H__
 
+#include "RbduReader.h"
 #include <stdint.h>
 #include <stdlib.h>
-#include "bitReader.h"
 #include <vector>
 
 namespace YamiParser {
@@ -240,9 +240,8 @@ namespace VC1 {
         Parser();
         ~Parser();
         bool parseCodecData(uint8_t*, uint32_t);
-        bool parseFrameHeader(uint8_t*&, uint32_t&);
-        bool parseSliceHeader(uint8_t*, uint32_t);
-        int32_t searchStartCode(uint8_t*, uint32_t);
+        bool parseFrameHeader(const uint8_t* data, uint32_t size);
+        bool parseSliceHeader(const uint8_t* data, uint32_t size);
         SeqHdr m_seqHdr;
         FrameHdr m_frameHdr;
         SliceHdr m_sliceHdr;
@@ -253,24 +252,23 @@ namespace VC1 {
 
     private:
         void mallocBitPlanes();
-        bool getRefDist(BitReader*, uint8_t& refDist);
-        int32_t getFirst01Bit(BitReader*, bool, uint32_t);
-        uint8_t getMVMode(BitReader*, uint8_t, bool);
-        bool decodeBFraction(BitReader*);
+        bool getRefDist(RbduReader&, uint8_t& refDist);
+        int32_t getFirst01Bit(RbduReader&, bool, uint32_t);
+        uint8_t getMVMode(RbduReader&, uint8_t, bool);
+        bool decodeBFraction(RbduReader&);
         bool convertToRbdu(uint8_t*&, uint32_t&);
-        bool decodeVLCTable(BitReader*, uint16_t*, const VLCTable*, uint32_t);
-        bool decodeRowskipMode(BitReader*, uint8_t*, uint32_t, uint32_t);
-        bool decodeColskipMode(BitReader*, uint8_t*, uint32_t, uint32_t);
-        bool decodeNorm2Mode(BitReader*, uint8_t*, uint32_t, uint32_t);
-        bool decodeNorm6Mode(BitReader*, uint8_t*, uint32_t, uint32_t);
-        bool decodeBitPlane(BitReader*, uint8_t*, bool*);
+        bool decodeVLCTable(RbduReader&, uint16_t*, const VLCTable*, uint32_t);
+        bool decodeRowskipMode(RbduReader&, uint8_t*, uint32_t, uint32_t);
+        bool decodeColskipMode(RbduReader&, uint8_t*, uint32_t, uint32_t);
+        bool decodeNorm2Mode(RbduReader&, uint8_t*, uint32_t, uint32_t);
+        bool decodeNorm6Mode(RbduReader&, uint8_t*, uint32_t, uint32_t);
+        bool decodeBitPlane(RbduReader&, uint8_t*, bool*);
         void inverseDiff(uint8_t*, uint32_t, uint32_t, uint32_t);
-        bool parseVopdquant(BitReader*, uint8_t);
+        bool parseVopdquant(RbduReader&, uint8_t);
         bool parseSequenceHeader(const uint8_t*, uint32_t);
         bool parseEntryPointHeader(const uint8_t*, uint32_t);
-        bool parseFrameHeaderSimpleMain(BitReader*);
-        bool parseFrameHeaderAdvanced(BitReader*);
-        std::vector<uint8_t> m_rbdu;
+        bool parseFrameHeaderSimpleMain(RbduReader&);
+        bool parseFrameHeaderAdvanced(RbduReader&);
     };
 
     struct RBDU {

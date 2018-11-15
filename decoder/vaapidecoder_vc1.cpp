@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "common/log.h"
+#include "common/nalreader.h"
 #include "vaapidecoder_vc1.h"
 namespace YamiMediaCodec {
 
@@ -358,89 +359,101 @@ bool VaapiDecoderVC1::ensurePicture(PicturePtr& picture)
     return true;
 }
 
-bool VaapiDecoderVC1::ensureSlice(PicturePtr& picture, void* data, int size)
+YamiStatus VaapiDecoderVC1::ensureSlice(const PicturePtr& picture,
+    const uint8_t* data, uint32_t size,
+    uint32_t mbOffset, uint32_t sliceAddr)
 {
     VASliceParameterBufferVC1* slice = NULL;
     if (!picture->newSlice(slice, data, size))
-        return false;
+        return YAMI_OUT_MEMORY;
 
-    slice->macroblock_offset = m_parser.m_frameHdr.macroblock_offset;
+    slice->macroblock_offset = mbOffset;
+    slice->slice_vertical_position = sliceAddr;
 
-    if (m_sliceFlag) {
-        slice->macroblock_offset = m_parser.m_sliceHdr.macroblock_offset;
-        slice->slice_vertical_position = m_parser.m_sliceHdr.slice_addr;
-    }
-    return true;
+    return YAMI_SUCCESS;
 }
 
-YamiStatus VaapiDecoderVC1::decode(uint8_t* data, uint32_t size, uint64_t pts)
+YamiStatus VaapiDecoderVC1::decodeFrame(PicturePtr& picture,
+    const uint8_t* data, uint32_t size, uint64_t pts)
 {
     YamiStatus ret;
-    SurfacePtr surface;
-    PicturePtr picture;
-    int32_t offset, len;
-    SeqHdr* seqHdr = &m_parser.m_seqHdr;
-    m_sliceFlag = false;
     ret = ensureContext();
     if (ret != YAMI_SUCCESS)
         return ret;
-    surface = VaapiDecoderBase::createSurface();
-    if (!surface) {
-        ret = YAMI_DECODE_NO_SURFACE;
-    } else {
-        picture.reset(
-            new VaapiDecPicture(m_context, surface, pts));
+
+    SurfacePtr surface = VaapiDecoderBase::createSurface();
+    if (!surface)
+        return YAMI_DECODE_NO_SURFACE;
+    if (!m_parser.parseFrameHeader(data, size)) {
+        ERROR("parser frame header failed");
+        return YAMI_DECODE_INVALID_DATA;
     }
+    if (m_dpb.notEnoughReference(m_parser.m_frameHdr)) {
+        ERROR("not got enough reference");
+        return YAMI_FAIL;
+    }
+    picture.reset(new VaapiDecPicture(m_context, surface, pts));
     if (!ensurePicture(picture))
         return YAMI_FAIL;
-    if (seqHdr->profile == PROFILE_ADVANCED) {
-        while(1) {
-            offset = m_parser.searchStartCode(data, size);
-            len = (offset < 0) ? size : offset;
-            if (m_sliceFlag)
-                m_parser.parseSliceHeader(data, len);
+    return ensureSlice(picture, data, size, m_parser.m_frameHdr.macroblock_offset);
+}
 
-            if (!ensureSlice(picture, data, len))
-                return YAMI_FAIL;
+YamiStatus VaapiDecoderVC1::decodeField(const PicturePtr& picture,
+    const uint8_t* data, uint32_t size)
+{
+    if (!picture)
+        return YAMI_DECODE_INVALID_DATA;
+    return ensureSlice(picture, data, size, 0);
+}
 
-            if (offset < 0)
-                break;
-            if (data[offset+3] == 0xB)
-                m_sliceFlag = true;
-            else
-                m_sliceFlag = false;
-            data += (offset + 4);
-            size -= (offset + 4);
-        }
-    } else {
-        if (!ensureSlice(picture, data, size))
-            return YAMI_FAIL;
+YamiStatus VaapiDecoderVC1::decodeSlice(const PicturePtr& picture,
+    const uint8_t* data, uint32_t size)
+{
+    if (!picture)
+        return YAMI_DECODE_INVALID_DATA;
+    if (!m_parser.parseSliceHeader(data, size)) {
+        ERROR("parser slice header failed");
+        return YAMI_DECODE_INVALID_DATA;
     }
+    return ensureSlice(picture, data, size,
+        m_parser.m_sliceHdr.macroblock_offset, m_parser.m_sliceHdr.slice_addr);
+}
+
+YamiStatus VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
+{
+    if (!buffer || !(buffer->data) || !(buffer->size)) {
+        m_dpb.flush();
+        return YAMI_SUCCESS;
+    }
+    YamiStatus status = YAMI_SUCCESS;
+    const uint8_t* data;
+    int32_t size;
+    YamiMediaCodec::NalReader nr(buffer->data, buffer->size);
+    PicturePtr picture;
+    while (nr.read(data, size)) {
+        RBDU rbdu;
+        if (!rbdu.parse(data, size))
+            return YAMI_DECODE_INVALID_DATA;
+        uint8_t type = rbdu.type;
+        if (type == RBDU::FRAME_HEADER) {
+            status = decodeFrame(picture, rbdu.data, rbdu.size, buffer->timeStamp);
+        } else if (type == RBDU::FIELD_HEADER) {
+            status = decodeField(picture, rbdu.data, rbdu.size);
+        } else if (type == RBDU::SLICE_HEADER) {
+            status = decodeSlice(picture, rbdu.data, rbdu.size);
+        }
+        if (status != YAMI_SUCCESS)
+            return status;
+    }
+    if (!picture)
+        return YAMI_DECODE_INVALID_DATA;
+
     if (!picture->decode()) {
         return YAMI_FAIL;
     }
 
     m_dpb.add(picture, m_parser.m_frameHdr);
     return YAMI_SUCCESS;
-}
-
-YamiStatus VaapiDecoderVC1::decode(VideoDecodeBuffer* buffer)
-{
-    uint8_t* data;
-    uint32_t size;
-    if (!buffer || !(buffer->data) || !(buffer->size)) {
-        m_dpb.flush();
-        return YAMI_SUCCESS;
-    }
-    size = buffer->size;
-    data = buffer->data;
-    if (!m_parser.parseFrameHeader(data, size))
-        return YAMI_DECODE_INVALID_DATA;
-    if (m_dpb.notEnoughReference(m_parser.m_frameHdr)) {
-        ERROR("not got enough reference");
-        return YAMI_FAIL;
-    }
-    return decode(data, size, buffer->timeStamp);
 }
 
 }
