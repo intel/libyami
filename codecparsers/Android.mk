@@ -6,6 +6,7 @@ LOCAL_SRC_FILES := \
         bitReader.cpp \
         bitWriter.cpp \
         EpbReader.cpp \
+        RbduReader.cpp \
         nalReader.cpp \
         h264Parser.cpp \
         h265Parser.cpp \

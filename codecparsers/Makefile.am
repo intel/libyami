@@ -2,6 +2,7 @@ libyami_codecparser_source_c = \
 	bitReader.cpp \
 	bitWriter.cpp \
 	EpbReader.cpp \
+	RbduReader.cpp \
 	nalReader.cpp \
 	dboolhuff.c \
 	$(NULL)
