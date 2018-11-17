@@ -5,11 +5,12 @@ include $(LOCAL_PATH)/../common.mk
 LOCAL_SRC_FILES := \
         bitReader.cpp \
         bitWriter.cpp \
+        EpbReader.cpp \
+        nalReader.cpp \
         h264Parser.cpp \
         h265Parser.cpp \
         jpegParser.cpp \
         mpeg2_parser.cpp \
-        nalReader.cpp \
         vc1Parser.cpp \
         vp8_bool_decoder.cpp \
         vp8_parser.cpp \

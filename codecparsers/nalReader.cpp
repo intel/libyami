@@ -29,43 +29,16 @@ uint32_t getHalfCeil(uint32_t n)
     return ((n + 1) >> 1);
 }
 
-NalReader::NalReader(const uint8_t *pdata, uint32_t size)
-    : BitReader(pdata, size)
-    , m_epb(0)
+NalReader::NalReader(const uint8_t* pdata, uint32_t size)
+    : EpbReader(pdata, size)
 {
 }
 
-inline bool NalReader::isEmulationBytes(const uint8_t *p) const
+bool NalReader::isEmulationPreventionByte(const uint8_t* p) const
 {
     return *p == 0x03
             && (p - m_stream) >= 2
             && *(p - 1) == 0x00 && *(p - 2) == 0x00;
-}
-
-void NalReader::loadDataToCache(uint32_t nbytes)
-{
-    const uint8_t *pStart = m_stream + m_loadBytes;
-    const uint8_t *p;
-    const uint8_t *pEnd = m_stream + m_size;
-    /*the numbers of emulation prevention three byte in current load block*/
-    uint32_t epb = 0;
-
-    unsigned long int tmp = 0;
-    uint32_t size = 0;
-    for (p = pStart; p < pEnd && size < nbytes; p++) {
-        if(!isEmulationBytes(p)) {
-            tmp <<= 8;
-            tmp |= *p;
-            size++;
-        } else {
-            epb++;
-        }
-
-    }
-    m_cache = tmp;
-    m_loadBytes += p - pStart;
-    m_bitsInCache = size << 3;
-    m_epb += epb;
 }
 
 /*according to 9.1 of h264 spec*/
@@ -141,22 +114,6 @@ void NalReader::rbspTrailingBits()
     skip(1);
     while(getPos() & 7)
         skip(1); /*rbsp_alignment_zero_bit, equal to 0*/
-}
-
-uint64_t NalReader::getPos() const
-{
-    uint32_t count = m_bitsInCache / 8;
-    const uint8_t* p = m_stream + m_loadBytes - 1;
-    uint32_t epb = 0;
-    while (count > 0) {
-        if (isEmulationBytes(p))
-            epb++;
-        else
-            count--;
-        p--;
-    }
-    //some epb loaded in cache, but we are not reach it yet
-    return (static_cast<uint64_t>(m_loadBytes - epb) << 3) - m_bitsInCache;
 }
 
 } /*namespace YamiParser*/

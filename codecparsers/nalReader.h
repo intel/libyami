@@ -17,13 +17,12 @@
 #ifndef nalReader_h
 #define nalReader_h
 
+#include "EpbReader.h"
 #include "common/log.h"
-#include "bitReader.h"
 
 namespace YamiParser {
 
-class NalReader : public BitReader
-{
+class NalReader : public EpbReader {
 public:
     NalReader(const uint8_t *data, uint32_t size);
 
@@ -39,15 +38,9 @@ public:
 
     bool moreRbspData() const;
     void rbspTrailingBits();
-    uint32_t getEpbCnt() { return m_epb; }
-
-    uint64_t getPos() const;
 
 private:
-    void loadDataToCache(uint32_t nbytes);
-    inline bool isEmulationBytes(const uint8_t *p) const;
-
-    uint32_t m_epb; /*the number of emulation prevention bytes*/
+    bool isEmulationPreventionByte(const uint8_t* p) const;
 };
 
 bool NalReader::readUe(uint8_t& v)
