@@ -28,6 +28,7 @@ public:
     RbduReader(const uint8_t* data, uint32_t size);
 
 private:
+    friend class RbduReaderTest;
     bool isEmulationPreventionByte(const uint8_t* p) const;
 };
 

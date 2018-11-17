@@ -5,6 +5,7 @@ unittest_SOURCES = \
 	bitReader_unittest.cpp \
 	nalReader_unittest.cpp \
 	bitWriter_unittest.cpp \
+	RbduReader_unittest.cpp \
 	$(NULL)
 
 if BUILD_VP8_DECODER
