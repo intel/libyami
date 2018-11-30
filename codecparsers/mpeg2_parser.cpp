@@ -40,44 +40,44 @@ namespace MPEG2 {
 #define RETURN_ERROR(message)                                                  \
     do {                                                                       \
         ERROR("Error while reading %s", #message);                             \
-        bitReaderDeInit();                                                     \
         return false;                                                          \
     } while (0)
 
-#define READ_MARKER_OR_RETURN(flag)                                            \
-    do {                                                                       \
-        if (!bitReaderReadMarker(flag))                                        \
-            RETURN_ERROR(flag);                                                \
+#define READ_MARKER_OR_RETURN(flag)    \
+    bool b;                            \
+    do {                               \
+        if (!br.readT(b) || b != flag) \
+            RETURN_ERROR(flag);        \
     } while (0)
 
-#define READ_FLAG_OR_RETURN(flag)                                              \
-    do {                                                                       \
-        if (!bitReaderReadFlag(flag))                                          \
-            RETURN_ERROR(flag);                                                \
+#define READ_FLAG_OR_RETURN(flag) \
+    do {                          \
+        if (!br.readT(flag))      \
+            RETURN_ERROR(flag);   \
     } while (0)
 
-#define READ_BITS_OR_RETURN(bits, var)                                         \
-    do {                                                                       \
-        if (!bitReaderReadBits(bits, var))                                     \
-            RETURN_ERROR(var);                                                 \
+#define READ_BITS_OR_RETURN(bits, var) \
+    do {                               \
+        if (!br.read(var, bits))       \
+            RETURN_ERROR(var);         \
     } while (0)
 
-#define PEEK_BITS_OR_RETURN(bits, var)                                         \
-    do {                                                                       \
-        if (!bitReaderPeekBits(bits, var))                                     \
-            RETURN_ERROR(var);                                                 \
+#define PEEK_BITS_OR_RETURN(bits, var) \
+    do {                               \
+        if (!br.peek(var, bits))       \
+            RETURN_ERROR(var);         \
     } while (0)
 
-#define PEEK_BOOL_OR_RETURN(var)                                               \
-    do {                                                                       \
-        if (!bitReaderPeekBool(var))                                           \
-            RETURN_ERROR(var);                                                 \
+#define PEEK_BOOL_OR_RETURN(var) \
+    do {                         \
+        if (!br.peek(var, 1))    \
+            RETURN_ERROR(var);   \
     } while (0)
 
-#define SKIP_BITS_OR_RETURN(bits)                                              \
-    do {                                                                       \
-        if (!bitReaderSkipBits(bits))                                          \
-            RETURN_ERROR("skip bits");                                         \
+#define SKIP_BITS_OR_RETURN(bits)      \
+    do {                               \
+        if (!br.skip(bits))            \
+            RETURN_ERROR("skip bits"); \
     } while (0)
 
 #define SKIP_BYTE_OR_RETURN()                                                  \
@@ -194,8 +194,7 @@ namespace MPEG2 {
         m_slice.sliceData = nalData;
         m_slice.sliceDataSize = nalSize;
 
-        BitReader bitReader(nalData, nalSize);
-        bitReaderInit(&bitReader);
+        BitReader br(nalData, nalSize);
         m_slice.verticalPosition = nalData[0];
 
         SKIP_BYTE_OR_RETURN(); // skip start code
@@ -208,7 +207,7 @@ namespace MPEG2 {
         if (verticalSize > 2800) {
             // really big picture
             READ_BITS_OR_RETURN(
-                3, &(m_slice.slice_vertical_position_extension));
+                3, m_slice.slice_vertical_position_extension);
             m_slice.macroblockRow
                 = (m_slice.slice_vertical_position_extension << 7)
                   + m_slice.verticalPosition - 1;
@@ -216,33 +215,31 @@ namespace MPEG2 {
             m_slice.macroblockRow = m_slice.verticalPosition - 1;
         }
 
-        READ_BITS_OR_RETURN(5, &(m_slice.quantiser_scale_code));
-        PEEK_BOOL_OR_RETURN(&marker);
+        READ_BITS_OR_RETURN(5, m_slice.quantiser_scale_code);
+        PEEK_BOOL_OR_RETURN(marker);
         if (marker) {
             // read more intra bits
-            READ_FLAG_OR_RETURN(&(m_slice.intra_slice_flag));
-            READ_FLAG_OR_RETURN(&(m_slice.intra_slice));
-            READ_BITS_OR_RETURN(7, &(m_slice.reserved_bits));
+            READ_FLAG_OR_RETURN(m_slice.intra_slice_flag);
+            READ_FLAG_OR_RETURN(m_slice.intra_slice);
+            READ_BITS_OR_RETURN(7, m_slice.reserved_bits);
 
-            PEEK_BOOL_OR_RETURN(&marker);
+            PEEK_BOOL_OR_RETURN(marker);
             while (marker) {
                 // extra_information_slice
-                READ_FLAG_OR_RETURN(&(m_slice.extra_bit_slice));
+                READ_FLAG_OR_RETURN(m_slice.extra_bit_slice);
                 if (!m_slice.extra_bit_slice) {
                     ERROR("Bad extra bit slice");
-                    bitReaderDeInit();
                     return false;
                 }
                 SKIP_BYTE_OR_RETURN();
-                PEEK_BOOL_OR_RETURN(&marker);
+                PEEK_BOOL_OR_RETURN(marker);
             }
         }
 
-        READ_FLAG_OR_RETURN(&(m_slice.extra_bit_slice));
+        READ_FLAG_OR_RETURN(m_slice.extra_bit_slice);
 
         if (m_slice.extra_bit_slice) {
             ERROR("Bad extra bit slice");
-            bitReaderDeInit();
             return false;
         }
 
@@ -250,9 +247,9 @@ namespace MPEG2 {
         // as long as the first macroblock_icrement is known
 
         // sliceHeaderSize is given in bits
-        m_slice.sliceHeaderSize = bitReaderCurrentPosition();
+        m_slice.sliceHeaderSize = br.getPos();
 
-        if (!calculateMBColumn())
+        if (!calculateMBColumn(br))
             return false;
 
 
@@ -280,18 +277,17 @@ namespace MPEG2 {
         DEBUG("macroblockColumn                   : %d",
               m_slice.macroblockColumn);
 
-        bitReaderDeInit();
         return true;
     }
 
-    bool Parser::calculateMBColumn()
+    bool Parser::calculateMBColumn(BitReader& br)
     {
         uint32_t bitsToParse;
         uint32_t mbVLC, mbINC = 0, totalMBINC = 0;
         do {
             for (uint8_t i = 0; i < 34; i++) {
                 bitsToParse = kVLCTable[i][0];
-                PEEK_BITS_OR_RETURN(bitsToParse, &mbVLC);
+                PEEK_BITS_OR_RETURN(bitsToParse, mbVLC);
                 if (mbVLC == kVLCTable[i][1]) {
                     mbINC = kVLCTable[i][2];
                     break;
@@ -320,28 +316,27 @@ namespace MPEG2 {
             return false;
         }
 
-        BitReader bitReader(nalData, nalSize);
-        bitReaderInit(&bitReader);
+        BitReader br(nalData, nalSize);
         SKIP_BYTE_OR_RETURN();
 
-        READ_BITS_OR_RETURN(10, &(m_pictureHeader.temporal_reference));
-        READ_BITS_OR_RETURN(3, &(m_pictureHeader.picture_coding_type));
+        READ_BITS_OR_RETURN(10, m_pictureHeader.temporal_reference);
+        READ_BITS_OR_RETURN(3, m_pictureHeader.picture_coding_type);
         picture_type = static_cast<PictureCodingType>(
             m_pictureHeader.picture_coding_type);
-        READ_BITS_OR_RETURN(16, &(m_pictureHeader.vbv_delay));
+        READ_BITS_OR_RETURN(16, m_pictureHeader.vbv_delay);
 
         if (picture_type == kPFrame || picture_type == kBFrame) {
-            READ_FLAG_OR_RETURN(&(m_pictureHeader.full_pel_forward_vector));
-            READ_BITS_OR_RETURN(3, &(m_pictureHeader.forward_f_code));
+            READ_FLAG_OR_RETURN(m_pictureHeader.full_pel_forward_vector);
+            READ_BITS_OR_RETURN(3, m_pictureHeader.forward_f_code);
         }
 
         if (picture_type == kBFrame) {
-            READ_FLAG_OR_RETURN(&(m_pictureHeader.full_pel_backward_vector));
-            READ_BITS_OR_RETURN(3, &(m_pictureHeader.backward_f_code));
+            READ_FLAG_OR_RETURN(m_pictureHeader.full_pel_backward_vector);
+            READ_BITS_OR_RETURN(3, m_pictureHeader.backward_f_code);
         }
 
         for (;;) {
-            READ_FLAG_OR_RETURN(&(m_pictureHeader.extra_bit_picture));
+            READ_FLAG_OR_RETURN(m_pictureHeader.extra_bit_picture);
             if (m_pictureHeader.extra_bit_picture == 1) {
                 // decoder shall skip extra_information_picture byte
                 SKIP_BYTE_OR_RETURN();
@@ -365,8 +360,6 @@ namespace MPEG2 {
         DEBUG("extra_bit_picture        : %x",
               m_pictureHeader.extra_bit_picture);
 
-        bitReaderDeInit();
-
         return true;
     }
 
@@ -380,21 +373,20 @@ namespace MPEG2 {
             return false;
         }
 
-        BitReader bitReader(nalData, nalSize);
-        bitReaderInit(&bitReader);
+        BitReader br(nalData, nalSize);
 
         SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
 
-        READ_FLAG_OR_RETURN(&(m_GOPHeader.drop_frame_flag));
-        READ_BITS_OR_RETURN(5, &(m_GOPHeader.time_code_hours));
-        READ_BITS_OR_RETURN(6, &(m_GOPHeader.time_code_minutes));
+        READ_FLAG_OR_RETURN(m_GOPHeader.drop_frame_flag);
+        READ_BITS_OR_RETURN(5, m_GOPHeader.time_code_hours);
+        READ_BITS_OR_RETURN(6, m_GOPHeader.time_code_minutes);
 
         READ_MARKER_OR_RETURN(true);
 
-        READ_BITS_OR_RETURN(6, &(m_GOPHeader.time_code_seconds));
-        READ_BITS_OR_RETURN(6, &(m_GOPHeader.time_code_pictures));
-        READ_FLAG_OR_RETURN(&(m_GOPHeader.closed_gop));
-        READ_FLAG_OR_RETURN(&(m_GOPHeader.broken_link));
+        READ_BITS_OR_RETURN(6, m_GOPHeader.time_code_seconds);
+        READ_BITS_OR_RETURN(6, m_GOPHeader.time_code_pictures);
+        READ_FLAG_OR_RETURN(m_GOPHeader.closed_gop);
+        READ_FLAG_OR_RETURN(m_GOPHeader.broken_link);
         // five marker bits all should be 0
         for (uint8_t i(0); i < 5; ++i) {
             READ_MARKER_OR_RETURN(false);
@@ -407,15 +399,13 @@ namespace MPEG2 {
         DEBUG("time_code_pictures : %x", m_GOPHeader.time_code_pictures);
         DEBUG("closed_gop 	  : %x", m_GOPHeader.closed_gop);
 
-        bitReaderDeInit();
-
         return true;
     }
 
     bool Parser::readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
-                                          const uint8_t defaultMatrix[])
+        const uint8_t defaultMatrix[], BitReader& br)
     {
-        if (!readQuantMatrix(loadMatrix, matrix))
+        if (!readQuantMatrix(loadMatrix, matrix, br))
             return false;
 
         if (!loadMatrix) {
@@ -425,16 +415,16 @@ namespace MPEG2 {
         return true;
     }
 
-    bool Parser::readQuantMatrix(bool& loadMatrix, uint8_t matrix[])
+    bool Parser::readQuantMatrix(bool& loadMatrix, uint8_t matrix[], BitReader& br)
     {
 
-        READ_FLAG_OR_RETURN(&loadMatrix);
+        READ_FLAG_OR_RETURN(loadMatrix);
 
         if (loadMatrix) {
             // read 8 bits *64 from the stream
             uint32_t value;
             for (uint8_t i(0); i < 64; ++i) {
-                READ_BITS_OR_RETURN(8, &value);
+                READ_BITS_OR_RETURN(8, value);
                 matrix[i] = value;
             }
         }
@@ -453,40 +443,38 @@ namespace MPEG2 {
             return false;
         }
 
-        BitReader bitReader(nalData, nalSize);
-        bitReaderInit(&bitReader);
+        BitReader br(nalData, nalSize);
         SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
 
         m_quantMatrixExtension = QuantMatrixExtension();
 
         // extension_start_code_identifier
         READ_BITS_OR_RETURN(
-            4, &(m_quantMatrixExtension.extension_start_code_identifier));
+            4, m_quantMatrixExtension.extension_start_code_identifier);
 
         extID = static_cast<ExtensionIdentifierType>(
             m_quantMatrixExtension.extension_start_code_identifier);
 
         if (extID != kQuantizationMatrix) {
             ERROR("Wrong extension id type");
-            bitReaderDeInit();
             return false;
         }
 
         if (!readQuantMatrix(quantMatrices->load_intra_quantiser_matrix,
-                             quantMatrices->intra_quantiser_matrix))
+                quantMatrices->intra_quantiser_matrix, br))
             return false;
 
         if (!readQuantMatrix(quantMatrices->load_non_intra_quantiser_matrix,
-                             quantMatrices->non_intra_quantiser_matrix))
+                quantMatrices->non_intra_quantiser_matrix, br))
             return false;
 
         if (!readQuantMatrix(quantMatrices->load_chroma_intra_quantiser_matrix,
-                             quantMatrices->chroma_intra_quantiser_matrix))
+                quantMatrices->chroma_intra_quantiser_matrix, br))
             return false;
 
         if (!readQuantMatrix(
                 quantMatrices->load_chroma_non_intra_quantiser_matrix,
-                quantMatrices->chroma_non_intra_quantiser_matrix))
+                quantMatrices->chroma_non_intra_quantiser_matrix, br))
             return false;
 
         DEBUG("load_intra_quantiser_matrix             : %x",
@@ -498,7 +486,6 @@ namespace MPEG2 {
         DEBUG("load_chroma_non_intra_quantiser_matrix  : %x",
               quantMatrices->load_chroma_non_intra_quantiser_matrix);
 
-        bitReaderDeInit();
         return true;
     }
 
@@ -513,49 +500,45 @@ namespace MPEG2 {
             return false;
         }
 
-        BitReader bitReader(nalData, nalSize);
-        bitReaderInit(&bitReader);
+        BitReader br(nalData, nalSize);
         SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
 
         // extension_start_code_identifier
         READ_BITS_OR_RETURN(
-            4, &(m_pictureCodingExtension.extension_start_code_identifier));
+            4, m_pictureCodingExtension.extension_start_code_identifier);
 
         extID = static_cast<ExtensionIdentifierType>(
             m_pictureCodingExtension.extension_start_code_identifier);
 
         if (extID != kPictureCoding) {
             ERROR("Wrong extension id type");
-            bitReaderDeInit();
             return false;
         }
 
-        READ_BITS_OR_RETURN(4, &(m_pictureCodingExtension.f_code[0][0]));
-        READ_BITS_OR_RETURN(4, &(m_pictureCodingExtension.f_code[0][1]));
-        READ_BITS_OR_RETURN(4, &(m_pictureCodingExtension.f_code[1][0]));
-        READ_BITS_OR_RETURN(4, &(m_pictureCodingExtension.f_code[1][1]));
-        READ_BITS_OR_RETURN(2, &(m_pictureCodingExtension.intra_dc_precision));
-        READ_BITS_OR_RETURN(2, &(m_pictureCodingExtension.picture_structure));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.top_field_first));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.frame_pred_frame_dct));
-        READ_FLAG_OR_RETURN(
-            &(m_pictureCodingExtension.concealment_motion_vectors));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.q_scale_type));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.intra_vlc_format));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.alternate_scan));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.repeat_first_field));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.chrome_420_type));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.progressive_frame));
-        READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.composite_display_flag));
+        READ_BITS_OR_RETURN(4, m_pictureCodingExtension.f_code[0][0]);
+        READ_BITS_OR_RETURN(4, m_pictureCodingExtension.f_code[0][1]);
+        READ_BITS_OR_RETURN(4, m_pictureCodingExtension.f_code[1][0]);
+        READ_BITS_OR_RETURN(4, m_pictureCodingExtension.f_code[1][1]);
+        READ_BITS_OR_RETURN(2, m_pictureCodingExtension.intra_dc_precision);
+        READ_BITS_OR_RETURN(2, m_pictureCodingExtension.picture_structure);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.top_field_first);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.frame_pred_frame_dct);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.concealment_motion_vectors);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.q_scale_type);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.intra_vlc_format);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.alternate_scan);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.repeat_first_field);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.chrome_420_type);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.progressive_frame);
+        READ_FLAG_OR_RETURN(m_pictureCodingExtension.composite_display_flag);
 
         if (m_pictureCodingExtension.composite_display_flag) {
-            READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.v_axis));
-            READ_BITS_OR_RETURN(3, &(m_pictureCodingExtension.field_sequence));
-            READ_FLAG_OR_RETURN(&(m_pictureCodingExtension.sub_carrier));
-            READ_BITS_OR_RETURN(7, &(m_pictureCodingExtension.burst_amplitude));
+            READ_FLAG_OR_RETURN(m_pictureCodingExtension.v_axis);
+            READ_BITS_OR_RETURN(3, m_pictureCodingExtension.field_sequence);
+            READ_FLAG_OR_RETURN(m_pictureCodingExtension.sub_carrier);
+            READ_BITS_OR_RETURN(7, m_pictureCodingExtension.burst_amplitude);
             READ_BITS_OR_RETURN(8,
-                              &(m_pictureCodingExtension.sub_carrier_phase));
-
+                m_pictureCodingExtension.sub_carrier_phase);
         }
 
         DEBUG("f_code_0_0                  : %x",
@@ -591,8 +574,6 @@ namespace MPEG2 {
         DEBUG("composite_display_flag      : %x",
               m_pictureCodingExtension.composite_display_flag);
 
-        bitReaderDeInit();
-
         return true;
     }
 
@@ -607,36 +588,34 @@ namespace MPEG2 {
             return false;
         }
 
-        BitReader bitReader(nalData, nalSize);
-        bitReaderInit(&bitReader);
+        BitReader br(nalData, nalSize);
         SKIP_BYTE_OR_RETURN();
 
         READ_BITS_OR_RETURN(
-            4, &(m_sequenceExtension.extension_start_code_identifier));
+            4, m_sequenceExtension.extension_start_code_identifier);
 
         extID = static_cast<ExtensionIdentifierType>(
             m_sequenceExtension.extension_start_code_identifier);
 
         if (extID != kSequence) {
             ERROR("Wrong extension id type %d", extID);
-            bitReaderDeInit();
             return false;
         }
 
         READ_BITS_OR_RETURN(8,
-                          &(m_sequenceExtension.profile_and_level_indication));
-        READ_FLAG_OR_RETURN(&(m_sequenceExtension.progressive_sequence));
-        READ_BITS_OR_RETURN(2, &(m_sequenceExtension.chroma_format));
-        READ_BITS_OR_RETURN(2, &(m_sequenceExtension.horizontal_size_extension));
-        READ_BITS_OR_RETURN(2, &(m_sequenceExtension.vertical_size_extension));
-        READ_BITS_OR_RETURN(12, &(m_sequenceExtension.bit_rate_extension));
+            m_sequenceExtension.profile_and_level_indication);
+        READ_FLAG_OR_RETURN(m_sequenceExtension.progressive_sequence);
+        READ_BITS_OR_RETURN(2, m_sequenceExtension.chroma_format);
+        READ_BITS_OR_RETURN(2, m_sequenceExtension.horizontal_size_extension);
+        READ_BITS_OR_RETURN(2, m_sequenceExtension.vertical_size_extension);
+        READ_BITS_OR_RETURN(12, m_sequenceExtension.bit_rate_extension);
 
         READ_MARKER_OR_RETURN(true);
 
-        READ_BITS_OR_RETURN(8, &(m_sequenceExtension.vbv_buffer_size_extension));
-        READ_FLAG_OR_RETURN(&(m_sequenceExtension.low_delay));
-        READ_BITS_OR_RETURN(2, &(m_sequenceExtension.frame_rate_extension_n));
-        READ_BITS_OR_RETURN(5, &(m_sequenceExtension.frame_rate_extension_d));
+        READ_BITS_OR_RETURN(8, m_sequenceExtension.vbv_buffer_size_extension);
+        READ_FLAG_OR_RETURN(m_sequenceExtension.low_delay);
+        READ_BITS_OR_RETURN(2, m_sequenceExtension.frame_rate_extension_n);
+        READ_BITS_OR_RETURN(5, m_sequenceExtension.frame_rate_extension_d);
 
         DEBUG("extension_start_code_identifier  : %x",
               m_sequenceExtension.extension_start_code_identifier);
@@ -661,8 +640,6 @@ namespace MPEG2 {
         DEBUG("frame_rate_extension_d           : %x",
               m_sequenceExtension.frame_rate_extension_d);
 
-        bitReaderDeInit();
-
         return true;
     }
 
@@ -679,30 +656,29 @@ namespace MPEG2 {
 
         m_sequenceHdr = SeqHeader();
 
-        BitReader bitReader(nalData, nalSize);
-        bitReaderInit(&bitReader);
+        BitReader br(nalData, nalSize);
 
         SKIP_BYTE_OR_RETURN();
 
-        READ_BITS_OR_RETURN(12, &(m_sequenceHdr.horizontal_size_value));
-        READ_BITS_OR_RETURN(12, &(m_sequenceHdr.vertical_size_value));
-        READ_BITS_OR_RETURN(4, &(m_sequenceHdr.aspect_ratio_info));
-        READ_BITS_OR_RETURN(4, &(m_sequenceHdr.frame_rate_code));
-        READ_BITS_OR_RETURN(18, &(m_sequenceHdr.bit_rate_value));
+        READ_BITS_OR_RETURN(12, m_sequenceHdr.horizontal_size_value);
+        READ_BITS_OR_RETURN(12, m_sequenceHdr.vertical_size_value);
+        READ_BITS_OR_RETURN(4, m_sequenceHdr.aspect_ratio_info);
+        READ_BITS_OR_RETURN(4, m_sequenceHdr.frame_rate_code);
+        READ_BITS_OR_RETURN(18, m_sequenceHdr.bit_rate_value);
 
         READ_MARKER_OR_RETURN(true);
 
-        READ_BITS_OR_RETURN(10, &(m_sequenceHdr.vbv_buffer_size_value));
-        READ_FLAG_OR_RETURN(&(m_sequenceHdr.constrained_params_flag));
+        READ_BITS_OR_RETURN(10, m_sequenceHdr.vbv_buffer_size_value);
+        READ_FLAG_OR_RETURN(m_sequenceHdr.constrained_params_flag);
 
         if (!readQuantMatrixOrDefault(quantMatrices->load_intra_quantiser_matrix,
-                                 quantMatrices->intra_quantiser_matrix,
-                                 &kDefaultIntraBlockMatrix[0]))
+                quantMatrices->intra_quantiser_matrix,
+                &kDefaultIntraBlockMatrix[0], br))
             return false;
 
         if (!readQuantMatrixOrDefault(quantMatrices->load_non_intra_quantiser_matrix,
-                                 quantMatrices->non_intra_quantiser_matrix,
-                                 &kDefaultNonIntraBlockMatrix[0]))
+                quantMatrices->non_intra_quantiser_matrix,
+                &kDefaultNonIntraBlockMatrix[0], br))
             return false;
 
         DEBUG("horizontal_size_value            : %x",
@@ -723,8 +699,6 @@ namespace MPEG2 {
               quantMatrices->load_intra_quantiser_matrix);
         DEBUG("load_non_intra_quantiser_matrix  : %x",
               quantMatrices->load_non_intra_quantiser_matrix);
-
-        bitReaderDeInit();
 
         return true;
     }
