@@ -68,7 +68,6 @@ namespace MPEG2 {
 #define MEMBER_VARIABLE(result_type, var)                                      \
     result_type& var(Parser& p) { return p.var; }
 
-        MEMBER_VARIABLE(BitReader*, m_bitReader);
         MEMBER_VARIABLE(SeqHeader, m_sequenceHdr);
         MEMBER_VARIABLE(SeqExtension, m_sequenceExtension);
         MEMBER_VARIABLE(GOPHeader, m_GOPHeader);

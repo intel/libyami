@@ -347,64 +347,10 @@ namespace MPEG2 {
         friend class MPEG2ParserTest;
 
         bool readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
-                                      const uint8_t defaultMatrix[]);
+            const uint8_t defaultMatrix[], BitReader&);
 
-        bool readQuantMatrix(bool& loadMatrix, uint8_t matrix[]);
-        bool calculateMBColumn();
-
-        // bitReader functions
-
-        inline void bitReaderInit(const BitReader* bitReader)
-        {
-            m_bitReader = const_cast<BitReader*>(bitReader);
-        }
-
-        inline void bitReaderDeInit() { m_bitReader = NULL; }
-
-        inline bool bitReaderSkipBits(uint32_t num_bits) const
-        {
-            return m_bitReader->skip(num_bits);
-        }
-
-        inline bool bitReaderReadBits(uint32_t num_bits, uint32_t* out) const
-        {
-            return m_bitReader->readT(*out, num_bits);
-        }
-
-        inline bool bitReaderPeekBits(uint32_t num_bits, uint32_t* out) const
-        {
-            return m_bitReader->peek(*out, num_bits);
-        }
-
-        inline bool bitReaderPeekBool(bool* out) const
-        {
-            return m_bitReader->peek(*out, 1);
-        }
-
-        inline bool bitReaderReadMarker(bool value) const
-        {
-            bool readMarker, ret;
-            // read 1 bit marker
-            ret = m_bitReader->readT(readMarker);
-            return ret && readMarker == value;
-        }
-
-        inline bool bitReaderReadFlag(bool* flag) const
-        {
-            return m_bitReader->readT(*flag);
-        }
-
-        inline uint64_t bitReaderCurrentPosition() const
-        {
-            return m_bitReader->getPos();
-        }
-
-        inline bool bitReaderIsByteAligned() const
-        {
-            return !(m_bitReader->getPos() % 8);
-        }
-
-        BitReader* m_bitReader;
+        bool readQuantMatrix(bool& loadMatrix, uint8_t matrix[], BitReader&);
+        bool calculateMBColumn(BitReader&);
 
         SeqHeader m_sequenceHdr;
         SeqExtension m_sequenceExtension;
