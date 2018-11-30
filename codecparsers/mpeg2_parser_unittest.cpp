@@ -73,7 +73,6 @@ namespace MPEG2 {
         MEMBER_VARIABLE(GOPHeader, m_GOPHeader);
         MEMBER_VARIABLE(PictureHeader, m_pictureHeader);
         MEMBER_VARIABLE(PictureCodingExtension, m_pictureCodingExtension);
-        MEMBER_VARIABLE(Slice, m_slice);
 
 #undef MEMBER_VARIABLE
 
@@ -89,9 +88,6 @@ namespace MPEG2 {
 
         void checkParamsSeqExtension(const Parser& parser)
         {
-            EXPECT_EQ(
-                kSequence,
-                parser.m_sequenceExtension.extension_start_code_identifier);
             EXPECT_EQ(0x48u,
                       parser.m_sequenceExtension.profile_and_level_indication);
             EXPECT_EQ(1, parser.m_sequenceExtension.progressive_sequence);
@@ -117,86 +113,106 @@ namespace MPEG2 {
             EXPECT_EQ(1, parser.m_pictureCodingExtension.progressive_frame);
         }
 
-        void checkParamsSlice(const Parser& parser)
+        void checkParamsSlice(const Parser& parser, Slice& slice)
         {
-            EXPECT_EQ(14u, parser.m_slice.sliceHeaderSize);
-            EXPECT_EQ(0u, parser.m_slice.macroblockRow);
-            EXPECT_EQ(0u, parser.m_slice.macroblockColumn);
+            EXPECT_EQ(6u, slice.sliceHeaderSize);
+            EXPECT_EQ(0u, slice.macroblockRow);
+            EXPECT_EQ(0u, slice.macroblockColumn);
         }
     };
+
+    bool createDu(DecodeUnit& du, const uint8_t* data, size_t size, StartCodeType expected)
+    {
+        if (!du.parse(data, size))
+            return false;
+        return du.m_type == expected;
+    }
+
+    bool checkExtension(BitReader& br, ExtensionIdentifierType expected)
+    {
+        uint32_t id;
+        if (!br.read(id, 4))
+            return false;
+        return id == expected;
+    }
 
 #define MPEG2_PARSER_TEST(name) TEST_F(MPEG2ParserTest, name)
 
     MPEG2_PARSER_TEST(ParseSequenceHeader)
     {
         Parser parser;
-        StreamHeader streamParser;
 
-        streamParser.nalData = &SequenceHeader[0];
-        streamParser.nalSize = SequenceHeader.size();
+        DecodeUnit du;
+        EXPECT_TRUE(createDu(du, &SequenceHeader[0], SequenceHeader.size(), MPEG2_SEQUENCE_HEADER_CODE));
 
-        EXPECT_TRUE(parser.parseSequenceHeader(&streamParser));
+        SharedPtr<QuantMatrices> m;
+
+        EXPECT_TRUE(parser.parseSequenceHeader(du, m));
+        EXPECT_TRUE(m);
         checkParamsSeqHeader(parser);
     }
 
     MPEG2_PARSER_TEST(ParseSequenceExtension)
     {
+        DecodeUnit du;
+        EXPECT_TRUE(createDu(du, &SequenceExtension[0], SequenceExtension.size(), MPEG2_EXTENSION_START_CODE));
+
+        BitReader br(du.m_data, du.m_size);
+        EXPECT_TRUE(checkExtension(br, kSequence));
+
         Parser parser;
-        StreamHeader streamParser;
 
-        streamParser.nalData = &SequenceExtension[0];
-        streamParser.nalSize = SequenceExtension.size();
-
-        EXPECT_TRUE(parser.parseSequenceExtension(&streamParser));
+        EXPECT_TRUE(parser.parseSequenceExtension(br));
         checkParamsSeqExtension(parser);
     }
 
     MPEG2_PARSER_TEST(ParseGOPHeader)
     {
+
+        DecodeUnit du;
+        EXPECT_TRUE(createDu(du, &GroupOfPicturesHeader[0], GroupOfPicturesHeader.size(), MPEG2_GROUP_START_CODE));
+
         Parser parser;
-        StreamHeader streamParser;
 
-        streamParser.nalData = &GroupOfPicturesHeader[0];
-        streamParser.nalSize = GroupOfPicturesHeader.size();
-
-        EXPECT_TRUE(parser.parseGOPHeader(&streamParser));
+        EXPECT_TRUE(parser.parseGOPHeader(du));
         //all params will be zero for this unittest
     }
 
     MPEG2_PARSER_TEST(ParsePictureHeader)
     {
+        DecodeUnit du;
+        EXPECT_TRUE(createDu(du, &PictureHeaderArray[0], PictureHeaderArray.size(), MPEG2_PICTURE_START_CODE));
+
         Parser parser;
-        StreamHeader streamParser;
-
-        streamParser.nalData = &PictureHeaderArray[0];
-        streamParser.nalSize = PictureHeaderArray.size();
-
-        EXPECT_TRUE(parser.parsePictureHeader(&streamParser));
+        EXPECT_TRUE(parser.parsePictureHeader(du));
         checkParamsPictureHeader(parser);
     }
 
     MPEG2_PARSER_TEST(ParsePictureCodingExtension)
     {
+
+        DecodeUnit du;
+        EXPECT_TRUE(createDu(du, &PictureCodingExtensionArray[0], PictureCodingExtensionArray.size(), MPEG2_EXTENSION_START_CODE));
+
+        BitReader br(du.m_data, du.m_size);
+        EXPECT_TRUE(checkExtension(br, kPictureCoding));
+
         Parser parser;
-        StreamHeader streamParser;
 
-        streamParser.nalData = &PictureCodingExtensionArray[0];
-        streamParser.nalSize = PictureCodingExtensionArray.size();
-
-        EXPECT_TRUE(parser.parsePictureCodingExtension(&streamParser));
+        EXPECT_TRUE(parser.parsePictureCodingExtension(br));
         checkParamsPictureCodingExtension(parser);
     }
 
     MPEG2_PARSER_TEST(ParseSlice)
     {
+        DecodeUnit du;
+        EXPECT_TRUE(createDu(du, &SliceArray[0], SliceArray.size(), MPEG2_SLICE_START_CODE_MIN));
+
         Parser parser;
-        StreamHeader streamParser;
+        Slice slice;
 
-        streamParser.nalData = &SliceArray[0];
-        streamParser.nalSize = SliceArray.size();
-
-        EXPECT_TRUE(parser.parseSlice(&streamParser));
-        checkParamsSlice(parser);
+        EXPECT_TRUE(parser.parseSlice(slice, du));
+        checkParamsSlice(parser, slice);
     }
 } // namespace MPEG2 
 } // namespace YamiParser
