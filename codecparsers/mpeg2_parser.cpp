@@ -142,16 +142,29 @@ namespace MPEG2 {
 
     Slice::Slice() { memset(this, 0, sizeof(*this)); }
 
-    QuantMatrices::QuantMatrices() { memset(this, 0, sizeof(*this)); }
-
-    QuantMatrixExtension::QuantMatrixExtension()
+    QuantMatrices::QuantMatrices()
     {
-        memset(this, 0, sizeof(*this));
+        load_intra_quantiser_matrix = true;
+        memcpy(intra_quantiser_matrix, kDefaultIntraBlockMatrix, 64);
+
+        load_non_intra_quantiser_matrix = true;
+        memcpy(non_intra_quantiser_matrix, kDefaultNonIntraBlockMatrix, 64);
+
+        load_chroma_intra_quantiser_matrix = false;
+        load_chroma_non_intra_quantiser_matrix = false;
     }
 
     PictureCodingExtension::PictureCodingExtension()
     {
         memset(this, 0, sizeof(*this));
+    }
+
+    uint32_t PictureCodingExtension::getFCode()
+    {
+        return f_code[0][0] << 12
+            | f_code[0][1] << 8
+            | f_code[1][0] << 4
+            | f_code[1][1];
     }
 
     PictureHeader::PictureHeader() { memset(this, 0, sizeof(*this)); }
@@ -162,7 +175,6 @@ namespace MPEG2 {
 
     SeqHeader::SeqHeader() { memset(this, 0, sizeof(*this)); }
 
-    StreamHeader::StreamHeader() { memset(this, 0, sizeof(*this)); }
 
     Parser::Parser()
     {
@@ -170,34 +182,17 @@ namespace MPEG2 {
 
     Parser::~Parser() {}
 
-    bool Parser::nextStartCode(const StreamHeader* shdr, StartCodeType& start_code)
-    {
-        start_code
-            = static_cast<StartCodeType>(shdr->nalData[kStartCodePrefixSize]);
-        return true;
-    }
-
-    bool Parser::parseSlice(const StreamHeader* shdr)
+    bool Parser::parseSlice(Slice& slice, const DecodeUnit& du)
     {
         uint32_t verticalSize;
-        int32_t nalSize = shdr->nalSize;
-        const uint8_t* nalData = shdr->nalData;
-	bool marker;
 
-        if (shdr->nalSize < kStartCodeSize + 1) {
-            ERROR("Incomplete slice header");
-            return false;
-        }
+        bool marker;
 
-        m_slice = Slice();
+        slice.sliceData = du.m_data;
+        slice.sliceDataSize = du.m_size;
 
-        m_slice.sliceData = nalData;
-        m_slice.sliceDataSize = nalSize;
-
-        BitReader br(nalData, nalSize);
-        m_slice.verticalPosition = nalData[0];
-
-        SKIP_BYTE_OR_RETURN(); // skip start code
+        BitReader br(du.m_data, du.m_size);
+        slice.verticalPosition = du.m_type;
 
         // parse one slice
 
@@ -207,27 +202,27 @@ namespace MPEG2 {
         if (verticalSize > 2800) {
             // really big picture
             READ_BITS_OR_RETURN(
-                3, m_slice.slice_vertical_position_extension);
-            m_slice.macroblockRow
-                = (m_slice.slice_vertical_position_extension << 7)
-                  + m_slice.verticalPosition - 1;
+                3, slice.slice_vertical_position_extension);
+            slice.macroblockRow
+                = (slice.slice_vertical_position_extension << 7)
+                + slice.verticalPosition - 1;
         } else {
-            m_slice.macroblockRow = m_slice.verticalPosition - 1;
+            slice.macroblockRow = slice.verticalPosition - 1;
         }
 
-        READ_BITS_OR_RETURN(5, m_slice.quantiser_scale_code);
+        READ_BITS_OR_RETURN(5, slice.quantiser_scale_code);
         PEEK_BOOL_OR_RETURN(marker);
         if (marker) {
             // read more intra bits
-            READ_FLAG_OR_RETURN(m_slice.intra_slice_flag);
-            READ_FLAG_OR_RETURN(m_slice.intra_slice);
-            READ_BITS_OR_RETURN(7, m_slice.reserved_bits);
+            READ_FLAG_OR_RETURN(slice.intra_slice_flag);
+            READ_FLAG_OR_RETURN(slice.intra_slice);
+            READ_BITS_OR_RETURN(7, slice.reserved_bits);
 
             PEEK_BOOL_OR_RETURN(marker);
             while (marker) {
                 // extra_information_slice
-                READ_FLAG_OR_RETURN(m_slice.extra_bit_slice);
-                if (!m_slice.extra_bit_slice) {
+                READ_FLAG_OR_RETURN(slice.extra_bit_slice);
+                if (!slice.extra_bit_slice) {
                     ERROR("Bad extra bit slice");
                     return false;
                 }
@@ -236,9 +231,9 @@ namespace MPEG2 {
             }
         }
 
-        READ_FLAG_OR_RETURN(m_slice.extra_bit_slice);
+        READ_FLAG_OR_RETURN(slice.extra_bit_slice);
 
-        if (m_slice.extra_bit_slice) {
+        if (slice.extra_bit_slice) {
             ERROR("Bad extra bit slice");
             return false;
         }
@@ -247,40 +242,39 @@ namespace MPEG2 {
         // as long as the first macroblock_icrement is known
 
         // sliceHeaderSize is given in bits
-        m_slice.sliceHeaderSize = br.getPos();
+        slice.sliceHeaderSize = br.getPos();
 
-        if (!calculateMBColumn(br))
+        if (!calculateMBColumn(slice, br))
             return false;
 
-
         DEBUG("slice header size                  : %" PRIu64 "",
-              m_slice.sliceHeaderSize);
+            slice.sliceHeaderSize);
         DEBUG("slice number                       : %x",
-              m_slice.verticalPosition);
+            slice.verticalPosition);
         DEBUG("slice_vertical_position_extension  : %x",
-              m_slice.slice_vertical_position_extension);
+            slice.slice_vertical_position_extension);
         DEBUG("quantiser_scale_code               : %x",
-              m_slice.quantiser_scale_code);
+            slice.quantiser_scale_code);
         DEBUG("intra_slice_flag                   : %x",
-              m_slice.intra_slice_flag);
+            slice.intra_slice_flag);
         DEBUG("intra_slice                        : %x",
-              m_slice.intra_slice);
+            slice.intra_slice);
         DEBUG("extra_bit_slice                    : %x",
-              m_slice.extra_bit_slice);
+            slice.extra_bit_slice);
         DEBUG("slice size                         : %" PRIu64 "",
-              m_slice.sliceDataSize);
+            slice.sliceDataSize);
         DEBUG("size left on buffer                : %d", nalSize);
         DEBUG("slice data                         : %p",
-              m_slice.sliceData);
+            slice.sliceData);
         DEBUG("macroblockRow                      : %d",
-              m_slice.macroblockRow);
+            slice.macroblockRow);
         DEBUG("macroblockColumn                   : %d",
-              m_slice.macroblockColumn);
+            slice.macroblockColumn);
 
         return true;
     }
 
-    bool Parser::calculateMBColumn(BitReader& br)
+    bool Parser::calculateMBColumn(Slice& slice, BitReader& br)
     {
         uint32_t bitsToParse;
         uint32_t mbVLC, mbINC = 0, totalMBINC = 0;
@@ -300,24 +294,15 @@ namespace MPEG2 {
             SKIP_BITS_OR_RETURN(bitsToParse);
         } while (mbINC == 255);
 
-        m_slice.macroblockColumn = totalMBINC - 1;
+        slice.macroblockColumn = totalMBINC - 1;
         return true;
     }
 
-    bool Parser::parsePictureHeader(const StreamHeader* shdr)
+    bool Parser::parsePictureHeader(const DecodeUnit& du)
     {
         PictureCodingType picture_type;
-	const uint8_t *nalData= shdr->nalData;
-	int32_t nalSize = shdr->nalSize;
 
-        // minium length required on picture header buffer
-        if (nalSize < (kStartCodeSize + 3)) {
-            ERROR("Incomplete Picture Header");
-            return false;
-        }
-
-        BitReader br(nalData, nalSize);
-        SKIP_BYTE_OR_RETURN();
+        BitReader br(du.m_data, du.m_size);
 
         READ_BITS_OR_RETURN(10, m_pictureHeader.temporal_reference);
         READ_BITS_OR_RETURN(3, m_pictureHeader.picture_coding_type);
@@ -363,19 +348,10 @@ namespace MPEG2 {
         return true;
     }
 
-    bool Parser::parseGOPHeader(const StreamHeader* shdr)
+    bool Parser::parseGOPHeader(const DecodeUnit& du)
     {
-	const uint8_t *nalData= shdr->nalData;
-	int32_t nalSize = shdr->nalSize;
 
-        if (nalSize < (kStartCodeSize + 3)) {
-            ERROR("Incomplete GOP Header");
-            return false;
-        }
-
-        BitReader br(nalData, nalSize);
-
-        SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
+        BitReader br(du.m_data, du.m_size);
 
         READ_FLAG_OR_RETURN(m_GOPHeader.drop_frame_flag);
         READ_BITS_OR_RETURN(5, m_GOPHeader.time_code_hours);
@@ -402,19 +378,6 @@ namespace MPEG2 {
         return true;
     }
 
-    bool Parser::readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
-        const uint8_t defaultMatrix[], BitReader& br)
-    {
-        if (!readQuantMatrix(loadMatrix, matrix, br))
-            return false;
-
-        if (!loadMatrix) {
-            memcpy(matrix, defaultMatrix, 64);
-            loadMatrix = true;
-        }
-        return true;
-    }
-
     bool Parser::readQuantMatrix(bool& loadMatrix, uint8_t matrix[], BitReader& br)
     {
 
@@ -431,90 +394,35 @@ namespace MPEG2 {
         return true;
     }
 
-    bool Parser::parseQuantMatrixExtension(const StreamHeader* shdr)
+    bool Parser::parseQuantMatrixExtension(BitReader& br, SharedPtr<QuantMatrices>& matrices)
     {
-        ExtensionIdentifierType extID;
-        const uint8_t* nalData = shdr->nalData;
-        int32_t nalSize = shdr->nalSize;
-        QuantMatrices *quantMatrices = &m_quantMatrixExtension.quantizationMatrices;
+        bool updated;
 
-        if (nalSize < kStartCodeSize) {
-            ERROR("Incomplete Quant Extension Header");
-            return false;
-        }
+#define READ_MATRIX(m)                                      \
+    do {                                                    \
+        bool load;                                          \
+        if (!readQuantMatrix(load, m_quantMatrices->m, br)) \
+            return false;                                   \
+        if (load) {                                         \
+            m_quantMatrices->load_##m = true;               \
+            updated = true;                                 \
+        }                                                   \
+    } while (0)
 
-        BitReader br(nalData, nalSize);
-        SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
+        READ_MATRIX(intra_quantiser_matrix);
+        READ_MATRIX(non_intra_quantiser_matrix);
+        READ_MATRIX(chroma_intra_quantiser_matrix);
+        READ_MATRIX(chroma_non_intra_quantiser_matrix);
 
-        m_quantMatrixExtension = QuantMatrixExtension();
-
-        // extension_start_code_identifier
-        READ_BITS_OR_RETURN(
-            4, m_quantMatrixExtension.extension_start_code_identifier);
-
-        extID = static_cast<ExtensionIdentifierType>(
-            m_quantMatrixExtension.extension_start_code_identifier);
-
-        if (extID != kQuantizationMatrix) {
-            ERROR("Wrong extension id type");
-            return false;
-        }
-
-        if (!readQuantMatrix(quantMatrices->load_intra_quantiser_matrix,
-                quantMatrices->intra_quantiser_matrix, br))
-            return false;
-
-        if (!readQuantMatrix(quantMatrices->load_non_intra_quantiser_matrix,
-                quantMatrices->non_intra_quantiser_matrix, br))
-            return false;
-
-        if (!readQuantMatrix(quantMatrices->load_chroma_intra_quantiser_matrix,
-                quantMatrices->chroma_intra_quantiser_matrix, br))
-            return false;
-
-        if (!readQuantMatrix(
-                quantMatrices->load_chroma_non_intra_quantiser_matrix,
-                quantMatrices->chroma_non_intra_quantiser_matrix, br))
-            return false;
-
-        DEBUG("load_intra_quantiser_matrix             : %x",
-              quantMatrices->load_intra_quantiser_matrix);
-        DEBUG("load_non_intra_quantiser_matrix         : %x",
-              quantMatrices->load_non_intra_quantiser_matrix);
-        DEBUG("load_chroma_intra_quantiser_matrix      : %x",
-              quantMatrices->load_chroma_intra_quantiser_matrix);
-        DEBUG("load_chroma_non_intra_quantiser_matrix  : %x",
-              quantMatrices->load_chroma_non_intra_quantiser_matrix);
+        //got any matrix updated?
+        if (updated)
+            matrices = m_quantMatrices;
 
         return true;
     }
 
-    bool Parser::parsePictureCodingExtension(const StreamHeader* shdr)
+    bool Parser::parsePictureCodingExtension(BitReader& br)
     {
-        ExtensionIdentifierType extID;
-	const uint8_t *nalData= shdr->nalData;
-	int32_t nalSize = shdr->nalSize;
-
-        if (nalSize < (kStartCodeSize + 4)) {
-            ERROR("Incomplete PictureCodingExtension Header");
-            return false;
-        }
-
-        BitReader br(nalData, nalSize);
-        SKIP_BYTE_OR_RETURN(); // skip start_sequence_code
-
-        // extension_start_code_identifier
-        READ_BITS_OR_RETURN(
-            4, m_pictureCodingExtension.extension_start_code_identifier);
-
-        extID = static_cast<ExtensionIdentifierType>(
-            m_pictureCodingExtension.extension_start_code_identifier);
-
-        if (extID != kPictureCoding) {
-            ERROR("Wrong extension id type");
-            return false;
-        }
-
         READ_BITS_OR_RETURN(4, m_pictureCodingExtension.f_code[0][0]);
         READ_BITS_OR_RETURN(4, m_pictureCodingExtension.f_code[0][1]);
         READ_BITS_OR_RETURN(4, m_pictureCodingExtension.f_code[1][0]);
@@ -577,30 +485,8 @@ namespace MPEG2 {
         return true;
     }
 
-    bool Parser::parseSequenceExtension(const StreamHeader* shdr)
+    bool Parser::parseSequenceExtension(BitReader& br)
     {
-        ExtensionIdentifierType extID;
-	const uint8_t *nalData= shdr->nalData;
-	int32_t nalSize = shdr->nalSize;
-
-        if (nalSize < (kStartCodeSize + 5)) {
-            ERROR("Incomplete Sequence Extension");
-            return false;
-        }
-
-        BitReader br(nalData, nalSize);
-        SKIP_BYTE_OR_RETURN();
-
-        READ_BITS_OR_RETURN(
-            4, m_sequenceExtension.extension_start_code_identifier);
-
-        extID = static_cast<ExtensionIdentifierType>(
-            m_sequenceExtension.extension_start_code_identifier);
-
-        if (extID != kSequence) {
-            ERROR("Wrong extension id type %d", extID);
-            return false;
-        }
 
         READ_BITS_OR_RETURN(8,
             m_sequenceExtension.profile_and_level_indication);
@@ -643,22 +529,12 @@ namespace MPEG2 {
         return true;
     }
 
-    bool Parser::parseSequenceHeader(const StreamHeader* shdr)
+    bool Parser::parseSequenceHeader(const DecodeUnit& du, SharedPtr<QuantMatrices>& matrices)
     {
-        const uint8_t* nalData = shdr->nalData;
-        int32_t nalSize = shdr->nalSize;
-        QuantMatrices* quantMatrices = &m_sequenceHdr.quantizationMatrices;
-
-        if (nalSize < (kStartCodeSize + 7)) {
-            ERROR("Incomplete Sequence Header");
-            return false;
-        }
 
         m_sequenceHdr = SeqHeader();
 
-        BitReader br(nalData, nalSize);
-
-        SKIP_BYTE_OR_RETURN();
+        BitReader br(du.m_data, du.m_size);
 
         READ_BITS_OR_RETURN(12, m_sequenceHdr.horizontal_size_value);
         READ_BITS_OR_RETURN(12, m_sequenceHdr.vertical_size_value);
@@ -671,15 +547,17 @@ namespace MPEG2 {
         READ_BITS_OR_RETURN(10, m_sequenceHdr.vbv_buffer_size_value);
         READ_FLAG_OR_RETURN(m_sequenceHdr.constrained_params_flag);
 
-        if (!readQuantMatrixOrDefault(quantMatrices->load_intra_quantiser_matrix,
-                quantMatrices->intra_quantiser_matrix,
-                &kDefaultIntraBlockMatrix[0], br))
+        m_quantMatrices.reset(new QuantMatrices);
+
+        bool load;
+        if (!readQuantMatrix(load,
+                m_quantMatrices->intra_quantiser_matrix, br))
             return false;
 
-        if (!readQuantMatrixOrDefault(quantMatrices->load_non_intra_quantiser_matrix,
-                quantMatrices->non_intra_quantiser_matrix,
-                &kDefaultNonIntraBlockMatrix[0], br))
+        if (!readQuantMatrix(load,
+                m_quantMatrices->non_intra_quantiser_matrix, br))
             return false;
+        matrices = m_quantMatrices;
 
         DEBUG("horizontal_size_value            : %x",
               m_sequenceHdr.horizontal_size_value);
@@ -701,6 +579,42 @@ namespace MPEG2 {
               quantMatrices->load_non_intra_quantiser_matrix);
 
         return true;
+    }
+
+    uint32_t Parser::getWidth()
+    {
+        return (m_sequenceExtension.horizontal_size_extension & 0x3)
+            | (m_sequenceHdr.horizontal_size_value & 0xFFF);
+    }
+    uint32_t Parser::getHeight()
+    {
+        return (m_sequenceExtension.vertical_size_extension & 0x3)
+            | (m_sequenceHdr.vertical_size_value & 0xFFF);
+    }
+
+    ProfileType Parser::getProfile()
+    {
+        return static_cast<ProfileType>((m_sequenceExtension.profile_and_level_indication & 0x70) >> 4);
+    }
+
+    LevelType Parser::getLevel()
+    {
+        return static_cast<LevelType>(m_sequenceExtension.profile_and_level_indication & 0xF);
+    }
+
+    bool DecodeUnit::parse(const uint8_t* data, int32_t size)
+    {
+        if (!data || size < 1)
+            return false;
+        m_type = (StartCodeType)*data;
+        m_data = data + 1;
+        m_size = size - 1;
+        return true;
+    }
+
+    bool DecodeUnit::isSlice()
+    {
+        return m_type >= MPEG2_SLICE_START_CODE_MIN && m_type <= MPEG2_SLICE_START_CODE_MAX;
     }
 
 } // namespace MPEG2

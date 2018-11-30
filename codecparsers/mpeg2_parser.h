@@ -48,6 +48,12 @@ namespace MPEG2 {
         kBFrame,
     };
 
+    enum PictureStructure {
+        kTopField = 1,
+        kBottomField,
+        kFramePicture,
+    };
+
     enum StartCodeSize {
         kStartCodePrefixSize = 0,
         kStartCodeSize,
@@ -125,15 +131,6 @@ namespace MPEG2 {
         MPEG2_LEVEL_LOW = 10,
     };
 
-    struct StreamHeader {
-        StreamHeader();
-
-        const uint8_t* data;
-        off_t streamSize;
-        const uint8_t* nalData;
-        int32_t nalSize;
-        uint64_t time_stamp;
-    };
 
     struct QuantMatrices {
         QuantMatrices();
@@ -168,7 +165,6 @@ namespace MPEG2 {
     struct SeqExtension {
         SeqExtension();
 
-        uint32_t extension_start_code_identifier;
         uint32_t profile_and_level_indication;
         bool progressive_sequence;
         uint32_t chroma_format;
@@ -180,6 +176,9 @@ namespace MPEG2 {
         bool low_delay;
         uint32_t frame_rate_extension_n;
         uint32_t frame_rate_extension_d;
+        //calclated value;
+        uint32_t m_width;
+        uint32_t m_height;
     };
 
     // ISO/IEC spec section 6.2.2.6 and 6.3.9
@@ -213,8 +212,8 @@ namespace MPEG2 {
     // ISO/IEC spec section 6.2.3.1
     struct PictureCodingExtension {
         PictureCodingExtension();
+        uint32_t getFCode();
 
-        uint32_t extension_start_code_identifier;
         uint32_t f_code[2][2]; // forward_horizontal
         // forward_vertical
         // backward_horizontal
@@ -238,14 +237,6 @@ namespace MPEG2 {
         uint32_t sub_carrier_phase;
     };
 
-    // ISO/IEC spec section 6.2.3.2
-    struct QuantMatrixExtension {
-        QuantMatrixExtension();
-
-        uint32_t extension_start_code_identifier;
-        QuantMatrices quantizationMatrices;
-    };
-
     struct Slice {
         Slice();
 
@@ -265,6 +256,21 @@ namespace MPEG2 {
         uint32_t reserved_bits;
         bool extra_bit_slice;
         uint32_t extra_information_slice;
+
+        bool isFirstSlice()
+        {
+            return !macroblockRow && !macroblockColumn;
+        }
+    };
+
+    class DecodeUnit {
+    public:
+        bool parse(const uint8_t* data, int32_t size);
+        bool isSlice();
+
+        const uint8_t* m_data;
+        int32_t m_size;
+        StartCodeType m_type;
     };
 
     // A parser for raw Mpeg2 streams as specified in ISO/IEC 13818-2.
@@ -280,7 +286,7 @@ namespace MPEG2 {
         // parseSequenceHeader will parse a SequenceHeader according to the spec
         // storing the information in the m_sequenceHdr structure and updating
         // the position to the last bit parsed. information will be returned
-        bool parseSequenceHeader(const StreamHeader* shdr);
+        bool parseSequenceHeader(const DecodeUnit&, SharedPtr<QuantMatrices>&);
 
         // parseSequenceExtension will parse a SequenceExtension according to
         // the
@@ -288,77 +294,56 @@ namespace MPEG2 {
         // storing the information in the sequence_extension structure and
         // updating
         // the position to the last bit parsed.
-        bool parseSequenceExtension(const StreamHeader* shdr);
+        bool parseSequenceExtension(BitReader&);
 
         // parseGOPHeader will parse a GOPHeader according to the spec storing
         // the information in the gop_header_ structure and updating the
         // position
         // to the last bit parsed.
-        bool parseGOPHeader(const StreamHeader* shdr);
+        bool parseGOPHeader(const DecodeUnit&);
 
         // parsePictureHeader will parse a PictureHeader according to the spec
         // storing
         // the information in the m_pictureHeader_ structure and updating the
         // position
         // to the last bit parsed.
-        bool parsePictureHeader(const StreamHeader* shdr);
+        bool parsePictureHeader(const DecodeUnit&);
 
         // parsePictureCodingExtension will parse a PictureHeader according to
         // the
         // spec storing the information in the picture_coding_extension_
         // structure
         // and updating the position to the last bit parsed.
-        bool parsePictureCodingExtension(const StreamHeader* shdr);
+        bool parsePictureCodingExtension(BitReader&);
 
         // parseQuantMatrixExtension will parse a Quant Matrix Extension ID
 	// within a Extension Start Code and keep it on the quantization
 	// Extension structure for later use
-        bool parseQuantMatrixExtension(const StreamHeader* shdr);
+        bool parseQuantMatrixExtension(BitReader&, SharedPtr<QuantMatrices>&);
 
         // parseSlice will parse a Slice according to the spec storing the
         // information
         // in the Slice structure and updating the position to the last
         // bit parsed.
-        bool parseSlice(const StreamHeader* shdr);
+        bool parseSlice(Slice&, const DecodeUnit&);
 
-        // nextStartCodeNew will update with next start code and return true if one
-        // is found,
-        bool nextStartCode(const StreamHeader* shdr, StartCodeType& start_code);
-
-
-        const SeqHeader* getSequenceHeader() { return &m_sequenceHdr; }
-        const SeqExtension* getSequenceExtension()
-        {
-            return &m_sequenceExtension;
-        }
-        const GOPHeader* getGOPHeader() { return &m_GOPHeader; }
-        const PictureHeader* getPictureHeader() { return &m_pictureHeader; }
-        const PictureCodingExtension* getPictureCodingExtension()
-        {
-            return &m_pictureCodingExtension;
-        }
-        const QuantMatrixExtension* getQuantMatrixExtension()
-        {
-            return &m_quantMatrixExtension;
-        }
-        const Slice* getMPEG2Slice() { return &m_slice; }
-
-    private:
-        friend class MPEG2ParserTest;
-
-        bool readQuantMatrixOrDefault(bool& loadMatrix, uint8_t matrix[],
-            const uint8_t defaultMatrix[], BitReader&);
-
-        bool readQuantMatrix(bool& loadMatrix, uint8_t matrix[], BitReader&);
-        bool calculateMBColumn(BitReader&);
+        uint32_t getWidth();
+        uint32_t getHeight();
+        ProfileType getProfile();
+        LevelType getLevel();
 
         SeqHeader m_sequenceHdr;
         SeqExtension m_sequenceExtension;
         GOPHeader m_GOPHeader;
         PictureHeader m_pictureHeader;
         PictureCodingExtension m_pictureCodingExtension;
-        QuantMatrixExtension m_quantMatrixExtension;
-        Slice m_slice;
+
+    private:
+        friend class MPEG2ParserTest;
+        SharedPtr<QuantMatrices> m_quantMatrices;
+
+        bool readQuantMatrix(bool& loadMatrix, uint8_t matrix[], BitReader&);
+        bool calculateMBColumn(Slice&, BitReader&);
 
         DISALLOW_COPY_AND_ASSIGN(Parser);
     };

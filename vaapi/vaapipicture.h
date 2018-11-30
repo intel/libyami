@@ -28,8 +28,7 @@
 
 namespace YamiMediaCodec{
 
-typedef enum
-{
+typedef enum {
     VAAPI_PICTURE_INVALID = 0x0000,
     VAAPI_PICTURE_TOP_FIELD = 0x0001,
     VAAPI_PICTURE_BOTTOM_FIELD = 0x0002,
@@ -38,6 +37,9 @@ typedef enum
     VAAPI_PICTURE_B = 0x0200,
     VAAPI_PICTURE_P = 0x0400
 } VaapiPictureType;
+
+#define PICTURE_STRUCTURE_MASK 0xF
+#define PICTURE_TYPE_MASK 0xF00
 
 class VaapiPicture
 {
