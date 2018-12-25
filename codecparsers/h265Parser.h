@@ -555,9 +555,8 @@ namespace H265 {
         uint16_t slice_segment_header_extension_length; //[0, 256]
 
         //Size of the slice_header() in bits
+        //this removed emulation prevent byte
         uint32_t headerSize;
-        //Number of emulation prevention bytes
-        uint32_t emulationPreventionBytes;
 
         //all none pod type should start here
         SharedPtr<PPS> pps;

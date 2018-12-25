@@ -190,7 +190,7 @@ SliceHeader::~SliceHeader()
 
 uint32_t SliceHeader::getSliceDataByteOffset() const
 {
-    return NalUnit::NALU_HEAD_SIZE + (headerSize + 7) / 8 - emulationPreventionBytes;
+    return NalUnit::NALU_HEAD_SIZE + (headerSize + 7) / 8;
 }
 
 bool SliceHeader::isBSlice() const
@@ -1537,7 +1537,6 @@ bool Parser::parseSlice(const NalUnit* nalu, SliceHeader* slice)
         SKIP(1);
 
     slice->headerSize = br.getPos();
-    slice->emulationPreventionBytes = br.getEpbCnt();
 
     return true;
 }

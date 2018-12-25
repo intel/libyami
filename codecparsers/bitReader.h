@@ -53,11 +53,11 @@ public:
 
     bool skip(uint32_t nbits);
 
-    /* Get the total bits that had been read from bitstream, and the return
-     * value also is the position of the next bit to be read. */
+    /* Get the total bits that had been read from bitstream,
+     * For the subclass NalReader, this pos already removed the Emulation Prevent Byte*/
     uint64_t getPos() const
     {
-        return (static_cast<uint64_t>(m_loadBytes) << 3) - m_bitsInCache;
+        return m_pos;
     }
 
     uint64_t getRemainingBitsCount() const
@@ -67,7 +67,7 @@ public:
 
     bool end() const
     {
-        return (getPos() >= (static_cast<uint64_t>(m_size) << 3));
+        return !m_bitsInCache && (m_size == m_loadBytes);
     }
 
 protected:
@@ -78,6 +78,7 @@ protected:
     unsigned long int m_cache; /*the buffer which load less than or equal to 8 bytes*/
     uint32_t m_loadBytes; /*the total bytes of data read from source data*/
     uint32_t m_bitsInCache; /*the remaining bits in cache*/
+    uint64_t m_pos; /*current pos, for NalReader, it already removed emulation prevent byte*/
 private:
     inline uint32_t extractBitsFromCache(uint32_t nbits);
     inline void reload();

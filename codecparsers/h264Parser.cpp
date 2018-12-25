@@ -975,7 +975,6 @@ bool SliceHeader::parseHeader(Parser* nalparser, NalUnit* nalu)
     }
 
     m_headerSize = br.getPos();
-    m_emulationPreventionBytes = br.getEpbCnt();
 
     return true;
 }

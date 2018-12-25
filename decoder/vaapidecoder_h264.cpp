@@ -1484,8 +1484,7 @@ bool VaapiDecoderH264::fillSlice(const PicturePtr& picture,
 
     sliceParam->slice_data_bit_offset
         = slice->m_headerSize
-          + ((nalu->m_nalUnitHeaderBytes - slice->m_emulationPreventionBytes)
-             << 3);
+        + (nalu->m_nalUnitHeaderBytes << 3);
     sliceParam->first_mb_in_slice = slice->first_mb_in_slice;
     sliceParam->slice_type = slice->slice_type % 5;
     sliceParam->direct_spatial_mv_pred_flag
