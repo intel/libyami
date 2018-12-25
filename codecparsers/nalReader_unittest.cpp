@@ -101,10 +101,10 @@ NALREADER_TEST(GetPosForEPB)
 
     r.skip(8);
     //we are reach the epb
-    EXPECT_EQ(24u, r.getPos());
+    EXPECT_EQ(16u, r.getPos());
 
     r.skip(8);
-    EXPECT_EQ(32u, r.getPos());
+    EXPECT_EQ(24u, r.getPos());
 
     r.skip(32);
 
