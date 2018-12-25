@@ -41,6 +41,7 @@ BitReader::BitReader(const uint8_t* pdata, uint32_t size)
     , m_cache(0)
     , m_loadBytes(0)
     , m_bitsInCache(0)
+    , m_pos(0)
 {
     if (size)
         assert(pdata);
@@ -80,6 +81,7 @@ inline uint32_t BitReader::extractBitsFromCache(uint32_t nbits)
     uint32_t tmp = 0;
     tmp = m_cache << ((CACHEBYTES << 3) - m_bitsInCache) >> ((CACHEBYTES << 3) - nbits);
     m_bitsInCache -= nbits;
+    m_pos += nbits;
     return tmp;
 }
 

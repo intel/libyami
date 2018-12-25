@@ -39,15 +39,9 @@ public:
 
     bool moreRbspData() const;
     void rbspTrailingBits();
-    uint32_t getEpbCnt() { return m_epb; }
-
-    uint64_t getPos() const;
-
 private:
     void loadDataToCache(uint32_t nbytes);
     inline bool isEmulationBytes(const uint8_t *p) const;
-
-    uint32_t m_epb; /*the number of emulation prevention bytes*/
 };
 
 bool NalReader::readUe(uint8_t& v)

@@ -418,8 +418,6 @@ public:
     //the size of the slice header in bits
     uint32_t m_headerSize;
 
-    //the number of emulation prevention bytes
-    uint32_t m_emulationPreventionBytes;
     SharedPtr<PPS> m_pps;
     //Because these variables is non pod type, it can not use memset and use offsetof to weed out it
 };
