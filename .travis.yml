@@ -40,7 +40,7 @@ addons:
       name: "intel/libyami"
       description: "Build submitted via Travis CI"
     notification_email: <email address>
-    build_command_prepend: "./autogen.sh; ./configure --prefix=/opt/yami --enable-h264enc --enable-jpegenc --enable-vp8enc --enable-vp9enc --enable-h265enc --enable-mpeg2dec --enable-vp8dec --enable-vp9dec --enable-jpegdec --enable-h264dec --enable-h265dec --enable-vc1dec --enable-v4l2"
+    build_command_prepend: "./autogen.sh; ./configure $COMPILE_OPTS"
     build_command:   "make -j8"
     branch_pattern: coverity_scan
 
@@ -50,9 +50,10 @@ script:
         echo "Don't build on coverty_scan branch.";
         exit 0;
     fi
-  - ./autogen.sh --prefix=/opt/yami --enable-h264enc --enable-jpegenc --enable-vp8enc --enable-vp9enc --enable-h265enc --enable-mpeg2dec --enable-vp8dec --enable-vp9dec --enable-jpegdec --enable-h264dec --enable-h265dec --enable-vc1dec --enable-v4l2
-  - make -j8 ; sudo make install
-  - make check
+  #make sure we did not break debug build
+  - ./autogen.sh --enable-debug $COMPILE_OPTS && make -j8
+  - ./autogen.sh $COMPILE_OPTS && make -j8
+  - sudo make install
 
 after_success:
         - coveralls --exclude lib --exclude tests --gcov-options '\-lp'
