@@ -490,9 +490,6 @@ YamiStatus VaapiDecoderMPEG2::decode(VideoDecodeBuffer* buffer)
 
     m_currentPTS = buffer->timeStamp;
 
-    DEBUG("decode size %ld timeStamp %" PRIu64 "", m_stream->streamSize,
-          m_stream->time_stamp);
-
     YamiStatus status;
 
     NalReader nalReader(buffer->data, buffer->size);

@@ -263,7 +263,6 @@ namespace MPEG2 {
             slice.extra_bit_slice);
         DEBUG("slice size                         : %" PRIu64 "",
             slice.sliceDataSize);
-        DEBUG("size left on buffer                : %d", nalSize);
         DEBUG("slice data                         : %p",
             slice.sliceData);
         DEBUG("macroblockRow                      : %d",
@@ -503,8 +502,6 @@ namespace MPEG2 {
         READ_BITS_OR_RETURN(2, m_sequenceExtension.frame_rate_extension_n);
         READ_BITS_OR_RETURN(5, m_sequenceExtension.frame_rate_extension_d);
 
-        DEBUG("extension_start_code_identifier  : %x",
-              m_sequenceExtension.extension_start_code_identifier);
         DEBUG("profile_and_level_indication     : %x",
               m_sequenceExtension.profile_and_level_indication);
         DEBUG("progressive_sequence             : %x",
@@ -573,10 +570,6 @@ namespace MPEG2 {
               m_sequenceHdr.vbv_buffer_size_value);
         DEBUG("constrained_params_flag          : %x",
               m_sequenceHdr.constrained_params_flag);
-        DEBUG("load_intra_quantiser_matrix      : %x",
-              quantMatrices->load_intra_quantiser_matrix);
-        DEBUG("load_non_intra_quantiser_matrix  : %x",
-              quantMatrices->load_non_intra_quantiser_matrix);
 
         return true;
     }
