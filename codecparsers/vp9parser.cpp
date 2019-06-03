@@ -44,6 +44,10 @@ typedef struct _ReferenceSize {
 } ReferenceSize;
 
 typedef struct _Vp9ParserPrivate {
+    BOOL subsampling_x;
+    BOOL subsampling_y;
+    VP9_COLOR_SPACE color_space;
+
     int8_t y_dc_delta_q;
     int8_t uv_dc_delta_q;
     int8_t uv_ac_delta_q;
@@ -63,13 +67,13 @@ typedef struct _Vp9ParserPrivate {
 
 void init_dequantizer(Vp9Parser* parser);
 
-static void init_vp9_parser(Vp9Parser* parser, VP9_BIT_DEPTH bit_depth)
+static void init_vp9_parser(Vp9Parser* parser, Vp9FrameHdr* const frame_hdr)
 {
     Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
     memset(parser, 0, sizeof(Vp9Parser));
     memset(priv, 0, sizeof(Vp9ParserPrivate));
     parser->priv = priv;
-    parser->bit_depth = bit_depth;
+    parser->bit_depth = frame_hdr->bit_depth;
     init_dequantizer(parser);
 }
 
@@ -84,7 +88,6 @@ Vp9Parser* vp9_parser_new()
         return NULL;
     }
     parser->priv = priv;
-    init_vp9_parser(parser, VP9_BITS_8);
     return parser;
 }
 
@@ -523,14 +526,21 @@ static void setup_past_independence(Vp9Parser* parser, Vp9FrameHdr* const frame_
     memset(frame_hdr->ref_frame_sign_bias, 0, sizeof(frame_hdr->ref_frame_sign_bias));
 }
 
+static void color_config_update(Vp9Parser* parser, Vp9FrameHdr* const frame_hdr)
+{
+    Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
+
+    priv->color_space = frame_hdr->color_space;
+    priv->subsampling_x = frame_hdr->subsampling_x;
+    priv->subsampling_y = frame_hdr->subsampling_y;
+}
+
 static Vp9ParseResult vp9_parser_update(Vp9Parser* parser, Vp9FrameHdr* const frame_hdr)
 {
-    if (frame_hdr->frame_type == VP9_KEY_FRAME) {
-        init_vp9_parser(parser, frame_hdr->bit_depth);
-    }
     if (key_or_intra_only(frame_hdr) || frame_hdr->error_resilient_mode) {
         setup_past_independence(parser, frame_hdr);
     }
+    color_config_update(parser, frame_hdr);
     loop_filter_update(parser, &frame_hdr->loopfilter);
     quantization_update(parser, frame_hdr);
     segmentation_update(parser, frame_hdr);
@@ -579,6 +589,7 @@ Vp9ParseResult
 vp9_parse_frame_header(Vp9Parser* parser, Vp9FrameHdr* frame_hdr, const uint8_t* data, uint32_t size)
 {
 #define FRAME_CONTEXTS_BITS 2
+    Vp9ParserPrivate* priv = (Vp9ParserPrivate*)parser->priv;
     BitReader bit_reader(data, size);
     BitReader* br = &bit_reader;
     memset(frame_hdr, 0, sizeof(*frame_hdr));
@@ -601,6 +612,7 @@ vp9_parse_frame_header(Vp9Parser* parser, Vp9FrameHdr* frame_hdr, const uint8_t*
             goto error;
         if (vp9_color_config(parser, frame_hdr, br) != VP9_PARSER_OK)
             goto error;
+        init_vp9_parser(parser, frame_hdr);
         read_frame_size(br, &frame_hdr->width, &frame_hdr->height);
         read_display_frame_size(frame_hdr, br);
     }
@@ -619,6 +631,10 @@ vp9_parse_frame_header(Vp9Parser* parser, Vp9FrameHdr* frame_hdr, const uint8_t*
                 frame_hdr->subsampling_y = frame_hdr->subsampling_x = 1;
                 frame_hdr->bit_depth = VP9_BITS_8;
             }
+            if (frame_hdr->bit_depth != parser->bit_depth) {
+                parser->bit_depth = frame_hdr->bit_depth;
+                init_dequantizer(parser);
+            }
 
             frame_hdr->refresh_frame_flags = vp9_read_bits(br, VP9_REF_FRAMES);
             read_frame_size(br, &frame_hdr->width, &frame_hdr->height);
@@ -626,6 +642,10 @@ vp9_parse_frame_header(Vp9Parser* parser, Vp9FrameHdr* frame_hdr, const uint8_t*
         }
         else {
             int i;
+            //copy color config
+            frame_hdr->color_space = priv->color_space;
+            frame_hdr->subsampling_x = priv->subsampling_x;
+            frame_hdr->subsampling_y = priv->subsampling_y;
             frame_hdr->refresh_frame_flags = vp9_read_bits(br, VP9_REF_FRAMES);
             for (i = 0; i < VP9_REFS_PER_FRAME; i++) {
                 frame_hdr->ref_frame_indices[i] = vp9_read_bits(br, VP9_REF_FRAMES_LOG2);
