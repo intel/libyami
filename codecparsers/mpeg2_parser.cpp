@@ -33,6 +33,7 @@
 #include "common/log.h"
 #include "mpeg2_parser.h"
 #include <inttypes.h>
+#include <cstddef>
 
 namespace YamiParser {
 namespace MPEG2 {
@@ -173,7 +174,7 @@ namespace MPEG2 {
 
     SeqExtension::SeqExtension() { memset(this, 0, sizeof(*this)); }
 
-    SeqHeader::SeqHeader() { memset(this, 0, sizeof(*this)); }
+    SeqHeader::SeqHeader() { memset((void*)this, 0, offsetof(SeqHeader, quantizationMatrices)); }
 
 
     Parser::Parser()

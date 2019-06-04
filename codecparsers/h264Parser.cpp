@@ -137,7 +137,7 @@ static bool scalingList(NalReader& br, uint8_t* sl, uint32_t size, uint32_t inde
 
 PPS::PPS()
 {
-    memset(this, 0, offsetof(PPS, m_sps));
+    memset((void*)this, 0, offsetof(PPS, m_sps));
 }
 
 PPS::~PPS()
@@ -683,7 +683,7 @@ Parser::searchSps(uint8_t id) const
 
 SliceHeader::SliceHeader()
 {
-    memset(this, 0, offsetof(SliceHeader, m_pps));
+    memset((void*)this, 0, offsetof(SliceHeader, m_pps));
 }
 
 bool SliceHeader::refPicListModification(NalReader& br, RefPicListModification* pm0,
