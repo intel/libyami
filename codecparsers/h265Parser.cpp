@@ -162,7 +162,7 @@ static const uint8_t DefaultScalingList2[64] = {
 
 VPS::VPS()
 {
-    memset(this, 0, offsetof(VPS, hrd_layer_set_idx));
+    memset((void*)this, 0, offsetof(VPS, hrd_layer_set_idx));
 }
 
 VPS::~VPS()
@@ -171,17 +171,17 @@ VPS::~VPS()
 
 SPS::SPS()
 {
-    memset(this, 0, offsetof(SPS, vps));
+    memset((void*)this, 0, offsetof(SPS, vps));
 }
 
 PPS::PPS()
 {
-    memset(this, 0, offsetof(PPS, sps));
+    memset((void*)this, 0, offsetof(PPS, sps));
 }
 
 SliceHeader::SliceHeader()
 {
-    memset(this, 0, offsetof(SliceHeader, pps));
+    memset((void*)this, 0, offsetof(SliceHeader, pps));
 }
 
 SliceHeader::~SliceHeader()
