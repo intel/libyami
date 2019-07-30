@@ -208,19 +208,6 @@ bool SliceHeader::isISlice() const
     return slice_type == 2;
 }
 
-// Find the first occurrence of the subsequence position in the string src.
-// @src, the pointer to source data.
-// @size, the lenght of source data in bytes.
-static const uint8_t* searchStartPos(const uint8_t* src, uint32_t size)
-{
-    const uint8_t seq[] = {0x00, 0x00, 0x01};
-    const uint8_t* start = NULL;
-    start = std::search(src, src + size, seq, seq + 3);
-    if (start == src + size)
-        start = NULL;
-    return start;
-}
-
 // 7.3.1 NAL unit syntax
 bool NalUnit::parseNaluHeader(const uint8_t* data, size_t size)
 {
