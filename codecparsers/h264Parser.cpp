@@ -102,18 +102,6 @@ const uint8_t* Default_Scaling_List[12] = {
     Default_8x8_Inter, Default_8x8_Intra, Default_8x8_Inter
 };
 
-//Find the first occurrence of the subsequence position in the string src.
-//@src, the pointer to source data.
-//@size, the lenght of source data in bytes.
-static int32_t searchStartPos(const uint8_t* src, uint32_t size)
-{
-    //Loop size -2 times at most because the subsequence contains 3 characters.
-    for (uint32_t i = 0; i < size - 2; i++)
-        if ((src[i] == 0x00) && (src[i + 1] == 0x00) && (src[i + 2] == 0x01))
-            return i;
-    return -1;
-}
-
 //7.3.2.1.1.1 Scaling list syntax
 static bool scalingList(NalReader& br, uint8_t* sl, uint32_t size, uint32_t index)
 {
