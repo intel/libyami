@@ -6,9 +6,9 @@ AC_PREREQ([2.68])
 # YAMI-API version for api headers, only change it when the api interface is changed.
 m4_define([yami_api_major_version], 0)
 # update this for every release when micro version large than zero
-m4_define([yami_api_minor_version], 6)
+m4_define([yami_api_minor_version], 7)
 # change this for any api change
-m4_define([yami_api_micro_version], 1)
+m4_define([yami_api_micro_version], 0)
 m4_define([yami_api_version],
     [yami_api_major_version.yami_api_minor_version.yami_api_micro_version])
 
