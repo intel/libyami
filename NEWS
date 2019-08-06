@@ -1,7 +1,19 @@
-libyami NEWS -- summary of changes.  2018-09-19
+libyami NEWS -- summary of changes.  2019-08-06
 Copyright (c) 2010, The WebM Project authors.
-Copyright (C) 2011-2018 Intel Corporation
+Copyright (C) 2011-2019 Intel Corporation
 Copyright (C) 2015-2016 Alibaba
+
+libyami 1.3.2(API:0.7.0) release, work with libva 2.5.0
+=====================
+Major improvements:
++c5507c2 fix build for Celadon android project
++b0ba3b1 fix vp9parser for iHD driver
++f742635 fix build on GCC9
++0c40cbf refact mpeg2 decoder, make it more readable
++37e73be fix YamiParser::NalRreader::getPos conner case
+
+We bump api for
++b0b0a21 add motion adaptive and compensated deinterlace mode
 
 libyami 1.3.1(API:0.6.0) release, work with libva 2.2.1.pre1 release
 =====================
