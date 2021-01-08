@@ -24,7 +24,6 @@
 
 namespace YamiParser {
 
-const uint32_t CACHEBYTES = sizeof(unsigned long int);
 const uint32_t CACHEBITS = sizeof(unsigned long int) * 8;
 
 // clip to keep lowest n bits
