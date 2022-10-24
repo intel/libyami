@@ -412,7 +412,8 @@ SurfacePtr VaapiEncoderBase::createSurface(VideoFrameRawData* frame)
 
     VAImage image;
     VADisplay display = m_display->getID();
-    uint8_t* dest = mapSurfaceToImage(display, surface->getID(), image);
+    uint8_t* dest = mapSurfaceToImage(display, surface->getID(), image, 
+        frame->width, frame->height, fourcc);
     if (!dest) {
         ERROR("map image failed");
         return nil;

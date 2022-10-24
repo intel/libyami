@@ -23,12 +23,26 @@
 
 namespace YamiMediaCodec {
 
-uint8_t* mapSurfaceToImage(VADisplay display, intptr_t surface, VAImage& image)
+uint8_t* mapSurfaceToImage(VADisplay display, intptr_t surface, VAImage& image,
+    uint32_t width, uint32_t height, uint32_t fourcc)
 {
     uint8_t* p = NULL;
-    VAStatus status = vaDeriveImage(display, (VASurfaceID)surface, &image);
-    if (!checkVaapiStatus(status, "vaDeriveImage"))
-        return NULL;
+    VAStatus status;
+    if (width == 0 && height == 0 && fourcc == 0) {
+        status = vaDeriveImage(display, (VASurfaceID)surface, &image);
+        if (!checkVaapiStatus(status, "vaDeriveImage"))
+            return NULL;
+    } else { 
+        VAImageFormat format;
+        format.fourcc = fourcc;
+        status = vaCreateImage(display, &format, width, height, &image);
+        if (!checkVaapiStatus(status, "vaCreateImage"))
+            return NULL;
+        status = vaPutImage(display, (VASurfaceID)surface, image.image_id, 0, 0, 
+            width, height, 0, 0, width, height);
+        if (!checkVaapiStatus(status, "vaPutImage"))
+            return NULL;
+    }
     status = vaMapBuffer(display, image.buf, (void**)&p);
     if (!checkVaapiStatus(status, "vaMapBuffer")) {
         checkVaapiStatus(vaDestroyImage(display, image.image_id), "vaDestroyImage");
