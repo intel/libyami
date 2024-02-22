@@ -22,7 +22,8 @@
 
 namespace YamiMediaCodec {
 
-uint8_t* mapSurfaceToImage(VADisplay display, intptr_t surface, VAImage& image);
+uint8_t* mapSurfaceToImage(VADisplay display, intptr_t surface, VAImage& image, 
+    uint32_t width = 0, uint32_t height = 0, uint32_t fourcc = 0);
 
 void unmapImage(VADisplay display, const VAImage& image);
 
